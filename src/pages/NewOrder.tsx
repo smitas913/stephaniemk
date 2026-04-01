@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { fetchCustomers, createOrder, createOrderItem, createCustomer, createPayment } from "@/lib/queries";
+import { fetchCustomers, fetchProducts, createOrder, createOrderItem, createCustomer, createPayment } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
