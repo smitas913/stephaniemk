@@ -50,7 +50,12 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   }
 
   if (!session) return <Navigate to="/login" replace />;
-  if (!profile || !profile.is_active) return <Navigate to="/access-denied" replace />;
+  if (!profile) return <Navigate to="/access-denied" replace />;
+  // Pending consultants get a special screen
+  if (!profile.is_active && profile.role === "consultant" && profile.consultant_status === "pending") {
+    return <Navigate to="/pending-approval" replace />;
+  }
+  if (!profile.is_active) return <Navigate to="/access-denied" replace />;
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
     // Redirect to role-appropriate home instead of generic access-denied
     return <Navigate to={getRoleHome(profile.role)} replace />;
@@ -70,9 +75,11 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (session) {
-    if (!profile || !profile.is_active) {
-      return <Navigate to="/access-denied" replace />;
+    if (!profile) return <Navigate to="/access-denied" replace />;
+    if (!profile.is_active && profile.role === "consultant" && profile.consultant_status === "pending") {
+      return <Navigate to="/pending-approval" replace />;
     }
+    if (!profile.is_active) return <Navigate to="/access-denied" replace />;
     return <Navigate to={getRoleHome(profile.role)} replace />;
   }
   return <>{children}</>;
@@ -90,6 +97,7 @@ const AppRoutes = () => (
     <Route path="/signup" element={<GuestRoute><SignUp /></GuestRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/access-denied" element={<AccessDenied />} />
+    <Route path="/pending-approval" element={<PendingApproval />} />
 
     {/* Customer portal (logged-in customers see this) */}
     <Route path="/my-account" element={
@@ -114,7 +122,28 @@ const AppRoutes = () => (
   </Routes>
 );
 
-/** Customer welcome page with consultant access options */
+/** Pending consultant approval screen */
+function PendingApproval() {
+  const { signOut } = useAuth();
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-accent/50 flex items-center justify-center mx-auto">
+          <span className="text-2xl">⏳</span>
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Pending Approval</h2>
+        <p className="text-sm text-muted-foreground">
+          Your consultant account has been created and is pending verification. Access will be activated after approval.
+        </p>
+        <button onClick={signOut} className="text-sm text-muted-foreground hover:underline">
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 function CustomerPortalRedirect() {
   const { profile, signOut } = useAuth();
 
