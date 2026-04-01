@@ -192,7 +192,7 @@ export default function UserManagement() {
             </div>
           </div>
 
-          {isOwner && (
+          {(isOwner || isAdmin) && (
             <Dialog open={showAdd} onOpenChange={setShowAdd}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1">
