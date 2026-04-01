@@ -154,6 +154,7 @@ export default function NewOrder() {
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Order created!");
       navigate(`/orders/${order.id}`);
     } catch {
