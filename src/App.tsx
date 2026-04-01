@@ -97,6 +97,7 @@ const AppRoutes = () => (
     <Route path="/signup" element={<GuestRoute><SignUp /></GuestRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/access-denied" element={<AccessDenied />} />
+    <Route path="/pending-approval" element={<PendingApproval />} />
 
     {/* Customer portal (logged-in customers see this) */}
     <Route path="/my-account" element={
