@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut, UserCog } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,10 @@ const navItems = [
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/follow-ups", label: "Follow-Ups", icon: Bell },
+];
+
+const ownerNavItems = [
+  { to: "/users", label: "Users", icon: UserCog },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -27,6 +31,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 key={to}
                 to={to}
                 end={to === "/"}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{label}</span>
+              </NavLink>
+            ))}
+            {profile?.role === "owner" && ownerNavItems.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                     isActive

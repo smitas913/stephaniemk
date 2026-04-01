@@ -15,6 +15,7 @@ import FollowUps from "./pages/FollowUps";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import AccessDenied from "./pages/AccessDenied";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,7 @@ const AppRoutes = () => (
     <Route path="/orders/:id" element={<ProtectedRoute allowedRoles={["owner", "admin"]}><OrderDetail /></ProtectedRoute>} />
     <Route path="/inventory" element={<ProtectedRoute allowedRoles={["owner", "admin"]}><Inventory /></ProtectedRoute>} />
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={["owner", "admin"]}><FollowUps /></ProtectedRoute>} />
+    <Route path="/users" element={<ProtectedRoute allowedRoles={["owner"]}><UserManagement /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
