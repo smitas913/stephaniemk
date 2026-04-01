@@ -15,6 +15,7 @@ import FollowUps from "./pages/FollowUps";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import AccessDenied from "./pages/AccessDenied";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
