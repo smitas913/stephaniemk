@@ -64,6 +64,7 @@ const AppRoutes = () => (
     <Route path="/orders/:id" element={<ProtectedRoute allowedRoles={["owner", "admin"]}><OrderDetail /></ProtectedRoute>} />
     <Route path="/inventory" element={<ProtectedRoute allowedRoles={["owner", "admin"]}><Inventory /></ProtectedRoute>} />
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={["owner", "admin"]}><FollowUps /></ProtectedRoute>} />
+    <Route path="/users" element={<ProtectedRoute allowedRoles={["owner"]}><UserManagement /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
