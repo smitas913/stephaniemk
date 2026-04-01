@@ -75,9 +75,11 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
     );
   }
   if (session) {
-    if (!profile || !profile.is_active) {
-      return <Navigate to="/access-denied" replace />;
+    if (!profile) return <Navigate to="/access-denied" replace />;
+    if (!profile.is_active && profile.role === "consultant" && profile.consultant_status === "pending") {
+      return <Navigate to="/pending-approval" replace />;
     }
+    if (!profile.is_active) return <Navigate to="/access-denied" replace />;
     return <Navigate to={getRoleHome(profile.role)} replace />;
   }
   return <>{children}</>;
