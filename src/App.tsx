@@ -113,34 +113,81 @@ const AppRoutes = () => (
   </Routes>
 );
 
-/** Temporary redirect component for customers — will be a real portal later */
+/** Customer welcome page with consultant access options */
 function CustomerPortalRedirect() {
   const { profile, signOut } = useAuth();
 
+  const showConsultantOptions = profile?.consultant_status === "none";
+  const isPending = profile?.consultant_status === "pending";
+  const isRejected = profile?.consultant_status === "rejected";
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-sm text-center space-y-4">
-        <div className="text-4xl">✨</div>
-        <h2 className="text-xl font-bold text-foreground">Welcome, {profile?.full_name || "there"}!</h2>
-        <p className="text-sm text-muted-foreground">
-          Your customer portal is coming soon. We'll notify you when it's ready.
-        </p>
-        {profile?.consultant_status === "none" && (
-          <a
-            href="/become-consultant"
-            className="inline-block text-sm font-medium text-primary hover:underline"
-          >
-            Interested in becoming a consultant? Apply here →
-          </a>
+      <div className="w-full max-w-lg space-y-6">
+        {/* Welcome header */}
+        <div className="text-center space-y-2">
+          <div className="text-4xl">✨</div>
+          <h2 className="text-2xl font-bold text-foreground">Welcome, {profile?.full_name || "there"}!</h2>
+          <p className="text-sm text-muted-foreground">
+            Your customer portal is coming soon. We'll notify you when it's ready.
+          </p>
+        </div>
+
+        {/* Consultant Access section */}
+        {showConsultantOptions && (
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold text-foreground text-center">Consultant Access</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Existing consultant */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-center shadow-sm">
+                <p className="font-semibold text-foreground text-sm">Already a Mary Kay Consultant?</p>
+                <p className="text-xs text-muted-foreground">
+                  If you're already a consultant, request access to your consultant dashboard.
+                </p>
+                <a
+                  href="/become-consultant"
+                  className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors w-full"
+                >
+                  Request Consultant Access
+                </a>
+              </div>
+              {/* New consultant */}
+              <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-center shadow-sm">
+                <p className="font-semibold text-foreground text-sm">Want to Become a Consultant?</p>
+                <p className="text-xs text-muted-foreground">
+                  Submit a request and we'll guide you through the next steps.
+                </p>
+                <a
+                  href="/become-consultant"
+                  className="inline-flex items-center justify-center rounded-lg border border-primary text-primary px-4 py-2 text-sm font-medium hover:bg-primary/10 transition-colors w-full"
+                >
+                  Start Consultant Request
+                </a>
+              </div>
+            </div>
+          </div>
         )}
-        {profile?.consultant_status === "pending" && (
-          <p className="text-sm text-accent-foreground">Your consultant request is under review.</p>
+
+        {isPending && (
+          <div className="rounded-xl border border-border bg-accent/30 p-4 text-center space-y-1">
+            <p className="text-sm font-medium text-foreground">Request Under Review</p>
+            <p className="text-xs text-muted-foreground">
+              Your consultant access request is being reviewed. We'll notify you once approved.
+            </p>
+          </div>
         )}
-        <div>
-          <button
-            onClick={signOut}
-            className="text-sm text-muted-foreground hover:underline"
-          >
+
+        {isRejected && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center space-y-1">
+            <p className="text-sm font-medium text-foreground">Request Not Approved</p>
+            <p className="text-xs text-muted-foreground">
+              Your consultant request was not approved. Contact an administrator for more info.
+            </p>
+          </div>
+        )}
+
+        <div className="text-center">
+          <button onClick={signOut} className="text-sm text-muted-foreground hover:underline">
             Sign out
           </button>
         </div>

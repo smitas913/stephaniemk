@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, Briefcase, CheckCircle2, XCircle, Clock } from "lucide-react";
 
@@ -17,6 +18,7 @@ export default function ConsultantRequest() {
   const [notes, setNotes] = useState("");
   const [directorInfo, setDirectorInfo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (loading || profileLoading) {
     return (
@@ -53,7 +55,8 @@ export default function ConsultantRequest() {
         } as any)
         .eq("id", profile.id);
       if (error) throw error;
-      toast.success("Request submitted! An admin will review it shortly.");
+      toast.success("Request submitted!");
+      setShowConfirm(true);
       await refetchProfile();
     } catch (e: any) {
       toast.error(e.message || "Failed to submit request");
@@ -182,6 +185,23 @@ export default function ConsultantRequest() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              Request Submitted
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-2">
+              Thanks for your request. Your consultant account will be activated after it has been reviewed and verified. We'll notify you as soon as you're approved.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setShowConfirm(false)} className="w-full">
+            Got It
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
