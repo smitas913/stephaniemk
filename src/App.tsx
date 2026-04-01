@@ -18,6 +18,8 @@ import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import AccessDenied from "./pages/AccessDenied";
 import UserManagement from "./pages/UserManagement";
+import ConsultantRequests from "./pages/ConsultantRequests";
+import ConsultantRequest from "./pages/ConsultantRequest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
