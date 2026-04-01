@@ -164,6 +164,30 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          created_at: string
+          current_stock: number
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          name: string
+          price?: number
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

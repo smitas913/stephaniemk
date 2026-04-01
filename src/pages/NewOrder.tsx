@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { fetchCustomers, createOrder, createOrderItem, createCustomer, createPayment } from "@/lib/queries";
+import { fetchCustomers, fetchProducts, createOrder, createOrderItem, createCustomer, createPayment } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Plus, X, CalendarIcon, UserPlus, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, X, CalendarIcon, UserPlus, Check, ChevronDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface LineItem {
@@ -55,6 +55,7 @@ export default function NewOrder() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
 
   const preselectedCustomerId = searchParams.get("customer") || "";
   const preselectedCustomer = customers.find((c) => c.id === preselectedCustomerId);
@@ -153,6 +154,7 @@ export default function NewOrder() {
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Order created!");
       navigate(`/orders/${order.id}`);
     } catch {
@@ -314,52 +316,105 @@ export default function NewOrder() {
               </Button>
             </div>
 
-            {items.map((item, i) => (
-              <div key={i} className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Product name"
-                    value={item.product_name}
-                    onChange={(e) => updateItem(i, "product_name", e.target.value)}
-                    className="flex-1 h-11 text-base"
-                  />
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(i)} className="text-muted-foreground hover:text-destructive p-1">
-                      <X className="w-4 h-4" />
-                    </button>
+            {items.map((item, i) => {
+              const matchedProduct = products.find((p) => p.name.toLowerCase() === item.product_name.toLowerCase());
+              const stockAfter = matchedProduct ? matchedProduct.current_stock - item.quantity : null;
+              const isLowStock = stockAfter !== null && stockAfter < 5;
+              const isOutOfStock = stockAfter !== null && stockAfter < 0;
+              const productSuggestions = item.product_name.trim()
+                ? products.filter((p) => p.name.toLowerCase().includes(item.product_name.toLowerCase()) && p.name.toLowerCase() !== item.product_name.toLowerCase()).slice(0, 5)
+                : [];
+
+              return (
+                <div key={i} className={cn(
+                  "p-3 rounded-xl border space-y-2",
+                  isOutOfStock ? "bg-destructive/5 border-destructive/30" : isLowStock ? "bg-yellow-50 border-yellow-300" : "bg-muted/40 border-border/50"
+                )}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 relative">
+                      <Input
+                        placeholder="Product name"
+                        value={item.product_name}
+                        onChange={(e) => updateItem(i, "product_name", e.target.value)}
+                        className="h-11 text-base"
+                        autoComplete="off"
+                      />
+                      {productSuggestions.length > 0 && (
+                        <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden max-h-40 overflow-y-auto">
+                          {productSuggestions.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className="w-full text-left px-3 py-2 hover:bg-accent active:bg-accent/80 transition-colors text-sm border-b border-border/50 last:border-b-0"
+                              onClick={() => {
+                                updateItem(i, "product_name", p.name);
+                                updateItem(i, "price", p.price);
+                              }}
+                            >
+                              <div className="flex justify-between">
+                                <span className="font-medium text-foreground">{p.name}</span>
+                                <span className="text-muted-foreground">${Number(p.price).toFixed(2)}</span>
+                              </div>
+                              <span className={cn("text-xs", p.current_stock < 5 ? "text-destructive" : "text-muted-foreground")}>
+                                {p.current_stock} in stock
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {items.length > 1 && (
+                      <button type="button" onClick={() => removeItem(i)} className="text-muted-foreground hover:text-destructive p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Stock warning */}
+                  {matchedProduct && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {isOutOfStock ? (
+                        <><AlertTriangle className="w-3.5 h-3.5 text-destructive" /><span className="text-destructive font-medium">Not enough stock ({matchedProduct.current_stock} available)</span></>
+                      ) : isLowStock ? (
+                        <><AlertTriangle className="w-3.5 h-3.5 text-yellow-600" /><span className="text-yellow-700 font-medium">Low stock — {stockAfter} will remain</span></>
+                      ) : (
+                        <span className="text-muted-foreground">{stockAfter} will remain in stock</span>
+                      )}
+                    </div>
                   )}
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-[10px] uppercase text-muted-foreground">Qty</label>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 0)}
+                        className="h-10"
+                        min={1}
+                        inputMode="numeric"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] uppercase text-muted-foreground">Price</label>
+                      <Input
+                        type="number"
+                        value={item.price || ""}
+                        onChange={(e) => updateItem(i, "price", parseFloat(e.target.value) || 0)}
+                        className="h-10"
+                        min={0}
+                        step={0.01}
+                        inputMode="decimal"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="w-20 text-right pt-4">
+                      <span className="text-sm font-bold text-foreground">${(item.quantity * item.price).toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <label className="text-[10px] uppercase text-muted-foreground">Qty</label>
-                    <Input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 0)}
-                      className="h-10"
-                      min={1}
-                      inputMode="numeric"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] uppercase text-muted-foreground">Price</label>
-                    <Input
-                      type="number"
-                      value={item.price || ""}
-                      onChange={(e) => updateItem(i, "price", parseFloat(e.target.value) || 0)}
-                      className="h-10"
-                      min={0}
-                      step={0.01}
-                      inputMode="decimal"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="w-20 text-right pt-4">
-                    <span className="text-sm font-bold text-foreground">${(item.quantity * item.price).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Running Total */}
             <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20">
