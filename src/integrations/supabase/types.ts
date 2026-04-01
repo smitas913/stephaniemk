@@ -194,14 +194,50 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_any_active_role: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "owner" | "admin" | "staff"
       order_source: "Online" | "Phone" | "Text" | "Event" | "Other"
       payment_method: "Cash" | "Check" | "Venmo" | "Zelle" | "Card" | "Other"
       payment_status: "Paid" | "Unpaid" | "Partial"
@@ -332,6 +368,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["owner", "admin", "staff"],
       order_source: ["Online", "Phone", "Text", "Event", "Other"],
       payment_method: ["Cash", "Check", "Venmo", "Zelle", "Card", "Other"],
       payment_status: ["Paid", "Unpaid", "Partial"],
