@@ -3,12 +3,16 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 type AppRole = "owner" | "admin" | "consultant" | "customer" | "staff";
+type ConsultantStatus = "none" | "pending" | "approved" | "rejected";
 
 type Profile = {
   id: string;
   full_name: string | null;
+  email: string | null;
+  phone: string | null;
   role: AppRole;
   is_active: boolean;
+  consultant_status: ConsultantStatus;
 };
 
 type AuthContext = {
