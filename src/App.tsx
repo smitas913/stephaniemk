@@ -24,6 +24,20 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function getRoleHome(role: string): string {
+  switch (role) {
+    case "owner":
+    case "admin":
+      return "/dashboard";
+    case "consultant":
+      return "/dashboard";
+    case "customer":
+      return "/my-account";
+    default:
+      return "/my-account";
+  }
+}
+
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { session, profile, loading, profileLoading } = useAuth();
 
@@ -38,7 +52,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   if (!session) return <Navigate to="/login" replace />;
   if (!profile || !profile.is_active) return <Navigate to="/access-denied" replace />;
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    return <Navigate to="/access-denied" replace />;
+    // Redirect to role-appropriate home instead of generic access-denied
+    return <Navigate to={getRoleHome(profile.role)} replace />;
   }
 
   return <>{children}</>;
@@ -47,13 +62,18 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 /** Routes accessible only when NOT logged in */
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { session, profile, loading, profileLoading } = useAuth();
-  if (loading || profileLoading) return null;
-  if (session && profile) {
-    // Redirect based on role
-    if (["owner", "admin", "consultant"].includes(profile.role)) {
-      return <Navigate to="/dashboard" replace />;
+  if (loading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (session) {
+    if (!profile || !profile.is_active) {
+      return <Navigate to="/access-denied" replace />;
     }
-    return <Navigate to="/my-account" replace />;
+    return <Navigate to={getRoleHome(profile.role)} replace />;
   }
   return <>{children}</>;
 }
