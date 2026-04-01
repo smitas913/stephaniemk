@@ -17,8 +17,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 type Profile = {
   id: string;
   full_name: string | null;
-  role: "owner" | "admin" | "staff";
+  email: string | null;
+  phone: string | null;
+  role: "owner" | "admin" | "consultant" | "customer" | "staff";
   is_active: boolean;
+  consultant_status: "none" | "pending" | "approved" | "rejected";
   created_at: string;
 };
 
