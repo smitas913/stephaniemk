@@ -43,6 +43,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
             ))}
+            {profile?.role === "owner" && ownerNavItems.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{label}</span>
+              </NavLink>
+            ))}
           </nav>
           <div className="flex items-center gap-1 shrink-0">
             {profile && (
