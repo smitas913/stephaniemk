@@ -1,5 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, Package, Bell } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +12,8 @@ const navItems = [
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const { signOut } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-50">
@@ -17,7 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1 className="text-lg font-bold tracking-tight text-primary shrink-0">
             ✨ MK CRM
           </h1>
-          <nav className="flex gap-0.5 overflow-x-auto">
+          <nav className="flex gap-0.5 overflow-x-auto flex-1">
             {navItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
@@ -36,6 +40,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </NavLink>
             ))}
           </nav>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={signOut}
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </header>
       <main className="container py-6 md:py-8">{children}</main>
