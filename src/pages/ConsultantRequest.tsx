@@ -185,6 +185,23 @@ export default function ConsultantRequest() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              Request Submitted
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-2">
+              Thanks for your request. Your consultant account will be activated after it has been reviewed and verified. We'll notify you as soon as you're approved.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setShowConfirm(false)} className="w-full">
+            Got It
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
