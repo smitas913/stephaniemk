@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type AppRole = "owner" | "admin" | "staff";
+type AppRole = "owner" | "admin" | "consultant" | "customer" | "staff";
 
 type Profile = {
   id: string;
@@ -54,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setLoading(false);
         if (session?.user) {
-          // Defer profile fetch to avoid Supabase deadlock
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
