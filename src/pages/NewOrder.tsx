@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Plus, X, CalendarIcon, UserPlus, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, X, CalendarIcon, UserPlus, Check, ChevronDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface LineItem {
