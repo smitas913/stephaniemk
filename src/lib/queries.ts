@@ -26,7 +26,7 @@ export const createCustomer = async (customer: { name: string; phone?: string; e
   return data;
 };
 
-export const updateCustomer = async (id: string, customer: { name?: string; phone?: string; email?: string; notes?: string }) => {
+export const updateCustomer = async (id: string, customer: { name?: string; phone?: string; email?: string; notes?: string; follow_up_needed?: boolean; last_contact_date?: string | null }) => {
   const { data, error } = await supabase.from("customers").update(customer).eq("id", id).select().single();
   if (error) throw error;
   return data;
