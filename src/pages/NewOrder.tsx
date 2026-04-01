@@ -55,6 +55,7 @@ export default function NewOrder() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
 
   const preselectedCustomerId = searchParams.get("customer") || "";
   const preselectedCustomer = customers.find((c) => c.id === preselectedCustomerId);
