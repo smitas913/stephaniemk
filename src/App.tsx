@@ -50,7 +50,12 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   }
 
   if (!session) return <Navigate to="/login" replace />;
-  if (!profile || !profile.is_active) return <Navigate to="/access-denied" replace />;
+  if (!profile) return <Navigate to="/access-denied" replace />;
+  // Pending consultants get a special screen
+  if (!profile.is_active && profile.role === "consultant" && profile.consultant_status === "pending") {
+    return <Navigate to="/pending-approval" replace />;
+  }
+  if (!profile.is_active) return <Navigate to="/access-denied" replace />;
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
     // Redirect to role-appropriate home instead of generic access-denied
     return <Navigate to={getRoleHome(profile.role)} replace />;
