@@ -41,8 +41,7 @@ export default function SignUp() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Signing you in…");
-      navigate("/");
+      toast.success("Account created! Check your email to verify, then sign in.");
     }
   };
 
