@@ -47,10 +47,6 @@ export default function UserManagement() {
   const isOwner = myProfile?.role === "owner";
   const isAdmin = myProfile?.role === "admin";
 
-  if (!isOwner && !isAdmin) {
-    return <Navigate to="/access-denied" replace />;
-  }
-
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
@@ -61,7 +57,12 @@ export default function UserManagement() {
       if (error) throw error;
       return data as Profile[];
     },
+    enabled: isOwner || isAdmin,
   });
+
+  if (!isOwner && !isAdmin) {
+    return <Navigate to="/access-denied" replace />;
+  }
 
   const filtered = useMemo(() => {
     return profiles.filter((p) => {
