@@ -84,8 +84,9 @@ const INTERNAL_ROLES = ["owner", "admin", "consultant"];
 const AppRoutes = () => (
   <Routes>
     {/* Public routes */}
-    <Route path="/" element={<GuestRoute><Landing /></GuestRoute>} />
+    <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
     <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+    <Route path="/landing" element={<GuestRoute><Landing /></GuestRoute>} />
     <Route path="/signup" element={<GuestRoute><SignUp /></GuestRoute>} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/access-denied" element={<AccessDenied />} />
