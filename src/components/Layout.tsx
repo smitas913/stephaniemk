@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
