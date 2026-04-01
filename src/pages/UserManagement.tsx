@@ -59,11 +59,6 @@ export default function UserManagement() {
     },
     enabled: isOwner || isAdmin,
   });
-
-  if (!isOwner && !isAdmin) {
-    return <Navigate to="/access-denied" replace />;
-  }
-
   const filtered = useMemo(() => {
     return profiles.filter((p) => {
       const q = search.toLowerCase();
@@ -93,6 +88,11 @@ export default function UserManagement() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!isOwner && !isAdmin) {
+    return <Navigate to="/access-denied" replace />;
+  }
+
 
   const handleRoleChange = (target: Profile, newRole: string) => {
     // Self-lockout prevention
