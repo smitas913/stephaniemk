@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function SignUp() {
-  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -42,8 +41,7 @@ export default function SignUp() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Signing you in…");
-      navigate("/");
+      toast.success("Account created! Check your email to verify, then sign in.");
     }
   };
 

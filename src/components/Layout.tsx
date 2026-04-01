@@ -3,21 +3,29 @@ import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut, UserCog, Cl
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
+const adminNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/follow-ups", label: "Follow-Ups", icon: Bell },
-];
-
-const adminNavItems = [
   { to: "/users", label: "Users", icon: UserCog },
   { to: "/consultant-requests", label: "Requests", icon: ClipboardList },
 ];
 
+const consultantNavItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+];
+
+function getNavItems(role?: string) {
+  if (role === "owner" || role === "admin") return adminNavItems;
+  if (role === "consultant") return consultantNavItems;
+  return [];
+}
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { signOut, profile } = useAuth();
+  const navItems = getNavItems(profile?.role);
 
   return (
     <div className="min-h-screen bg-background">
@@ -32,22 +40,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 key={to}
                 to={to}
                 end={to === "/dashboard"}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{label}</span>
-              </NavLink>
-            ))}
-            {(profile?.role === "owner" || profile?.role === "admin") && adminNavItems.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                     isActive
