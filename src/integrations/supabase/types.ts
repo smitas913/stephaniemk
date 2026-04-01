@@ -196,24 +196,33 @@ export type Database = {
       }
       profiles: {
         Row: {
+          consultant_status: Database["public"]["Enums"]["consultant_status"]
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           is_active: boolean
+          phone: string | null
           role: Database["public"]["Enums"]["app_role"]
         }
         Insert: {
+          consultant_status?: Database["public"]["Enums"]["consultant_status"]
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean
+          phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
         }
         Update: {
+          consultant_status?: Database["public"]["Enums"]["consultant_status"]
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean
+          phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
         }
         Relationships: []
@@ -238,6 +247,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
+      consultant_status: "none" | "pending" | "approved" | "rejected"
       order_source: "Online" | "Phone" | "Text" | "Event" | "Other"
       payment_method: "Cash" | "Check" | "Venmo" | "Zelle" | "Card" | "Other"
       payment_status: "Paid" | "Unpaid" | "Partial"
@@ -369,6 +379,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
+      consultant_status: ["none", "pending", "approved", "rejected"],
       order_source: ["Online", "Phone", "Text", "Event", "Other"],
       payment_method: ["Cash", "Check", "Venmo", "Zelle", "Card", "Other"],
       payment_status: ["Paid", "Unpaid", "Partial"],
