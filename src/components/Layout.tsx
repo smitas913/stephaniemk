@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut, UserCog } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,10 @@ const navItems = [
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/follow-ups", label: "Follow-Ups", icon: Bell },
+];
+
+const ownerNavItems = [
+  { to: "/users", label: "Users", icon: UserCog },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
