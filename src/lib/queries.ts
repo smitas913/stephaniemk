@@ -39,7 +39,7 @@ export const deleteCustomer = async (id: string) => {
 
 // Orders
 export const fetchOrders = async (customerId?: string) => {
-  let query = supabase.from("orders").select("*, customers(name)").order("order_date", { ascending: false });
+  let query = supabase.from("orders").select("*, customers(name), payments(id, amount)").order("order_date", { ascending: false });
   if (customerId) query = query.eq("customer_id", customerId);
   const { data, error } = await query;
   if (error) throw error;
