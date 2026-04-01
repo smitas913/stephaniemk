@@ -196,8 +196,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_name: string | null
+          consultant_notes: string | null
           consultant_status: Database["public"]["Enums"]["consultant_status"]
           created_at: string
+          director_info: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -206,8 +209,11 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }
         Insert: {
+          business_name?: string | null
+          consultant_notes?: string | null
           consultant_status?: Database["public"]["Enums"]["consultant_status"]
           created_at?: string
+          director_info?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -216,8 +222,11 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
         }
         Update: {
+          business_name?: string | null
+          consultant_notes?: string | null
           consultant_status?: Database["public"]["Enums"]["consultant_status"]
           created_at?: string
+          director_info?: string | null
           email?: string | null
           full_name?: string | null
           id?: string

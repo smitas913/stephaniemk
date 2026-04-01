@@ -18,6 +18,8 @@ import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import AccessDenied from "./pages/AccessDenied";
 import UserManagement from "./pages/UserManagement";
+import ConsultantRequests from "./pages/ConsultantRequests";
+import ConsultantRequest from "./pages/ConsultantRequest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +87,8 @@ const AppRoutes = () => (
     <Route path="/inventory" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Inventory /></ProtectedRoute>} />
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
     <Route path="/users" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><UserManagement /></ProtectedRoute>} />
+    <Route path="/consultant-requests" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ConsultantRequests /></ProtectedRoute>} />
+    <Route path="/become-consultant" element={<ProtectedRoute allowedRoles={["customer"]}><ConsultantRequest /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -101,12 +105,25 @@ function CustomerPortalRedirect() {
         <p className="text-sm text-muted-foreground">
           Your customer portal is coming soon. We'll notify you when it's ready.
         </p>
-        <button
-          onClick={signOut}
-          className="text-sm text-primary hover:underline"
-        >
-          Sign out
-        </button>
+        {profile?.consultant_status === "none" && (
+          <a
+            href="/become-consultant"
+            className="inline-block text-sm font-medium text-primary hover:underline"
+          >
+            Interested in becoming a consultant? Apply here →
+          </a>
+        )}
+        {profile?.consultant_status === "pending" && (
+          <p className="text-sm text-accent-foreground">Your consultant request is under review.</p>
+        )}
+        <div>
+          <button
+            onClick={signOut}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );
