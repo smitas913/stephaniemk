@@ -44,7 +44,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <span className="hidden sm:inline">{label}</span>
               </NavLink>
             ))}
-            {profile?.role === "owner" && ownerNavItems.map(({ to, label, icon: Icon }) => (
+            {(profile?.role === "owner" || profile?.role === "admin") && adminNavItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
