@@ -105,12 +105,25 @@ function CustomerPortalRedirect() {
         <p className="text-sm text-muted-foreground">
           Your customer portal is coming soon. We'll notify you when it's ready.
         </p>
-        <button
-          onClick={signOut}
-          className="text-sm text-primary hover:underline"
-        >
-          Sign out
-        </button>
+        {profile?.consultant_status === "none" && (
+          <a
+            href="/become-consultant"
+            className="inline-block text-sm font-medium text-primary hover:underline"
+          >
+            Interested in becoming a consultant? Apply here →
+          </a>
+        )}
+        {profile?.consultant_status === "pending" && (
+          <p className="text-sm text-accent-foreground">Your consultant request is under review.</p>
+        )}
+        <div>
+          <button
+            onClick={signOut}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );
