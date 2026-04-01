@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const { action, email, password, full_name, role } = await req.json();
 
     if (action === "create-user") {
-      // Verify caller is an owner
+      // Verify caller is owner or admin
       const authHeader = req.headers.get("Authorization")!;
       const token = authHeader.replace("Bearer ", "");
       const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token);
@@ -30,24 +30,31 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Check caller is owner
       const { data: callerProfile } = await supabaseAdmin
         .from("profiles")
         .select("role, is_active")
         .eq("id", caller.id)
         .single();
 
-      if (!callerProfile || callerProfile.role !== "owner" || !callerProfile.is_active) {
-        return new Response(JSON.stringify({ error: "Only owners can create users" }), {
+      if (!callerProfile || !callerProfile.is_active || !["owner", "admin"].includes(callerProfile.role)) {
+        return new Response(JSON.stringify({ error: "Only owners and admins can create users" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Create auth user
+      // Admins cannot create owner accounts
+      if (role === "owner" && callerProfile.role !== "owner") {
+        return new Response(JSON.stringify({ error: "Only owners can create owner accounts" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Create auth user (this triggers handle_new_user which creates a customer profile)
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
+        user_metadata: { full_name: full_name || email },
       });
 
       if (createError) {
@@ -56,13 +63,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Create profile
-      const { error: profileError } = await supabaseAdmin.from("profiles").insert({
-        id: newUser.user.id,
+      // Update the profile created by the trigger to the correct role
+      const { error: profileError } = await supabaseAdmin.from("profiles").update({
         full_name: full_name || email,
+        email: email,
         role: role || "admin",
         is_active: true,
-      });
+      }).eq("id", newUser.user.id);
 
       if (profileError) {
         return new Response(JSON.stringify({ error: profileError.message }), {
@@ -76,13 +83,14 @@ Deno.serve(async (req) => {
     }
 
     if (action === "bootstrap-owner") {
-      // Only works if NO profiles exist yet
+      // Only works if NO owner profiles exist yet
       const { count } = await supabaseAdmin
         .from("profiles")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("role", "owner");
 
       if (count && count > 0) {
-        return new Response(JSON.stringify({ error: "Owner already exists. Use the app to manage users." }), {
+        return new Response(JSON.stringify({ error: "An owner already exists. Use the app to manage users." }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -92,6 +100,7 @@ Deno.serve(async (req) => {
         email,
         password,
         email_confirm: true,
+        user_metadata: { full_name: full_name || email },
       });
 
       if (createError) {
@@ -100,13 +109,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Create owner profile
-      const { error: profileError } = await supabaseAdmin.from("profiles").insert({
-        id: newUser.user.id,
+      // Update profile to owner (trigger creates it as customer)
+      const { error: profileError } = await supabaseAdmin.from("profiles").update({
         full_name: full_name || email,
+        email: email,
         role: "owner",
         is_active: true,
-      });
+      }).eq("id", newUser.user.id);
 
       if (profileError) {
         return new Response(JSON.stringify({ error: profileError.message }), {
