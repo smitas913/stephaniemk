@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, createOrder, createOrderItem, updateOrder } from "@/lib/queries";
+import { format } from "date-fns";
+import { fetchCustomers, createOrder, createOrderItem, createCustomer, createPayment } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, Plus, X, CalendarIcon, UserPlus, Check, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 interface LineItem {
@@ -17,19 +19,84 @@ interface LineItem {
   price: number;
 }
 
+const ORDER_SOURCES = ["Online", "Phone", "Text", "Event", "Other"] as const;
+const PAYMENT_STATUSES = ["Paid", "Unpaid", "Partial"] as const;
+const PAYMENT_METHODS = ["Cash", "Check", "Venmo", "Zelle", "Card", "Other"] as const;
+
+function QuickSelect({ label, options, value, onChange }: { label: string; options: readonly string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={cn(
+              "px-3 py-2 rounded-lg text-sm font-medium transition-all active:scale-95",
+              value === opt
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function NewOrder() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
 
-  const [customerId, setCustomerId] = useState(searchParams.get("customer") || "");
+  const preselectedCustomerId = searchParams.get("customer") || "";
+  const preselectedCustomer = customers.find((c) => c.id === preselectedCustomerId);
+
+  // Customer search
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(
+    preselectedCustomer ? { id: preselectedCustomer.id, name: preselectedCustomer.name } : null
+  );
+  const [showResults, setShowResults] = useState(false);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+
+  // Update selected customer when preselected data arrives
+  useEffect(() => {
+    if (preselectedCustomer && !selectedCustomer) {
+      setSelectedCustomer({ id: preselectedCustomer.id, name: preselectedCustomer.name });
+    }
+  }, [preselectedCustomer, selectedCustomer]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch.trim()) return customers.slice(0, 8);
+    const q = customerSearch.toLowerCase();
+    return customers.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.phone?.includes(q)
+    ).slice(0, 8);
+  }, [customerSearch, customers]);
+
+  // Order fields
   const [orderSource, setOrderSource] = useState<string>("Other");
-  const [paymentStatus, setPaymentStatus] = useState<string>("Unpaid");
-  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [orderDate, setOrderDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState("");
+
+  // Items
   const [items, setItems] = useState<LineItem[]>([{ product_name: "", quantity: 1, price: 0 }]);
+
+  // Payment
+  const [paymentStatus, setPaymentStatus] = useState<string>("Unpaid");
+  const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
+  const [paymentAmount, setPaymentAmount] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
 
   const total = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
@@ -42,22 +109,47 @@ export default function NewOrder() {
     setItems(updated);
   };
 
+  const createCustomerMutation = useMutation({
+    mutationFn: createCustomer,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setSelectedCustomer({ id: data.id, name: data.name });
+      setShowNewCustomer(false);
+      setCustomerSearch("");
+      setNewCustomerName("");
+      setNewCustomerPhone("");
+      toast.success(`${data.name} added!`);
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId) { toast.error("Select a customer"); return; }
+    if (!selectedCustomer) { toast.error("Select a customer"); return; }
+    if (!items.some((i) => i.product_name.trim())) { toast.error("Add at least one item"); return; }
     setSubmitting(true);
     try {
       const order = await createOrder({
-        customer_id: customerId,
+        customer_id: selectedCustomer.id,
         order_source: orderSource as any,
+        order_date: format(orderDate, "yyyy-MM-dd"),
         payment_status: paymentStatus as any,
-        payment_method: paymentMethod ? (paymentMethod as any) : null,
+        payment_method: paymentMethod as any,
         notes: notes || undefined,
         total_amount: total,
       });
 
       const validItems = items.filter((i) => i.product_name.trim());
       await Promise.all(validItems.map((item) => createOrderItem({ order_id: order.id, ...item })));
+
+      // Create payment record if amount entered
+      const payAmt = parseFloat(paymentAmount);
+      if (payAmt > 0 && paymentStatus !== "Unpaid") {
+        await createPayment({
+          order_id: order.id,
+          amount: payAmt,
+          payment_method: paymentMethod as any,
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -72,111 +164,261 @@ export default function NewOrder() {
 
   return (
     <Layout>
-      <div className="space-y-6 max-w-2xl">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+      <div className="max-w-lg mx-auto pb-8">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" className="shrink-0 -ml-2" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">New Order</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">New Order</h2>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card className="border-border/50 shadow-sm">
-            <CardHeader><CardTitle className="text-foreground">Order Details</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger><SelectValue placeholder="Select customer *" /></SelectTrigger>
-                <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <form onSubmit={handleSubmit} className="space-y-5">
 
-              <div className="grid grid-cols-2 gap-4">
-                <Select value={orderSource} onValueChange={setOrderSource}>
-                  <SelectTrigger><SelectValue placeholder="Source" /></SelectTrigger>
-                  <SelectContent>
-                    {["Online", "Phone", "Text", "Event", "Other"].map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* ── Customer Search ── */}
+          <section className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer *</label>
 
-                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger><SelectValue placeholder="Payment Status" /></SelectTrigger>
-                  <SelectContent>
-                    {["Paid", "Unpaid", "Partial"].map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {selectedCustomer ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-foreground">{selectedCustomer.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedCustomer(null); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search by name or phone..."
+                  value={customerSearch}
+                  onChange={(e) => { setCustomerSearch(e.target.value); setShowResults(true); }}
+                  onFocus={() => setShowResults(true)}
+                  className="h-12 text-base"
+                  autoComplete="off"
+                />
+                {showResults && (
+                  <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                    {filteredCustomers.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full text-left px-4 py-3 hover:bg-accent active:bg-accent/80 transition-colors border-b border-border/50 last:border-b-0"
+                        onClick={() => {
+                          setSelectedCustomer({ id: c.id, name: c.name });
+                          setCustomerSearch("");
+                          setShowResults(false);
+                        }}
+                      >
+                        <p className="font-medium text-foreground">{c.name}</p>
+                        {c.phone && <p className="text-xs text-muted-foreground">{c.phone}</p>}
+                      </button>
+                    ))}
+                    {filteredCustomers.length === 0 && customerSearch.trim() && (
+                      <div className="px-4 py-3 text-sm text-muted-foreground">No matches found</div>
+                    )}
+                    <button
+                      type="button"
+                      className="w-full text-left px-4 py-3 flex items-center gap-2 text-primary font-medium hover:bg-accent active:bg-accent/80 transition-colors"
+                      onClick={() => {
+                        setShowNewCustomer(true);
+                        setShowResults(false);
+                        setNewCustomerName(customerSearch);
+                      }}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Create new customer
+                    </button>
+                  </div>
+                )}
 
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger><SelectValue placeholder="Payment Method (optional)" /></SelectTrigger>
-                <SelectContent>
-                  {["Cash", "Check", "Venmo", "Zelle", "Card", "Other"].map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {/* Click-away */}
+                {showResults && (
+                  <div className="fixed inset-0 z-10" onClick={() => setShowResults(false)} />
+                )}
+              </div>
+            )}
 
-              <Textarea placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </CardContent>
-          </Card>
+            {/* Inline new customer form */}
+            {showNewCustomer && (
+              <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-3">
+                <p className="text-sm font-semibold text-foreground">Quick Add Customer</p>
+                <Input
+                  placeholder="Name *"
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  className="h-11 text-base"
+                  autoFocus
+                />
+                <Input
+                  placeholder="Phone (optional)"
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value)}
+                  className="h-11 text-base"
+                  type="tel"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    className="flex-1"
+                    disabled={!newCustomerName.trim() || createCustomerMutation.isPending}
+                    onClick={() => createCustomerMutation.mutate({ name: newCustomerName.trim(), phone: newCustomerPhone || undefined })}
+                  >
+                    {createCustomerMutation.isPending ? "Adding..." : "Add & Select"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowNewCustomer(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </section>
 
-          <Card className="border-border/50 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-foreground">Line Items</CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="w-4 h-4 mr-1" />Add Item
+          {/* ── Order Source + Date ── */}
+          <section className="space-y-4">
+            <QuickSelect label="Source" options={ORDER_SOURCES} value={orderSource} onChange={setOrderSource} />
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full h-11 justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                    {format(orderDate, "PPP")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={orderDate}
+                    onSelect={(d) => d && setOrderDate(d)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </section>
+
+          {/* ── Line Items ── */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Items</label>
+              <Button type="button" variant="ghost" size="sm" onClick={addItem} className="text-primary -mr-2">
+                <Plus className="w-4 h-4 mr-1" />Add
               </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {items.map((item, i) => (
-                <div key={i} className="flex gap-2 items-center">
+            </div>
+
+            {items.map((item, i) => (
+              <div key={i} className="p-3 rounded-xl bg-muted/40 border border-border/50 space-y-2">
+                <div className="flex items-center gap-2">
                   <Input
                     placeholder="Product name"
                     value={item.product_name}
                     onChange={(e) => updateItem(i, "product_name", e.target.value)}
-                    className="flex-1"
+                    className="flex-1 h-11 text-base"
                   />
-                  <Input
-                    type="number"
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 0)}
-                    className="w-20"
-                    min={1}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Price"
-                    value={item.price}
-                    onChange={(e) => updateItem(i, "price", parseFloat(e.target.value) || 0)}
-                    className="w-24"
-                    min={0}
-                    step={0.01}
-                  />
-                  <span className="w-20 text-right text-sm font-medium text-foreground">
-                    ${(item.quantity * item.price).toFixed(2)}
-                  </span>
                   {items.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(i)}>
+                    <button type="button" onClick={() => removeItem(i)} className="text-muted-foreground hover:text-destructive p-1">
                       <X className="w-4 h-4" />
-                    </Button>
+                    </button>
                   )}
                 </div>
-              ))}
-              <div className="pt-3 border-t border-border text-right">
-                <span className="text-lg font-bold text-foreground">Total: ${total.toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <label className="text-[10px] uppercase text-muted-foreground">Qty</label>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(i, "quantity", parseInt(e.target.value) || 0)}
+                      className="h-10"
+                      min={1}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] uppercase text-muted-foreground">Price</label>
+                    <Input
+                      type="number"
+                      value={item.price || ""}
+                      onChange={(e) => updateItem(i, "price", parseFloat(e.target.value) || 0)}
+                      className="h-10"
+                      min={0}
+                      step={0.01}
+                      inputMode="decimal"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="w-20 text-right pt-4">
+                    <span className="text-sm font-bold text-foreground">${(item.quantity * item.price).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            ))}
 
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "Creating..." : "Create Order"}
+            {/* Running Total */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/20">
+              <span className="text-sm font-semibold text-foreground">Order Total</span>
+              <span className="text-xl font-bold text-primary">${total.toFixed(2)}</span>
+            </div>
+          </section>
+
+          {/* ── Payment ── */}
+          <section className="space-y-4">
+            <QuickSelect label="Payment Status" options={PAYMENT_STATUSES} value={paymentStatus} onChange={setPaymentStatus} />
+
+            {paymentStatus !== "Unpaid" && (
+              <>
+                <QuickSelect label="Payment Method" options={PAYMENT_METHODS} value={paymentMethod} onChange={setPaymentMethod} />
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount Paid</label>
+                  <Input
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder={total.toFixed(2)}
+                    className="h-12 text-lg font-semibold"
+                    min={0}
+                    step={0.01}
+                    inputMode="decimal"
+                  />
+                  {paymentStatus === "Paid" && !paymentAmount && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary font-medium"
+                      onClick={() => setPaymentAmount(total.toFixed(2))}
+                    >
+                      Use full amount (${total.toFixed(2)})
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* ── Notes ── */}
+          <section className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes (optional)</label>
+            <Textarea
+              placeholder="Any notes about this order..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[80px] text-base"
+            />
+          </section>
+
+          {/* ── Submit ── */}
+          <Button
+            type="submit"
+            className="w-full h-14 text-lg font-bold sticky bottom-4 shadow-lg"
+            disabled={submitting || !selectedCustomer}
+          >
+            {submitting ? "Saving..." : `Save Order · $${total.toFixed(2)}`}
           </Button>
         </form>
       </div>
