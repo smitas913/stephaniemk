@@ -110,3 +110,27 @@ export const deletePayment = async (id: string) => {
   const { error } = await supabase.from("payments").delete().eq("id", id);
   if (error) throw error;
 };
+
+// Products
+export const fetchProducts = async () => {
+  const { data, error } = await supabase.from("products").select("*").order("name");
+  if (error) throw error;
+  return data;
+};
+
+export const createProduct = async (product: { name: string; current_stock: number; price: number }) => {
+  const { data, error } = await supabase.from("products").insert(product).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateProduct = async (id: string, updates: { name?: string; current_stock?: number; price?: number }) => {
+  const { data, error } = await supabase.from("products").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteProduct = async (id: string) => {
+  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) throw error;
+};

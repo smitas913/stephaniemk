@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
+  { to: "/inventory", label: "Inventory", icon: Package },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
