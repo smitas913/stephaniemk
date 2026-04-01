@@ -18,6 +18,7 @@ export default function ConsultantRequest() {
   const [notes, setNotes] = useState("");
   const [directorInfo, setDirectorInfo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (loading || profileLoading) {
     return (
