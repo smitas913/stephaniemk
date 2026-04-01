@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/inventory", label: "Inventory", icon: Package },
@@ -30,7 +30,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <NavLink
                 key={to}
                 to={to}
-                end={to === "/"}
+                end={to === "/dashboard"}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                     isActive

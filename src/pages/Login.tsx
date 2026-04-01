@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -83,13 +84,18 @@ export default function Login() {
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 Sign In
               </Button>
-              <button
-                type="button"
-                onClick={() => setMode("forgot")}
-                className="w-full text-xs text-muted-foreground hover:text-primary transition-colors"
-              >
-                Forgot password?
-              </button>
+              <div className="flex justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => setMode("forgot")}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Forgot password?
+                </button>
+                <Link to="/signup" className="text-primary hover:underline">
+                  Create account
+                </Link>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleForgotPassword} className="space-y-4">

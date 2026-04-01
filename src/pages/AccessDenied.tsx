@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldX } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function AccessDenied() {
   const { signOut, user, profile } = useAuth();
@@ -17,16 +18,21 @@ export default function AccessDenied() {
               ? "Your account does not have a profile set up. Contact the system owner to get access."
               : !profile.is_active
               ? "Your account has been deactivated. Contact the system owner."
-              : "You don't have permission to access this area."}
+              : "You don't have permission to access this area. Contact an administrator if you believe this is an error."}
           </p>
           {user && (
             <p className="text-xs text-muted-foreground">
               Signed in as {user.email}
             </p>
           )}
-          <Button onClick={signOut} variant="outline" className="w-full">
-            Sign Out
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={signOut} variant="outline" className="w-full">
+              Sign Out
+            </Button>
+            <Button variant="link" asChild className="w-full">
+              <Link to="/">Back to Home</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
