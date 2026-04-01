@@ -5,10 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle2, User, Briefcase } from "lucide-react";
+
+type AccountType = "customer" | "consultant";
 
 export default function SignUp() {
+  const [accountType, setAccountType] = useState<AccountType>("customer");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -17,6 +21,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showConsultantConfirm, setShowConsultantConfirm] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +39,18 @@ export default function SignUp() {
       email,
       password,
       options: {
-        data: { full_name: fullName || email, phone: phone || undefined },
+        data: {
+          full_name: fullName || email,
+          phone: phone || undefined,
+          account_type: accountType,
+        },
       },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
+    } else if (accountType === "consultant") {
+      setShowConsultantConfirm(true);
     } else {
       toast.success("Account created! Check your email to verify, then sign in.");
     }
@@ -54,6 +65,42 @@ export default function SignUp() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">
+            {/* Account type selector */}
+            <div className="space-y-2">
+              <Label>Account Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountType("customer")}
+                  className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-sm font-medium transition-all ${
+                    accountType === "customer"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  <User className="w-5 h-5" />
+                  Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType("consultant")}
+                  className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-sm font-medium transition-all ${
+                    accountType === "consultant"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  <Briefcase className="w-5 h-5" />
+                  Consultant
+                </button>
+              </div>
+              {accountType === "consultant" && (
+                <p className="text-[11px] text-muted-foreground">
+                  Consultant accounts require admin approval before access is granted.
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" type="text" placeholder="Your name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
@@ -86,7 +133,7 @@ export default function SignUp() {
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Create Account
+              {accountType === "consultant" ? "Submit Consultant Request" : "Create Account"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
               Already have an account?{" "}
@@ -95,6 +142,24 @@ export default function SignUp() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Consultant confirmation dialog */}
+      <Dialog open={showConsultantConfirm} onOpenChange={setShowConsultantConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-primary" />
+              Consultant Request Submitted
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-2">
+              Your consultant account has been created and is pending verification. Access will be activated after approval.
+            </DialogDescription>
+          </DialogHeader>
+          <Button asChild className="w-full">
+            <Link to="/login">Go to Login</Link>
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
