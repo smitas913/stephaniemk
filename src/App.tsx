@@ -10,6 +10,7 @@ import Orders from "./pages/Orders";
 import NewOrder from "./pages/NewOrder";
 import OrderDetail from "./pages/OrderDetail";
 import Inventory from "./pages/Inventory";
+import FollowUps from "./pages/FollowUps";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
