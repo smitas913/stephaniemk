@@ -176,12 +176,21 @@ export default function UserManagement() {
                         {!p.is_active && (
                           <Badge variant="destructive" className="text-[10px]">Inactive</Badge>
                         )}
+                        {p.consultant_status === "pending" && (
+                          <Badge className="text-[10px] bg-accent text-accent-foreground">Pending</Badge>
+                        )}
+                        {p.consultant_status === "approved" && (
+                          <Badge className="text-[10px] bg-primary/15 text-primary">Approved</Badge>
+                        )}
+                        {p.consultant_status === "rejected" && (
+                          <Badge variant="destructive" className="text-[10px]">Rejected</Badge>
+                        )}
                         {p.id === myProfile?.id && (
                           <Badge variant="secondary" className="text-[10px]">You</Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Joined {new Date(p.created_at).toLocaleDateString()}
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {p.email}{p.phone ? ` · ${p.phone}` : ""} · Joined {new Date(p.created_at).toLocaleDateString()}
                       </p>
                     </div>
 
