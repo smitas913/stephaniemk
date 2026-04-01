@@ -55,7 +55,8 @@ export default function ConsultantRequest() {
         } as any)
         .eq("id", profile.id);
       if (error) throw error;
-      toast.success("Request submitted! An admin will review it shortly.");
+      toast.success("Request submitted!");
+      setShowConfirm(true);
       await refetchProfile();
     } catch (e: any) {
       toast.error(e.message || "Failed to submit request");
