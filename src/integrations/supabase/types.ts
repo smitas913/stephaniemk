@@ -446,6 +446,68 @@ export type Database = {
         }
         Relationships: []
       }
+      leadership_members: {
+        Row: {
+          consultant_id: string | null
+          created_at: string
+          current_title: string | null
+          email: string | null
+          goal: string | null
+          id: string
+          name: string
+          next_coaching_date: string | null
+          notes: string | null
+          owner_user_id: string | null
+          personal_production: number | null
+          phone: string | null
+          unit_members: number | null
+          unit_production: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          consultant_id?: string | null
+          created_at?: string
+          current_title?: string | null
+          email?: string | null
+          goal?: string | null
+          id?: string
+          name: string
+          next_coaching_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          personal_production?: number | null
+          phone?: string | null
+          unit_members?: number | null
+          unit_production?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          consultant_id?: string | null
+          created_at?: string
+          current_title?: string | null
+          email?: string | null
+          goal?: string | null
+          id?: string
+          name?: string
+          next_coaching_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          personal_production?: number | null
+          phone?: string | null
+          unit_members?: number | null
+          unit_production?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leadership_members_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           created_at: string
@@ -844,6 +906,62 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_consultants: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          join_date: string | null
+          last_order_date: string | null
+          name: string
+          next_coaching_date: string | null
+          notes: string | null
+          owner_user_id: string | null
+          phone: string | null
+          prospect_id: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string | null
+          last_order_date?: string | null
+          name: string
+          next_coaching_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          prospect_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          join_date?: string | null
+          last_order_date?: string | null
+          name?: string
+          next_coaching_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          prospect_id?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_consultants_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
             referencedColumns: ["id"]
           },
         ]
