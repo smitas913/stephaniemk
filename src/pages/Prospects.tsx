@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProspects, fetchCustomers, createProspect } from "@/lib/queries";
+import { fetchProspects, fetchCustomers, createProspect, deleteProspect } from "@/lib/queries";
 import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES } from "@/lib/types";
 import type { Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly } from "@/lib/dateOnly";
-import { Plus, Search, UserPlus, Link2, CalendarDays } from "lucide-react";
+import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function Prospects() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Prospect | null>(null);
 
   // Add form
   const [formName, setFormName] = useState("");
@@ -84,6 +86,15 @@ export default function Prospects() {
     },
   });
 
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteProspect(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      setDeleteTarget(null);
+      toast.success("Prospect deleted");
+    },
+  });
+
   const handleCustomerLink = (custId: string) => {
     setFormCustomerId(custId);
     if (custId) {
@@ -94,6 +105,11 @@ export default function Prospects() {
         setFormEmail(c.email || "");
       }
     }
+  };
+
+  const isOverdueOrToday = (date: string | null) => {
+    if (!date) return false;
+    return compareDateOnly(date) <= 0;
   };
 
   return (
@@ -145,48 +161,92 @@ export default function Prospects() {
           <p className="text-center text-muted-foreground py-12">No prospects found</p>
         ) : (
           <div className="space-y-2">
-            {filtered.map((p) => (
-              <Card
-                key={p.id}
-                className="border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => navigate(`/prospects/${p.id}`)}
-              >
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                      {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {p.next_step_type && (
-                        <span className="text-xs text-muted-foreground truncate">
-                          <CalendarDays className="w-3 h-3 inline mr-0.5 -mt-0.5" />
-                          {p.next_step_type}
-                          {p.next_step_date && ` · ${formatDateOnly(p.next_step_date)}`}
-                        </span>
+            {filtered.map((p) => {
+              const overdue = p.next_step_date && compareDateOnly(p.next_step_date) === -1;
+              const today = p.next_step_date && compareDateOnly(p.next_step_date) === 0;
+
+              return (
+                <Card
+                  key={p.id}
+                  className={cn(
+                    "border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-colors",
+                    overdue && "border-destructive/40 bg-destructive/5",
+                    today && "border-primary/40 bg-primary/5"
+                  )}
+                  onClick={() => navigate(`/prospects/${p.id}`)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
+                        {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
+                      </div>
+                      {(p.next_step_type || p.next_step_date) && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
+                          <span className={cn("text-xs truncate",
+                            overdue ? "text-destructive font-medium" :
+                            today ? "text-primary font-medium" :
+                            "text-muted-foreground"
+                          )}>
+                            {p.next_step_type || "Next step"}
+                            {p.next_step_date && ` · ${formatDateOnly(p.next_step_date)}`}
+                            {overdue && " · Overdue"}
+                            {today && " · Today"}
+                          </span>
+                        </div>
                       )}
-                      {!p.next_step_type && p.next_step_date && (
-                        <span className={cn("text-xs",
-                          compareDateOnly(p.next_step_date) === -1 ? "text-destructive" : "text-muted-foreground"
-                        )}>
-                          Next: {formatDateOnly(p.next_step_date)}
-                        </span>
-                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {p.next_step_date && compareDateOnly(p.next_step_date) === -1 && (
-                      <span className="text-[10px] font-medium text-destructive">Overdue</span>
-                    )}
-                    <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
-                      {p.opportunity_status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
+                        {p.opportunity_status}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Edit"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/prospects/${p.id}`); }}
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Delete"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Prospect?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete {deleteTarget?.name} and all their notes. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteMut.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Add Dialog */}
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
