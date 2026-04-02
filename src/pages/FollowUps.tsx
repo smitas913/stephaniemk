@@ -97,6 +97,7 @@ export default function FollowUps() {
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const isLoading = cLoading || oLoading;
 
   const [showUpcoming7, setShowUpcoming7] = useState(false);
