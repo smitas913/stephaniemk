@@ -196,10 +196,10 @@ export default function BookingLeads() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         {lead.phone && <span>{lead.phone}</span>}
                         {lead.email && <span>{lead.email}</span>}
-                        {lead.last_contact_date && <span>Last contact: {new Date(lead.last_contact_date).toLocaleDateString()}</span>}
+                        {lead.last_contact_date && <span>Last contact: {formatDateOnly(lead.last_contact_date)}</span>}
                         {lead.next_follow_up_date && (
                           <span className="flex items-center gap-0.5">
-                            <Clock className="w-3 h-3" />FU: {new Date(lead.next_follow_up_date).toLocaleDateString()}
+                            <Clock className="w-3 h-3" />FU: {formatDateOnly(lead.next_follow_up_date)}
                           </span>
                         )}
                       </div>
