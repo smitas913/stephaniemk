@@ -342,6 +342,7 @@ export default function Orders() {
             <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="this-month">This Month</SelectItem>
+              <SelectItem value="ytd">Year-to-Date</SelectItem>
               {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
               <SelectItem value="all">All Dates</SelectItem>
             </SelectContent>
