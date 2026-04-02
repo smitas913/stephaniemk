@@ -186,30 +186,12 @@ export default function Orders() {
       result = result.filter((o) => o.customer_id === filterCustomer);
     }
 
-    // Month/Year filter
-    const yr = parseInt(filterYear);
-    if (filterMonth === "this-month") {
-      const m = now.getMonth();
-      const y = now.getFullYear();
-      result = result.filter((o) => {
-        const d = new Date(o.order_date);
-        return d.getMonth() === m && d.getFullYear() === y;
-      });
-    } else if (filterMonth === "ytd") {
-      const yearStart = new Date(now.getFullYear(), 0, 1);
-      result = result.filter((o) => {
-        const d = new Date(o.order_date);
-        return d >= yearStart && d <= now;
-      });
-    } else if (filterMonth !== "all") {
-      const mi = parseInt(filterMonth);
-      result = result.filter((o) => {
-        const d = new Date(o.order_date);
-        return d.getMonth() === mi && d.getFullYear() === yr;
-      });
-    } else {
-      result = result.filter((o) => o.order_date.startsWith(filterYear));
-    }
+    // Period filter
+    const { start, end } = getDateRange(period);
+    result = result.filter((o) => {
+      const d = parseISO(o.order_date);
+      return isWithinInterval(d, { start, end });
+    });
 
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
     if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
