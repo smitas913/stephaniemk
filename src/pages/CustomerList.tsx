@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed } from "@/lib/types";
-import { CUSTOMER_STATUSES } from "@/lib/types";
+import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
