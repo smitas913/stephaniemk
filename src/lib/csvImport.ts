@@ -15,6 +15,7 @@ export const DESTINATION_FIELDS = [
   { key: "zip", label: "Zip", required: false },
   { key: "notes", label: "Notes", required: false },
   { key: "birthday", label: "Birthday", required: false },
+  { key: "birthday_mmdd", label: "Birthday (MM/DD)", required: false },
   { key: "source", label: "Source", required: false },
 ] as const;
 
