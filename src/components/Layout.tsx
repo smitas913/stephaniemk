@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, Package, LogOut, UserCog, ClipboardList } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package, LogOut, UserCog, ClipboardList, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 const adminNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/customers", label: "Customers", icon: Users },
+  { to: "/import-customers", label: "Import", icon: Upload },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/users", label: "Users", icon: UserCog },
