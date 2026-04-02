@@ -104,17 +104,16 @@ export default function ProspectDetail() {
 
   const convertMut = useMutation({
     mutationFn: async () => {
-      await updateProspect(id!, { opportunity_status: "Converted" } as any);
-      if (prospect?.customer_id) {
-        await updateCustomer(prospect.customer_id, { relationship_status: "Consultant" } as any);
-      }
+      if (!prospect) throw new Error("No prospect");
+      await convertProspectToConsultant(prospect);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospect", id] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       setShowConvert(false);
-      toast.success("Prospect converted to Consultant!");
+      toast.success("Prospect converted! A new consultant record has been created.");
     },
   });
 
