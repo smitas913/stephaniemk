@@ -27,15 +27,17 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   }
   const isNew = newFirst90 === "New";
 
-  // --- Activity status ---
+  // --- Activity status (skip for Consultants) ---
   let category = "";
-  if (lastOrderDate) {
-    const days = differenceInDays(today, lastOrderDate);
-    if (days <= 90) category = "Active";
-    else if (days <= 179) category = "Warm";
-    else category = "Dormant";
-  } else {
-    category = "New";
+  if (!isConsultant) {
+    if (lastOrderDate) {
+      const days = differenceInDays(today, lastOrderDate);
+      if (days <= 90) category = "Active";
+      else if (days <= 179) category = "Warm";
+      else category = "Dormant";
+    } else {
+      category = "New";
+    }
   }
 
   // --- Year stats ---
