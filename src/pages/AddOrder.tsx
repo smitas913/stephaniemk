@@ -183,7 +183,7 @@ export default function AddOrder() {
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
-        payment_type: paymentType,
+        payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
         wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
         notes: notes || undefined,
