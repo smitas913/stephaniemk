@@ -120,36 +120,60 @@ export type Database = {
       }
       orders: {
         Row: {
+          birthday: boolean | null
           created_at: string
           customer_id: string
+          customer_name: string | null
+          event_id: string | null
+          face_type: string | null
+          half_price_deal: boolean | null
+          hostess: boolean | null
           id: string
           notes: string | null
           order_date: string
+          order_type: string | null
+          parent_event_id: string | null
           payment_type: string | null
-          retail_total: number
-          source: string | null
+          referral: boolean | null
+          retail_amount: number
           updated_at: string | null
         }
         Insert: {
+          birthday?: boolean | null
           created_at?: string
           customer_id: string
+          customer_name?: string | null
+          event_id?: string | null
+          face_type?: string | null
+          half_price_deal?: boolean | null
+          hostess?: boolean | null
           id?: string
           notes?: string | null
           order_date?: string
+          order_type?: string | null
+          parent_event_id?: string | null
           payment_type?: string | null
-          retail_total?: number
-          source?: string | null
+          referral?: boolean | null
+          retail_amount?: number
           updated_at?: string | null
         }
         Update: {
+          birthday?: boolean | null
           created_at?: string
           customer_id?: string
+          customer_name?: string | null
+          event_id?: string | null
+          face_type?: string | null
+          half_price_deal?: boolean | null
+          hostess?: boolean | null
           id?: string
           notes?: string | null
           order_date?: string
+          order_type?: string | null
+          parent_event_id?: string | null
           payment_type?: string | null
-          retail_total?: number
-          source?: string | null
+          referral?: boolean | null
+          retail_amount?: number
           updated_at?: string | null
         }
         Relationships: [
