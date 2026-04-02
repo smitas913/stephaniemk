@@ -233,3 +233,41 @@ export interface BookingLead {
   created_at: string;
   updated_at: string | null;
 }
+
+export const CONSULTANT_STATUSES = ["Active", "Inactive", "At Risk"] as const;
+
+export interface TeamConsultant {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  join_date: string | null;
+  status: string;
+  last_order_date: string | null;
+  next_coaching_date: string | null;
+  notes: string | null;
+  prospect_id: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;
+
+export interface LeadershipMember {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  current_title: string | null;
+  goal: string | null;
+  unit_members: number;
+  personal_production: number;
+  unit_production: number;
+  next_coaching_date: string | null;
+  notes: string | null;
+  consultant_id: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
