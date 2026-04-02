@@ -28,6 +28,7 @@ import AdminTools from "./pages/AdminTools";
 import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
+import Scoreboard from "./pages/Scoreboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -110,6 +111,7 @@ const AppRoutes = () => (
     } />
 
     <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
+    <Route path="/scoreboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Scoreboard /></ProtectedRoute>} />
     <Route path="/customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerList /></ProtectedRoute>} />
     <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerDetail /></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Orders /></ProtectedRoute>} />
