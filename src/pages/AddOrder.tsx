@@ -481,22 +481,41 @@ export default function AddOrder() {
           <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={e => setWholesaleAmount(e.target.value)} className="h-9" />
         </div>
 
-        {/* Payment Type — button pills */}
+        {/* Payment Status */}
         <div>
-          <label className="text-sm font-medium text-foreground">Payment *</label>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {PAYMENT_TYPES.map(p => (
-              <button key={p} type="button"
-                className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
-                  paymentType === p
+          <label className="text-sm font-medium text-foreground">Payment Status</label>
+          <div className="flex gap-1.5 mt-1">
+            {(["Paid", "Unpaid"] as const).map(s => (
+              <button key={s} type="button"
+                className={cn("h-8 px-4 rounded-md text-xs font-medium border transition-colors",
+                  paymentStatus === s
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border bg-background text-muted-foreground hover:bg-muted"
                 )}
-                onClick={() => setPaymentType(paymentType === p ? "" : p)}
-              >{p}</button>
+                onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+              >{s}</button>
             ))}
           </div>
         </div>
+
+        {/* Payment Type — button pills (only when Paid) */}
+        {paymentStatus === "Paid" && (
+          <div>
+            <label className="text-sm font-medium text-foreground">Payment Method *</label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {PAYMENT_TYPES.map(p => (
+                <button key={p} type="button"
+                  className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
+                    paymentType === p
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => setPaymentType(paymentType === p ? "" : p)}
+                >{p}</button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         <div>
