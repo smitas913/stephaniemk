@@ -346,7 +346,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       setDetailNoteText("");
-      setDetailNoteType("General");
+      setDetailNoteType("Call");
       toast.success("Note added");
     },
   });

@@ -108,7 +108,7 @@ export interface CustomerNote {
   owner_user_id: string | null;
 }
 
-export const NOTE_TYPES = ["Call", "Text", "Email", "General"] as const;
+export const NOTE_TYPES = ["Call", "Text", "Email", "In Person", "Follow-Up", "Other"] as const;
 
 export interface Note {
   id: string;

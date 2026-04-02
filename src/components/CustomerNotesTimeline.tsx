@@ -162,7 +162,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
 
 function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
   const Icon = NOTE_TYPE_ICONS[note.note_type] || FileText;
-  const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.General;
+  const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.Other;
 
   return (
     <div className="relative pl-9 group">
