@@ -106,7 +106,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   // Also flag customers with no contact and 90+ day old orders even if
   // the computed follow-up date hasn't triggered yet
-  const uncontactedOverdue = !lastContacted && daysSinceLastOrder !== null && daysSinceLastOrder >= 90;
+  const uncontactedOverdue = !isConsultant && !lastContacted && daysSinceLastOrder !== null && daysSinceLastOrder >= 90;
   if (uncontactedOverdue && !followUpStatus) {
     followUpStatus = "OVERDUE";
   }
