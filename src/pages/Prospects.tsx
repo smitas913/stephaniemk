@@ -112,8 +112,8 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
     return compareDateOnly(date) <= 0;
   };
 
-  return (
-    <Layout>
+  const content = (
+      <div className="space-y-5 pb-8">
       <div className="space-y-5 pb-8">
         <div className="flex items-center justify-between">
           <div>
