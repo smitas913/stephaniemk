@@ -280,3 +280,27 @@ export const deleteProspectNote = async (id: string) => {
   const { error } = await supabase.from("prospect_notes").delete().eq("id", id);
   if (error) throw error;
 };
+
+// Expenses
+
+export const fetchExpenses = async (): Promise<Expense[]> => {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("*")
+    .order("expense_date", { ascending: false });
+  if (error) throw error;
+  return data as unknown as Expense[];
+};
+
+export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null }) => {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("expenses")
+    .insert({ ...expense, owner_user_id: userId } as any);
+  if (error) throw error;
+};
+
+export const deleteExpense = async (id: string) => {
+  const { error } = await supabase.from("expenses").delete().eq("id", id);
+  if (error) throw error;
+};
