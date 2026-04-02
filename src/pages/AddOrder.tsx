@@ -318,16 +318,16 @@ export default function AddOrder() {
             </div>
           </div>
 
-          {/* Party Mode: Use existing event */}
-          {orderType === "Party" && (
+          {/* Event linking: for Party, Facial, Appointment only */}
+          {(orderType === "Party" || orderType === "Facial" || orderType === "Appointment") && (
             <div className="rounded-lg border border-pink-200 bg-pink-50/50 p-3 space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-pink-700 cursor-pointer">
                 <Checkbox checked={useExistingParty} onCheckedChange={(v) => setUseExistingParty(!!v)} />
-                Add to existing party event
+                Add to existing event
               </label>
               {useExistingParty && (
                 <Select value={partyEventId} onValueChange={setPartyEventId}>
-                  <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Select party event..." /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Select event..." /></SelectTrigger>
                   <SelectContent>
                     {existingPartyEvents.map((eid) => (
                       <SelectItem key={eid} value={eid}>{eid}</SelectItem>
