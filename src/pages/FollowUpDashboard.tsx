@@ -96,6 +96,8 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     });
     const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const netProfit = periodRevenue - totalExpenses;
+    const expenseReserve = periodRevenue * 0.10;
+    const netIncome = netProfit - expenseReserve;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
