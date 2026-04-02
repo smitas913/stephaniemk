@@ -28,6 +28,7 @@ import AdminTools from "./pages/AdminTools";
 import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
+import Scoreboard from "./pages/Scoreboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
