@@ -60,6 +60,8 @@ export interface CustomerComputed {
   retail_this_year: number;
   next_follow_up: string | null;
   follow_up_status: string;
+  follow_up_reason: string;
+  recently_contacted: boolean;
 }
 
 export interface EventRecord {

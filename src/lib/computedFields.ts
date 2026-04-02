@@ -5,6 +5,8 @@ function toBusinessDay(d: Date): Date {
   return isWeekend(d) ? nextMonday(d) : d;
 }
 
+const RECENT_CONTACT_DAYS = 7;
+
 export function computeCustomerFields(customer: Customer, orders: Order[]): CustomerComputed {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -12,24 +14,30 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   const lastOrderEffective = customer.last_order_date_order_log || customer.last_order_mk || null;
   const lastOrderDate = lastOrderEffective ? parseISO(lastOrderEffective) : null;
+  const lastContacted = customer.last_contacted ? parseISO(customer.last_contacted) : null;
+  const daysSinceContact = lastContacted ? differenceInDays(today, lastContacted) : null;
+  const recentlyContacted = daysSinceContact !== null && daysSinceContact <= RECENT_CONTACT_DAYS;
 
+  // --- New customer flag ---
   let newFirst90 = "";
   if (customer.profile_date_first_order_date) {
     const pd = parseISO(customer.profile_date_first_order_date);
-    if (differenceInDays(today, pd) <= 90) newFirst90 = "New";
+    if (differenceInDays(today, pd) <= 30) newFirst90 = "New";
   }
   const isNew = newFirst90 === "New";
 
+  // --- Activity status ---
   let category = "";
   if (lastOrderDate) {
     const days = differenceInDays(today, lastOrderDate);
-    if (days <= 180) category = "Active";
-    else if (days <= 540) category = "Warm";
+    if (days <= 90) category = "Active";
+    else if (days <= 179) category = "Warm";
     else category = "Dormant";
   } else {
     category = "New";
   }
 
+  // --- Year stats ---
   const thisYearOrders = orders.filter((o) => {
     const d = parseISO(o.order_date);
     return d >= yearStart && d <= today;
@@ -37,6 +45,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   const ordersThisYear = thisYearOrders.length;
   const retailThisYear = thisYearOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
+  // --- VIP ---
   const last365 = addDays(today, -365);
   const recentOrders = orders.filter((o) => parseISO(o.order_date) >= last365);
   const recentTotal = recentOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
@@ -44,14 +53,14 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   const daysSinceLastOrder = lastOrderDate ? differenceInDays(today, lastOrderDate) : null;
 
+  // --- Follow-up date calculation ---
   let nextFollowUp: Date | null = null;
+  const hasManualDate = !!customer.next_follow_up_date;
 
-  // Manual override takes precedence
-  if (customer.next_follow_up_date) {
-    nextFollowUp = parseISO(customer.next_follow_up_date);
+  if (hasManualDate) {
+    nextFollowUp = parseISO(customer.next_follow_up_date!);
   } else if (lastOrderDate) {
     const stage = customer.new_follow_up_stage;
-    const lastContacted = customer.last_contacted ? parseISO(customer.last_contacted) : null;
     const base = lastContacted || lastOrderDate;
 
     if (isNew) {
@@ -68,22 +77,17 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
       }
     } else {
       if (lastContacted) {
-        // Only schedule follow-up based on actual contact history
         nextFollowUp = addDays(lastContacted, 90);
       } else {
-        // No contact history recorded — only flag if they ordered this year
-        // Don't flag customers as overdue just because contact history is missing
         if (lastOrderDate >= yearStart) {
           nextFollowUp = addDays(lastOrderDate, 90);
         }
-        // If last order was before this year and no contact history, don't auto-flag
       }
     }
     if (nextFollowUp) nextFollowUp = toBusinessDay(nextFollowUp);
   }
-  // If no orders and no manual follow-up date, don't create a follow-up
-  // This prevents flagging customers with missing imported contact history
 
+  // --- Follow-up status ---
   let followUpStatus = "";
   if (nextFollowUp) {
     const nf = new Date(nextFollowUp);
@@ -91,6 +95,25 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
     if (isBefore(nf, today)) followUpStatus = "OVERDUE";
     else if (isEqual(nf, today)) followUpStatus = "TODAY";
     else followUpStatus = "UPCOMING";
+  }
+
+  // --- Follow-up reason (priority order) ---
+  let followUpReason = "";
+  if (followUpStatus === "OVERDUE" || followUpStatus === "TODAY") {
+    if (hasManualDate) {
+      followUpReason = "Manual Follow-Up";
+    } else if (isNew) {
+      const source = (customer as any).customer_source;
+      followUpReason = source ? `New - ${source}` : "New - First Follow-Up";
+    } else if (daysSinceLastOrder !== null && daysSinceLastOrder >= 90) {
+      followUpReason = "90+ Day Reorder";
+    } else if (daysSinceLastOrder !== null && daysSinceLastOrder >= 75) {
+      followUpReason = "90 Day Cycle";
+    } else if (vip) {
+      followUpReason = "VIP Check-In";
+    } else {
+      followUpReason = "Customer Follow-Up";
+    }
   }
 
   return {
@@ -103,5 +126,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
     retail_this_year: retailThisYear,
     next_follow_up: nextFollowUp ? format(nextFollowUp, "yyyy-MM-dd") : null,
     follow_up_status: followUpStatus,
+    follow_up_reason: followUpReason,
+    recently_contacted: recentlyContacted,
   };
 }
