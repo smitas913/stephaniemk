@@ -148,3 +148,32 @@ export const deleteProduct = async (id: string) => {
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) throw error;
 };
+
+// Events
+export const fetchEvents = async (): Promise<EventRecord[]> => {
+  const { data, error } = await supabase.from("events").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as EventRecord[];
+};
+
+export const upsertEvent = async (event: { event_id: string; guest_count?: number; event_date?: string | null; notes?: string | null }) => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("events")
+    .upsert({ ...event, owner_user_id: userId } as any, { onConflict: "event_id" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateEvent = async (eventId: string, updates: Partial<EventRecord>) => {
+  const { data, error } = await supabase
+    .from("events")
+    .update(updates as any)
+    .eq("event_id", eventId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
