@@ -15,9 +15,25 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
+
+// Unified follow-up item type
+type FollowUpItem = {
+  id: string;
+  type: "customer" | "prospect";
+  name: string;
+  phone: string | null;
+  email: string | null;
+  vip?: string;
+  next_follow_up: string | null;
+  follow_up_status: string;
+  activity_status?: string;
+  days_since_last_order?: number | null;
+  opportunity_status?: string;
+  new_follow_up_stage?: string | null;
+};
 
 type Enriched = Customer & CustomerComputed;
 
