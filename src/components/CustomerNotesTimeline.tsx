@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomerNotes, createCustomerNote, deleteCustomerNote } from "@/lib/queries";
+import { fetchNotes, createNote, deleteNote } from "@/lib/queries";
 import { NOTE_TYPES } from "@/lib/types";
-import type { CustomerNote } from "@/lib/types";
+import type { Note } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Phone, Mail, MessageSquare, Calendar, RefreshCw, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,72 +33,113 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [noteText, setNoteText] = useState("");
-  const [noteType, setNoteType] = useState<string>("General");
+  const [noteType, setNoteType] = useState<string>("Call");
+  const [nextFollowUp, setNextFollowUp] = useState("");
 
   const { data: notes = [] } = useQuery({
-    queryKey: ["customer-notes", customerId],
-    queryFn: () => fetchCustomerNotes(customerId),
+    queryKey: ["customer-notes-unified", customerId],
+    queryFn: () => fetchNotes("Customer", customerId),
   });
 
   const addMutation = useMutation({
-    mutationFn: createCustomerNote,
+    mutationFn: () =>
+      createNote({
+        entity_type: "Customer",
+        customer_id: customerId,
+        note_body: noteText.trim(),
+        note_type: noteType,
+        next_follow_up_date: nextFollowUp || null,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer-notes", customerId] });
-      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
       setNoteText("");
-      setNoteType("General");
+      setNoteType("Call");
+      setNextFollowUp("");
       setShowForm(false);
-      toast.success("Note added");
+      toast.success("Contact logged — Last Contacted updated");
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteCustomerNote,
+    mutationFn: deleteNote,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer-notes", customerId] });
-      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
       toast.success("Note deleted");
     },
   });
 
   const handleSubmit = () => {
     if (!noteText.trim()) return;
-    addMutation.mutate({ customer_id: customerId, note_text: noteText.trim(), note_type: noteType });
+    addMutation.mutate();
   };
 
   return (
     <Card className="border-border/50 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">Notes & Activity ({notes.length})</CardTitle>
-        <Button size="sm" variant="ghost" className="text-primary text-xs" onClick={() => setShowForm(!showForm)}>
-          <Plus className="w-3 h-3 mr-1" />{showForm ? "Cancel" : "Add Note"}
+        <Button size="sm" variant={showForm ? "outline" : "default"} className="text-xs gap-1" onClick={() => setShowForm(!showForm)}>
+          <Plus className="w-3 h-3" />{showForm ? "Cancel" : "Log Contact"}
         </Button>
       </CardHeader>
       <CardContent>
         {showForm && (
-          <div className="mb-4 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
-            <div className="flex gap-2">
-              <Select value={noteType} onValueChange={setNoteType}>
-                <SelectTrigger className="w-[140px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {NOTE_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button size="sm" onClick={handleSubmit} disabled={addMutation.isPending || !noteText.trim()}>
-                {addMutation.isPending ? "Saving..." : "Save"}
-              </Button>
+          <div className="mb-4 p-4 rounded-lg bg-primary/5 border-2 border-primary/20 space-y-3">
+            <p className="text-sm font-semibold text-foreground">Log Contact</p>
+
+            {/* Type pills */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Type</label>
+              <div className="flex flex-wrap gap-1.5">
+                {NOTE_TYPES.map((t) => {
+                  const Icon = NOTE_TYPE_ICONS[t] || FileText;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setNoteType(t)}
+                      className={cn(
+                        "h-8 px-3 rounded-md text-xs font-medium border transition-colors flex items-center gap-1.5",
+                        noteType === t
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      <Icon className="w-3 h-3" />
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <Textarea
-              placeholder="Enter note..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              className="min-h-[80px]"
-              autoFocus
-            />
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Note *</label>
+              <Textarea
+                placeholder="What happened in this interaction..."
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                className="min-h-[80px]"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                Next Follow-Up Date <span className="font-normal">(optional)</span>
+              </label>
+              <Input
+                type="date"
+                value={nextFollowUp}
+                onChange={(e) => setNextFollowUp(e.target.value)}
+                className="h-9 max-w-[200px]"
+              />
+            </div>
+
+            <Button size="sm" onClick={handleSubmit} disabled={addMutation.isPending || !noteText.trim()}>
+              {addMutation.isPending ? "Saving..." : "Save & Update Last Contacted"}
+            </Button>
           </div>
         )}
 
@@ -119,7 +160,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   );
 }
 
-function NoteItem({ note, onDelete }: { note: CustomerNote; onDelete: () => void }) {
+function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
   const Icon = NOTE_TYPE_ICONS[note.note_type] || FileText;
   const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.General;
 
@@ -134,10 +175,15 @@ function NoteItem({ note, onDelete }: { note: CustomerNote; onDelete: () => void
             <div className="flex items-center gap-2 mb-1">
               <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{note.note_type}</span>
               <span className="text-[11px] text-muted-foreground">
-                {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {new Date(note.note_date + "T00:00:00").toLocaleDateString()}
               </span>
+              {note.next_follow_up_date && (
+                <span className="text-[11px] text-primary font-medium">
+                  → Follow-up: {new Date(note.next_follow_up_date + "T00:00:00").toLocaleDateString()}
+                </span>
+              )}
             </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
           </div>
           <Button
             variant="ghost"
