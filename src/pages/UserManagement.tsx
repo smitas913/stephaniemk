@@ -183,13 +183,15 @@ export default function UserManagement({ embedded = false }: { embedded?: boolea
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <UserCog className="w-6 h-6 text-primary" />
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
-              <p className="text-sm text-muted-foreground">Manage team access and roles</p>
+          {!embedded && (
+            <div className="flex items-center gap-2">
+              <UserCog className="w-6 h-6 text-primary" />
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
+                <p className="text-sm text-muted-foreground">Manage team access and roles</p>
+              </div>
             </div>
-          </div>
+          )}
 
           {(isOwner || isAdmin) && (
             <Dialog open={showAdd} onOpenChange={setShowAdd}>
