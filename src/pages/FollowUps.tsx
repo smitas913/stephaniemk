@@ -38,6 +38,7 @@ type FollowUpItem = {
   new_follow_up_stage?: string | null;
   // birthday fields (only for customers)
   birthday_mmdd?: string | null;
+  daysOverdue?: number | null;
 };
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
