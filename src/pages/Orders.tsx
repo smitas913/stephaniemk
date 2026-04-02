@@ -404,21 +404,22 @@ export default function Orders() {
               {customerOptions.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this-month">MTD</SelectItem>
-              <SelectItem value="ytd">Year-to-Date</SelectItem>
-              {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
-              <SelectItem value="all">All Dates</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterYear} onValueChange={setFilterYear}>
-            <SelectTrigger className="h-9 w-[90px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-1.5">
+            <Button variant={period.type === "ytd" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "ytd" })}>YTD</Button>
+            <Button variant={period.type === "mtd" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "mtd" })}>MTD</Button>
+            <Button variant={period.type === "last-month" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "last-month" })}>Last Month</Button>
+            <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant={period.type === "month" ? "default" : "outline"} size="sm" className="h-9 text-xs">
+                  <CalendarIcon className="w-3.5 h-3.5 mr-1" />
+                  {period.type === "month" ? `${MONTHS[period.month].slice(0, 3)} ${period.year}` : "Select Month..."}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <MonthYearPicker onSelect={(year, month) => { setPeriod({ type: "month", year, month }); setMonthPickerOpen(false); }} />
+              </PopoverContent>
+            </Popover>
+          </div>
           <Select value={`${sortField}-${sortDir}`} onValueChange={(v) => { const [f, d] = v.split("-") as [SortField, SortDir]; setSortField(f); setSortDir(d); }}>
             <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
