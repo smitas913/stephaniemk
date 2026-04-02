@@ -220,6 +220,28 @@ export function processRows(
       }
     }
 
+    // Parse last_contacted date
+    if (mapped.last_contacted) {
+      const parsed = parseGenericDate(mapped.last_contacted.trim());
+      if (parsed) {
+        mapped.last_contacted = parsed;
+      } else {
+        warnings.push(`Could not parse last contacted date: "${mapped.last_contacted}"`);
+        mapped.last_contacted = "";
+      }
+    }
+
+    // Parse next_follow_up_date
+    if (mapped.next_follow_up_date) {
+      const parsed = parseGenericDate(mapped.next_follow_up_date.trim());
+      if (parsed) {
+        mapped.next_follow_up_date = parsed;
+      } else {
+        warnings.push(`Could not parse follow-up date: "${mapped.next_follow_up_date}"`);
+        mapped.next_follow_up_date = "";
+      }
+    }
+
     return { rowIndex: i + 1, raw, mapped, errors, warnings };
   });
 }
