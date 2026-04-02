@@ -22,8 +22,8 @@ import { cn } from "@/lib/utils";
 import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
-type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type";
-type SortDir = "asc" | "desc";
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
+type SortDir = "asc" | "desc" | null;
 
 export default function Orders() {
   const queryClient = useQueryClient();
