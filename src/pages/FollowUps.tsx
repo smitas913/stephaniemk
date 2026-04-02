@@ -321,59 +321,7 @@ export default function FollowUps() {
           </div>
         ) : (
           <div className="space-y-6">
-            <FollowUpSection
-              title="Overdue"
-              icon={AlertTriangle}
-              iconColor="text-red-600"
-              iconBg="bg-red-50 dark:bg-red-950/30"
-              items={overdue}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] text-red-600 font-medium">
-                    Since {c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}
-                  </p>
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-
-            <FollowUpSection
-              title="Today"
-              icon={CalendarCheck}
-              iconColor="text-blue-600"
-              iconBg="bg-blue-50 dark:bg-blue-950/30"
-              items={todayList}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-
+            {/* 1. Birthdays */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -405,6 +353,61 @@ export default function FollowUps() {
                 )}
               </CardContent>
             </Card>
+
+            {/* 2. Overdue */}
+            <FollowUpSection
+              title="Overdue"
+              icon={AlertTriangle}
+              iconColor="text-red-600"
+              iconBg="bg-red-50 dark:bg-red-950/30"
+              items={overdue}
+              notesByCustomer={notesByCustomer}
+              onNavigate={navigateToItem}
+              onAction={openContactDialog}
+              renderMeta={(c) => (
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] text-red-600 font-medium">
+                    Since {c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}
+                  </p>
+                  {c.activity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.activity_status}
+                    </span>
+                  )}
+                  {c.opportunity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.opportunity_status}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
+
+            {/* 3. Today */}
+            <FollowUpSection
+              title="Today"
+              icon={CalendarCheck}
+              iconColor="text-blue-600"
+              iconBg="bg-blue-50 dark:bg-blue-950/30"
+              items={todayList}
+              notesByCustomer={notesByCustomer}
+              onNavigate={navigateToItem}
+              onAction={openContactDialog}
+              renderMeta={(c) => (
+                <div className="text-right shrink-0">
+                  {c.activity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.activity_status}
+                    </span>
+                  )}
+                  {c.opportunity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.opportunity_status}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
           </div>
         )}
 
