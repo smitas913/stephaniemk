@@ -378,7 +378,7 @@ export default function Orders() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate"
                           onClick={() => navigate(`/orders/new?duplicate=${o.id}`)}>
