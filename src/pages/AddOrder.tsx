@@ -48,6 +48,7 @@ export default function AddOrder() {
   const [customerName, setCustomerName] = useState("");
   const [orderDate, setOrderDate] = useState(toLocalDateKey());
   const [selectedEventId, setSelectedEventId] = useState(preselectedEvent);
+  const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
   const [wholesaleAmount, setWholesaleAmount] = useState("");
