@@ -35,7 +35,20 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
     const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
-    const avgFace = totalFaces > 0 ? periodRevenue / totalFaces : 0;
+
+    // Sales by order_type
+    const salesByType = (type: string) =>
+      periodOrders.filter((o) => o.order_type === type).reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+    const reorderSales = salesByType("Reorder");
+    const partySales = salesByType("Party");
+    const facialSales = salesByType("Facial");
+    const otherSales = periodRevenue - reorderSales - partySales - facialSales;
+
+    // Avg Face: Party + Facial sales / Party + Facial guest_count
+    const partyFacialEvents = periodEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+    const partyFacialGuests = partyFacialEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const partyFacialSales = partySales + facialSales;
+    const avgFace = partyFacialGuests > 0 ? partyFacialSales / partyFacialGuests : 0;
 
     const periodExpenses = expenses.filter((e) => {
       const d = parseISO(e.expense_date);
@@ -49,11 +62,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion rate: ordering guests / total guests
     const totalOrderingGuests = periodEvents.reduce((s, e) => s + Number(e.ordering_guest_count || 0), 0);
     const conversionRate = totalFaces > 0 ? (totalOrderingGuests / totalFaces) * 100 : 0;
 
-    // Reorder rate: customers with 2+ orders in period / customers with any orders
     const customerOrderCounts: Record<string, number> = {};
     for (const o of periodOrders) {
       customerOrderCounts[o.customer_id] = (customerOrderCounts[o.customer_id] || 0) + 1;
@@ -61,25 +72,6 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const totalOrderingCustomers = Object.keys(customerOrderCounts).length;
     const repeatCustomers = Object.values(customerOrderCounts).filter((c) => c >= 2).length;
     const reorderRate = totalOrderingCustomers > 0 ? (repeatCustomers / totalOrderingCustomers) * 100 : 0;
-
-    const typeMap: Record<string, number> = {};
-    for (const o of periodOrders) {
-      const t = o.order_type || "Other";
-      typeMap[t] = (typeMap[t] || 0) + 1;
-    }
-    const ordersBySource = ["Reorder", "Party", "Facial", "Other"].map((s) => ({
-      label: s,
-      count: typeMap[s] || 0,
-    }));
-
-    const payMap: Record<string, number> = {};
-    for (const o of periodOrders) {
-      const pt = o.payment_type || "None";
-      payMap[pt] = (payMap[pt] || 0) + Number(o.retail_amount || 0);
-    }
-    const revenueByPayment = ["Cash", "Check", "Venmo", "Zelle", "Credit Card", "CashApp", "Paypal", "Other", "None"]
-      .map((p) => ({ label: p, amount: payMap[p] || 0 }))
-      .filter((p) => p.amount > 0);
 
     const enriched: Enriched[] = customers.map((c) => {
       const custOrders = periodOrders.filter((o) => o.customer_id === c.id);
@@ -94,9 +86,6 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .filter((c) => c.retail_this_year > 0);
 
     const todayStr = new Date().toISOString().slice(0, 10);
-
-    // Top Hostesses: group events by hostess_name, count events, sum sales from linked orders
-    // Also check ALL events (not just period) for total count & future bookings
     const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
     for (const evt of events) {
       const name = evt.hostess_name?.trim();
@@ -130,7 +119,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers, topHostesses };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, topCustomers, topHostesses };
   }, [customers, orders, expenses, events, period]);
 }
 
