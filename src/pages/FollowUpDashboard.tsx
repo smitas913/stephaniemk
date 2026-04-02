@@ -128,7 +128,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, topCustomers, topHostesses };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, convOrdering, convGuests, topCustomers, topHostesses };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -168,8 +168,8 @@ export default function FollowUpDashboard() {
     ];
 
     const row4Cards = [
-      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, icon: TrendingUp, accent: "text-primary" },
-      { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, icon: Users, accent: "text-primary" },
+      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests}`, icon: TrendingUp, accent: "text-primary" },
+      { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, subtitle: "", icon: Users, accent: "text-primary" },
     ];
 
     return (
@@ -258,6 +258,9 @@ export default function FollowUpDashboard() {
                       <div>
                         <p className={cn("text-lg font-semibold tracking-tight", k.accent)}>{k.value}</p>
                         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                        {k.subtitle && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{k.subtitle}</p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
