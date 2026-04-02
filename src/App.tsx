@@ -23,6 +23,7 @@ import FollowUps from "./pages/FollowUps";
 import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
 import AdminTools from "./pages/AdminTools";
+import Expenses from "./pages/Expenses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
