@@ -679,7 +679,68 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 3. DELIVERIES & EVENTS (optional secondary) */}
+            {/* 3. BOOKING LEADS DUE */}
+            {bookingLeadsDue.length > 0 && (
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30">
+                        <CalendarCheck className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <CardTitle className="text-sm font-semibold text-foreground">Booking Leads</CardTitle>
+                      <Badge variant="secondary" className="text-xs">{bookingLeadsDue.length}</Badge>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate("/booking-leads")}>
+                      View All
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="divide-y divide-border/40">
+                    {bookingLeadsDue.map((lead) => (
+                      <div key={lead.id} className="py-2.5 flex items-center gap-3 group">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate("/booking-leads")}>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
+                            {lead.lead_source && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-x-3 text-xs text-muted-foreground mt-0.5">
+                            {lead.phone && <span>{lead.phone}</span>}
+                            <span>FU: {lead.next_follow_up_date && new Date(lead.next_follow_up_date + "T00:00:00").toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {lead.phone && (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                <a href={`tel:${lead.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                <a href={`sms:${lead.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => bookingLeadContactMut.mutate(lead)}
+                            title="Mark Contacted"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 4. DELIVERIES & EVENTS (optional secondary) */}
           </div>
         )}
 
