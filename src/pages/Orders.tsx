@@ -75,12 +75,11 @@ export default function Orders() {
     },
   });
 
-  const guestCountMutation = useMutation({
-    mutationFn: ({ eventId, guest_count }: { eventId: string; guest_count: number }) =>
-      upsertEvent({ event_id: eventId, guest_count }),
+  const eventMutation = useMutation({
+    mutationFn: (params: { event_id: string; guest_count?: number; hostess_name?: string }) =>
+      upsertEvent(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Guest count updated");
     },
   });
 
