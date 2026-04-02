@@ -324,7 +324,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterCategory === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterCategory(opt.value)}
+                              onClick={() => { setFilterCategory(opt.value); setActOpen(false); }}
                             >
                               {opt.label}
                             </button>
