@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateCustomer } from "@/lib/queries";
+import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, convertProspectToConsultant } from "@/lib/queries";
 import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES } from "@/lib/types";
 import type { ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
