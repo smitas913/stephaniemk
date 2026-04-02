@@ -258,6 +258,9 @@ export default function FollowUpDashboard() {
                       <div>
                         <p className={cn("text-lg font-semibold tracking-tight", k.accent)}>{k.value}</p>
                         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                        {k.subtitle && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{k.subtitle}</p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
