@@ -79,6 +79,7 @@ const HEADER_HINTS: Record<DestField, string[]> = {
   zip: ["zip", "postal_code", "zipcode", "zip code", "postal"],
   notes: ["notes", "note", "comments", "comment", "memo"],
   birthday: ["birthday", "birth_date", "birthdate", "dob", "date of birth"],
+  birthday_mmdd: ["birthday_mmdd"],
   source: ["source", "lead source", "external_source"],
 };
 
