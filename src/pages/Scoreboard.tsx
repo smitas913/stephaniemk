@@ -192,8 +192,6 @@ export default function Scoreboard() {
               </CardContent>
             </Card>
           </div>
-
-          </div>
           </div>
         )}
       </div>
