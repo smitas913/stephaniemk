@@ -7,18 +7,16 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const adminNavItems = [
-  // Daily action
+  // Row 1: Daily workflow & income-producing
   { to: "/follow-ups", label: "Today", icon: Clock },
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/scoreboard", label: "Scoreboard", icon: Target },
-  // Business management
-  { to: "/customers", label: "Customers", icon: Users },
   { to: "/events", label: "Events", icon: Calendar },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
-  { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
-  
   { to: "/leadership", label: "Leadership", icon: Crown },
-  // Reference
+  { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
+  { to: "/customers", label: "Customers", icon: Users },
+  // Row 2: Analysis & reference
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/scoreboard", label: "Scoreboard", icon: Target },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
