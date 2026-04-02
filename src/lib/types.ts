@@ -62,7 +62,9 @@ export interface CustomerComputed {
 export interface EventRecord {
   id: string;
   event_id: string;
+  event_type: string | null;
   event_date: string | null;
+  hostess_name: string | null;
   guest_count: number;
   notes: string | null;
   owner_user_id: string | null;
