@@ -1,5 +1,6 @@
-import { differenceInDays, addDays, addMonths, isWeekend, nextMonday, startOfYear, format, isBefore, isEqual } from "date-fns";
+import { differenceInDays, addDays, addMonths, isWeekend, nextMonday, startOfYear, format } from "date-fns";
 import type { Customer, Order, CustomerComputed } from "./types";
+import { getFollowUpStatus } from "./dateOnly";
 
 /** Parse a YYYY-MM-DD string as a LOCAL midnight date (not UTC). */
 function parseLocalDate(dateStr: string): Date {
@@ -94,11 +95,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   // --- Follow-up status ---
   let followUpStatus = "";
   if (nextFollowUp) {
-    const nf = new Date(nextFollowUp);
-    nf.setHours(0, 0, 0, 0);
-    if (isBefore(nf, today)) followUpStatus = "OVERDUE";
-    else if (isEqual(nf, today)) followUpStatus = "TODAY";
-    else followUpStatus = "UPCOMING";
+    followUpStatus = getFollowUpStatus(format(nextFollowUp, "yyyy-MM-dd"));
   }
 
   // --- Follow-up reason (priority order) ---
