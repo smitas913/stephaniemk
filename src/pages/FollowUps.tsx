@@ -78,6 +78,13 @@ export default function FollowUps() {
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
 
+  // Bulk distribution state
+  const [showDistribute, setShowDistribute] = useState(false);
+  const [distributeDays, setDistributeDays] = useState("60");
+  const [distributeFilter, setDistributeFilter] = useState<"overdue-today" | "no-date" | "dormant-warm">("overdue-today");
+  const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
+  const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
+
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
     for (const n of allNotes) {
