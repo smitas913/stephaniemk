@@ -57,6 +57,7 @@ export type Database = {
           birthday_mmdd: string | null
           city: string | null
           created_at: string
+          customer_source: string | null
           email: string | null
           follow_up_reason: string | null
           full_name: string
@@ -83,6 +84,7 @@ export type Database = {
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
+          customer_source?: string | null
           email?: string | null
           follow_up_reason?: string | null
           full_name: string
@@ -109,6 +111,7 @@ export type Database = {
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
+          customer_source?: string | null
           email?: string | null
           follow_up_reason?: string | null
           full_name?: string
@@ -169,12 +172,15 @@ export type Database = {
           event_date: string | null
           event_id: string
           event_type: string | null
+          future_bookings_count: number | null
           guest_count: number | null
           hostess_name: string | null
           id: string
+          is_archived: boolean | null
           notes: string | null
           ordering_guest_count: number | null
           owner_user_id: string | null
+          sharing_appointments_count: number | null
           updated_at: string | null
         }
         Insert: {
@@ -182,12 +188,15 @@ export type Database = {
           event_date?: string | null
           event_id: string
           event_type?: string | null
+          future_bookings_count?: number | null
           guest_count?: number | null
           hostess_name?: string | null
           id?: string
+          is_archived?: boolean | null
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          sharing_appointments_count?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -195,12 +204,15 @@ export type Database = {
           event_date?: string | null
           event_id?: string
           event_type?: string | null
+          future_bookings_count?: number | null
           guest_count?: number | null
           hostess_name?: string | null
           id?: string
+          is_archived?: boolean | null
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          sharing_appointments_count?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -277,6 +289,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          entity_type: string
+          id: string
+          next_follow_up_date: string | null
+          note_body: string
+          note_date: string
+          note_type: string
+          owner_user_id: string | null
+          prospect_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          entity_type: string
+          id?: string
+          next_follow_up_date?: string | null
+          note_body: string
+          note_date?: string
+          note_type?: string
+          owner_user_id?: string | null
+          prospect_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          entity_type?: string
+          id?: string
+          next_follow_up_date?: string | null
+          note_body?: string
+          note_date?: string
+          note_type?: string
+          owner_user_id?: string | null
+          prospect_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           id: string
@@ -329,9 +395,11 @@ export type Database = {
           owner_user_id: string | null
           parent_event_id: string | null
           payment_type: string | null
+          payout_amount: number | null
           referral: boolean | null
           retail_amount: number
           updated_at: string | null
+          wholesale_amount: number | null
         }
         Insert: {
           birthday?: boolean | null
@@ -349,9 +417,11 @@ export type Database = {
           owner_user_id?: string | null
           parent_event_id?: string | null
           payment_type?: string | null
+          payout_amount?: number | null
           referral?: boolean | null
           retail_amount?: number
           updated_at?: string | null
+          wholesale_amount?: number | null
         }
         Update: {
           birthday?: boolean | null
@@ -369,9 +439,11 @@ export type Database = {
           owner_user_id?: string | null
           parent_event_id?: string | null
           payment_type?: string | null
+          payout_amount?: number | null
           referral?: boolean | null
           retail_amount?: number
           updated_at?: string | null
+          wholesale_amount?: number | null
         }
         Relationships: [
           {
