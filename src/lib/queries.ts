@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income } from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note } from "./types";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
@@ -115,6 +115,8 @@ export const createOrder = async (order: {
   referral?: boolean;
   payment_type?: string | null;
   retail_amount?: number;
+  wholesale_amount?: number | null;
+  payout_amount?: number | null;
   notes?: string;
   parent_event_id?: string | null;
 }) => {
@@ -410,4 +412,80 @@ export const createIncome = async (income: { income_date: string; amount: number
 export const deleteIncome = async (id: string) => {
   const { error } = await supabase.from("income").delete().eq("id", id);
   if (error) throw error;
+};
+
+// Unified Notes
+
+export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: string): Promise<Note[]> => {
+  const col = entityType === "Customer" ? "customer_id" : "prospect_id";
+  const { data, error } = await supabase
+    .from("notes")
+    .select("*")
+    .eq("entity_type", entityType)
+    .eq(col, entityId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as Note[];
+};
+
+export const fetchAllLatestNotes = async (): Promise<Note[]> => {
+  const { data, error } = await supabase
+    .from("notes")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as Note[];
+};
+
+export const createNote = async (note: {
+  entity_type: "Customer" | "Prospect";
+  customer_id?: string | null;
+  prospect_id?: string | null;
+  note_body: string;
+  note_type?: string;
+  next_follow_up_date?: string | null;
+}) => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("notes")
+    .insert({ ...note, owner_user_id: userId } as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteNote = async (id: string) => {
+  const { error } = await supabase.from("notes").delete().eq("id", id);
+  if (error) throw error;
+};
+
+// Follow-up queue view
+
+export const fetchFollowUpQueue = async () => {
+  const { data, error } = await supabase
+    .from("follow_up_queue" as any)
+    .select("*");
+  if (error) throw error;
+  return data;
+};
+
+// Order financials view
+
+export const fetchOrderFinancials = async () => {
+  const { data, error } = await supabase
+    .from("order_financials" as any)
+    .select("*");
+  if (error) throw error;
+  return data;
+};
+
+// Customer summary view
+
+export const fetchCustomerSummary = async () => {
+  const { data, error } = await supabase
+    .from("customer_summary" as any)
+    .select("*");
+  if (error) throw error;
+  return data;
 };

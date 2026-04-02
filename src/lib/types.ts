@@ -38,6 +38,8 @@ export interface Order {
   referral: boolean;
   payment_type: string | null;
   retail_amount: number;
+  wholesale_amount: number | null;
+  payout_amount: number | null;
   notes: string | null;
   parent_event_id: string | null;
   created_at: string;
@@ -101,7 +103,20 @@ export interface CustomerNote {
   owner_user_id: string | null;
 }
 
-export const NOTE_TYPES = ["Call", "Text", "Email", "Appointment", "Follow-Up", "General"] as const;
+export const NOTE_TYPES = ["Call", "Text", "Email", "General"] as const;
+
+export interface Note {
+  id: string;
+  entity_type: "Customer" | "Prospect";
+  customer_id: string | null;
+  prospect_id: string | null;
+  note_date: string;
+  note_type: string;
+  note_body: string;
+  next_follow_up_date: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+}
 
 export const OPPORTUNITY_STATUSES = ["New", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined"] as const;
 

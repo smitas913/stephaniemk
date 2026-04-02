@@ -36,9 +36,16 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       return isWithinInterval(d, { start, end });
     });
     const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-    const netProfit = periodRevenue - totalExpenses;
+
+    // Profit: MyShop orders use payout_amount, others use retail - wholesale
+    const periodProfit = periodOrders.reduce((s, o) => {
+      if (o.payment_type === "MyShop") return s + Number((o as any).payout_amount || 0);
+      return s + (Number(o.retail_amount || 0) - Number((o as any).wholesale_amount || 0));
+    }, 0);
+    const netProfit = periodProfit - totalExpenses;
     const expenseReserve = periodRevenue * 0.10;
-    const netIncome = netProfit - expenseReserve;
+    const plannedNet = periodProfit - expenseReserve;
+    const actualNet = periodProfit - expenseReserve - totalExpenses;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
@@ -76,7 +83,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, expenseReserve, netIncome, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, periodProfit, netProfit, expenseReserve, plannedNet, actualNet, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
   }, [customers, orders, expenses, period]);
 }
 
@@ -94,13 +101,13 @@ export default function FollowUpDashboard() {
   const periodLabel = getShortLabel(period);
 
   const kpiCards = [
-    { label: `Revenue ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
+    { label: `Sales ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
+    { label: `Profit ${periodLabel}`, value: `$${m.periodProfit.toFixed(2)}`, icon: TrendingUp, accent: m.periodProfit >= 0 ? "text-green-600" : "text-red-600" },
     { label: `Expenses ${periodLabel}`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-orange-600" },
-    { label: `Profit ${periodLabel}`, value: `$${m.netProfit.toFixed(2)}`, icon: TrendingUp, accent: m.netProfit >= 0 ? "text-green-600" : "text-red-600" },
-    { label: `10% Reserve ${periodLabel}`, value: `$${m.expenseReserve.toFixed(2)}`, icon: PiggyBank, accent: "text-amber-600" },
-    { label: `Net Income ${periodLabel}`, value: `$${m.netIncome.toFixed(2)}`, icon: Wallet, accent: m.netIncome >= 0 ? "text-green-600" : "text-red-600" },
-    { label: "Avg Order Value", value: `$${m.avgOrder.toFixed(2)}`, icon: TrendingUp, accent: "text-purple-600" },
+    { label: `10% Reserve`, value: `$${m.expenseReserve.toFixed(2)}`, icon: PiggyBank, accent: "text-amber-600" },
+    { label: `Planned Net`, value: `$${m.plannedNet.toFixed(2)}`, icon: Wallet, accent: m.plannedNet >= 0 ? "text-green-600" : "text-red-600" },
+    { label: `Actual Net`, value: `$${m.actualNet.toFixed(2)}`, icon: Wallet, accent: m.actualNet >= 0 ? "text-green-600" : "text-red-600" },
     { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
   ];
 

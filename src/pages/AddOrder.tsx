@@ -43,6 +43,8 @@ export default function AddOrder() {
   const [referral, setReferral] = useState(false);
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
+  const [wholesaleAmount, setWholesaleAmount] = useState("");
+  const [payoutAmount, setPayoutAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -137,6 +139,8 @@ export default function AddOrder() {
         referral,
         payment_type: paymentType || null,
         retail_amount: Number(retailAmount) || 0,
+        wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
+        payout_amount: payoutAmount ? Number(payoutAmount) : null,
         notes: notes || undefined,
         parent_event_id: parentId,
       });
@@ -156,6 +160,8 @@ export default function AddOrder() {
         setCustomerName("");
         setCustomerSearch("");
         setRetailAmount("");
+        setWholesaleAmount("");
+        setPayoutAmount("");
         setNotes("");
         setHostess(false);
         setHalfPriceDeal(false);
@@ -232,6 +238,18 @@ export default function AddOrder() {
             <div>
               <label className="text-sm font-medium text-foreground">Retail Amount *</label>
               <Input type="number" step="0.01" min="0" placeholder="0.00" value={retailAmount} onChange={(e) => setRetailAmount(e.target.value)} className="h-9" />
+            </div>
+          </div>
+
+          {/* Wholesale + Payout (financial) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={(e) => setWholesaleAmount(e.target.value)} className="h-9" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">MyShop Payout</label>
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={payoutAmount} onChange={(e) => setPayoutAmount(e.target.value)} className="h-9" />
             </div>
           </div>
 
