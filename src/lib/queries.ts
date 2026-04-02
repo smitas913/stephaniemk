@@ -177,3 +177,39 @@ export const updateEvent = async (eventId: string, updates: Partial<EventRecord>
   if (error) throw error;
   return data;
 };
+
+// Customer Notes
+export const fetchCustomerNotes = async (customerId: string): Promise<CustomerNote[]> => {
+  const { data, error } = await supabase
+    .from("customer_notes")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as CustomerNote[];
+};
+
+export const fetchLatestNotes = async (): Promise<CustomerNote[]> => {
+  const { data, error } = await supabase
+    .from("customer_notes")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as CustomerNote[];
+};
+
+export const createCustomerNote = async (note: { customer_id: string; note_text: string; note_type: string }) => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("customer_notes")
+    .insert({ ...note, owner_user_id: userId } as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteCustomerNote = async (id: string) => {
+  const { error } = await supabase.from("customer_notes").delete().eq("id", id);
+  if (error) throw error;
+};
