@@ -335,7 +335,7 @@ export default function FollowUpDashboard() {
               </div>
 
               {/* Row 3: Financial - medium emphasis */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {row3Cards.map((k) => (
                   <Card key={k.label} className="border-border/50 shadow-sm">
                     <CardContent className="p-4">
