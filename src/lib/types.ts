@@ -38,6 +38,8 @@ export interface Order {
   referral: boolean;
   payment_type: string | null;
   retail_amount: number;
+  wholesale_amount: number | null;
+  payout_amount: number | null;
   notes: string | null;
   parent_event_id: string | null;
   created_at: string;
