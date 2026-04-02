@@ -28,6 +28,15 @@ const CONSULTANT_STATUS_COLORS: Record<string, string> = {
   "At Risk": "bg-orange-100 text-orange-700",
 };
 
+const ONBOARDING_STAGE_COLORS: Record<string, string> = {
+  "New": "bg-blue-100 text-blue-700",
+  "Started": "bg-cyan-100 text-cyan-700",
+  "First Order": "bg-emerald-100 text-emerald-700",
+  "First Party": "bg-violet-100 text-violet-700",
+  "First Team Member": "bg-amber-100 text-amber-700",
+  "Active Builder": "bg-green-100 text-green-700",
+};
+
 export default function Leadership() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("prospects");
