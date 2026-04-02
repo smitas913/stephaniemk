@@ -376,6 +376,94 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_notes: {
+        Row: {
+          created_at: string
+          id: string
+          note_text: string
+          owner_user_id: string | null
+          prospect_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note_text: string
+          owner_user_id?: string | null
+          prospect_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note_text?: string
+          owner_user_id?: string | null
+          prospect_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_notes_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospects: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          date_shared: string | null
+          email: string | null
+          id: string
+          last_contact_date: string | null
+          name: string
+          next_follow_up_date: string | null
+          notes: string | null
+          opportunity_status: Database["public"]["Enums"]["opportunity_status"]
+          owner_user_id: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          date_shared?: string | null
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          name: string
+          next_follow_up_date?: string | null
+          notes?: string | null
+          opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
+          owner_user_id?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          date_shared?: string | null
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          name?: string
+          next_follow_up_date?: string | null
+          notes?: string | null
+          opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
+          owner_user_id?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -406,6 +494,13 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
       consultant_status: "none" | "pending" | "approved" | "rejected"
+      opportunity_status:
+        | "New"
+        | "Shared"
+        | "Follow-Up"
+        | "Interested"
+        | "Not Interested"
+        | "Joined"
       order_source: "Online" | "Phone" | "Text" | "Event" | "Other"
       payment_method: "Cash" | "Check" | "Venmo" | "Zelle" | "Card" | "Other"
       payment_status: "Paid" | "Unpaid" | "Partial"
@@ -538,6 +633,14 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
       consultant_status: ["none", "pending", "approved", "rejected"],
+      opportunity_status: [
+        "New",
+        "Shared",
+        "Follow-Up",
+        "Interested",
+        "Not Interested",
+        "Joined",
+      ],
       order_source: ["Online", "Phone", "Text", "Event", "Other"],
       payment_method: ["Cash", "Check", "Venmo", "Zelle", "Card", "Other"],
       payment_status: ["Paid", "Unpaid", "Partial"],
