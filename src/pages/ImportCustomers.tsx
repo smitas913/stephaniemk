@@ -130,7 +130,7 @@ export default function ImportCustomers() {
           // create_new — fall through
         }
 
-        const insertData = { ...record, current_status: "Customer" } as any;
+        const insertData = { ...record, relationship_status: "Customer" } as any;
         const { error } = await supabase.from("customers").insert(insertData);
         if (error) throw error;
         imported++;
