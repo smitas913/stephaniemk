@@ -194,15 +194,46 @@ export default function FollowUpDashboard() {
           </div>
         ) : (
           <>
+            {/* Row 1: Activity - most prominent */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {kpiCards.map((k) => (
-                <Card key={k.label} className="border-border/50 shadow-sm">
+              {activityCards.map((k) => (
+                <Card key={k.label} className="border-primary/20 shadow-md bg-primary/5">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
+                      <k.icon className={cn("w-6 h-6", k.accent)} />
+                    </div>
+                    <p className={cn("text-3xl sm:text-4xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                    <p className="text-xs font-semibold text-muted-foreground mt-1.5 uppercase tracking-wider">{k.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Row 2: Financial - medium emphasis */}
+            <div className="grid grid-cols-3 gap-4">
+              {financialCards.map((k) => (
+                <Card key={k.label} className="border-border/50 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
                       <k.icon className={cn("w-5 h-5", k.accent)} />
                     </div>
-                    <p className={cn("text-2xl sm:text-3xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                    <p className={cn("text-2xl font-bold tracking-tight", k.accent)}>{k.value}</p>
                     <p className="text-xs font-medium text-muted-foreground mt-1 uppercase tracking-wider">{k.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Row 3: Performance - lighter */}
+            <div className="grid grid-cols-2 gap-4">
+              {performanceCards.map((k) => (
+                <Card key={k.label} className="border-border/30 shadow-none bg-muted/30">
+                  <CardContent className="p-3.5 flex items-center gap-3">
+                    <k.icon className={cn("w-4 h-4 shrink-0", k.accent)} />
+                    <div>
+                      <p className={cn("text-lg font-semibold tracking-tight", k.accent)}>{k.value}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
