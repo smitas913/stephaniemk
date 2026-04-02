@@ -320,7 +320,7 @@ export default function FollowUpDashboard() {
                 </Card>
               </div>
 
-              <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {row2Cards.map((k) => (
                   <Card key={k.label} className="border-border/50 shadow-sm">
                     <CardContent className="p-3.5">
