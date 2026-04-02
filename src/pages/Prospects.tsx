@@ -28,7 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Closed": "bg-muted text-muted-foreground",
 };
 
-export default function Prospects() {
+export default function Prospects({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: prospects = [], isLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
