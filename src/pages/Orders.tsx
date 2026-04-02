@@ -37,8 +37,6 @@ export default function Orders() {
   const [filterCustomer, setFilterCustomer] = useState("all");
   const [filterMonth, setFilterMonth] = useState("this-month");
   const [filterYear, setFilterYear] = useState(String(now.getFullYear()));
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [filterFaceType, setFilterFaceType] = useState("all");
@@ -89,13 +87,13 @@ export default function Orders() {
   }, [orders]);
 
   const hasActiveFilters = search || filterCustomer !== "all" || filterMonth !== "this-month" ||
-    filterYear !== String(now.getFullYear()) || dateFrom || dateTo ||
+    filterYear !== String(now.getFullYear()) ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
     filterHostess || filterBirthday || filterReferral;
 
   const clearFilters = useCallback(() => {
     setSearch(""); setFilterCustomer("all"); setFilterMonth("this-month");
-    setFilterYear(String(now.getFullYear())); setDateFrom(""); setDateTo("");
+    setFilterYear(String(now.getFullYear()));
     setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
     setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
   }, []);
@@ -122,30 +120,23 @@ export default function Orders() {
       result = result.filter((o) => o.customer_id === filterCustomer);
     }
 
-    // Month/Year quick filter (only if no custom dates)
-    if (!dateFrom && !dateTo) {
-      const yr = parseInt(filterYear);
-      if (filterMonth === "this-month") {
-        const m = now.getMonth();
-        const y = now.getFullYear();
-        result = result.filter((o) => {
-          const d = new Date(o.order_date);
-          return d.getMonth() === m && d.getFullYear() === y;
-        });
-      } else if (filterMonth !== "all") {
-        const mi = parseInt(filterMonth);
-        result = result.filter((o) => {
-          const d = new Date(o.order_date);
-          return d.getMonth() === mi && d.getFullYear() === yr;
-        });
-      } else {
-        // All dates but filter by year
-        result = result.filter((o) => o.order_date.startsWith(filterYear));
-      }
+    // Month/Year filter
+    const yr = parseInt(filterYear);
+    if (filterMonth === "this-month") {
+      const m = now.getMonth();
+      const y = now.getFullYear();
+      result = result.filter((o) => {
+        const d = new Date(o.order_date);
+        return d.getMonth() === m && d.getFullYear() === y;
+      });
+    } else if (filterMonth !== "all") {
+      const mi = parseInt(filterMonth);
+      result = result.filter((o) => {
+        const d = new Date(o.order_date);
+        return d.getMonth() === mi && d.getFullYear() === yr;
+      });
     } else {
-      // Custom date range
-      if (dateFrom) result = result.filter((o) => o.order_date >= dateFrom);
-      if (dateTo) result = result.filter((o) => o.order_date <= dateTo);
+      result = result.filter((o) => o.order_date.startsWith(filterYear));
     }
 
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
@@ -170,7 +161,7 @@ export default function Orders() {
     });
 
     return sorted;
-  }, [orders, search, filterCustomer, filterMonth, filterYear, dateFrom, dateTo, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
+  }, [orders, search, filterCustomer, filterMonth, filterYear, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
 
   // Summary
   const summary = useMemo(() => {
@@ -375,9 +366,7 @@ export default function Orders() {
         </div>
 
         {/* Row 2: Additional Filters */}
-        <div className="flex flex-wrap gap-2 items-end">
-          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); if (e.target.value) setFilterMonth("all"); }} className="h-9 w-[140px]" placeholder="From" />
-          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); if (e.target.value) setFilterMonth("all"); }} className="h-9 w-[140px]" placeholder="To" />
+        <div className="flex flex-wrap gap-2 items-center">
           <Select value={filterOrderType} onValueChange={setFilterOrderType}>
             <SelectTrigger className="h-9 w-[120px]"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
