@@ -505,16 +505,16 @@ export default function FollowUps() {
           </Button>
         </div>
 
-        {/* Today's Focus - compact goals */}
-        <TodaysFocus callsToday={callsForToday.length} />
-
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* 1. CALLS FOR TODAY — primary workflow */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* ===== LEFT COLUMN (2/3) ===== */}
+            <div className="lg:col-span-2 space-y-4">
+
+            {/* 1. CALLS FOR TODAY */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -664,40 +664,7 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 2. BIRTHDAYS */}
-            <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
-                      <Cake className="w-4 h-4 text-pink-600" />
-                    </div>
-                    <CardTitle className="text-sm font-semibold text-foreground">Birthdays</CardTitle>
-                    <Badge variant="secondary" className="text-xs">{birthdaysToday.length}</Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">Next 7 days</label>
-                    <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No birthdays {showUpcoming7 ? "this week" : "today"} 🎂</p>
-                ) : (
-                  <div className="space-y-1">
-                    {birthdaysToday.map((c) => (
-                      <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                    ))}
-                    {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                      <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 3. BOOKING LEADS DUE */}
+            {/* 2. BOOKING LEADS DUE */}
             {bookingLeadsDue.length > 0 && (
               <Card className="border-border/50 shadow-sm">
                 <CardHeader className="pb-2">
@@ -758,7 +725,46 @@ export default function FollowUps() {
               </Card>
             )}
 
-            {/* 4. DELIVERIES & EVENTS (optional secondary) */}
+            </div>
+
+            {/* ===== RIGHT COLUMN (1/3) ===== */}
+            <div className="space-y-4">
+              {/* Today's Goals */}
+              <TodaysFocus callsToday={callsForToday.length} />
+
+              {/* Birthdays */}
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
+                        <Cake className="w-4 h-4 text-pink-600" />
+                      </div>
+                      <CardTitle className="text-sm font-semibold text-foreground">Birthdays</CardTitle>
+                      <Badge variant="secondary" className="text-xs">{birthdaysToday.length}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">7 days</label>
+                      <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                    <p className="text-sm text-muted-foreground py-3 text-center">No birthdays {showUpcoming7 ? "this week" : "today"} 🎂</p>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {birthdaysToday.map((c) => (
+                        <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                      ))}
+                      {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                        <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
