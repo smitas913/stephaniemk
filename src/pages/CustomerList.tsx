@@ -348,7 +348,7 @@ export default function CustomerList() {
                         value={c.relationship_status || "Customer"}
                         onValueChange={(v) => statusMutation.mutate({ id: c.id, relationship_status: v })}
                       >
-                        <SelectTrigger className="h-7 text-[11px] border-0 bg-transparent shadow-none px-1.5 w-[130px] focus:ring-1">
+                        <SelectTrigger className="h-7 text-[11px] border-0 bg-transparent shadow-none px-1 w-[110px] focus:ring-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
