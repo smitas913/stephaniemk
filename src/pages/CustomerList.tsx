@@ -329,8 +329,18 @@ export default function CustomerList() {
                       </PopoverContent>
                     </Popover>
                   </TableHead>
-                  <TableHead>Last Contacted</TableHead>
-                  <TableHead>Last Order</TableHead>
+                  <TableHead>
+                    <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("last_contacted")}>
+                      Last Contacted
+                      {sortCol === "last_contacted" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("last_order")}>
+                      Last Order
+                      {sortCol === "last_order" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
                   <TableHead>
                     <Popover>
                       <PopoverTrigger asChild>
