@@ -60,6 +60,7 @@ export default function CustomerDetail() {
         notes: customer.notes || "",
         new_follow_up_stage: customer.new_follow_up_stage || "",
         next_follow_up_date: customer.next_follow_up_date || "",
+        new_customer_flag: (customer as any).new_customer_flag ? "true" : "false",
       });
     }
   }, [customer]);
