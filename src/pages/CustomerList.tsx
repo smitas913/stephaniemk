@@ -218,7 +218,55 @@ export default function CustomerList() {
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Relationship</TableHead>
-                  <TableHead>VIP</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          <Star className="w-3.5 h-3.5" />
+                          VIP
+                          <ChevronDown className="w-3 h-3" />
+                          {filterVip !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="start">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 py-1">Filter</p>
+                          {[
+                            { value: "all", label: "All" },
+                            { value: "VIP", label: "VIP Only" },
+                            { value: "non-vip", label: "Non-VIP" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterVip === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterVip(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                          <div className="border-t border-border my-1" />
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 py-1">Sort</p>
+                          {[
+                            { value: "none" as const, label: "Default" },
+                            { value: "vip-first" as const, label: "VIP First" },
+                            { value: "nonvip-first" as const, label: "Non-VIP First" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                sortByVip === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setSortByVip(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead>Activity</TableHead>
                   <TableHead>Last Order</TableHead>
                   <TableHead>Follow-Up</TableHead>
