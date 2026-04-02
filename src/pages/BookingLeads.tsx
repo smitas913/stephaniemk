@@ -320,7 +320,7 @@ export default function BookingLeads() {
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => updateMut.mutate({ last_contact_date: format(new Date(), "yyyy-MM-dd"), status: editLead?.status === "New" ? "Contacted" : editLead?.status })}
+                  onClick={() => updateMut.mutate({ last_contact_date: toLocalDateKey(), status: editLead?.status === "New" ? "Contacted" : editLead?.status })}
                 >
                   <Phone className="w-3.5 h-3.5 mr-1" />Mark Contacted Today
                 </Button>
