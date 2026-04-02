@@ -4,10 +4,12 @@ import { fetchEvents, fetchOrders } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Calendar, Users, DollarSign, TrendingUp } from "lucide-react";
+import { Search, Calendar, Users, DollarSign, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import AddEventDialog from "@/components/AddEventDialog";
 
 export default function Events() {
   const navigate = useNavigate();
