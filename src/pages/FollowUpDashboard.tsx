@@ -36,9 +36,16 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       return isWithinInterval(d, { start, end });
     });
     const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-    const netProfit = periodRevenue - totalExpenses;
+
+    // Profit: MyShop orders use payout_amount, others use retail - wholesale
+    const periodProfit = periodOrders.reduce((s, o) => {
+      if (o.payment_type === "MyShop") return s + Number((o as any).payout_amount || 0);
+      return s + (Number(o.retail_amount || 0) - Number((o as any).wholesale_amount || 0));
+    }, 0);
+    const netProfit = periodProfit - totalExpenses;
     const expenseReserve = periodRevenue * 0.10;
-    const netIncome = netProfit - expenseReserve;
+    const plannedNet = periodProfit - expenseReserve;
+    const actualNet = periodProfit - expenseReserve - totalExpenses;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
