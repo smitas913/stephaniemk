@@ -194,6 +194,25 @@ export default function EventDetail() {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-xs text-muted-foreground">Format</label>
+                  <Select
+                    value={event.event_format || "In-Person"}
+                    onValueChange={(val) => {
+                      if (val !== (event.event_format || "In-Person")) {
+                        eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVENT_FORMATS.map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                <div>
                   <label className="text-xs text-muted-foreground">Hostess</label>
                   <Input
                     className="h-8 text-sm"
