@@ -147,29 +147,33 @@ export default function FollowUps() {
     setDistributeSelectedIds(new Set());
   };
 
-  // Preview assignments
+  // Preview assignments — cap at 10 per day
+  const MAX_PER_DAY = 10;
+
   const distributePreview = useMemo(() => {
-    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const maxDays = Math.max(1, parseInt(distributeDays) || 60);
     const selected = distributeCandidates
       .filter((c) => distributeSelectedIds.has(c.id))
       .sort((a, b) => {
-        // Most overdue first (earliest next_follow_up, then those with no date)
         const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : Infinity;
         const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : Infinity;
         return aDate - bDate;
       });
     const tomorrow = addDays(new Date(), 1);
+    // Distribute evenly but never exceed MAX_PER_DAY
+    const daysNeeded = Math.max(maxDays, Math.ceil(selected.length / MAX_PER_DAY));
     return selected.map((c, i) => ({
       id: c.id,
       name: c.full_name,
-      date: format(addDays(tomorrow, i % days), "yyyy-MM-dd"),
+      date: format(addDays(tomorrow, i % daysNeeded), "yyyy-MM-dd"),
     }));
   }, [distributeCandidates, distributeSelectedIds, distributeDays]);
 
   const perDay = useMemo(() => {
-    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const maxDays = Math.max(1, parseInt(distributeDays) || 60);
     const count = distributeSelectedIds.size;
-    return Math.ceil(count / days);
+    const daysNeeded = Math.max(maxDays, Math.ceil(count / MAX_PER_DAY));
+    return Math.ceil(count / daysNeeded);
   }, [distributeSelectedIds, distributeDays]);
 
   const distributeMutation = useMutation({
@@ -321,59 +325,7 @@ export default function FollowUps() {
           </div>
         ) : (
           <div className="space-y-6">
-            <FollowUpSection
-              title="Overdue"
-              icon={AlertTriangle}
-              iconColor="text-red-600"
-              iconBg="bg-red-50 dark:bg-red-950/30"
-              items={overdue}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] text-red-600 font-medium">
-                    Since {c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}
-                  </p>
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-
-            <FollowUpSection
-              title="Today"
-              icon={CalendarCheck}
-              iconColor="text-blue-600"
-              iconBg="bg-blue-50 dark:bg-blue-950/30"
-              items={todayList}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-
+            {/* 1. Birthdays */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -405,6 +357,61 @@ export default function FollowUps() {
                 )}
               </CardContent>
             </Card>
+
+            {/* 2. Overdue */}
+            <FollowUpSection
+              title="Overdue"
+              icon={AlertTriangle}
+              iconColor="text-red-600"
+              iconBg="bg-red-50 dark:bg-red-950/30"
+              items={overdue}
+              notesByCustomer={notesByCustomer}
+              onNavigate={navigateToItem}
+              onAction={openContactDialog}
+              renderMeta={(c) => (
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] text-red-600 font-medium">
+                    Since {c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}
+                  </p>
+                  {c.activity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.activity_status}
+                    </span>
+                  )}
+                  {c.opportunity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.opportunity_status}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
+
+            {/* 3. Today */}
+            <FollowUpSection
+              title="Today"
+              icon={CalendarCheck}
+              iconColor="text-blue-600"
+              iconBg="bg-blue-50 dark:bg-blue-950/30"
+              items={todayList}
+              notesByCustomer={notesByCustomer}
+              onNavigate={navigateToItem}
+              onAction={openContactDialog}
+              renderMeta={(c) => (
+                <div className="text-right shrink-0">
+                  {c.activity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.activity_status}
+                    </span>
+                  )}
+                  {c.opportunity_status && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                      {c.opportunity_status}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
           </div>
         )}
 
