@@ -162,7 +162,7 @@ export default function Scoreboard() {
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* This Week */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
@@ -183,17 +183,6 @@ export default function Scoreboard() {
                     <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
                   </div>
                 ))}
-                <div className="space-y-1 pt-1 border-t border-border/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{scoreboard.sharingConversion.label}</span>
-                    <span className="text-lg font-bold tabular-nums text-primary">
-                      {scoreboard.sharingConversion.pct.toFixed(1)}%
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {scoreboard.sharingConversion.numerator} / {scoreboard.sharingConversion.denominator} sharing appointments
-                  </p>
-                </div>
               </CardContent>
             </Card>
 
@@ -217,8 +206,21 @@ export default function Scoreboard() {
                     <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
                   </div>
                 ))}
+                {/* Sharing Conversion */}
+                <div className="space-y-1 pt-1 border-t border-border/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">{scoreboard.monthlySharingConversion.label}</span>
+                    <span className="text-lg font-bold tabular-nums text-primary">
+                      {scoreboard.monthlySharingConversion.pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {scoreboard.monthlySharingConversion.numerator} joined / {scoreboard.monthlySharingConversion.denominator} sharings
+                  </p>
+                </div>
               </CardContent>
             </Card>
+          </div>
 
             {/* Trends */}
             <Card className="border-border/50 shadow-sm">
