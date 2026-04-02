@@ -824,6 +824,8 @@ export type Database = {
         | "Events"
         | "Tools"
         | "Other"
+        | "Admin / Office Help"
+        | "Accounting"
       income_category: "Commission" | "Bonus" | "Referral" | "Other"
       opportunity_status:
         | "New"
@@ -971,6 +973,8 @@ export const Constants = {
         "Events",
         "Tools",
         "Other",
+        "Admin / Office Help",
+        "Accounting",
       ],
       income_category: ["Commission", "Bonus", "Referral", "Other"],
       opportunity_status: [
