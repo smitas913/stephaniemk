@@ -57,6 +57,19 @@ export default function AddOrder() {
   const [savedCount, setSavedCount] = useState(0);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
 
+  // New customer inline form
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [newCustName, setNewCustName] = useState("");
+  const [newCustPhone, setNewCustPhone] = useState("");
+  const [newCustEmail, setNewCustEmail] = useState("");
+  const [newCustAddress, setNewCustAddress] = useState("");
+  const [newCustCity, setNewCustCity] = useState("");
+  const [newCustState, setNewCustState] = useState("");
+  const [newCustPostal, setNewCustPostal] = useState("");
+  const [newCustBirthday, setNewCustBirthday] = useState("");
+  const [showAdditional, setShowAdditional] = useState(false);
+  const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
+
   const isEventBased = orderType === "Party" || orderType === "Facial";
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
 
