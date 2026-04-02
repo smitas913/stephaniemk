@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -108,7 +108,24 @@ export default function CustomerDetail() {
               <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>
           </div>
-          <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
+          <div className="flex gap-1">
+            {customer.phone && (
+              <>
+                <Button size="sm" variant="outline" asChild title="Call">
+                  <a href={`tel:${customer.phone}`}><Phone className="w-4 h-4" /></a>
+                </Button>
+                <Button size="sm" variant="outline" asChild title="Text">
+                  <a href={`sms:${customer.phone}`}><MessageSquare className="w-4 h-4" /></a>
+                </Button>
+              </>
+            )}
+            {customer.email && (
+              <Button size="sm" variant="outline" asChild title="Email">
+                <a href={`mailto:${customer.email}`}><Mail className="w-4 h-4" /></a>
+              </Button>
+            )}
+            <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
