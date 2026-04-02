@@ -357,7 +357,7 @@ export default function FollowUps() {
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
     const birthdaysUpcoming: (FollowUpItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
-      const days = daysToBirthday(c.birthday_mmdd || null);
+      const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
       else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
