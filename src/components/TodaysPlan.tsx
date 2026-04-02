@@ -208,7 +208,7 @@ export default function TodaysPlan() {
           <div className="flex items-center gap-2">
             <Navigation className="w-5 h-5 text-primary" />
             <CardTitle className="text-base font-semibold text-foreground">
-              {isToday ? "Today's Plan" : `Plan for ${format(parseISO(viewDate), "MMM d, yyyy")}`}
+              {isToday ? "Deliveries & Events" : `Plan for ${format(parseISO(viewDate), "MMM d, yyyy")}`}
             </CardTitle>
           </div>
           <div className="flex items-center gap-3">
