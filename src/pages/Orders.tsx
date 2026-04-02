@@ -366,9 +366,7 @@ export default function Orders() {
         </div>
 
         {/* Row 2: Additional Filters */}
-        <div className="flex flex-wrap gap-2 items-end">
-          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); if (e.target.value) setFilterMonth("all"); }} className="h-9 w-[140px]" placeholder="From" />
-          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); if (e.target.value) setFilterMonth("all"); }} className="h-9 w-[140px]" placeholder="To" />
+        <div className="flex flex-wrap gap-2 items-center">
           <Select value={filterOrderType} onValueChange={setFilterOrderType}>
             <SelectTrigger className="h-9 w-[120px]"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
