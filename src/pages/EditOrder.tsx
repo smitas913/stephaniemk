@@ -90,7 +90,7 @@ export default function EditOrder() {
       wholesale_amount: wholesaleAmount ? parseFloat(wholesaleAmount) : null,
       order_type: orderType || null,
       face_type: faceType || null,
-      payment_type: paymentType || null,
+      payment_type: paymentStatus === "Unpaid" ? null : (paymentType || null),
       notes: notes || null,
       hostess,
       half_price_deal: halfPrice,
