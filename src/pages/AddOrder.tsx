@@ -209,10 +209,7 @@ export default function AddOrder() {
         setWholesaleAmount("");
         setNotes("");
         setPaymentType("");
-        setRetailAmount("");
-        setWholesaleAmount("");
-        setNotes("");
-        setPaymentType("");
+        setPaymentStatus("Paid");
       } else {
         navigate("/orders");
       }
