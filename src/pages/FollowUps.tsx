@@ -67,15 +67,7 @@ function daysToBirthday(mmdd: string | null): number | null {
 }
 
 function computeFollowUpReason(c: Enriched): string {
-  if (c.new_first_90_days === "New") {
-    const stage = c.new_follow_up_stage;
-    if (stage) return `New - ${stage}`;
-    return "New - First Follow-Up";
-  }
-  if (c.days_since_last_order !== null && c.days_since_last_order >= 90) {
-    return "90+ Day Reorder";
-  }
-  return "90 Day Cycle";
+  return c.follow_up_reason || "Customer Follow-Up";
 }
 
 export default function FollowUps() {
