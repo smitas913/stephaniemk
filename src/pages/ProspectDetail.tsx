@@ -175,7 +175,7 @@ export default function ProspectDetail() {
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
-              <p className="text-lg font-bold text-foreground">{prospect.last_contact_date ? new Date(prospect.last_contact_date).toLocaleDateString() : "—"}</p>
+              <p className="text-lg font-bold text-foreground">{formatDateOnly(prospect.last_contact_date)}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Last Contact</p>
             </CardContent>
           </Card>
