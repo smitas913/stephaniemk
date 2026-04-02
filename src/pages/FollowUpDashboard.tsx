@@ -137,251 +137,197 @@ export default function FollowUpDashboard() {
 
   const periodLabel = getShortLabel(period);
 
-  const activityCards = [
-    { label: "Total Faces", value: String(m.totalFaces), icon: Users, accent: "text-primary" },
-    { label: "Total Parties", value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
-    { label: "Total Facials", value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
-    { label: "Avg / Face", value: `$${m.avgFace.toFixed(2)}`, icon: TrendingUp, accent: "text-primary" },
-  ];
+    const row1Cards = [
+      { label: "Total Faces", value: String(m.totalFaces), icon: Users, accent: "text-primary" },
+      { label: "Total Parties", value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
+      { label: "Total Facials", value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
+    ];
 
-  const financialCards = [
-    { label: "Total Sales", value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
-    { label: "Expenses", value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
-    { label: "Net Profit", value: `$${m.netProfit.toFixed(2)}`, icon: Wallet, accent: m.netProfit >= 0 ? "text-primary" : "text-destructive" },
-  ];
+    const row2Cards = [
+      { label: "Reorder Sales", value: `$${m.reorderSales.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
+      { label: "Party Sales", value: `$${m.partySales.toFixed(2)}`, icon: PartyPopper, accent: "text-primary" },
+      { label: "Facial Sales", value: `$${m.facialSales.toFixed(2)}`, icon: Sparkles, accent: "text-primary" },
+      { label: "Other Sales", value: `$${m.otherSales.toFixed(2)}`, icon: DollarSign, accent: "text-muted-foreground" },
+      { label: "Avg / Face", value: `$${m.avgFace.toFixed(2)}`, icon: TrendingUp, accent: "text-primary" },
+    ];
 
-  const performanceCards = [
-    { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, icon: TrendingUp, accent: "text-primary" },
-    { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, icon: Users, accent: "text-primary" },
-  ];
+    const row3Cards = [
+      { label: "Total Sales", value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
+      { label: "Expenses", value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
+      { label: "Profit", value: `$${m.netProfit.toFixed(2)}`, icon: Wallet, accent: m.netProfit >= 0 ? "text-primary" : "text-destructive" },
+    ];
 
-  return (
-    <Layout>
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">{getPeriodLabel(period)}</p>
-          </div>
-          <div className="flex gap-1.5">
-            <Button
-              variant={period.type === "ytd" ? "default" : "outline"}
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => setPeriod({ type: "ytd" })}
-            >
-              YTD
-            </Button>
-            <Button
-              variant={period.type === "mtd" ? "default" : "outline"}
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => setPeriod({ type: "mtd" })}
-            >
-              MTD
-            </Button>
-            <Button
-              variant={period.type === "last-month" ? "default" : "outline"}
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => setPeriod({ type: "last-month" })}
-            >
-              Last Month
-            </Button>
-            <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={period.type === "month" ? "default" : "outline"}
-                  size="sm"
-                  className="h-8 text-xs"
-                >
-                  <CalendarIcon className="w-3.5 h-3.5 mr-1" />
-                  {period.type === "month" ? `${MONTHS[period.month].slice(0, 3)} ${period.year}` : "Select Month..."}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <MonthYearPicker onSelect={(year, month) => {
-                  setPeriod({ type: "month", year, month });
-                  setMonthPickerOpen(false);
-                }} />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
+    const row4Cards = [
+      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, icon: TrendingUp, accent: "text-primary" },
+      { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, icon: Users, accent: "text-primary" },
+    ];
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <>
-            {/* Row 1: Activity - most prominent */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {activityCards.map((k) => (
-                <Card key={k.label} className="border-primary/20 shadow-md bg-primary/5">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <k.icon className={cn("w-6 h-6", k.accent)} />
-                    </div>
-                    <p className={cn("text-3xl sm:text-4xl font-bold tracking-tight", k.accent)}>{k.value}</p>
-                    <p className="text-xs font-semibold text-muted-foreground mt-1.5 uppercase tracking-wider">{k.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{getPeriodLabel(period)}</p>
             </div>
-
-            {/* Row 2: Financial - medium emphasis */}
-            <div className="grid grid-cols-3 gap-4">
-              {financialCards.map((k) => (
-                <Card key={k.label} className="border-border/50 shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <k.icon className={cn("w-5 h-5", k.accent)} />
-                    </div>
-                    <p className={cn("text-2xl font-bold tracking-tight", k.accent)}>{k.value}</p>
-                    <p className="text-xs font-medium text-muted-foreground mt-1 uppercase tracking-wider">{k.label}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex gap-1.5">
+              <Button variant={period.type === "ytd" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "ytd" })}>YTD</Button>
+              <Button variant={period.type === "mtd" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "mtd" })}>MTD</Button>
+              <Button variant={period.type === "last-month" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "last-month" })}>Last Month</Button>
+              <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant={period.type === "month" ? "default" : "outline"} size="sm" className="h-8 text-xs">
+                    <CalendarIcon className="w-3.5 h-3.5 mr-1" />
+                    {period.type === "month" ? `${MONTHS[period.month].slice(0, 3)} ${period.year}` : "Select Month..."}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <MonthYearPicker onSelect={(year, month) => { setPeriod({ type: "month", year, month }); setMonthPickerOpen(false); }} />
+                </PopoverContent>
+              </Popover>
             </div>
+          </div>
 
-            {/* Row 3: Performance - lighter */}
-            <div className="grid grid-cols-2 gap-4">
-              {performanceCards.map((k) => (
-                <Card key={k.label} className="border-border/30 shadow-none bg-muted/30">
-                  <CardContent className="p-3.5 flex items-center gap-3">
-                    <k.icon className={cn("w-4 h-4 shrink-0", k.accent)} />
-                    <div>
-                      <p className={cn("text-lg font-semibold tracking-tight", k.accent)}>{k.value}</p>
-                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{k.label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Orders by Type</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5">
-                  {m.ordersBySource.map((s) => {
-                    const max = Math.max(...m.ordersBySource.map((x) => x.count), 1);
-                    return (
-                      <div key={s.label} className="flex items-center gap-3">
-                        <span className="text-sm text-foreground w-20 shrink-0">{s.label}</span>
-                        <div className="flex-1 h-6 bg-muted rounded-md overflow-hidden">
-                          <div className="h-full bg-primary/70 rounded-md transition-all" style={{ width: `${(s.count / max) * 100}%` }} />
-                        </div>
-                        <span className="text-sm font-semibold text-foreground w-8 text-right">{s.count}</span>
+          ) : (
+            <>
+              {/* Row 1: Activity Volume - most prominent */}
+              <div className="grid grid-cols-3 gap-4">
+                {row1Cards.map((k) => (
+                  <Card key={k.label} className="border-primary/20 shadow-md bg-primary/5">
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <k.icon className={cn("w-6 h-6", k.accent)} />
                       </div>
-                    );
-                  })}
-                  {m.ordersBySource.every((s) => s.count === 0) && (
-                    <p className="text-sm text-muted-foreground py-2">No orders this period</p>
-                  )}
-                </CardContent>
-              </Card>
+                      <p className={cn("text-3xl sm:text-4xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                      <p className="text-xs font-semibold text-muted-foreground mt-1.5 uppercase tracking-wider">{k.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Revenue by Payment Method</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5">
-                  {m.revenueByPayment.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">No revenue this period</p>
-                  ) : (
-                    m.revenueByPayment.map((p) => {
-                      const max = Math.max(...m.revenueByPayment.map((x) => x.amount), 1);
-                      return (
-                        <div key={p.label} className="flex items-center gap-3">
-                          <span className="text-sm text-foreground w-20 shrink-0">{p.label}</span>
-                          <div className="flex-1 h-6 bg-muted rounded-md overflow-hidden">
-                            <div className="h-full bg-green-500/60 rounded-md transition-all" style={{ width: `${(p.amount / max) * 100}%` }} />
-                          </div>
-                          <span className="text-sm font-semibold text-foreground w-20 text-right">${p.amount.toFixed(0)}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+              {/* Row 2: Sales Drivers - slightly smaller */}
+              <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
+                {row2Cards.map((k) => (
+                  <Card key={k.label} className="border-border/50 shadow-sm">
+                    <CardContent className="p-3.5">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <k.icon className={cn("w-4 h-4", k.accent)} />
+                      </div>
+                      <p className={cn("text-xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground mt-1 uppercase tracking-wider">{k.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {m.topCustomers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">No orders this period</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {m.topCustomers.map((c, i) => (
-                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{c.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
-                            </div>
-                          </div>
-                          <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Row 3: Financial - medium emphasis */}
+              <div className="grid grid-cols-3 gap-4">
+                {row3Cards.map((k) => (
+                  <Card key={k.label} className="border-border/50 shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <k.icon className={cn("w-5 h-5", k.accent)} />
+                      </div>
+                      <p className={cn("text-2xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                      <p className="text-xs font-medium text-muted-foreground mt-1 uppercase tracking-wider">{k.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-primary" />
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Hostesses ({periodLabel})</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {m.topHostesses.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">No events with hostesses this period</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {m.topHostesses.map((h, i) => (
-                        <div key={h.name} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
-                            <div>
-                              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                                {h.name}
-                                {h.isRepeat && (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
-                                    <Star className="w-3 h-3 fill-current" />Repeat
-                                  </span>
-                                )}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <p className="text-xs text-muted-foreground">{h.events} event{h.events !== 1 ? "s" : ""}</p>
-                                {h.needsRebooking && (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
-                                    <RefreshCw className="w-3 h-3" />Rebook
-                                  </span>
-                                )}
+              {/* Row 4: Efficiency - lighter */}
+              <div className="grid grid-cols-2 gap-4">
+                {row4Cards.map((k) => (
+                  <Card key={k.label} className="border-border/30 shadow-none bg-muted/30">
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <k.icon className={cn("w-4 h-4 shrink-0", k.accent)} />
+                      <div>
+                        <p className={cn("text-lg font-semibold tracking-tight", k.accent)}>{k.value}</p>
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Top Customers & Top Hostesses */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {m.topCustomers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">No orders this period</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {m.topCustomers.map((c, i) => (
+                          <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{c.full_name}</p>
+                                <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
                               </div>
                             </div>
+                            <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
                           </div>
-                          <p className="text-sm font-bold text-foreground">${h.sales.toFixed(2)}</p>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-primary" />
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Hostesses ({periodLabel})</CardTitle>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-      </div>
-    </Layout>
-  );
+                  </CardHeader>
+                  <CardContent>
+                    {m.topHostesses.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">No events with hostesses this period</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {m.topHostesses.map((h, i) => (
+                          <div key={h.name} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
+                              <div>
+                                <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                                  {h.name}
+                                  {h.isRepeat && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                                      <Star className="w-3 h-3 fill-current" />Repeat
+                                    </span>
+                                  )}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-xs text-muted-foreground">{h.events} event{h.events !== 1 ? "s" : ""}</p>
+                                  {h.needsRebooking && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
+                                      <RefreshCw className="w-3 h-3" />Rebook
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-sm font-bold text-foreground">${h.sales.toFixed(2)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </div>
+      </Layout>
+    );
 }
