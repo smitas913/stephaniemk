@@ -152,7 +152,7 @@ export default function Prospects() {
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {[p.phone, p.email].filter(Boolean).join(" · ") || "No contact info"}
-                      {p.date_shared && ` · Shared ${new Date(p.date_shared).toLocaleDateString()}`}
+                      {p.date_shared && ` · Shared ${formatDateOnly(p.date_shared)}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
