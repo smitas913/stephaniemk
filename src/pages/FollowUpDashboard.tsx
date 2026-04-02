@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles } from "lucide-react";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles, Crown } from "lucide-react";
 import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
@@ -93,7 +93,26 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((c) => c.retail_this_year > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers };
+    // Top Hostesses: group events by hostess_name, count events, sum sales from linked orders
+    const hostessMap = new Map<string, { events: number; sales: number }>();
+    for (const evt of periodEvents) {
+      const name = evt.hostess_name?.trim();
+      if (!name) continue;
+      const entry = hostessMap.get(name) || { events: 0, sales: 0 };
+      entry.events += 1;
+      const linkedSales = periodOrders
+        .filter((o) => o.parent_event_id === evt.event_id || o.event_id === evt.event_id)
+        .reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+      entry.sales += linkedSales;
+      hostessMap.set(name, entry);
+    }
+    const topHostesses = [...hostessMap.entries()]
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 5)
+      .filter((h) => h.sales > 0 || h.events > 0);
+
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers, topHostesses };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -283,31 +302,62 @@ export default function FollowUpDashboard() {
               </Card>
             </div>
 
-            <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {m.topCustomers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No orders this period</p>
-                ) : (
-                  <div className="space-y-1">
-                    {m.topCustomers.map((c, i) => (
-                      <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{c.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {m.topCustomers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">No orders this period</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {m.topCustomers.map((c, i) => (
+                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{c.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
+                            </div>
                           </div>
+                          <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
                         </div>
-                        <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-primary" />
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Hostesses ({periodLabel})</CardTitle>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  {m.topHostesses.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">No events with hostesses this period</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {m.topHostesses.map((h, i) => (
+                        <div key={h.name} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{h.name}</p>
+                              <p className="text-xs text-muted-foreground">{h.events} event{h.events !== 1 ? "s" : ""}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-bold text-foreground">${h.sales.toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </>
         )}
       </div>
