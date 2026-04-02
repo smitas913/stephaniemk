@@ -15,7 +15,7 @@ import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYear
 
 type Enriched = Customer & CustomerComputed;
 
-function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses: Expense[], period: PeriodValue) {
+function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses: Expense[], events: EventRecord[], period: PeriodValue) {
   return useMemo(() => {
     const { start, end } = getDateRange(period);
 
@@ -25,11 +25,17 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     });
 
     const periodRevenue = periodOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    const periodCount = periodOrders.length;
-    const avgOrder = periodCount > 0 ? periodRevenue / periodCount : 0;
 
-    const unpaidOrders = periodOrders.filter((o) => !o.payment_type);
-    const outstandingTotal = unpaidOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+    // Event metrics filtered by period
+    const periodEvents = events.filter((e) => {
+      if (!e.event_date) return false;
+      const d = parseISO(e.event_date);
+      return isWithinInterval(d, { start, end });
+    });
+
+    const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
+    const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
 
     const periodExpenses = expenses.filter((e) => {
       const d = parseISO(e.expense_date);
@@ -37,12 +43,10 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     });
     const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
 
-    // Profit: MyShop orders use payout_amount, others use retail - wholesale
     const periodProfit = periodOrders.reduce((s, o) => {
       if (o.payment_type === "MyShop") return s + Number((o as any).payout_amount || 0);
       return s + (Number(o.retail_amount || 0) - Number((o as any).wholesale_amount || 0));
     }, 0);
-    const netProfit = periodProfit - totalExpenses;
     const expenseReserve = periodRevenue * 0.10;
     const plannedNet = periodProfit - expenseReserve;
     const actualNet = periodProfit - expenseReserve - totalExpenses;
@@ -83,8 +87,8 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, periodProfit, netProfit, expenseReserve, plannedNet, actualNet, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
-  }, [customers, orders, expenses, period]);
+    return { periodRevenue, totalFaces, totalParties, totalFacials, totalExpenses, periodProfit, plannedNet, actualNet, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+  }, [customers, orders, expenses, events, period]);
 }
 
 export default function FollowUpDashboard() {
