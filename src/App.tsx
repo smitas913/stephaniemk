@@ -11,6 +11,7 @@ import CustomerList from "./pages/CustomerList";
 import CustomerDetail from "./pages/CustomerDetail";
 import Orders from "./pages/Orders";
 import AddOrder from "./pages/AddOrder";
+import EditOrder from "./pages/EditOrder";
 
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
