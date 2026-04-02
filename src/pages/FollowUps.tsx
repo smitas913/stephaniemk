@@ -321,14 +321,7 @@ export default function FollowUps() {
         const includedByDate = c.next_follow_up
           ? isDueTodayOrEarlier(c.next_follow_up, todayDate)
           : c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
-        if (!includedByDate) return false;
-        if (c.itemType === "customer") {
-          const enriched = enrichedCustomers.find(ec => ec.id === c.id);
-          if (enriched?.recently_contacted && enriched.follow_up_reason !== "Manual Follow-Up") {
-            return false;
-          }
-        }
-        return true;
+        return includedByDate;
       })
       .sort((a, b) => {
         if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
