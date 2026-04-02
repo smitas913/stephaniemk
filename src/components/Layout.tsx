@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -11,6 +11,7 @@ const adminNavItems = [
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/follow-ups", label: "Follow-Ups", icon: Clock },
+  { to: "/prospects", label: "Prospects", icon: UserPlus },
   { to: "/admin", label: "Admin Tools", icon: Settings, adminOnly: true },
 ];
 
