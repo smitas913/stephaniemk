@@ -18,6 +18,7 @@ import AccessDenied from "./pages/AccessDenied";
 import UserManagement from "./pages/UserManagement";
 import ConsultantRequests from "./pages/ConsultantRequests";
 import ConsultantRequest from "./pages/ConsultantRequest";
+import ImportCustomers from "./pages/ImportCustomers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
