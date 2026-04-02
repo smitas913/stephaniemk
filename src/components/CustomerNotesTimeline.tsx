@@ -90,7 +90,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
       <CardContent>
         {showForm && (
           <div className="mb-4 p-4 rounded-lg bg-primary/5 border-2 border-primary/20 space-y-3">
-            <p className="text-sm font-semibold text-foreground">Log Contact</p>
+            <p className="text-sm font-semibold text-foreground">Add Note</p>
 
             {/* Type pills */}
             <div>
