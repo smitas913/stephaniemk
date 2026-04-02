@@ -311,7 +311,7 @@ export default function FollowUpDashboard() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-primary" />
-                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Scoreboard</CardTitle>
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Scoreboard — This Month</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
