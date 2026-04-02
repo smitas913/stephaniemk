@@ -26,7 +26,6 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
 
     const periodRevenue = periodOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
-    // Event metrics filtered by period
     const periodEvents = events.filter((e) => {
       if (!e.event_date) return false;
       const d = parseISO(e.event_date);
@@ -36,6 +35,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
     const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
+    const avgFace = totalFaces > 0 ? periodRevenue / totalFaces : 0;
 
     const periodExpenses = expenses.filter((e) => {
       const d = parseISO(e.expense_date);
@@ -47,9 +47,20 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       if (o.payment_type === "MyShop") return s + Number((o as any).payout_amount || 0);
       return s + (Number(o.retail_amount || 0) - Number((o as any).wholesale_amount || 0));
     }, 0);
-    const expenseReserve = periodRevenue * 0.10;
-    const plannedNet = periodProfit - expenseReserve;
-    const actualNet = periodProfit - expenseReserve - totalExpenses;
+    const netProfit = periodProfit - totalExpenses;
+
+    // Conversion rate: ordering guests / total guests
+    const totalOrderingGuests = periodEvents.reduce((s, e) => s + Number(e.ordering_guest_count || 0), 0);
+    const conversionRate = totalFaces > 0 ? (totalOrderingGuests / totalFaces) * 100 : 0;
+
+    // Reorder rate: customers with 2+ orders in period / customers with any orders
+    const customerOrderCounts: Record<string, number> = {};
+    for (const o of periodOrders) {
+      customerOrderCounts[o.customer_id] = (customerOrderCounts[o.customer_id] || 0) + 1;
+    }
+    const totalOrderingCustomers = Object.keys(customerOrderCounts).length;
+    const repeatCustomers = Object.values(customerOrderCounts).filter((c) => c >= 2).length;
+    const reorderRate = totalOrderingCustomers > 0 ? (repeatCustomers / totalOrderingCustomers) * 100 : 0;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
@@ -87,7 +98,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, totalExpenses, periodProfit, plannedNet, actualNet, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -105,17 +116,22 @@ export default function FollowUpDashboard() {
 
   const periodLabel = getShortLabel(period);
 
-  const kpiCards = [
-    // Activity metrics (left 4)
-    { label: `Total Sales`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
-    { label: `Total Faces`, value: String(m.totalFaces), icon: Users, accent: "text-primary" },
-    { label: `Total Parties`, value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
-    { label: `Total Facials`, value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
-    // Financial metrics (right 4)
-    { label: `Profit`, value: `$${m.periodProfit.toFixed(2)}`, icon: TrendingUp, accent: m.periodProfit >= 0 ? "text-primary" : "text-destructive" },
-    { label: `Expenses`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
-    { label: `Planned Net`, value: `$${m.plannedNet.toFixed(2)}`, icon: Wallet, accent: m.plannedNet >= 0 ? "text-primary" : "text-destructive" },
-    { label: `Actual Net`, value: `$${m.actualNet.toFixed(2)}`, icon: Wallet, accent: m.actualNet >= 0 ? "text-primary" : "text-destructive" },
+  const activityCards = [
+    { label: "Total Faces", value: String(m.totalFaces), icon: Users, accent: "text-primary" },
+    { label: "Total Parties", value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
+    { label: "Total Facials", value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
+    { label: "Avg / Face", value: `$${m.avgFace.toFixed(2)}`, icon: TrendingUp, accent: "text-primary" },
+  ];
+
+  const financialCards = [
+    { label: "Total Sales", value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
+    { label: "Expenses", value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
+    { label: "Net Profit", value: `$${m.netProfit.toFixed(2)}`, icon: Wallet, accent: m.netProfit >= 0 ? "text-primary" : "text-destructive" },
+  ];
+
+  const performanceCards = [
+    { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, icon: TrendingUp, accent: "text-primary" },
+    { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, icon: Users, accent: "text-primary" },
   ];
 
   return (
@@ -178,15 +194,46 @@ export default function FollowUpDashboard() {
           </div>
         ) : (
           <>
+            {/* Row 1: Activity - most prominent */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {kpiCards.map((k) => (
-                <Card key={k.label} className="border-border/50 shadow-sm">
+              {activityCards.map((k) => (
+                <Card key={k.label} className="border-primary/20 shadow-md bg-primary/5">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-3">
+                      <k.icon className={cn("w-6 h-6", k.accent)} />
+                    </div>
+                    <p className={cn("text-3xl sm:text-4xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                    <p className="text-xs font-semibold text-muted-foreground mt-1.5 uppercase tracking-wider">{k.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Row 2: Financial - medium emphasis */}
+            <div className="grid grid-cols-3 gap-4">
+              {financialCards.map((k) => (
+                <Card key={k.label} className="border-border/50 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
                       <k.icon className={cn("w-5 h-5", k.accent)} />
                     </div>
-                    <p className={cn("text-2xl sm:text-3xl font-bold tracking-tight", k.accent)}>{k.value}</p>
+                    <p className={cn("text-2xl font-bold tracking-tight", k.accent)}>{k.value}</p>
                     <p className="text-xs font-medium text-muted-foreground mt-1 uppercase tracking-wider">{k.label}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Row 3: Performance - lighter */}
+            <div className="grid grid-cols-2 gap-4">
+              {performanceCards.map((k) => (
+                <Card key={k.label} className="border-border/30 shadow-none bg-muted/30">
+                  <CardContent className="p-3.5 flex items-center gap-3">
+                    <k.icon className={cn("w-4 h-4 shrink-0", k.accent)} />
+                    <div>
+                      <p className={cn("text-lg font-semibold tracking-tight", k.accent)}>{k.value}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{k.label}</p>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
