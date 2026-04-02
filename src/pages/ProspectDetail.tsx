@@ -218,7 +218,7 @@ export default function ProspectDetail() {
                 </Select>
                 <Input type="date" value={form.date_shared} onChange={(e) => setForm({ ...form, date_shared: e.target.value })} />
                 <Input type="date" value={form.last_contact_date} onChange={(e) => setForm({ ...form, last_contact_date: e.target.value })} />
-                <Input type="date" value={form.next_follow_up_date} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} />
+                <Input type="date" value={form.next_follow_up_date} min={new Date().toISOString().split("T")[0]} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} />
                 <div className="sm:col-span-2">
                   <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>

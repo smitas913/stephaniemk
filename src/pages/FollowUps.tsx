@@ -528,7 +528,7 @@ export default function FollowUps() {
               <Textarea placeholder="Add a note (optional)..." value={noteText} onChange={(e) => setNoteText(e.target.value)} className="min-h-[80px]" />
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
-                <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="h-9" />
+                <Input type="date" value={followUpDate} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setFollowUpDate(e.target.value)} className="h-9" />
               </div>
               <Button className="w-full" onClick={handleSubmitAction} disabled={contactMutation.isPending}>
                 <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -611,6 +611,7 @@ export default function FollowUps() {
                   <Input
                     type="date"
                     value={detailFollowUpDate}
+                    min={format(new Date(), "yyyy-MM-dd")}
                     onChange={(e) => setDetailFollowUpDate(e.target.value)}
                     className="h-9 flex-1"
                   />
