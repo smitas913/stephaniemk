@@ -21,7 +21,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   Marketing: "bg-purple-100 text-purple-700",
   Events: "bg-orange-100 text-orange-700",
   Tools: "bg-yellow-100 text-yellow-700",
-  Other: "bg-muted text-muted-foreground",
+  "Admin / Office Help": "bg-pink-100 text-pink-700",
+  Accounting: "bg-teal-100 text-teal-700",
 };
 
 export default function Expenses() {
