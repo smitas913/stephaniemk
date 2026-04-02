@@ -53,26 +53,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Set up listener FIRST, before getSession
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        setLoading(false);
         if (session?.user) {
+          // Set profileLoading=true SYNCHRONOUSLY before deferring fetch
+          // to prevent a render where session exists but profileLoading=false
+          setProfileLoading(true);
+          setLoading(false);
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
           setProfileLoading(false);
+          setLoading(false);
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setLoading(false);
       if (session?.user) {
+        setProfileLoading(true);
+        setLoading(false);
         fetchProfile(session.user.id);
       } else {
         setProfileLoading(false);
+        setLoading(false);
       }
     });
 
