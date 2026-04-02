@@ -612,3 +612,75 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
 
   return { customer, eventId };
 };
+
+// Team Consultants
+export const fetchTeamConsultants = async (): Promise<TeamConsultant[]> => {
+  const { data, error } = await supabase.from("team_consultants").select("*").order("name");
+  if (error) throw error;
+  return data as unknown as TeamConsultant[];
+};
+
+export const createTeamConsultant = async (consultant: Partial<TeamConsultant> & { name: string }): Promise<TeamConsultant> => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("team_consultants").insert({ ...consultant, owner_user_id: userId } as any).select().single();
+  if (error) throw error;
+  return data as unknown as TeamConsultant;
+};
+
+export const updateTeamConsultant = async (id: string, updates: Partial<TeamConsultant>): Promise<void> => {
+  const { error } = await supabase.from("team_consultants").update(updates as any).eq("id", id);
+  if (error) throw error;
+};
+
+export const deleteTeamConsultant = async (id: string): Promise<void> => {
+  const { error } = await supabase.from("team_consultants").delete().eq("id", id);
+  if (error) throw error;
+};
+
+// Leadership Members
+export const fetchLeadershipMembers = async (): Promise<LeadershipMember[]> => {
+  const { data, error } = await supabase.from("leadership_members").select("*").order("name");
+  if (error) throw error;
+  return data as unknown as LeadershipMember[];
+};
+
+export const createLeadershipMember = async (member: Partial<LeadershipMember> & { name: string }): Promise<LeadershipMember> => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("leadership_members").insert({ ...member, owner_user_id: userId } as any).select().single();
+  if (error) throw error;
+  return data as unknown as LeadershipMember;
+};
+
+export const updateLeadershipMember = async (id: string, updates: Partial<LeadershipMember>): Promise<void> => {
+  const { error } = await supabase.from("leadership_members").update(updates as any).eq("id", id);
+  if (error) throw error;
+};
+
+export const deleteLeadershipMember = async (id: string): Promise<void> => {
+  const { error } = await supabase.from("leadership_members").delete().eq("id", id);
+  if (error) throw error;
+};
+
+// Convert prospect to team consultant
+export const convertProspectToConsultant = async (prospect: Prospect): Promise<TeamConsultant> => {
+  const userId = await getCurrentUserId();
+  const { data: consultant, error: cErr } = await supabase.from("team_consultants").insert({
+    name: prospect.name,
+    phone: prospect.phone,
+    email: prospect.email,
+    prospect_id: prospect.id,
+    join_date: new Date().toISOString().split("T")[0],
+    status: "Active",
+    notes: prospect.notes ? `Converted from prospect. ${prospect.notes}` : "Converted from prospect.",
+    owner_user_id: userId,
+  } as any).select().single();
+  if (cErr) throw cErr;
+
+  await supabase.from("prospects").update({ opportunity_status: "Converted" } as any).eq("id", prospect.id);
+
+  if (prospect.customer_id) {
+    await supabase.from("customers").update({ relationship_status: "Consultant" } as any).eq("id", prospect.customer_id);
+  }
+
+  return consultant as unknown as TeamConsultant;
+};
