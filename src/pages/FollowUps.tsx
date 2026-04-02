@@ -166,7 +166,7 @@ export default function FollowUps() {
   }, [distributeSelectedIds, distributeDays]);
 
   const distributeMutation = useMutation({
-    mutationFn: () => bulkUpdateCustomerFollowUps(distributePreview),
+    mutationFn: () => bulkUpdateCustomerFollowUps(distributePreview.map((p) => ({ id: p.id, next_follow_up_date: p.date }))),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       setShowDistribute(false);
