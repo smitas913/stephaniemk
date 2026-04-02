@@ -130,7 +130,7 @@ export default function AddOrder() {
     if (!orderType) errors.push("Select an order type");
     if (!customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
-    if (!paymentType) errors.push("Select a payment type");
+    if (paymentStatus === "Paid" && !paymentType) errors.push("Select a payment type");
     if (isEventBased && !selectedEventId) errors.push("Select an event");
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentType, isEventBased, selectedEventId]);
