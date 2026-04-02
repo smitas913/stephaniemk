@@ -157,7 +157,7 @@ export default function EventDetail() {
                         )}
                       >
                         <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
-                        {event.event_date ? format(new Date(event.event_date + "T00:00:00"), "MMM d, yyyy") : "Pick date"}
+                        {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
