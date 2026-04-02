@@ -139,6 +139,8 @@ export default function AddOrder() {
         referral,
         payment_type: paymentType || null,
         retail_amount: Number(retailAmount) || 0,
+        wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
+        payout_amount: payoutAmount ? Number(payoutAmount) : null,
         notes: notes || undefined,
         parent_event_id: parentId,
       });
