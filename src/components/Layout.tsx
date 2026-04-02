@@ -10,7 +10,6 @@ const adminNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
-  { to: "/inventory", label: "Inventory", icon: Package },
   { to: "/follow-ups", label: "Follow-Ups", icon: Clock },
   { to: "/admin", label: "Admin Tools", icon: Settings, adminOnly: true },
 ];
