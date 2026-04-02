@@ -222,50 +222,49 @@ export default function Scoreboard() {
             </Card>
           </div>
 
-            {/* Trends */}
-            <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-base font-semibold text-foreground">Trends (Monthly)</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead className="text-xs">Month</TableHead>
-                        <TableHead className="text-xs text-center">Faces</TableHead>
-                        <TableHead className="text-xs text-center">Parties</TableHead>
-                        <TableHead className="text-xs text-center">Sharings</TableHead>
-                        <TableHead className="text-xs text-center">New Team</TableHead>
+          {/* Trends */}
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <CardTitle className="text-base font-semibold text-foreground">Trends (Monthly)</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="text-xs">Month</TableHead>
+                      <TableHead className="text-xs text-center">Faces</TableHead>
+                      <TableHead className="text-xs text-center">Parties</TableHead>
+                      <TableHead className="text-xs text-center">Sharings</TableHead>
+                      <TableHead className="text-xs text-center">New Team</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {scoreboard.trendMonths.map((row) => (
+                      <TableRow key={row.label}>
+                        <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {scoreboard.trendMonths.map((row) => (
-                        <TableRow key={row.label}>
-                          <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
-                        </TableRow>
-                      ))}
-                      {/* Average row */}
-                      <TableRow className="border-t-2 border-border bg-muted/20">
-                        <TableCell className="text-sm font-semibold text-foreground">{scoreboard.avg3.label}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.faces}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.parties}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.sharings}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.newTeam}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    ))}
+                    <TableRow className="border-t-2 border-border bg-muted/20">
+                      <TableCell className="text-sm font-semibold text-foreground">{scoreboard.avg3.label}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.faces}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.parties}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.sharings}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.newTeam}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        
         )}
       </div>
     </Layout>
