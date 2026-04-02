@@ -4,7 +4,7 @@ import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
 } from "@/lib/queries";
-import { CONSULTANT_STATUSES, LEADERSHIP_GOALS } from "@/lib/types";
+import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,15 @@ const CONSULTANT_STATUS_COLORS: Record<string, string> = {
   "Active": "bg-green-100 text-green-700",
   "Inactive": "bg-muted text-muted-foreground",
   "At Risk": "bg-orange-100 text-orange-700",
+};
+
+const ONBOARDING_STAGE_COLORS: Record<string, string> = {
+  "New": "bg-blue-100 text-blue-700",
+  "Started": "bg-cyan-100 text-cyan-700",
+  "First Order": "bg-emerald-100 text-emerald-700",
+  "First Party": "bg-violet-100 text-violet-700",
+  "First Team Member": "bg-amber-100 text-amber-700",
+  "Active Builder": "bg-green-100 text-green-700",
 };
 
 export default function Leadership() {
@@ -83,30 +92,32 @@ function ConsultantsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(), next_coaching_date: "", notes: "" });
+  const [form, setForm] = useState({
+    name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
+    next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
+    first_order_date: "", first_party_date: "", first_team_member_date: "",
+  });
 
-  const resetForm = () => setForm({ name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(), next_coaching_date: "", notes: "" });
+  const resetForm = () => setForm({
+    name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
+    next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
+    first_order_date: "", first_party_date: "", first_team_member_date: "",
+  });
+
+  const buildPayload = () => {
+    const cleaned: Record<string, any> = {};
+    for (const [k, v] of Object.entries(form)) cleaned[k] = v === "" ? null : v;
+    if (!cleaned.name) cleaned.name = "Unnamed";
+    return cleaned;
+  };
 
   const createMut = useMutation({
-    mutationFn: () => createTeamConsultant({
-      name: form.name,
-      phone: form.phone || null,
-      email: form.email || null,
-      status: form.status,
-      join_date: form.join_date || null,
-      next_coaching_date: form.next_coaching_date || null,
-      notes: form.notes || null,
-    }),
+    mutationFn: () => createTeamConsultant(buildPayload() as any),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setShowAdd(false); resetForm(); toast.success("Consultant added!"); },
   });
 
   const updateMut = useMutation({
-    mutationFn: () => {
-      const cleaned: Record<string, any> = {};
-      for (const [k, v] of Object.entries(form)) cleaned[k] = v === "" ? null : v;
-      if (!cleaned.name) cleaned.name = "Unnamed";
-      return updateTeamConsultant(editId!, cleaned);
-    },
+    mutationFn: () => updateTeamConsultant(editId!, buildPayload()),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setEditId(null); resetForm(); toast.success("Updated!"); },
   });
 
@@ -120,6 +131,9 @@ function ConsultantsTab() {
       name: c.name, phone: c.phone || "", email: c.email || "",
       status: c.status, join_date: c.join_date || "",
       next_coaching_date: c.next_coaching_date || "", notes: c.notes || "",
+      onboarding_stage: c.onboarding_stage || "New", coaching_focus: c.coaching_focus || "",
+      first_order_date: c.first_order_date || "", first_party_date: c.first_party_date || "",
+      first_team_member_date: c.first_team_member_date || "",
     });
     setEditId(c.id);
   };
@@ -144,8 +158,23 @@ function ConsultantsTab() {
               <Card key={c.id} className={cn("border-border/50 shadow-sm", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")}>
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
-                    {c.next_coaching_date && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
+                      {c.onboarding_stage && (
+                        <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[c.onboarding_stage] || "")}>
+                          {c.onboarding_stage}
+                        </Badge>
+                      )}
+                    </div>
+                    {c.coaching_focus && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Focus: {c.coaching_focus}
+                        {c.next_coaching_date && ` • ${formatDateOnly(c.next_coaching_date)}`}
+                        {overdue && <span className="text-destructive font-medium"> · Overdue</span>}
+                        {today && <span className="text-primary font-medium"> · Today</span>}
+                      </p>
+                    )}
+                    {!c.coaching_focus && c.next_coaching_date && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <CalendarDays className="w-3 h-3 text-muted-foreground" />
                         <span className={cn("text-xs", overdue ? "text-destructive font-medium" : today ? "text-primary font-medium" : "text-muted-foreground")}>
@@ -171,7 +200,7 @@ function ConsultantsTab() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAdd || !!editId} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditId(null); resetForm(); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base">{editId ? "Edit Consultant" : "Add Consultant"}</DialogTitle>
           </DialogHeader>
@@ -183,18 +212,52 @@ function ConsultantsTab() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>{CONSULTANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
+              <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Onboarding Stage" /></SelectTrigger>
+                <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
+            <p className="text-xs font-medium text-muted-foreground pt-1">Coaching</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={form.coaching_focus || "none"} onValueChange={(v) => setForm({ ...form, coaching_focus: v === "none" ? "" : v })}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Coaching Focus" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— None —</SelectItem>
+                  {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div>
+                <label className="text-xs text-muted-foreground">Next Coaching Date</label>
+                <Input type="date" value={form.next_coaching_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_coaching_date: e.target.value })} />
+              </div>
+            </div>
+
+            <p className="text-xs font-medium text-muted-foreground pt-1">Milestone Dates</p>
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-muted-foreground">Join Date</label>
                 <Input type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground">First Order Date</label>
+                <Input type="date" value={form.first_order_date} onChange={(e) => setForm({ ...form, first_order_date: e.target.value })} />
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Next Coaching Date</label>
-              <Input type="date" value={form.next_coaching_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_coaching_date: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">First Party Date</label>
+                <Input type="date" value={form.first_party_date} onChange={(e) => setForm({ ...form, first_party_date: e.target.value })} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">First Team Member Date</label>
+                <Input type="date" value={form.first_team_member_date} onChange={(e) => setForm({ ...form, first_team_member_date: e.target.value })} />
+              </div>
             </div>
+
             <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
             <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={!form.name.trim() || createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) ? "Saving..." : editId ? "Save Changes" : "Add Consultant"}

@@ -912,14 +912,19 @@ export type Database = {
       }
       team_consultants: {
         Row: {
+          coaching_focus: string | null
           created_at: string
           email: string | null
+          first_order_date: string | null
+          first_party_date: string | null
+          first_team_member_date: string | null
           id: string
           join_date: string | null
           last_order_date: string | null
           name: string
           next_coaching_date: string | null
           notes: string | null
+          onboarding_stage: string | null
           owner_user_id: string | null
           phone: string | null
           prospect_id: string | null
@@ -927,14 +932,19 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          coaching_focus?: string | null
           created_at?: string
           email?: string | null
+          first_order_date?: string | null
+          first_party_date?: string | null
+          first_team_member_date?: string | null
           id?: string
           join_date?: string | null
           last_order_date?: string | null
           name: string
           next_coaching_date?: string | null
           notes?: string | null
+          onboarding_stage?: string | null
           owner_user_id?: string | null
           phone?: string | null
           prospect_id?: string | null
@@ -942,14 +952,19 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          coaching_focus?: string | null
           created_at?: string
           email?: string | null
+          first_order_date?: string | null
+          first_party_date?: string | null
+          first_team_member_date?: string | null
           id?: string
           join_date?: string | null
           last_order_date?: string | null
           name?: string
           next_coaching_date?: string | null
           notes?: string | null
+          onboarding_stage?: string | null
           owner_user_id?: string | null
           phone?: string | null
           prospect_id?: string | null

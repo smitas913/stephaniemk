@@ -236,6 +236,19 @@ export interface BookingLead {
 
 export const CONSULTANT_STATUSES = ["Active", "Inactive", "At Risk"] as const;
 
+export const ONBOARDING_STAGES = ["New", "Started", "First Order", "First Party", "First Team Member", "Active Builder"] as const;
+
+export const COACHING_FOCUS_OPTIONS = [
+  "Set Up Account",
+  "Product Knowledge",
+  "Booking Practice",
+  "First Party Prep",
+  "Follow-Up Training",
+  "Recruiting Conversation",
+  "Confidence / Mindset",
+  "Consistency",
+] as const;
+
 export interface TeamConsultant {
   id: string;
   name: string;
@@ -250,6 +263,11 @@ export interface TeamConsultant {
   owner_user_id: string | null;
   created_at: string;
   updated_at: string | null;
+  onboarding_stage: string | null;
+  coaching_focus: string | null;
+  first_order_date: string | null;
+  first_party_date: string | null;
+  first_team_member_date: string | null;
 }
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;
