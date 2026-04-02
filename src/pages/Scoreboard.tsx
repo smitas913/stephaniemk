@@ -126,8 +126,10 @@ function ScoreSection({ title, items }: { title: string; items: ScoreItem[] }) {
 }
 
 export default function Scoreboard() {
-  const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-  const scoreboard = useScoreboard(events);
+  const { data: events = [], isLoading: evLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: prospects = [], isLoading: prLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const scoreboard = useScoreboard(events, prospects);
+  const isLoading = evLoading || prLoading;
 
   return (
     <Layout>
@@ -143,7 +145,39 @@ export default function Scoreboard() {
           </div>
         ) : (
           <div className="space-y-4">
-            <ScoreSection title="This Week" items={scoreboard.weekly} />
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">This Week</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {scoreboard.weekly.map((item) => (
+                  <div key={item.label} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">{item.label}</span>
+                      <span className={cn("text-lg font-bold tabular-nums", STATUS_COLORS[item.status])}>
+                        {item.current} <span className="text-muted-foreground font-normal text-sm">/ {item.goal}</span>
+                      </span>
+                    </div>
+                    <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
+                  </div>
+                ))}
+                {/* Sharing Conversion Rate */}
+                <div className="space-y-1 pt-1 border-t border-border/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">{scoreboard.sharingConversion.label}</span>
+                    <span className="text-lg font-bold tabular-nums text-primary">
+                      {scoreboard.sharingConversion.pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {scoreboard.sharingConversion.numerator} / {scoreboard.sharingConversion.denominator} sharing appointments
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
             <ScoreSection title="This Month" items={scoreboard.monthly} />
           </div>
         )}
