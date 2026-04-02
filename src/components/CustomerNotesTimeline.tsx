@@ -15,18 +15,18 @@ const NOTE_TYPE_ICONS: Record<string, React.ElementType> = {
   Call: Phone,
   Text: MessageSquare,
   Email: Mail,
-  Appointment: Calendar,
+  "In Person": Calendar,
   "Follow-Up": RefreshCw,
-  General: FileText,
+  Other: FileText,
 };
 
 const NOTE_TYPE_COLORS: Record<string, string> = {
   Call: "bg-blue-100 text-blue-700",
   Text: "bg-green-100 text-green-700",
   Email: "bg-purple-100 text-purple-700",
-  Appointment: "bg-orange-100 text-orange-700",
+  "In Person": "bg-orange-100 text-orange-700",
   "Follow-Up": "bg-yellow-100 text-yellow-700",
-  General: "bg-accent text-accent-foreground",
+  Other: "bg-accent text-accent-foreground",
 };
 
 export default function CustomerNotesTimeline({ customerId }: { customerId: string }) {
@@ -162,7 +162,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
 
 function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
   const Icon = NOTE_TYPE_ICONS[note.note_type] || FileText;
-  const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.General;
+  const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.Other;
 
   return (
     <div className="relative pl-9 group">

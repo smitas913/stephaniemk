@@ -165,7 +165,7 @@ export default function ImportCustomers() {
           await supabase.from("customer_notes").insert({
             customer_id: customerId,
             note_text: legacyNotes,
-            note_type: "General",
+            note_type: "Other",
           });
         }
       } catch (err: any) {
