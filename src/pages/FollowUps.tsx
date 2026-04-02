@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserPlus, CalendarRange } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, addDays } from "date-fns";
 
@@ -38,6 +38,7 @@ type FollowUpItem = {
   new_follow_up_stage?: string | null;
   // birthday fields (only for customers)
   birthday_mmdd?: string | null;
+  daysOverdue?: number | null;
 };
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
@@ -187,22 +188,33 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const { overdue, todayList, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+  const { callsForToday, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
     // Customer follow-up items
-    const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => ({
-      id: c.id,
-      itemType: "customer" as const,
-      name: c.full_name,
-      phone: c.phone,
-      email: c.email,
-      vip: c.vip,
-      next_follow_up: c.next_follow_up,
-      follow_up_status: c.follow_up_status,
-      activity_status: c.activity_status,
-      days_since_last_order: c.days_since_last_order,
-      new_follow_up_stage: c.new_follow_up_stage,
-      birthday_mmdd: c.birthday_mmdd,
-    }));
+    const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
+      let daysOverdue: number | null = null;
+      if (c.follow_up_status === "OVERDUE" && c.next_follow_up) {
+        const nf = parseISO(c.next_follow_up);
+        daysOverdue = Math.floor((todayDate.getTime() - nf.getTime()) / (1000 * 60 * 60 * 24));
+      }
+      return {
+        id: c.id,
+        itemType: "customer" as const,
+        name: c.full_name,
+        phone: c.phone,
+        email: c.email,
+        vip: c.vip,
+        next_follow_up: c.next_follow_up,
+        follow_up_status: c.follow_up_status,
+        activity_status: c.activity_status,
+        days_since_last_order: c.days_since_last_order,
+        new_follow_up_stage: c.new_follow_up_stage,
+        birthday_mmdd: c.birthday_mmdd,
+        daysOverdue,
+      };
+    });
 
     // Prospect follow-up items
     const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -210,8 +222,13 @@ export default function FollowUps() {
       .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
       .map((p) => {
         let status = "UPCOMING";
-        if (p.next_follow_up_date! < todayStr) status = "OVERDUE";
-        else if (p.next_follow_up_date === todayStr) status = "TODAY";
+        let daysOverdue: number | null = null;
+        if (p.next_follow_up_date! < todayStr) {
+          status = "OVERDUE";
+          daysOverdue = Math.floor((todayDate.getTime() - parseISO(p.next_follow_up_date!).getTime()) / (1000 * 60 * 60 * 24));
+        } else if (p.next_follow_up_date === todayStr) {
+          status = "TODAY";
+        }
         return {
           id: p.id,
           itemType: "prospect" as const,
@@ -221,20 +238,24 @@ export default function FollowUps() {
           next_follow_up: p.next_follow_up_date,
           follow_up_status: status,
           opportunity_status: p.opportunity_status,
+          daysOverdue,
         };
       });
 
     const allItems = [...customerItems, ...prospectItems];
 
-    const overdue = allItems
-      .filter((c) => c.follow_up_status === "OVERDUE")
+    // Unified call list: overdue + today, sorted overdue-first (oldest first)
+    const callsForToday = allItems
+      .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY")
       .sort((a, b) => {
+        // Overdue before today
+        if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
+        if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
+        // Within same status, sort by date (oldest first)
         const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : 0;
         const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : 0;
         return aDate - bDate;
       });
-
-    const todayList = allItems.filter((c) => c.follow_up_status === "TODAY");
 
     // Birthdays (customers only)
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
@@ -247,7 +268,7 @@ export default function FollowUps() {
     }
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { overdue, todayList, birthdaysToday, birthdaysUpcoming };
+    return { callsForToday, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects]);
 
   const contactMutation = useMutation({
@@ -311,7 +332,7 @@ export default function FollowUps() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {overdue.length} overdue · {todayList.length} today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
+              {callsForToday.length} calls for today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={openDistributeDialog}>
@@ -358,60 +379,110 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 2. Overdue */}
-            <FollowUpSection
-              title="Overdue"
-              icon={AlertTriangle}
-              iconColor="text-red-600"
-              iconBg="bg-red-50 dark:bg-red-950/30"
-              items={overdue}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] text-red-600 font-medium">
-                    Since {c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}
-                  </p>
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
+            {/* 2. Calls for Today */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
+                      <Phone className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold text-foreground">Calls for Today</CardTitle>
+                    <Badge variant="secondary" className="text-xs">{callsForToday.length}</Badge>
+                  </div>
                 </div>
-              )}
-            />
+              </CardHeader>
+              <CardContent>
+                {callsForToday.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">All caught up! 🎉</p>
+                ) : (
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {callsForToday.map((c) => {
+                      const lastNote = c.itemType === "customer" ? notesByCustomer.get(c.id) : undefined;
+                      return (
+                        <div
+                          key={`${c.itemType}-${c.id}`}
+                          className="border border-border/60 rounded-lg p-3 hover:bg-muted/30 transition-colors"
+                        >
+                          {/* Top row: name + status badge */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => navigateToItem(c)}>
+                              <p className="text-sm font-semibold text-foreground truncate">
+                                {c.name}
+                              </p>
+                              {c.vip === "VIP" && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium shrink-0">VIP</span>
+                              )}
+                              {c.itemType === "prospect" && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium shrink-0">Prospect</span>
+                              )}
+                            </div>
+                            <div className="shrink-0">
+                              {c.follow_up_status === "OVERDUE" ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
+                                  Overdue {c.daysOverdue ? `${c.daysOverdue}d` : ""}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
+                                  Due Today
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-            {/* 3. Today */}
-            <FollowUpSection
-              title="Today"
-              icon={CalendarCheck}
-              iconColor="text-blue-600"
-              iconBg="bg-blue-50 dark:bg-blue-950/30"
-              items={todayList}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
+                          {/* Info row */}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
+                            {c.activity_status && (
+                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                                {c.activity_status}
+                              </span>
+                            )}
+                            {c.days_since_last_order !== null && c.days_since_last_order !== undefined && (
+                              <span>{c.days_since_last_order}d since last order</span>
+                            )}
+                            {c.opportunity_status && (
+                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                                {c.opportunity_status}
+                              </span>
+                            )}
+                            {lastNote && (
+                              <span className="truncate max-w-[200px]">
+                                Last: {lastNote.note_type} · {new Date(lastNote.created_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick actions */}
+                          <div className="flex flex-wrap gap-1">
+                            {c.phone && (
+                              <>
+                                <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+                                  <a href={`tel:${c.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+                                  <a href={`sms:${c.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                                </Button>
+                              </>
+                            )}
+                            {c.email && (
+                              <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+                                <a href={`mailto:${c.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openContactDialog(c, "General")}>
+                              <FileText className="w-3 h-3 mr-1" />Note
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openContactDialog(c, "Call")}>
+                              <CheckCircle2 className="w-3 h-3 mr-1" />Log Contact
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
