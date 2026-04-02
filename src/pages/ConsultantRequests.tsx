@@ -21,7 +21,7 @@ type PendingProfile = {
   created_at: string;
 };
 
-export default function ConsultantRequests() {
+export default function ConsultantRequests({ embedded = false }: { embedded?: boolean }) {
   const { profile: myProfile } = useAuth();
   const queryClient = useQueryClient();
 

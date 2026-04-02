@@ -27,7 +27,7 @@ type Profile = {
 
 const ALL_ROLES = ["owner", "admin", "consultant", "customer"] as const;
 
-export default function UserManagement() {
+export default function UserManagement({ embedded = false }: { embedded?: boolean }) {
   const { profile: myProfile } = useAuth();
   const queryClient = useQueryClient();
 
