@@ -22,6 +22,17 @@ import { cn } from "@/lib/utils";
 import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw, ChevronRight, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
+import {
+  formatDateOnly,
+  getDateOnlyTime,
+  getDaysOverdue,
+  getFollowUpStatus,
+  getLocalToday,
+  isDueTodayOrEarlier,
+  normalizeDateOnly,
+  parseLocalDate,
+  toLocalDateKey,
+} from "@/lib/dateOnly";
 
 const MONTH_NAME_TO_NUMBER: Record<string, number> = {
   january: 1,
@@ -38,65 +49,11 @@ const MONTH_NAME_TO_NUMBER: Record<string, number> = {
   december: 12,
 };
 
-function parseLocalDate(dateStr: string): Date {
-  const normalized = dateStr.slice(0, 10);
-  const [y, m, d] = normalized.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function getLocalToday(): Date {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
-
-function toLocalDateKey(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function normalizeDateOnly(dateStr: string | null | undefined): string | null {
-  if (!dateStr) return null;
-  const trimmed = dateStr.trim();
-  if (!trimmed) return null;
-  const match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (!match) return null;
-  const [, year, month, day] = match;
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-function getDateOnlyTime(dateStr: string | null | undefined): number | null {
-  const normalized = normalizeDateOnly(dateStr);
-  if (!normalized) return null;
-  const parsed = parseLocalDate(normalized);
-  const time = parsed.getTime();
-  return Number.isNaN(time) ? null : time;
-}
-
-function formatDateOnly(dateStr: string | null | undefined, pattern = "M/d/yyyy"): string {
-  if (!dateStr) return "—";
-  return format(parseLocalDate(dateStr), pattern);
-}
-
-function getFollowUpStatus(dateStr: string | null | undefined, todayKey = toLocalDateKey(getLocalToday())): "" | "OVERDUE" | "TODAY" | "UPCOMING" {
-  const normalized = normalizeDateOnly(dateStr);
-  if (!normalized) return "";
-  if (normalized < todayKey) return "OVERDUE";
-  if (normalized === todayKey) return "TODAY";
-  return "UPCOMING";
-}
-
-function isDueTodayOrEarlier(dateStr: string | null | undefined, todayKey = toLocalDateKey(getLocalToday())): boolean {
-  const normalized = normalizeDateOnly(dateStr);
-  return normalized !== null && normalized <= todayKey;
-}
-
-function getDaysOverdue(dateStr: string | null | undefined, today = getLocalToday()): number | null {
-  const dueTime = getDateOnlyTime(dateStr);
-  if (dueTime === null || dueTime >= today.getTime()) return null;
-  return Math.floor((today.getTime() - dueTime) / (1000 * 60 * 60 * 24));
+function normalizeFollowUpDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const sliced = value.trim().slice(0, 10);
+  if (!sliced) return null;
+  return normalizeDateOnly(sliced);
 }
 
 type Enriched = Customer & CustomerComputed;
@@ -354,9 +311,8 @@ export default function FollowUps() {
     const todayKey = toLocalDateKey(todayDate);
 
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
-      const effectiveFollowUp = normalizeDateOnly(c.next_follow_up_date) || normalizeDateOnly(c.next_follow_up);
-      const derivedStatus = getFollowUpStatus(effectiveFollowUp, todayKey);
-      const followUpStatus = derivedStatus || c.follow_up_status;
+      const effectiveFollowUp = normalizeFollowUpDate(c.next_follow_up_date) || normalizeFollowUpDate(c.next_follow_up);
+      const followUpStatus = getFollowUpStatus(effectiveFollowUp, todayKey) || c.follow_up_status;
       const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
       const lastNote = notesByCustomer.get(c.id);
       const notePreview = lastNote
@@ -384,11 +340,11 @@ export default function FollowUps() {
     });
 
     const prospectItems: FollowUpItem[] = prospects
-      .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
+      .filter((p) => normalizeFollowUpDate(p.next_follow_up_date) && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
       .map((p) => {
-        const effectiveFollowUp = normalizeDateOnly(p.next_follow_up_date);
+        const effectiveFollowUp = normalizeFollowUpDate(p.next_follow_up_date);
         const status = getFollowUpStatus(effectiveFollowUp, todayKey) || "UPCOMING";
-        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(p.next_follow_up_date, todayDate) : null;
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
         return {
           id: p.id,
           itemType: "prospect" as const,
@@ -407,18 +363,12 @@ export default function FollowUps() {
     const allItems = [...customerItems, ...prospectItems];
 
     const callsForToday = allItems
-      .filter((c) => {
-        const includedByDate = c.next_follow_up
-          ? isDueTodayOrEarlier(c.next_follow_up, todayKey)
-          : c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
-        return includedByDate;
-      })
+      .filter((item) => item.next_follow_up && isDueTodayOrEarlier(item.next_follow_up, todayKey))
       .sort((a, b) => {
-        if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
-        if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
         const aDate = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
         const bDate = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
-        return aDate - bDate;
+        if (aDate !== bDate) return aDate - bDate;
+        return a.name.localeCompare(b.name);
       });
 
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
@@ -438,7 +388,8 @@ export default function FollowUps() {
   const bookingLeadsDue = useMemo(() => {
     const todayKey = toLocalDateKey();
     return bookingLeads
-      .filter((l) => l.status !== "Booked" && l.status !== "Not Interested" && l.next_follow_up_date && isDueTodayOrEarlier(l.next_follow_up_date, todayKey))
+      .map((lead) => ({ ...lead, next_follow_up_date: normalizeFollowUpDate(lead.next_follow_up_date) }))
+      .filter((lead) => lead.status !== "Booked" && lead.status !== "Not Interested" && lead.next_follow_up_date && isDueTodayOrEarlier(lead.next_follow_up_date, todayKey))
       .sort((a, b) => (getDateOnlyTime(a.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER) - (getDateOnlyTime(b.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER));
   }, [bookingLeads]);
 
@@ -500,7 +451,7 @@ export default function FollowUps() {
       item,
       note: inlineNoteText,
       type: inlineNoteType,
-      nextDate: inlineFollowUpDate || undefined,
+      nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined,
     });
   };
 
@@ -525,11 +476,12 @@ export default function FollowUps() {
 
   const detailFollowUpMutation = useMutation({
     mutationFn: async () => {
-      if (!detailItem || !detailFollowUpDate) return;
+      const normalizedDate = normalizeFollowUpDate(detailFollowUpDate);
+      if (!normalizedDate) return;
       if (detailItem.itemType === "customer") {
-        await updateCustomer(detailItem.id, { next_follow_up_date: detailFollowUpDate } as any);
+        await updateCustomer(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       } else {
-        await updateProspect(detailItem.id, { next_follow_up_date: detailFollowUpDate } as any);
+        await updateProspect(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       }
     },
     onSuccess: () => {
@@ -560,7 +512,7 @@ export default function FollowUps() {
       item: actionItem,
       note: noteText,
       type: noteType,
-      nextDate: followUpDate || undefined,
+      nextDate: normalizeFollowUpDate(followUpDate) || undefined,
     });
   };
 
