@@ -24,64 +24,6 @@ import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-type PeriodValue =
-  | { type: "ytd" }
-  | { type: "mtd" }
-  | { type: "last-month" }
-  | { type: "month"; year: number; month: number };
-
-function getDateRange(period: PeriodValue): { start: Date; end: Date } {
-  const now = new Date();
-  switch (period.type) {
-    case "ytd": return { start: startOfYear(now), end: now };
-    case "mtd": return { start: startOfMonth(now), end: now };
-    case "last-month": { const prev = subMonths(now, 1); return { start: startOfMonth(prev), end: endOfMonth(prev) }; }
-    case "month": return { start: new Date(period.year, period.month, 1), end: endOfMonth(new Date(period.year, period.month, 1)) };
-  }
-}
-
-function getShortLabel(period: PeriodValue): string {
-  const now = new Date();
-  switch (period.type) {
-    case "ytd": return "YTD";
-    case "mtd": return "MTD";
-    case "last-month": { const prev = subMonths(now, 1); return MONTHS[prev.getMonth()]; }
-    case "month": return `${MONTHS[period.month].slice(0, 3)} ${period.year}`;
-  }
-}
-
-function MonthYearPicker({ onSelect }: { onSelect: (year: number, month: number) => void }) {
-  const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  return (
-    <div className="p-3 w-[260px]">
-      <div className="flex items-center justify-between mb-3">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear - 1)}>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <span className="text-sm font-semibold text-foreground">{viewYear}</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear + 1)}>
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {MONTHS.map((m, i) => {
-          const isFuture = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && i > now.getMonth());
-          return (
-            <Button key={m} variant="ghost" size="sm" disabled={isFuture}
-              className={cn("text-xs h-8", viewYear === now.getFullYear() && i === now.getMonth() && "border border-primary/50")}
-              onClick={() => onSelect(viewYear, i)}
-            >{m.slice(0, 3)}</Button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "event_id";
 type SortDir = "asc" | "desc";
