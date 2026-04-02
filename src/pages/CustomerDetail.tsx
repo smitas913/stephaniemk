@@ -39,7 +39,18 @@ export default function CustomerDetail() {
 
   const { data: customer } = useQuery({ queryKey: ["customer", id], queryFn: () => fetchCustomer(id!) });
   const { data: orders = [] } = useQuery({ queryKey: ["customer-orders", id], queryFn: () => fetchCustomerOrders(id!) });
-
+  const { data: deliveryCount = 0 } = useQuery({
+    queryKey: ["delivery-count", id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("daily_plan_items" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("customer_id", id!)
+        .eq("item_type", "delivery");
+      if (error) throw error;
+      return count || 0;
+    },
+  });
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
 
