@@ -321,11 +321,21 @@ export default function Orders() {
                   <TableHead className="text-xs w-[80px] cursor-pointer select-none" onClick={() => toggleSort("order_type")}>
                     <span className="flex items-center">Type<SortIcon field="order_type" /></span>
                   </TableHead>
-                  <TableHead className="text-xs w-[60px]">Face</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">H</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">½</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">BD</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">Ref</TableHead>
+                  <TableHead className="text-xs w-[60px] cursor-pointer select-none" onClick={() => toggleSort("face_type")}>
+                    <span className="flex items-center">Face<SortIcon field="face_type" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("hostess")}>
+                    <span className="flex items-center justify-center">H<SortIcon field="hostess" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("half_price_deal")}>
+                    <span className="flex items-center justify-center">½<SortIcon field="half_price_deal" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("birthday")}>
+                    <span className="flex items-center justify-center">BD<SortIcon field="birthday" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("referral")}>
+                    <span className="flex items-center justify-center">Ref<SortIcon field="referral" /></span>
+                  </TableHead>
                   <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_type")}>
                     <span className="flex items-center">Pay<SortIcon field="payment_type" /></span>
                   </TableHead>
