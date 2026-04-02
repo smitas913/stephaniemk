@@ -78,6 +78,7 @@ type FollowUpItem = {
   opportunity_status?: string;
   new_follow_up_stage?: string | null;
   birthday_mmdd?: string | null;
+  birthday?: string | null;
   daysOverdue?: number | null;
   followUpReason?: string;
   lastNotePreview?: string;
