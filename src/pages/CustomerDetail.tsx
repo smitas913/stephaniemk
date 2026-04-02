@@ -82,7 +82,7 @@ export default function CustomerDetail() {
   if (!customer || !computed) return <Layout><p className="text-muted-foreground text-center py-12">Loading...</p></Layout>;
 
   const statCards = [
-    { label: "Category", value: computed.category || "—" },
+    { label: "Activity", value: computed.activity_status || "—" },
     { label: "VIP", value: computed.vip || "—" },
     { label: "Last Order", value: computed.last_order_effective ? new Date(computed.last_order_effective).toLocaleDateString() : "—" },
     { label: "Days Since", value: computed.days_since_last_order !== null ? String(computed.days_since_last_order) : "—" },
