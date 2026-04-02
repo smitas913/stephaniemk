@@ -92,6 +92,39 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          created_at: string
+          event_date: string | null
+          event_id: string
+          guest_count: number | null
+          id: string
+          notes: string | null
+          owner_user_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_date?: string | null
+          event_id: string
+          guest_count?: number | null
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_date?: string | null
+          event_id?: string
+          guest_count?: number | null
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
