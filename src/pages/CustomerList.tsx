@@ -51,6 +51,15 @@ export default function CustomerList() {
     },
   });
 
+  const statusMutation = useMutation({
+    mutationFn: ({ id, current_status }: { id: string; current_status: string }) =>
+      updateCustomer(id, { current_status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Status updated");
+    },
+  });
+
   const enriched: EnrichedCustomer[] = useMemo(() => {
     return customers.map((c) => {
       const custOrders = allOrders.filter((o) => o.customer_id === c.id);
