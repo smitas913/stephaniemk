@@ -304,3 +304,27 @@ export const deleteExpense = async (id: string) => {
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   if (error) throw error;
 };
+
+// Income (commissions, bonuses, etc.)
+
+export const fetchIncome = async (): Promise<Income[]> => {
+  const { data, error } = await supabase
+    .from("income")
+    .select("*")
+    .order("income_date", { ascending: false });
+  if (error) throw error;
+  return data as unknown as Income[];
+};
+
+export const createIncome = async (income: { income_date: string; amount: number; category: string; source?: string | null; notes?: string | null }) => {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("income")
+    .insert({ ...income, owner_user_id: userId } as any);
+  if (error) throw error;
+};
+
+export const deleteIncome = async (id: string) => {
+  const { error } = await supabase.from("income").delete().eq("id", id);
+  if (error) throw error;
+};
