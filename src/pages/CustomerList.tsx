@@ -73,8 +73,8 @@ export default function CustomerList() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, current_status }: { id: string; current_status: string }) =>
-      updateCustomer(id, { current_status }),
+    mutationFn: ({ id, relationship_status }: { id: string; relationship_status: string }) =>
+      updateCustomer(id, { relationship_status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Status updated");
