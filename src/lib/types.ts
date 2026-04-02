@@ -78,3 +78,14 @@ export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Credit Card", "CashApp", "Paypal", "Other"] as const;
 export const FOLLOW_UP_STAGES = ["2 Day", "2 Week", "2 Month", "Complete"] as const;
 export const ORDER_SOURCES = ["Text", "Phone", "Online", "In Person"] as const;
+
+export interface CustomerNote {
+  id: string;
+  customer_id: string;
+  note_text: string;
+  note_type: string;
+  created_at: string;
+  owner_user_id: string | null;
+}
+
+export const NOTE_TYPES = ["Call", "Text", "Email", "Appointment", "Follow-Up", "General"] as const;

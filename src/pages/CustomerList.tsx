@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import type { Customer, CustomerComputed } from "@/lib/types";
+import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type EnrichedCustomer = Customer & CustomerComputed;
+type EnrichedCustomer = Customer & CustomerComputed & {
+  latest_note?: CustomerNote;
+};
 
 export default function CustomerList() {
   const queryClient = useQueryClient();
@@ -33,6 +35,7 @@ export default function CustomerList() {
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
 
   const addMutation = useMutation({
     mutationFn: createCustomer,
@@ -81,13 +84,22 @@ export default function CustomerList() {
     },
   });
 
+  const notesByCustomer = useMemo(() => {
+    const map = new Map<string, CustomerNote>();
+    for (const n of allNotes) {
+      if (!map.has(n.customer_id)) map.set(n.customer_id, n);
+    }
+    return map;
+  }, [allNotes]);
+
   const enriched: EnrichedCustomer[] = useMemo(() => {
     return customers.map((c) => {
       const custOrders = allOrders.filter((o) => o.customer_id === c.id);
       const computed = computeCustomerFields(c, custOrders);
-      return { ...c, ...computed };
+      const latest_note = notesByCustomer.get(c.id);
+      return { ...c, ...computed, latest_note };
     });
-  }, [customers, allOrders]);
+  }, [customers, allOrders, notesByCustomer]);
 
   const filtered = useMemo(() => {
     return enriched.filter((c) => {
@@ -211,14 +223,15 @@ export default function CustomerList() {
                   <TableHead className="text-right">Days</TableHead>
                   <TableHead className="text-right">Orders YTD</TableHead>
                   <TableHead className="text-right">Retail YTD</TableHead>
-                  <TableHead>Next Follow-Up</TableHead>
-                  <TableHead>FU Status</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
+                   <TableHead>Next Follow-Up</TableHead>
+                   <TableHead>FU Status</TableHead>
+                   <TableHead>Last Contact</TableHead>
+                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
@@ -245,6 +258,21 @@ export default function CustomerList() {
                     <TableCell className="text-right text-sm font-medium">${c.retail_this_year.toFixed(2)}</TableCell>
                     <TableCell className="text-sm">{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</TableCell>
                     <TableCell>{statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}</TableCell>
+                    <TableCell>
+                      {c.latest_note ? (
+                        <div className="max-w-[180px]">
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <MessageSquare className="w-3 h-3 shrink-0" />
+                            <span>{c.latest_note.note_type}</span>
+                            <span>·</span>
+                            <span>{new Date(c.latest_note.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-xs text-foreground truncate">{c.latest_note.note_text}</p>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         {c.is_active !== false ? (
