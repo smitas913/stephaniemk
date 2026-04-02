@@ -159,6 +159,7 @@ export default function CustomerDetail() {
                 <Input placeholder="Full Name *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
                 <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input type="date" placeholder="Birthday" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
                 <Input placeholder="Birthday (MM/DD)" value={form.birthday_mmdd} onChange={(e) => setForm({ ...form, birthday_mmdd: e.target.value })} />
                 <Input placeholder="Address Line 1" value={form.address_line_1} onChange={(e) => setForm({ ...form, address_line_1: e.target.value })} />
                 <Input placeholder="Address Line 2" value={form.address_line_2} onChange={(e) => setForm({ ...form, address_line_2: e.target.value })} />
