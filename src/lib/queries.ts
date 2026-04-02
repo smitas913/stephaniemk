@@ -1,6 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Order, OrderWithCustomer } from "./types";
 
+// Helper to get current user id for ownership
+const getCurrentUserId = async () => {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
+};
+import type { Customer, Order, OrderWithCustomer } from "./types";
+
 // Customers
 export const fetchCustomers = async (): Promise<Customer[]> => {
   const { data, error } = await supabase.from("customers").select("*").order("full_name");
