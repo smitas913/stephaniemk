@@ -180,7 +180,8 @@ export interface Income {
 }
 
 export const BOOKING_LEAD_STATUSES = ["New", "Contacted", "Booked", "Not Interested"] as const;
-export const BOOKING_LEAD_SOURCES = ["Bridal", "Facial Box", "Chatter", "Referral", "Social Media", "Event", "Other"] as const;
+export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Facial Box", "Bridal", "Vendor Table", "Social Media", "Other"] as const;
+export const DEFAULT_LEAD_SOURCE = "Networking";
 
 export interface BookingLead {
   id: string;
