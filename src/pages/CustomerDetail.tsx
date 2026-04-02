@@ -13,7 +13,21 @@ import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail } from "lucid
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { format, parseISO, formatDistanceToNowStrict } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
+
+function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={className}>
+      <label className="text-xs font-medium text-muted-foreground mb-1 block">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return <h3 className="text-sm font-semibold text-foreground pt-3 pb-1 border-b border-border/50 mb-3 first:pt-0">{title}</h3>;
+}
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -41,11 +55,10 @@ export default function CustomerDetail() {
         postal_code: customer.postal_code || "",
         relationship_status: customer.relationship_status || "Customer",
         profile_date_first_order_date: customer.profile_date_first_order_date || "",
-        last_order_mk: customer.last_order_mk || "",
-        last_contacted: customer.last_contacted || "",
         follow_up_reason: customer.follow_up_reason || "",
         notes: customer.notes || "",
         new_follow_up_stage: customer.new_follow_up_stage || "",
+        next_follow_up_date: customer.next_follow_up_date || "",
       });
     }
   }, [customer]);
@@ -83,52 +96,63 @@ export default function CustomerDetail() {
 
   if (!customer || !computed) return <Layout><p className="text-muted-foreground text-center py-12">Loading...</p></Layout>;
 
+  const formatDate = (d: string | null | undefined) => {
+    if (!d) return "—";
+    try {
+      return format(parseISO(d), "MMM d, yyyy");
+    } catch { return d; }
+  };
+
+  const formatDateRelative = (d: string | null | undefined) => {
+    if (!d) return null;
+    try {
+      const parsed = parseISO(d);
+      return `${format(parsed, "MMM d")} (${formatDistanceToNowStrict(parsed, { addSuffix: true })})`;
+    } catch { return d; }
+  };
+
   const statCards = [
     { label: "Activity", value: computed.activity_status || "—" },
     { label: "VIP", value: computed.vip || "—" },
-    { label: "Last Order", value: computed.last_order_effective ? new Date(computed.last_order_effective).toLocaleDateString() : "—" },
+    { label: "Last Order", value: computed.last_order_effective ? formatDate(computed.last_order_effective) : "—" },
     { label: "Days Since", value: computed.days_since_last_order !== null ? String(computed.days_since_last_order) : "—" },
     { label: "Orders YTD", value: String(computed.orders_this_year) },
     { label: "Retail YTD", value: `$${computed.retail_this_year.toFixed(2)}` },
-    { label: "Next Follow-Up", value: computed.next_follow_up ? new Date(computed.next_follow_up).toLocaleDateString() : "—" },
+    { label: "Next Follow-Up", value: computed.next_follow_up ? formatDate(computed.next_follow_up) : "—" },
     { label: "FU Status", value: computed.follow_up_status || "—" },
   ];
 
-  const fuStatusColor = computed.follow_up_status === "OVERDUE" ? "text-red-600" : computed.follow_up_status === "TODAY" ? "text-blue-600" : "text-green-600";
+  const fuStatusColor = computed.follow_up_status === "OVERDUE" ? "text-destructive" : computed.follow_up_status === "TODAY" ? "text-primary" : "text-muted-foreground";
 
   return (
     <Layout>
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
+        {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate("/customers")}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
             <div className="flex gap-2 mt-0.5">
-              {computed.new_first_90_days && <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">New</span>}
-              {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
-              <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{customer.relationship_status || "Customer"}</span>
+              {computed.new_first_90_days && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New</span>}
+              {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>
           </div>
           <div className="flex gap-1">
             {customer.phone && (
               <>
-                <Button size="sm" variant="outline" asChild title="Call">
-                  <a href={`tel:${customer.phone}`}><Phone className="w-4 h-4" /></a>
-                </Button>
-                <Button size="sm" variant="outline" asChild title="Text">
-                  <a href={`sms:${customer.phone}`}><MessageSquare className="w-4 h-4" /></a>
-                </Button>
+                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${customer.phone}`}><Phone className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${customer.phone}`}><MessageSquare className="w-4 h-4" /></a></Button>
               </>
             )}
             {customer.email && (
-              <Button size="sm" variant="outline" asChild title="Email">
-                <a href={`mailto:${customer.email}`}><Mail className="w-4 h-4" /></a>
-              </Button>
+              <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${customer.email}`}><Mail className="w-4 h-4" /></a></Button>
             )}
             <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
           </div>
         </div>
 
+        {/* Stat Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {statCards.map((s) => (
             <Card key={s.label} className="border-border/50 shadow-sm">
@@ -140,6 +164,7 @@ export default function CustomerDetail() {
           ))}
         </div>
 
+        {/* Customer Info Card */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Customer Info</CardTitle>
@@ -156,54 +181,121 @@ export default function CustomerDetail() {
           </CardHeader>
           <CardContent>
             {editing ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input placeholder="Full Name *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-                <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                <Input type="date" placeholder="Birthday" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
-                <Input placeholder="Birthday (MM/DD)" value={form.birthday_mmdd} onChange={(e) => setForm({ ...form, birthday_mmdd: e.target.value })} />
-                <Input placeholder="Address Line 1" value={form.address_line_1} onChange={(e) => setForm({ ...form, address_line_1: e.target.value })} />
-                <Input placeholder="Address Line 2" value={form.address_line_2} onChange={(e) => setForm({ ...form, address_line_2: e.target.value })} />
-                <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-                <Input placeholder="State" value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} />
-                <Input placeholder="Zip" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
-                <Select value={form.relationship_status} onValueChange={(v) => setForm({ ...form, relationship_status: v })}>
-                  <SelectTrigger><SelectValue placeholder="Relationship Status" /></SelectTrigger>
-                  <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-                <Input type="date" placeholder="First Order Date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} />
-                <Input type="date" placeholder="Last Order (MK)" value={form.last_order_mk} onChange={(e) => setForm({ ...form, last_order_mk: e.target.value })} />
-                <Input type="date" placeholder="Last Contacted" value={form.last_contacted} onChange={(e) => setForm({ ...form, last_contacted: e.target.value })} />
-                <Select value={form.new_follow_up_stage || "none"} onValueChange={(v) => setForm({ ...form, new_follow_up_stage: v === "none" ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="Follow-Up Stage" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Stage</SelectItem>
-                    {FOLLOW_UP_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Input placeholder="Follow-Up Reason" value={form.follow_up_reason} onChange={(e) => setForm({ ...form, follow_up_reason: e.target.value })} />
-                <div className="sm:col-span-2">
-                  <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <div className="space-y-1">
+                {/* Section: Contact Info */}
+                <SectionHeader title="Contact Info" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="Full Name *">
+                    <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Phone">
+                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Email">
+                    <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Birthday">
+                    <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Address Line 1">
+                    <Input value={form.address_line_1} onChange={(e) => setForm({ ...form, address_line_1: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Address Line 2">
+                    <Input value={form.address_line_2} onChange={(e) => setForm({ ...form, address_line_2: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="City">
+                    <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="State">
+                    <Input value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Zip Code">
+                    <Input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} className="h-9" />
+                  </FormField>
                 </div>
+
+                {/* Section: Customer Status */}
+                <SectionHeader title="Customer Status" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="Relationship">
+                    <Select value={form.relationship_status} onValueChange={(v) => setForm({ ...form, relationship_status: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </FormField>
+                  <FormField label="First Order Date">
+                    <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
+                  </FormField>
+                </div>
+
+                {/* Section: Follow-Up & Activity */}
+                <SectionHeader title="Follow-Up & Activity" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label="Last Contacted">
+                    <div className="h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
+                      {formatDateRelative(customer.last_contacted) || "No contact logged"}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">Auto-updated when notes are logged</p>
+                  </FormField>
+                  <FormField label="Next Follow-Up Date">
+                    <Input type="date" value={form.next_follow_up_date} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="Follow-Up Reason">
+                    <Input value={form.follow_up_reason} onChange={(e) => setForm({ ...form, follow_up_reason: e.target.value })} className="h-9" placeholder="e.g. VIP Check-In" />
+                  </FormField>
+                  <FormField label="Stage (optional)">
+                    <Select value={form.new_follow_up_stage || "none"} onValueChange={(v) => setForm({ ...form, new_follow_up_stage: v === "none" ? "" : v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Stage</SelectItem>
+                        {FOLLOW_UP_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
+
+                {/* Section: Notes */}
+                <SectionHeader title="Notes" />
+                <FormField label="General Notes" className="sm:col-span-2">
+                  <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[80px]" placeholder="General customer notes..." />
+                </FormField>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                <InfoRow label="Phone" value={customer.phone} />
-                <InfoRow label="Email" value={customer.email} />
-                <InfoRow label="Birthday" value={(customer as any).birthday ? new Date((customer as any).birthday + "T00:00:00").toLocaleDateString() : customer.birthday_mmdd} />
-                <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
-                <InfoRow label="Relationship" value={customer.relationship_status} />
-                <InfoRow label="First Order Date" value={customer.profile_date_first_order_date} />
-                <InfoRow label="Last Order (MK)" value={customer.last_order_mk} />
-                <InfoRow label="Last Contacted" value={customer.last_contacted} />
-                <InfoRow label="Follow-Up Stage" value={customer.new_follow_up_stage} />
-                <InfoRow label="Follow-Up Reason" value={customer.follow_up_reason} />
-                {customer.notes && <div className="sm:col-span-2"><span className="text-muted-foreground">Notes:</span> {customer.notes}</div>}
+              <div className="space-y-1">
+                <SectionHeader title="Contact Info" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <InfoRow label="Phone" value={customer.phone} />
+                  <InfoRow label="Email" value={customer.email} />
+                  <InfoRow label="Birthday" value={(customer as any).birthday ? formatDate((customer as any).birthday) : customer.birthday_mmdd} />
+                  <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
+                </div>
+
+                <SectionHeader title="Customer Status" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <InfoRow label="Relationship" value={customer.relationship_status} />
+                  <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
+                </div>
+
+                <SectionHeader title="Follow-Up & Activity" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <InfoRow label="Last Contacted" value={formatDateRelative(customer.last_contacted) || "—"} />
+                  <InfoRow label="Next Follow-Up" value={formatDate(customer.next_follow_up_date)} />
+                  <InfoRow label="Follow-Up Reason" value={customer.follow_up_reason} />
+                  <InfoRow label="Stage" value={customer.new_follow_up_stage} />
+                </div>
+
+                {customer.notes && (
+                  <>
+                    <SectionHeader title="Notes" />
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{customer.notes}</p>
+                  </>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Order History */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Order History ({orders.length})</CardTitle>
@@ -239,6 +331,7 @@ export default function CustomerDetail() {
           </CardContent>
         </Card>
 
+        {/* Notes & Activity Timeline */}
         <CustomerNotesTimeline customerId={id!} />
       </div>
     </Layout>
