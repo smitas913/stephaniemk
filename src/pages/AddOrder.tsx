@@ -271,29 +271,49 @@ export default function AddOrder() {
                 </label>
               )}
             </div>
-            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-              <SelectTrigger className="h-10 bg-background">
-                <SelectValue placeholder="Select an event..." />
-              </SelectTrigger>
-              <SelectContent>
-                {eventOptions.map(e => (
-                  <SelectItem key={e.event_id} value={e.event_id}>
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium">{e.hostess_name || e.event_id}</span>
-                      {e.event_date && <span className="text-muted-foreground text-xs">({e.event_date})</span>}
-                    </span>
-                  </SelectItem>
-                ))}
-                {eventOptions.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">No {orderType.toLowerCase()} events found</div>
-                )}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                  <SelectTrigger className="h-10 bg-background">
+                    <SelectValue placeholder="Select an event..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eventOptions.map(e => (
+                      <SelectItem key={e.event_id} value={e.event_id}>
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{e.hostess_name || e.event_id}</span>
+                          {e.event_date && <span className="text-muted-foreground text-xs">({e.event_date})</span>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                    {eventOptions.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">No {orderType.toLowerCase()} events found</div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 shrink-0"
+                onClick={() => setShowCreateEvent(true)}
+                title="Create new event"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
             {!selectedEventId && (
               <p className="text-xs text-destructive flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" /> An event must be selected for {orderType.toLowerCase()} orders
               </p>
             )}
+            <AddEventDialog
+              open={showCreateEvent}
+              onOpenChange={setShowCreateEvent}
+              existingEventIds={existingEventIds}
+              onCreated={(eventId) => setSelectedEventId(eventId)}
+            />
           </div>
         )}
 
