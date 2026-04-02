@@ -129,6 +129,7 @@ export default function CustomerList() {
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Warm">Warm</SelectItem>
               <SelectItem value="Dormant">Dormant</SelectItem>
+              <SelectItem value="New">New</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterVip} onValueChange={setFilterVip}>
