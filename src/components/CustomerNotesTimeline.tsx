@@ -84,7 +84,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">Notes & Activity ({notes.length})</CardTitle>
         <Button size="sm" variant={showForm ? "outline" : "default"} className="text-xs gap-1" onClick={() => setShowForm(!showForm)}>
-          <Plus className="w-3 h-3" />{showForm ? "Cancel" : "Log Contact"}
+          <Plus className="w-3 h-3" />{showForm ? "Cancel" : "Add Note"}
         </Button>
       </CardHeader>
       <CardContent>
