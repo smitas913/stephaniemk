@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, fetchOrders, fetchEventGuests, upsertEvent } from "@/lib/queries";
+import { format } from "date-fns";
+import { fetchEvents, fetchOrders, upsertEvent } from "@/lib/queries";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
@@ -9,9 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+const EVENT_TYPES = ["Party", "Facial", "Other"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -44,6 +50,14 @@ export default function EventDetail() {
 
   if (!eventId) return null;
 
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date || !event) return;
+    const dateStr = format(date, "yyyy-MM-dd");
+    if (dateStr !== event.event_date) {
+      eventMutation.mutate({ event_id: event.event_id, event_date: dateStr });
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -68,9 +82,29 @@ export default function EventDetail() {
                 <CalendarDays className="w-4 h-4 text-blue-600" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Date</span>
               </div>
-              <p className="text-sm font-bold text-foreground">
-                {event?.event_date ? new Date(event.event_date).toLocaleDateString() : "—"}
-              </p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-auto p-0 text-sm font-bold text-foreground hover:text-primary hover:bg-transparent",
+                      !event?.event_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="w-3 h-3 mr-1 opacity-50" />
+                    {event?.event_date ? new Date(event.event_date + "T00:00:00").toLocaleDateString() : "Set date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={event?.event_date ? new Date(event.event_date + "T00:00:00") : undefined}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
@@ -112,10 +146,57 @@ export default function EventDetail() {
               <h3 className="text-sm font-semibold text-foreground">Event Details</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
+                  <label className="text-xs text-muted-foreground">Event Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-8 text-sm justify-start text-left font-normal",
+                          !event.event_date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
+                        {event.event_date ? format(new Date(event.event_date + "T00:00:00"), "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={event.event_date ? new Date(event.event_date + "T00:00:00") : undefined}
+                        onSelect={handleDateSelect}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Event Type</label>
+                  <Select
+                    value={event.event_type || ""}
+                    onValueChange={(val) => {
+                      if (val !== (event.event_type || "")) {
+                        eventMutation.mutate({ event_id: event.event_id, event_type: val });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVENT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-xs text-muted-foreground">Hostess</label>
                   <Input
                     className="h-8 text-sm"
                     defaultValue={event.hostess_name || ""}
+                    key={event.hostess_name}
                     onBlur={(e) => {
                       if (e.target.value !== (event.hostess_name || "")) {
                         eventMutation.mutate({ event_id: event.event_id, hostess_name: e.target.value });
@@ -128,6 +209,7 @@ export default function EventDetail() {
                   <Input
                     type="number" min={0} className="h-8 text-sm"
                     defaultValue={event.guest_count || ""}
+                    key={`gc-${event.guest_count}`}
                     onBlur={(e) => {
                       const val = parseInt(e.target.value) || 0;
                       if (val !== (event.guest_count || 0)) {
@@ -136,11 +218,14 @@ export default function EventDetail() {
                     }}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Bookings</label>
                   <Input
                     type="number" min={0} className="h-8 text-sm"
                     defaultValue={event.future_bookings_count || ""}
+                    key={`fb-${event.future_bookings_count}`}
                     onBlur={(e) => {
                       const val = parseInt(e.target.value) || 0;
                       eventMutation.mutate({ event_id: event.event_id, future_bookings_count: val } as any);
@@ -152,24 +237,26 @@ export default function EventDetail() {
                   <Input
                     type="number" min={0} className="h-8 text-sm"
                     defaultValue={event.sharing_appointments_count || ""}
+                    key={`sa-${event.sharing_appointments_count}`}
                     onBlur={(e) => {
                       const val = parseInt(e.target.value) || 0;
                       eventMutation.mutate({ event_id: event.event_id, sharing_appointments_count: val } as any);
                     }}
                   />
                 </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Notes</label>
-                <Input
-                  className="h-8 text-sm"
-                  defaultValue={event.notes || ""}
-                  onBlur={(e) => {
-                    if (e.target.value !== (event.notes || "")) {
-                      eventMutation.mutate({ event_id: event.event_id, notes: e.target.value || null });
-                    }
-                  }}
-                />
+                <div className="col-span-2">
+                  <label className="text-xs text-muted-foreground">Notes</label>
+                  <Input
+                    className="h-8 text-sm"
+                    defaultValue={event.notes || ""}
+                    key={`notes-${event.notes}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.notes || "")) {
+                        eventMutation.mutate({ event_id: event.event_id, notes: e.target.value || null });
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
