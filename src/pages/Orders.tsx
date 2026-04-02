@@ -467,8 +467,6 @@ export default function Orders() {
               <TableBody>
                 {Array.from(grouped.entries()).map(([eventId, group]) => {
                   const isExpanded = expandedEvents.has(eventId);
-                  const parentOrder = group[0];
-                  const childOrders = group.slice(1);
                   const groupTotal = group.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
                   return [
                     <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
@@ -477,13 +475,13 @@ export default function Orders() {
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                           <Users className="w-3.5 h-3.5 text-pink-600" />
                           <span className="font-mono">{eventId}</span>
-                          <span className="text-muted-foreground">({group.length} orders)</span>
+                          <span className="text-muted-foreground">({group.length} orders · ${groupTotal.toFixed(2)})</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
                       <TableCell colSpan={9}></TableCell>
                     </TableRow>,
-                    ...(isExpanded ? [renderOrderRow(parentOrder, false), ...childOrders.map((o) => renderOrderRow(o, true))] : []),
+                    ...(isExpanded ? group.map((o) => renderOrderRow(o, true)) : []),
                   ];
                 })}
                 {standalone.map((o) => renderOrderRow(o))}
