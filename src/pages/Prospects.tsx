@@ -296,6 +296,8 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }
