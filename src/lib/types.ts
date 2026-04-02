@@ -128,3 +128,17 @@ export interface Expense {
   created_at: string;
   updated_at: string | null;
 }
+
+export const INCOME_CATEGORIES = ["Commission", "Bonus", "Referral", "Other"] as const;
+
+export interface Income {
+  id: string;
+  income_date: string;
+  amount: number;
+  category: string;
+  source: string | null;
+  notes: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
