@@ -488,7 +488,8 @@ export default function Orders() {
                   const ev = eventsMap.get(eventId);
                   const guestCount = ev?.guest_count || 0;
                   const hostessName = ev?.hostess_name || "";
-                  const conversionRate = guestCount > 0 ? ((group.length / guestCount) * 100).toFixed(0) : null;
+                  const orderingCount = group.length;
+                  const conversionRate = guestCount > 0 ? ((orderingCount / guestCount) * 100).toFixed(0) : null;
                   return [
                     <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
                       <TableCell colSpan={2} className="text-xs font-medium">
