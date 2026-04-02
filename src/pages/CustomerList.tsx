@@ -224,7 +224,7 @@ export default function CustomerList() {
                   <TableHead className="min-w-[140px]">Name</TableHead>
                   <TableHead className="whitespace-nowrap min-w-[140px]">Phone</TableHead>
                   <TableHead>
-                    <Popover>
+                    <Popover open={relOpen} onOpenChange={setRelOpen}>
                       <PopoverTrigger asChild>
                         <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                           Relationship
