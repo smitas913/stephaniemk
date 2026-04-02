@@ -294,6 +294,7 @@ export function buildCustomerRecord(row: ParsedRow): Record<string, string | nul
     relationship_status: "Customer",
     last_contacted: m.last_contacted || null,
     next_follow_up_date: m.next_follow_up_date || null,
+    customer_source: m.source || null,
   } as any;
 }
 

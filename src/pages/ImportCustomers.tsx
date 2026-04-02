@@ -188,6 +188,9 @@ export default function ImportCustomers() {
     setStep("results");
     queryClient.invalidateQueries({ queryKey: ["customers"] });
     queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+    queryClient.invalidateQueries({ queryKey: ["all-notes"] });
     const warnings = contactDataWarnings > 0 ? ` (${contactDataWarnings} rows had unparseable contact dates)` : "";
     toast.success(`Import complete: ${imported} imported, ${updated} updated${warnings}`);
   };
