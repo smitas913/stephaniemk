@@ -104,7 +104,7 @@ export default function CustomerDetail() {
             <div className="flex gap-2 mt-0.5">
               {computed.new_first_90_days && <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">New</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
-              <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{customer.current_status || "Customer"}</span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>
           </div>
           <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
