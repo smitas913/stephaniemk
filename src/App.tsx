@@ -31,6 +31,7 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
 import Scoreboard from "./pages/Scoreboard";
+import Analytics from "./pages/Analytics";
 import BookingLeads from "./pages/BookingLeads";
 import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
@@ -116,6 +117,7 @@ const AppRoutes = () => (
 
     <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
     <Route path="/scoreboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Scoreboard /></ProtectedRoute>} />
+    <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
     <Route path="/customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerList /></ProtectedRoute>} />
     <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerDetail /></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Orders /></ProtectedRoute>} />
