@@ -24,6 +24,7 @@ import ImportCustomers from "./pages/ImportCustomers";
 import FollowUps from "./pages/FollowUps";
 import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
+import Leadership from "./pages/Leadership";
 import AdminTools from "./pages/AdminTools";
 import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
