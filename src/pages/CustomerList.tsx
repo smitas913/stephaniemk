@@ -342,7 +342,7 @@ export default function CustomerList() {
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
-                    <TableCell className="text-sm">{c.phone || "—"}</TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">{formatPhone(c.phone)}</TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={c.relationship_status || "Customer"}
