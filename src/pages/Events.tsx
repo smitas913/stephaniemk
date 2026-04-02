@@ -123,10 +123,32 @@ export default function Events() {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search hostess, event ID, type..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+        {/* Search & Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search hostess, event ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-9 w-[130px] text-sm">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Party">Party</SelectItem>
+              <SelectItem value="Facial">Facial</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={formatFilter} onValueChange={setFormatFilter}>
+            <SelectTrigger className="h-9 w-[140px] text-sm">
+              <SelectValue placeholder="All Formats" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Formats</SelectItem>
+              <SelectItem value="In-Person">In-Person</SelectItem>
+              <SelectItem value="Zoom">Zoom</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
