@@ -9,7 +9,7 @@ export interface Customer {
   city: string | null;
   state_territory: string | null;
   postal_code: string | null;
-  current_status: string | null;
+  relationship_status: string | null;
   profile_date_first_order_date: string | null;
   last_order_mk: string | null;
   last_order_date_order_log: string | null;
@@ -49,7 +49,7 @@ export interface OrderWithCustomer extends Order {
 
 export interface CustomerComputed {
   new_first_90_days: string;
-  category: string;
+  activity_status: string;
   vip: string;
   last_order_effective: string | null;
   days_since_last_order: number | null;
@@ -72,7 +72,7 @@ export interface EventRecord {
   updated_at: string;
 }
 
-export const CUSTOMER_STATUSES = ["Customer", "Consultant", "Former Consultant"] as const;
+export const RELATIONSHIP_STATUSES = ["Prospect", "Customer", "VIP", "Consultant", "Former Consultant"] as const;
 export const ORDER_TYPES = ["Reorder", "Party", "Facial"] as const;
 export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Credit Card", "CashApp", "Paypal", "Other"] as const;

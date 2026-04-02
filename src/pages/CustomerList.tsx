@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed } from "@/lib/types";
-import { CUSTOMER_STATUSES } from "@/lib/types";
+import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,8 +73,8 @@ export default function CustomerList() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ id, current_status }: { id: string; current_status: string }) =>
-      updateCustomer(id, { current_status }),
+    mutationFn: ({ id, relationship_status }: { id: string; relationship_status: string }) =>
+      updateCustomer(id, { relationship_status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Status updated");
@@ -97,8 +97,8 @@ export default function CustomerList() {
 
       const q = search.toLowerCase();
       const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
-      const matchStatus = filterStatus === "all" || c.current_status === filterStatus;
-      const matchCat = filterCategory === "all" || c.category === filterCategory;
+      const matchStatus = filterStatus === "all" || c.relationship_status === filterStatus;
+      const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
       const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
@@ -150,16 +150,16 @@ export default function CustomerList() {
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Relationship" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              {CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="all">All Relationship</SelectItem>
+              {RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Activity" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">All Activity</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Warm">Warm</SelectItem>
               <SelectItem value="Dormant">Dormant</SelectItem>
@@ -204,8 +204,8 @@ export default function CustomerList() {
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Category</TableHead>
+                   <TableHead>Relationship</TableHead>
+                   <TableHead>Activity</TableHead>
                   <TableHead>VIP</TableHead>
                   <TableHead>Last Order</TableHead>
                   <TableHead className="text-right">Days</TableHead>
@@ -226,18 +226,18 @@ export default function CustomerList() {
                     <TableCell className="text-sm">{c.email || "—"}</TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <Select
-                        value={c.current_status || "Customer"}
-                        onValueChange={(v) => statusMutation.mutate({ id: c.id, current_status: v })}
+                        value={c.relationship_status || "Customer"}
+                        onValueChange={(v) => statusMutation.mutate({ id: c.id, relationship_status: v })}
                       >
                         <SelectTrigger className="h-7 text-[11px] border-0 bg-transparent shadow-none px-1.5 w-[130px] focus:ring-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          {RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{statusBadge(c.category, c.category === "Active" ? "bg-green-100 text-green-700" : c.category === "Warm" ? "bg-yellow-100 text-yellow-700" : c.category === "Dormant" ? "bg-red-100 text-red-700" : c.category === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
+                    <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                     <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
                     <TableCell className="text-sm">{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-right text-sm">{c.days_since_last_order !== null ? c.days_since_last_order : "—"}</TableCell>

@@ -93,9 +93,9 @@ export default function FollowUps() {
                             </p>
                           </div>
                           <div className="text-right shrink-0 ml-2">
-                            {c.category && (
+                            {c.activity_status && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                                {c.category}
+                                {c.activity_status}
                               </span>
                             )}
                           </div>

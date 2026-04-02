@@ -22,7 +22,6 @@ export type Database = {
           birthday_mmdd: string | null
           city: string | null
           created_at: string
-          current_status: string | null
           email: string | null
           follow_up_reason: string | null
           full_name: string
@@ -37,6 +36,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           profile_date_first_order_date: string | null
+          relationship_status: string | null
           state_territory: string | null
           updated_at: string | null
         }
@@ -47,7 +47,6 @@ export type Database = {
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
-          current_status?: string | null
           email?: string | null
           follow_up_reason?: string | null
           full_name: string
@@ -62,6 +61,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           profile_date_first_order_date?: string | null
+          relationship_status?: string | null
           state_territory?: string | null
           updated_at?: string | null
         }
@@ -72,7 +72,6 @@ export type Database = {
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
-          current_status?: string | null
           email?: string | null
           follow_up_reason?: string | null
           full_name?: string
@@ -87,6 +86,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           profile_date_first_order_date?: string | null
+          relationship_status?: string | null
           state_territory?: string | null
           updated_at?: string | null
         }

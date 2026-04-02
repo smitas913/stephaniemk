@@ -223,6 +223,6 @@ export function buildCustomerRecord(row: ParsedRow): Record<string, string | nul
     postal_code: m.zip || null,
     notes: m.notes || null,
     birthday_mmdd: m.birthday || null,
-    current_status: "Customer",
+    relationship_status: "Customer",
   } as any;
 }

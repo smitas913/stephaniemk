@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import { CUSTOMER_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
+import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +37,7 @@ export default function CustomerDetail() {
         city: customer.city || "",
         state_territory: customer.state_territory || "",
         postal_code: customer.postal_code || "",
-        current_status: customer.current_status || "Customer",
+        relationship_status: customer.relationship_status || "Customer",
         profile_date_first_order_date: customer.profile_date_first_order_date || "",
         last_order_mk: customer.last_order_mk || "",
         last_contacted: customer.last_contacted || "",
@@ -82,7 +82,7 @@ export default function CustomerDetail() {
   if (!customer || !computed) return <Layout><p className="text-muted-foreground text-center py-12">Loading...</p></Layout>;
 
   const statCards = [
-    { label: "Category", value: computed.category || "—" },
+    { label: "Activity", value: computed.activity_status || "—" },
     { label: "VIP", value: computed.vip || "—" },
     { label: "Last Order", value: computed.last_order_effective ? new Date(computed.last_order_effective).toLocaleDateString() : "—" },
     { label: "Days Since", value: computed.days_since_last_order !== null ? String(computed.days_since_last_order) : "—" },
@@ -104,7 +104,7 @@ export default function CustomerDetail() {
             <div className="flex gap-2 mt-0.5">
               {computed.new_first_90_days && <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">New</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
-              <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{customer.current_status || "Customer"}</span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>
           </div>
           <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
@@ -147,9 +147,9 @@ export default function CustomerDetail() {
                 <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
                 <Input placeholder="State" value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} />
                 <Input placeholder="Zip" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
-                <Select value={form.current_status} onValueChange={(v) => setForm({ ...form, current_status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <Select value={form.relationship_status} onValueChange={(v) => setForm({ ...form, relationship_status: v })}>
+                  <SelectTrigger><SelectValue placeholder="Relationship Status" /></SelectTrigger>
+                  <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
                 <Input type="date" placeholder="First Order Date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} />
                 <Input type="date" placeholder="Last Order (MK)" value={form.last_order_mk} onChange={(e) => setForm({ ...form, last_order_mk: e.target.value })} />
@@ -172,7 +172,7 @@ export default function CustomerDetail() {
                 <InfoRow label="Email" value={customer.email} />
                 <InfoRow label="Birthday" value={customer.birthday_mmdd} />
                 <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
-                <InfoRow label="Status" value={customer.current_status} />
+                <InfoRow label="Relationship" value={customer.relationship_status} />
                 <InfoRow label="First Order Date" value={customer.profile_date_first_order_date} />
                 <InfoRow label="Last Order (MK)" value={customer.last_order_mk} />
                 <InfoRow label="Last Contacted" value={customer.last_contacted} />

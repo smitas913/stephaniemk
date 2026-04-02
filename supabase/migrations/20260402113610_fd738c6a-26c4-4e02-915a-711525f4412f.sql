@@ -1,0 +1,1 @@
+ALTER TABLE public.customers RENAME COLUMN current_status TO relationship_status;
