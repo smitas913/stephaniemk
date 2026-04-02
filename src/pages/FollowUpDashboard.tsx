@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles, Crown, Star, RefreshCw } from "lucide-react";
-import { parseISO, isWithinInterval } from "date-fns";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles, Crown, Star, RefreshCw, Target } from "lucide-react";
+import { parseISO, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
+import { Progress } from "@/components/ui/progress";
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
 type Enriched = Customer & CustomerComputed;
@@ -123,6 +124,69 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
   }, [customers, orders, expenses, events, period]);
 }
 
+function useScoreboard(events: EventRecord[]) {
+  return useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+
+    const inRange = (dateStr: string | null, s: Date, e: Date) => {
+      if (!dateStr) return false;
+      return isWithinInterval(parseISO(dateStr), { start: s, end: e });
+    };
+
+    const weekEvents = events.filter((e) => inRange(e.event_date, weekStart, weekEnd));
+    const monthEvents = events.filter((e) => inRange(e.event_date, monthStart, monthEnd));
+
+    const weekFaces = weekEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
+    const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
+    const monthFaces = monthEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+
+    const dayOfWeek = differenceInDays(now, weekStart) + 1;
+    const weekPace = dayOfWeek / 7;
+    const dayOfMonth = now.getDate();
+    const daysInMonth = differenceInDays(monthEnd, monthStart) + 1;
+    const monthPace = dayOfMonth / daysInMonth;
+
+    const getStatus = (current: number, goalMin: number, pace: number): "green" | "yellow" | "red" => {
+      const expected = goalMin * pace;
+      if (current >= goalMin) return "green";
+      if (current >= expected * 0.8) return "green";
+      if (current >= expected * 0.5) return "yellow";
+      return "red";
+    };
+
+    type ScoreItem = { label: string; current: number; goalLabel: string; goalMin: number; pct: number; status: "green" | "yellow" | "red" };
+
+    const weekly: ScoreItem[] = [
+      { label: "Faces", current: weekFaces, goalLabel: "10", goalMin: 10, pct: Math.min((weekFaces / 10) * 100, 100), status: getStatus(weekFaces, 10, weekPace) },
+      { label: "Sharing Appts", current: weekSharing, goalLabel: "5", goalMin: 5, pct: Math.min((weekSharing / 5) * 100, 100), status: getStatus(weekSharing, 5, weekPace) },
+    ];
+
+    const monthly: ScoreItem[] = [
+      { label: "Parties", current: monthParties, goalLabel: "6–10", goalMin: 6, pct: Math.min((monthParties / 6) * 100, 100), status: getStatus(monthParties, 6, monthPace) },
+      { label: "Faces", current: monthFaces, goalLabel: "40", goalMin: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
+    ];
+
+    return { weekly, monthly };
+  }, [events]);
+}
+
+const STATUS_COLORS = {
+  green: "text-green-600",
+  yellow: "text-yellow-600",
+  red: "text-red-600",
+} as const;
+
+const PROGRESS_COLORS = {
+  green: "[&>div]:bg-green-500",
+  yellow: "[&>div]:bg-yellow-500",
+  red: "[&>div]:bg-red-500",
+} as const;
+
 export default function FollowUpDashboard() {
   const navigate = useNavigate();
   const { period, setPeriod } = usePeriodFilter();
@@ -133,6 +197,7 @@ export default function FollowUpDashboard() {
   const { data: allExpenses = [] } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
   const { data: allEvents = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const m = useMetrics(customers, allOrders, allExpenses, allEvents, period);
+  const scoreboard = useScoreboard(allEvents);
   const isLoading = cLoading || oLoading;
 
   const periodLabel = getShortLabel(period);
@@ -209,7 +274,52 @@ export default function FollowUpDashboard() {
                 ))}
               </div>
 
-              {/* Row 2: Sales Drivers - slightly smaller */}
+              {/* Scoreboard */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Weekly Scoreboard</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {scoreboard.weekly.map((item) => (
+                      <div key={item.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
+                          <span className={cn("text-sm font-bold", STATUS_COLORS[item.status])}>
+                            {item.current} / {item.goalLabel}
+                          </span>
+                        </div>
+                        <Progress value={item.pct} className={cn("h-2", PROGRESS_COLORS[item.status])} />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Scoreboard</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {scoreboard.monthly.map((item) => (
+                      <div key={item.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
+                          <span className={cn("text-sm font-bold", STATUS_COLORS[item.status])}>
+                            {item.current} / {item.goalLabel}
+                          </span>
+                        </div>
+                        <Progress value={item.pct} className={cn("h-2", PROGRESS_COLORS[item.status])} />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
               <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
                 {row2Cards.map((k) => (
                   <Card key={k.label} className="border-border/50 shadow-sm">
