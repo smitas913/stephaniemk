@@ -133,7 +133,7 @@ export default function CustomerDetail() {
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
             <div className="flex gap-2 mt-0.5">
-              {computed.new_first_90_days && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New</span>}
+              {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New Customer</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
               <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>

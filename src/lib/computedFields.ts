@@ -124,7 +124,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   }
 
   return {
-    new_first_90_days: newFirst90,
+    new_first_90_days: isNew ? "New" : "",
     activity_status: category,
     vip,
     last_order_effective: lastOrderEffective,
