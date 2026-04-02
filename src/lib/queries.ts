@@ -21,7 +21,8 @@ export const fetchCustomer = async (id: string): Promise<Customer> => {
 };
 
 export const createCustomer = async (customer: Partial<Customer> & { full_name: string }) => {
-  const { data, error } = await supabase.from("customers").insert(customer as any).select().single();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("customers").insert({ ...customer, owner_user_id: userId } as any).select().single();
   if (error) throw error;
   return data;
 };
