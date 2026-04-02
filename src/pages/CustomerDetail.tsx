@@ -190,7 +190,7 @@ export default function CustomerDetail() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <InfoRow label="Phone" value={customer.phone} />
                 <InfoRow label="Email" value={customer.email} />
-                <InfoRow label="Birthday" value={customer.birthday_mmdd} />
+                <InfoRow label="Birthday" value={(customer as any).birthday ? new Date((customer as any).birthday + "T00:00:00").toLocaleDateString() : customer.birthday_mmdd} />
                 <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
                 <InfoRow label="Relationship" value={customer.relationship_status} />
                 <InfoRow label="First Order Date" value={customer.profile_date_first_order_date} />
