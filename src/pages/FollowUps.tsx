@@ -363,18 +363,12 @@ export default function FollowUps() {
     const allItems = [...customerItems, ...prospectItems];
 
     const callsForToday = allItems
-      .filter((c) => {
-        const includedByDate = c.next_follow_up
-          ? isDueTodayOrEarlier(c.next_follow_up, todayKey)
-          : c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
-        return includedByDate;
-      })
+      .filter((item) => item.next_follow_up && isDueTodayOrEarlier(item.next_follow_up, todayKey))
       .sort((a, b) => {
-        if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
-        if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
         const aDate = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
         const bDate = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
-        return aDate - bDate;
+        if (aDate !== bDate) return aDate - bDate;
+        return a.name.localeCompare(b.name);
       });
 
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
