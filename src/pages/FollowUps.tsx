@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes, fetchProspects, updateProspect, createProspectNote, fetchProspectNotes, bulkUpdateCustomerFollowUps } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes, fetchProspects, updateProspect, createProspectNote, fetchProspectNotes, bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
-import type { Customer, CustomerComputed, CustomerNote, ProspectNote } from "@/lib/types";
+import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
