@@ -53,14 +53,20 @@ export default function Events() {
   }, [orders]);
 
   const filtered = useMemo(() => {
-    if (!search) return events;
-    const q = search.toLowerCase();
-    return events.filter((e) =>
-      (e.hostess_name || "").toLowerCase().includes(q) ||
-      (e.event_id || "").toLowerCase().includes(q) ||
-      (e.event_type || "").toLowerCase().includes(q)
-    );
-  }, [events, search]);
+    return events.filter((e) => {
+      if (typeFilter !== "all" && e.event_type !== typeFilter) return false;
+      if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (
+          !(e.hostess_name || "").toLowerCase().includes(q) &&
+          !(e.event_id || "").toLowerCase().includes(q) &&
+          !(e.event_type || "").toLowerCase().includes(q)
+        ) return false;
+      }
+      return true;
+    });
+  }, [events, search, typeFilter, formatFilter]);
 
   const sorted = useMemo(() =>
     [...filtered].sort((a, b) => (b.event_date || "").localeCompare(a.event_date || "")),
