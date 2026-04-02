@@ -188,6 +188,9 @@ export default function ImportCustomers() {
     setStep("results");
     queryClient.invalidateQueries({ queryKey: ["customers"] });
     queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+    queryClient.invalidateQueries({ queryKey: ["all-notes"] });
     const warnings = contactDataWarnings > 0 ? ` (${contactDataWarnings} rows had unparseable contact dates)` : "";
     toast.success(`Import complete: ${imported} imported, ${updated} updated${warnings}`);
   };
@@ -391,9 +394,9 @@ export default function ImportCustomers() {
                         <TableHead className="text-xs">Name</TableHead>
                         <TableHead className="text-xs">Email</TableHead>
                         <TableHead className="text-xs">Phone</TableHead>
-                        <TableHead className="text-xs">Birthday</TableHead>
-                        <TableHead className="text-xs">City</TableHead>
-                        <TableHead className="text-xs">State</TableHead>
+                         <TableHead className="text-xs">Last Contacted</TableHead>
+                         <TableHead className="text-xs">Follow-Up</TableHead>
+                         <TableHead className="text-xs">City</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -403,9 +406,9 @@ export default function ImportCustomers() {
                           <TableCell className="text-xs py-1.5 font-medium">{r.mapped.full_name}</TableCell>
                           <TableCell className="text-xs py-1.5">{r.mapped.email || "—"}</TableCell>
                           <TableCell className="text-xs py-1.5">{r.mapped.phone || "—"}</TableCell>
-                          <TableCell className="text-xs py-1.5">{r.mapped.birthday || "—"}</TableCell>
-                          <TableCell className="text-xs py-1.5">{r.mapped.city || "—"}</TableCell>
-                          <TableCell className="text-xs py-1.5">{r.mapped.state || "—"}</TableCell>
+                           <TableCell className="text-xs py-1.5">{r.mapped.last_contacted || "—"}</TableCell>
+                           <TableCell className="text-xs py-1.5">{r.mapped.next_follow_up_date || "—"}</TableCell>
+                           <TableCell className="text-xs py-1.5">{r.mapped.city || "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
