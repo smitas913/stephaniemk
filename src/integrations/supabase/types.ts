@@ -44,6 +44,13 @@ export type Database = {
             foreignKeyName: "customer_notes_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -331,6 +338,13 @@ export type Database = {
             foreignKeyName: "notes_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -369,6 +383,13 @@ export type Database = {
           quantity?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_financials"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -450,6 +471,13 @@ export type Database = {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -484,6 +512,13 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method"]
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "order_financials"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_order_id_fkey"
             columns: ["order_id"]
@@ -642,6 +677,13 @@ export type Database = {
             foreignKeyName: "prospects_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -649,7 +691,102 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      customer_summary: {
+        Row: {
+          activity_status: string | null
+          archived_at: string | null
+          customer_source: string | null
+          days_since_last_order: number | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          is_vip: boolean | null
+          last_contact_date: string | null
+          last_order_effective: string | null
+          latest_note_preview: string | null
+          lifetime_sales: number | null
+          name: string | null
+          next_follow_up_date: string | null
+          owner_user_id: string | null
+          phone: string | null
+          relationship_status: string | null
+          total_orders: number | null
+          vip_display: string | null
+        }
+        Relationships: []
+      }
+      event_summary: {
+        Row: {
+          conversion_rate: number | null
+          event_date: string | null
+          event_id: string | null
+          event_type: string | null
+          future_bookings_count: number | null
+          guest_count: number | null
+          hostess_name: string | null
+          id: string | null
+          notes: string | null
+          order_count: number | null
+          ordering_guest_count: number | null
+          owner_user_id: string | null
+          sharing_appointments_count: number | null
+          total_sales: number | null
+        }
+        Relationships: []
+      }
+      follow_up_queue: {
+        Row: {
+          activity_status: string | null
+          days_overdue: number | null
+          days_since_last_order: number | null
+          email: string | null
+          entity_id: string | null
+          entity_type: string | null
+          follow_up_reason: string | null
+          is_vip: boolean | null
+          name: string | null
+          next_follow_up_date: string | null
+          note_preview: string | null
+          overdue_status: string | null
+          phone: string | null
+          relationship_status: string | null
+          vip_display: string | null
+        }
+        Relationships: []
+      }
+      order_financials: {
+        Row: {
+          calculated_profit: number | null
+          customer_id: string | null
+          customer_name: string | null
+          event_id: string | null
+          id: string | null
+          notes: string | null
+          order_date: string | null
+          order_type: string | null
+          owner_user_id: string | null
+          payment_type: string | null
+          payout_amount: number | null
+          retail_amount: number | null
+          wholesale_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_profile_update_safe: {
