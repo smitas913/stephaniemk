@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { upsertEvent } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
