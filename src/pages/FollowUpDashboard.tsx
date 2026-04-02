@@ -216,7 +216,7 @@ export default function FollowUpDashboard() {
             </div>
           </div>
 
-          <TodaysPlan />
+          
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
