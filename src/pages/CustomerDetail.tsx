@@ -147,9 +147,9 @@ export default function CustomerDetail() {
                 <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
                 <Input placeholder="State" value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} />
                 <Input placeholder="Zip" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
-                <Select value={form.current_status} onValueChange={(v) => setForm({ ...form, current_status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <Select value={form.relationship_status} onValueChange={(v) => setForm({ ...form, relationship_status: v })}>
+                  <SelectTrigger><SelectValue placeholder="Relationship Status" /></SelectTrigger>
+                  <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
                 <Input type="date" placeholder="First Order Date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} />
                 <Input type="date" placeholder="Last Order (MK)" value={form.last_order_mk} onChange={(e) => setForm({ ...form, last_order_mk: e.target.value })} />
