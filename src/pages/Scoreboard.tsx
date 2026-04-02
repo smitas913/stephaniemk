@@ -4,10 +4,11 @@ import { fetchEvents, fetchProspects } from "@/lib/queries";
 import type { EventRecord, Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Target } from "lucide-react";
+import { Target, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseISO, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
+import { parseISO, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths, format } from "date-fns";
 
 type ScoreItem = {
   label: string;
@@ -22,6 +23,14 @@ type ConversionItem = {
   numerator: number;
   denominator: number;
   pct: number;
+};
+
+type MonthRow = {
+  label: string;
+  faces: number;
+  parties: number;
+  sharings: number;
+  newTeam: number;
 };
 
 function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
@@ -44,7 +53,6 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
 
-    // Sharing Conversion: prospects who joined this week / total sharing appointments this week
     const weekJoined = prospects.filter((p) =>
       p.opportunity_status === "Joined" && inRange(p.updated_at, weekStart, weekEnd)
     ).length;
@@ -89,7 +97,37 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       { label: "New Team Members", current: monthNewTeam, goal: 3, pct: Math.min((monthNewTeam / 3) * 100, 100), status: getStatus(monthNewTeam, 3, monthPace) },
     ];
 
-    return { weekly, monthly, sharingConversion };
+    // Trends: last 6 months (including current)
+    const trendMonths: MonthRow[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const refDate = subMonths(now, i);
+      const mStart = startOfMonth(refDate);
+      const mEnd = endOfMonth(refDate);
+      const mLabel = format(mStart, "MMM yyyy");
+      const mEvents = events.filter((e) => inRange(e.event_date, mStart, mEnd));
+      const mPF = mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+      trendMonths.push({
+        label: mLabel,
+        faces: mPF.reduce((s, e) => s + Number(e.guest_count || 0), 0),
+        parties: mEvents.filter((e) => e.event_type === "Party").length,
+        sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
+        newTeam: prospects.filter((p) =>
+          p.opportunity_status === "Joined" && inRange(p.updated_at, mStart, mEnd)
+        ).length,
+      });
+    }
+
+    // 3-month average (last 3 entries)
+    const last3 = trendMonths.slice(-3);
+    const avg3: MonthRow = {
+      label: "3-Mo Avg",
+      faces: Math.round(last3.reduce((s, r) => s + r.faces, 0) / 3),
+      parties: Math.round(last3.reduce((s, r) => s + r.parties, 0) / 3 * 10) / 10,
+      sharings: Math.round(last3.reduce((s, r) => s + r.sharings, 0) / 3 * 10) / 10,
+      newTeam: Math.round(last3.reduce((s, r) => s + r.newTeam, 0) / 3 * 10) / 10,
+    };
+
+    return { weekly, monthly, sharingConversion, trendMonths, avg3 };
   }, [events, prospects]);
 }
 
@@ -104,32 +142,6 @@ const PROGRESS_COLORS = {
   yellow: "[&>div]:bg-yellow-500",
   red: "[&>div]:bg-red-500",
 } as const;
-
-function ScoreSection({ title, items }: { title: string; items: ScoreItem[] }) {
-  return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-primary" />
-          <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {items.map((item) => (
-          <div key={item.label} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{item.label}</span>
-              <span className={cn("text-lg font-bold tabular-nums", STATUS_COLORS[item.status])}>
-                {item.current} <span className="text-muted-foreground font-normal text-sm">/ {item.goal}</span>
-              </span>
-            </div>
-            <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function Scoreboard() {
   const { data: events = [], isLoading: evLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
@@ -151,6 +163,7 @@ export default function Scoreboard() {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* This Week */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -170,7 +183,6 @@ export default function Scoreboard() {
                     <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
                   </div>
                 ))}
-                {/* Sharing Conversion Rate */}
                 <div className="space-y-1 pt-1 border-t border-border/30">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">{scoreboard.sharingConversion.label}</span>
@@ -184,7 +196,73 @@ export default function Scoreboard() {
                 </div>
               </CardContent>
             </Card>
-            <ScoreSection title="This Month" items={scoreboard.monthly} />
+
+            {/* This Month */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">This Month</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {scoreboard.monthly.map((item) => (
+                  <div key={item.label} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">{item.label}</span>
+                      <span className={cn("text-lg font-bold tabular-nums", STATUS_COLORS[item.status])}>
+                        {item.current} <span className="text-muted-foreground font-normal text-sm">/ {item.goal}</span>
+                      </span>
+                    </div>
+                    <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Trends */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">Trends (Monthly)</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-xs">Month</TableHead>
+                        <TableHead className="text-xs text-center">Faces</TableHead>
+                        <TableHead className="text-xs text-center">Parties</TableHead>
+                        <TableHead className="text-xs text-center">Sharings</TableHead>
+                        <TableHead className="text-xs text-center">New Team</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {scoreboard.trendMonths.map((row) => (
+                        <TableRow key={row.label}>
+                          <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Average row */}
+                      <TableRow className="border-t-2 border-border bg-muted/20">
+                        <TableCell className="text-sm font-semibold text-foreground">{scoreboard.avg3.label}</TableCell>
+                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.faces}</TableCell>
+                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.parties}</TableCell>
+                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.sharings}</TableCell>
+                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.newTeam}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
