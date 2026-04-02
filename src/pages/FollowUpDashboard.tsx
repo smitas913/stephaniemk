@@ -258,7 +258,7 @@ export default function FollowUpDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {kpiCards.map((k) => (
                 <Card key={k.label} className="border-border/50 shadow-sm">
                   <CardContent className="p-5">
