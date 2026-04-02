@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useMemo } from "react";
