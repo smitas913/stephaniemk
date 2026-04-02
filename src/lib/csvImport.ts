@@ -129,6 +129,10 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function normalizeComparableName(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 /**
  * Parse birthday string into { date: ISO date string, mmdd: MM/DD string } or null.
  * Supports MM/DD/YYYY, MM/DD/YY, YYYY-MM-DD, MM/DD, M/D/YYYY etc.
@@ -254,7 +258,7 @@ export function findDuplicate(
 ): Customer | null {
   const email = row.mapped.email?.toLowerCase();
   const phone = row.mapped.phone;
-  const name = row.mapped.full_name?.toLowerCase();
+  const name = row.mapped.full_name ? normalizeComparableName(row.mapped.full_name) : null;
 
   // Try email match first
   if (email) {
@@ -269,7 +273,7 @@ export function findDuplicate(
   }
   // Try exact name match
   if (name) {
-    const match = existing.find((c) => c.full_name.toLowerCase() === name);
+    const match = existing.find((c) => normalizeComparableName(c.full_name) === name);
     if (match) return match;
   }
   return null;
@@ -312,6 +316,16 @@ export function parseGenericDate(val: string): string | null {
   const trimmed = val.trim();
   if (!trimmed) return null;
 
+   const excelSerialMatch = trimmed.match(/^\d{4,5}(?:\.\d+)?$/);
+   if (excelSerialMatch) {
+     const serial = Math.floor(Number(trimmed));
+     if (serial >= 20000 && serial <= 80000) {
+       const utcDate = new Date(Date.UTC(1899, 11, 30));
+       utcDate.setUTCDate(utcDate.getUTCDate() + serial);
+       return utcDate.toISOString().slice(0, 10);
+     }
+   }
+
   // ISO format: YYYY-MM-DD
   const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (isoMatch) {
@@ -332,6 +346,13 @@ export function parseGenericDate(val: string): string | null {
     const [, m, d, yy] = shortYearMatch;
     const year = parseInt(yy, 10) > 50 ? `19${yy}` : `20${yy}`;
     return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // MM/DD or M/D (no year) — use current year
+  const monthDayMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (monthDayMatch) {
+    const [, m, d] = monthDayMatch;
+    return `${new Date().getFullYear()}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
 
   // Text month formats: "March 31, 2024", "March 31 2024", "Mar 31, 2024", "31 March 2024"

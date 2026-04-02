@@ -11,9 +11,14 @@ import {
   DESTINATION_FIELDS,
   type DestField,
   type ParsedRow,
-  type DuplicateMode,
   type ImportResult,
 } from "@/lib/csvImport";
+import {
+  applyForcedLastContactedMapping,
+  getForcedLastContactedHeader,
+  hasLastContactedWarning,
+  planCustomerImportUpdate,
+} from "@/lib/customerImportUtils";
 import type { Customer } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -37,9 +42,9 @@ export default function ImportCustomers() {
   const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
   const [mapping, setMapping] = useState<Record<string, DestField | "">>({});
   const [processedRows, setProcessedRows] = useState<ParsedRow[]>([]);
-  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const forcedLastContactedHeader = useMemo(() => getForcedLastContactedHeader(csvHeaders), [csvHeaders]);
 
   // --- Upload ---
   const handleFile = useCallback(async (f: File) => {
@@ -56,7 +61,7 @@ export default function ImportCustomers() {
       }
       setCsvHeaders(headers);
       setCsvRows(rows);
-      setMapping(autoMapHeaders(headers));
+      setMapping(applyForcedLastContactedMapping(headers, autoMapHeaders(headers)));
       setStep("mapping");
     } catch (err: any) {
       toast.error(`Failed to parse CSV: ${err.message}`);
@@ -105,61 +110,53 @@ export default function ImportCustomers() {
       const duplicate = findDuplicate(row, existing);
       const record = buildCustomerRecord(row);
       const legacyNotes = row.mapped.legacy_notes?.trim() || null;
+      const hasContactWarning = hasLastContactedWarning(row);
 
       try {
         let customerId: string | null = null;
 
         if (duplicate) {
-          if (duplicateMode === "skip") {
-            skipped++;
-            details.push({ rowIndex: row.rowIndex, status: "skipped", reason: `Duplicate: ${duplicate.full_name}` });
-            continue;
-          }
-          if (duplicateMode === "update") {
-            // Only update fields that are empty on the existing record
-            const updates: Record<string, any> = {};
-            for (const [k, v] of Object.entries(record)) {
-              if (v !== null && v !== "" && k !== "full_name") {
-                const existingVal = (duplicate as any)[k];
-                // For last_contacted: don't overwrite newer dates with older ones
-                if (k === "last_contacted" && existingVal && v) {
-                  const existingDate = new Date(existingVal);
-                  const newDate = new Date(v as string);
-                  if (newDate > existingDate) {
-                    updates[k] = v;
-                  }
-                } else if (existingVal === null || existingVal === undefined || existingVal === "") {
-                  updates[k] = v;
-                }
-              }
-            }
-            if (record.full_name && !duplicate.full_name) updates.full_name = record.full_name;
+          const { updates, lastContactedDecision } = planCustomerImportUpdate(duplicate, record);
+          customerId = duplicate.id;
+
+          if (Object.keys(updates).length > 0) {
             const { error } = await supabase.from("customers").update(updates as any).eq("id", duplicate.id);
             if (error) throw error;
-            customerId = duplicate.id;
-            updated++;
-
-            // Flag if last_contacted could not be mapped
-            const hasContactWarning = row.warnings.some(w => w.includes("last contacted"));
-            if (hasContactWarning) contactDataWarnings++;
-
-            details.push({ rowIndex: row.rowIndex, status: "updated", reason: hasContactWarning ? "⚠ Could not parse last contacted date" : undefined });
             Object.assign(duplicate, updates);
+            updated++;
+            details.push({
+              rowIndex: row.rowIndex,
+              status: "updated",
+              reason: hasContactWarning
+                ? "⚠ Could not parse Last Contacted"
+                : lastContactedDecision === "preserved"
+                  ? "Kept newer existing Last Contacted"
+                  : undefined,
+            });
           } else {
-            // create_new — fall through below
-            customerId = null;
+            skipped++;
+            details.push({
+              rowIndex: row.rowIndex,
+              status: "skipped",
+              reason: hasContactWarning
+                ? "⚠ Could not parse Last Contacted"
+                : lastContactedDecision === "preserved"
+                  ? "Kept newer existing Last Contacted"
+                  : `No changes needed for ${duplicate.full_name}`,
+            });
           }
+
+          if (hasContactWarning) contactDataWarnings++;
         }
 
-        if (!duplicate || duplicateMode === "create_new") {
+        if (!duplicate) {
           const insertData = { ...record, relationship_status: "Customer" } as any;
           const { data: inserted, error } = await supabase.from("customers").insert(insertData).select("id").single();
           if (error) throw error;
           customerId = inserted?.id || null;
           imported++;
-          const hasContactWarning = row.warnings.some(w => w.includes("last contacted"));
           if (hasContactWarning) contactDataWarnings++;
-          details.push({ rowIndex: row.rowIndex, status: "imported", reason: hasContactWarning ? "⚠ Could not parse last contacted date" : undefined });
+          details.push({ rowIndex: row.rowIndex, status: "imported", reason: hasContactWarning ? "⚠ Could not parse Last Contacted" : undefined });
           existing.push({ id: customerId || "new", ...record, created_at: "", updated_at: "" } as any);
         }
 
@@ -268,6 +265,11 @@ export default function ImportCustomers() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Column Mapping</CardTitle>
                 <p className="text-xs text-muted-foreground">Map each CSV column to a customer field. At minimum, map Full Name or First + Last Name.</p>
+                {forcedLastContactedHeader && (
+                  <p className="text-xs text-muted-foreground">
+                    Column X is locked to <span className="font-medium text-foreground">Last Contacted</span> using <span className="font-medium text-foreground">{forcedLastContactedHeader}</span>.
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="grid gap-2">
@@ -277,7 +279,11 @@ export default function ImportCustomers() {
                       <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       <Select
                         value={mapping[header] || "unmapped"}
-                        onValueChange={(v) => setMapping({ ...mapping, [header]: v === "unmapped" ? "" : (v as DestField) })}
+                        onValueChange={(v) => {
+                          const nextValue = v === "unmapped" ? "" : (v as DestField);
+                          setMapping(applyForcedLastContactedMapping(csvHeaders, { ...mapping, [header]: nextValue }));
+                        }}
+                        disabled={header === forcedLastContactedHeader}
                       >
                         <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -287,6 +293,9 @@ export default function ImportCustomers() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {header === forcedLastContactedHeader && (
+                        <span className="text-xs text-muted-foreground">Locked</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -339,19 +348,11 @@ export default function ImportCustomers() {
 
             {/* Duplicate handling */}
             <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-2"><CardTitle className="text-base">Duplicate Handling</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Matching + Updates</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Duplicates are matched by: email first → phone second → exact name third.
+                  Existing customers are matched and updated automatically by: email first → phone second → exact name third. Matched rows never create duplicates, and older Last Contacted values never overwrite newer ones.
                 </p>
-                <Select value={duplicateMode} onValueChange={(v) => setDuplicateMode(v as DuplicateMode)}>
-                  <SelectTrigger className="w-64 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="skip">Skip duplicates</SelectItem>
-                    <SelectItem value="update">Update existing records</SelectItem>
-                    <SelectItem value="create_new">Always create new</SelectItem>
-                  </SelectContent>
-                </Select>
               </CardContent>
             </Card>
 
