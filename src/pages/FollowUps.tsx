@@ -266,7 +266,17 @@ export default function FollowUps() {
     const allItems = [...customerItems, ...prospectItems];
 
     const callsForToday = allItems
-      .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY")
+      .filter((c) => {
+        if (c.follow_up_status !== "OVERDUE" && c.follow_up_status !== "TODAY") return false;
+        // Suppress recently contacted customers UNLESS they have a manual follow-up due
+        if (c.itemType === "customer") {
+          const enriched = enrichedCustomers.find(ec => ec.id === c.id);
+          if (enriched?.recently_contacted && enriched.follow_up_reason !== "Manual Follow-Up") {
+            return false;
+          }
+        }
+        return true;
+      })
       .sort((a, b) => {
         if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
         if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
