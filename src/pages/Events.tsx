@@ -196,7 +196,12 @@ export default function Events() {
                       <TableCell className="text-xs font-mono max-w-[140px] truncate" title={e.event_id}>
                         {e.event_id}
                       </TableCell>
-                      <TableCell className="text-xs">{e.event_type || "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        {e.event_type || "—"}
+                        {(e.event_format && e.event_format !== "In-Person") && (
+                          <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{e.ordering_guest_count || orderCount || "—"}</TableCell>
