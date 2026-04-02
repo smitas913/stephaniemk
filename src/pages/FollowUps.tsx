@@ -311,9 +311,8 @@ export default function FollowUps() {
     const todayKey = toLocalDateKey(todayDate);
 
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
-      const effectiveFollowUp = normalizeDateOnly(c.next_follow_up_date) || normalizeDateOnly(c.next_follow_up);
-      const derivedStatus = getFollowUpStatus(effectiveFollowUp, todayKey);
-      const followUpStatus = derivedStatus || c.follow_up_status;
+      const effectiveFollowUp = normalizeFollowUpDate(c.next_follow_up_date) || normalizeFollowUpDate(c.next_follow_up);
+      const followUpStatus = getFollowUpStatus(effectiveFollowUp, todayKey) || c.follow_up_status;
       const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
       const lastNote = notesByCustomer.get(c.id);
       const notePreview = lastNote
