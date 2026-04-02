@@ -112,6 +112,8 @@ const AppRoutes = () => (
     <Route path="/import-customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ImportCustomers /></ProtectedRoute>} />
     
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
+    <Route path="/prospects" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Prospects /></ProtectedRoute>} />
+    <Route path="/prospects/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ProspectDetail /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminTools /></ProtectedRoute>} />
     <Route path="/users" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><UserManagement /></ProtectedRoute>} />
     <Route path="/consultant-requests" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ConsultantRequests /></ProtectedRoute>} />

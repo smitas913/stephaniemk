@@ -11,6 +11,7 @@ const adminNavItems = [
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/follow-ups", label: "Follow-Ups", icon: Clock },
+  { to: "/prospects", label: "Prospects", icon: UserPlus },
   { to: "/admin", label: "Admin Tools", icon: Settings, adminOnly: true },
 ];
 
