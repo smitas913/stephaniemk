@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import { CUSTOMER_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
+import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
