@@ -54,11 +54,15 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
       queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
       queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
       setNoteText("");
       setNoteType("Call");
       setNextFollowUp("");
       setShowForm(false);
-      toast.success("Contact logged — Last Contacted updated");
+      toast.success("Note saved — Last Contacted updated");
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to save note: ${err.message || "Unknown error"}`);
     },
   });
 
@@ -80,13 +84,13 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">Notes & Activity ({notes.length})</CardTitle>
         <Button size="sm" variant={showForm ? "outline" : "default"} className="text-xs gap-1" onClick={() => setShowForm(!showForm)}>
-          <Plus className="w-3 h-3" />{showForm ? "Cancel" : "Log Contact"}
+          <Plus className="w-3 h-3" />{showForm ? "Cancel" : "Add Note"}
         </Button>
       </CardHeader>
       <CardContent>
         {showForm && (
           <div className="mb-4 p-4 rounded-lg bg-primary/5 border-2 border-primary/20 space-y-3">
-            <p className="text-sm font-semibold text-foreground">Log Contact</p>
+            <p className="text-sm font-semibold text-foreground">Add Note</p>
 
             {/* Type pills */}
             <div>
@@ -139,7 +143,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
             </div>
 
             <Button size="sm" onClick={handleSubmit} disabled={addMutation.isPending || !noteText.trim()}>
-              {addMutation.isPending ? "Saving..." : "Save & Update Last Contacted"}
+              {addMutation.isPending ? "Saving..." : "Save Note"}
             </Button>
           </div>
         )}
