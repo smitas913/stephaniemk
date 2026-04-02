@@ -188,14 +188,6 @@ export default function CustomerList() {
               <SelectItem value="New">New</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterVip} onValueChange={setFilterVip}>
-            <SelectTrigger className="w-[100px] h-9"><SelectValue placeholder="VIP" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="VIP">VIP</SelectItem>
-              <SelectItem value="non-vip">Non-VIP</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={filterFollowUp} onValueChange={setFilterFollowUp}>
             <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Follow-Up" /></SelectTrigger>
             <SelectContent>
