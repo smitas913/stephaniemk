@@ -30,7 +30,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function BookingLeads() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
