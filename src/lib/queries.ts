@@ -83,7 +83,8 @@ export const createOrder = async (order: {
   notes?: string;
   parent_event_id?: string | null;
 }) => {
-  const { data, error } = await supabase.from("orders").insert(order as any).select().single();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("orders").insert({ ...order, owner_user_id: userId } as any).select().single();
   if (error) throw error;
   return data;
 };
