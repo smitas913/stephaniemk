@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
+import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon, Receipt } from "lucide-react";
 import { parseISO, isWithinInterval, startOfYear, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
 type Enriched = Customer & CustomerComputed;
