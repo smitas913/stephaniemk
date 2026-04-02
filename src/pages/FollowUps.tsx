@@ -476,11 +476,12 @@ export default function FollowUps() {
 
   const detailFollowUpMutation = useMutation({
     mutationFn: async () => {
-      if (!detailItem || !detailFollowUpDate) return;
+      const normalizedDate = normalizeFollowUpDate(detailFollowUpDate);
+      if (!normalizedDate) return;
       if (detailItem.itemType === "customer") {
-        await updateCustomer(detailItem.id, { next_follow_up_date: detailFollowUpDate } as any);
+        await updateCustomer(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       } else {
-        await updateProspect(detailItem.id, { next_follow_up_date: detailFollowUpDate } as any);
+        await updateProspect(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       }
     },
     onSuccess: () => {
