@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, FileText, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -57,6 +57,7 @@ export default function FollowUps() {
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
+  const [newFollowUpStage, setNewFollowUpStage] = useState("");
 
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
@@ -79,7 +80,7 @@ export default function FollowUps() {
       .sort((a, b) => {
         const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : 0;
         const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : 0;
-        return aDate - bDate; // oldest first
+        return aDate - bDate;
       });
 
     const todayList = enriched.filter((c) => c.follow_up_status === "TODAY");
@@ -99,10 +100,11 @@ export default function FollowUps() {
   }, [customers, allOrders]);
 
   const contactMutation = useMutation({
-    mutationFn: async ({ customerId, note, type, nextDate }: { customerId: string; note: string; type: string; nextDate?: string }) => {
+    mutationFn: async ({ customerId, note, type, nextDate, stage }: { customerId: string; note: string; type: string; nextDate?: string; stage?: string }) => {
       const today = format(new Date(), "yyyy-MM-dd");
       const updates: Record<string, string | null> = { last_contacted: today };
-      if (nextDate) updates.last_contacted = today;
+      if (nextDate) updates.last_order_mk = nextDate; // next follow-up is driven by last_order_mk or stage
+      if (stage !== undefined) updates.new_follow_up_stage = stage || null;
 
       await updateCustomer(customerId, updates as any);
 
@@ -118,15 +120,17 @@ export default function FollowUps() {
       setNoteText("");
       setNoteType("Call");
       setFollowUpDate("");
+      setNewFollowUpStage("");
       toast.success("Marked as contacted");
     },
   });
 
-  const quickContact = (c: Enriched) => {
+  const openContactDialog = (c: Enriched, defaultType = "Call") => {
     setActionCustomer(c);
     setNoteText("");
-    setNoteType("Call");
+    setNoteType(defaultType);
     setFollowUpDate("");
+    setNewFollowUpStage(c.new_follow_up_stage || "");
   };
 
   const handleSubmitAction = () => {
@@ -136,6 +140,7 @@ export default function FollowUps() {
       note: noteText,
       type: noteType,
       nextDate: followUpDate || undefined,
+      stage: newFollowUpStage,
     });
   };
 
@@ -155,7 +160,6 @@ export default function FollowUps() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* OVERDUE */}
             <FollowUpSection
               title="Overdue"
               icon={AlertTriangle}
@@ -164,7 +168,7 @@ export default function FollowUps() {
               items={overdue}
               notesByCustomer={notesByCustomer}
               onNavigate={(id) => navigate(`/customers/${id}`)}
-              onAction={quickContact}
+              onAction={openContactDialog}
               renderMeta={(c) => (
                 <div className="text-right shrink-0">
                   <p className="text-[11px] text-red-600 font-medium">
@@ -179,7 +183,6 @@ export default function FollowUps() {
               )}
             />
 
-            {/* TODAY */}
             <FollowUpSection
               title="Today"
               icon={CalendarCheck}
@@ -188,7 +191,7 @@ export default function FollowUps() {
               items={todayList}
               notesByCustomer={notesByCustomer}
               onNavigate={(id) => navigate(`/customers/${id}`)}
-              onAction={quickContact}
+              onAction={openContactDialog}
               renderMeta={(c) => (
                 <div className="text-right shrink-0">
                   {c.activity_status && (
@@ -200,7 +203,6 @@ export default function FollowUps() {
               )}
             />
 
-            {/* BIRTHDAYS */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -223,10 +225,10 @@ export default function FollowUps() {
                 ) : (
                   <div className="space-y-1">
                     {birthdaysToday.map((c) => (
-                      <BirthdayRow key={c.id} customer={c} label="Today 🎉" onNavigate={() => navigate(`/customers/${c.id}`)} onAction={() => quickContact(c)} />
+                      <BirthdayRow key={c.id} customer={c} label="Today 🎉" onNavigate={() => navigate(`/customers/${c.id}`)} onAction={(type) => openContactDialog(c, type)} />
                     ))}
                     {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                      <BirthdayRow key={c.id} customer={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigate(`/customers/${c.id}`)} onAction={() => quickContact(c)} />
+                      <BirthdayRow key={c.id} customer={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigate(`/customers/${c.id}`)} onAction={(type) => openContactDialog(c, type)} />
                     ))}
                   </div>
                 )}
@@ -241,6 +243,28 @@ export default function FollowUps() {
             <DialogHeader>
               <DialogTitle className="text-base">Log Contact — {actionCustomer?.full_name}</DialogTitle>
             </DialogHeader>
+
+            {/* Quick contact links */}
+            {actionCustomer && (
+              <div className="flex gap-2">
+                {actionCustomer.phone && (
+                  <>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`tel:${actionCustomer.phone}`}><Phone className="w-3.5 h-3.5 mr-1" />Call</a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`sms:${actionCustomer.phone}`}><MessageSquare className="w-3.5 h-3.5 mr-1" />Text</a>
+                    </Button>
+                  </>
+                )}
+                {actionCustomer.email && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`mailto:${actionCustomer.email}`}><Mail className="w-3.5 h-3.5 mr-1" />Email</a>
+                  </Button>
+                )}
+              </div>
+            )}
+
             <div className="space-y-3">
               <Select value={noteType} onValueChange={setNoteType}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -249,6 +273,10 @@ export default function FollowUps() {
                 </SelectContent>
               </Select>
               <Textarea placeholder="Add a note (optional)..." value={noteText} onChange={(e) => setNoteText(e.target.value)} className="min-h-[80px]" />
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
+                <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="h-9" />
+              </div>
               <div className="flex items-center gap-2">
                 <Button className="flex-1" onClick={handleSubmitAction} disabled={contactMutation.isPending}>
                   <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -263,6 +291,31 @@ export default function FollowUps() {
   );
 }
 
+function QuickActions({ customer, onAction }: { customer: Enriched; onAction: (type: string) => void }) {
+  return (
+    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      {customer.phone && (
+        <>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Call" asChild>
+            <a href={`tel:${customer.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="Text" asChild>
+            <a href={`sms:${customer.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+          </Button>
+        </>
+      )}
+      {customer.email && (
+        <Button variant="ghost" size="icon" className="h-7 w-7" title="Email" asChild>
+          <a href={`mailto:${customer.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a>
+        </Button>
+      )}
+      <Button variant="ghost" size="icon" className="h-7 w-7" title="Add note" onClick={() => onAction("General")}>
+        <FileText className="w-3.5 h-3.5 text-primary" />
+      </Button>
+    </div>
+  );
+}
+
 function FollowUpSection({
   title, icon: Icon, iconColor, iconBg, items, notesByCustomer, onNavigate, onAction, renderMeta,
 }: {
@@ -273,7 +326,7 @@ function FollowUpSection({
   items: Enriched[];
   notesByCustomer: Map<string, CustomerNote>;
   onNavigate: (id: string) => void;
-  onAction: (c: Enriched) => void;
+  onAction: (c: Enriched, type?: string) => void;
   renderMeta: (c: Enriched) => React.ReactNode;
 }) {
   return (
@@ -315,11 +368,7 @@ function FollowUpSection({
                     </p>
                   </div>
                   {renderMeta(c)}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" title="Log contact" onClick={() => onAction(c)}>
-                      <Phone className="w-3.5 h-3.5 text-primary" />
-                    </Button>
-                  </div>
+                  <QuickActions customer={c} onAction={(type) => onAction(c, type)} />
                 </div>
               );
             })}
@@ -330,7 +379,7 @@ function FollowUpSection({
   );
 }
 
-function BirthdayRow({ customer, label, onNavigate, onAction }: { customer: Enriched; label: string; onNavigate: () => void; onAction: () => void }) {
+function BirthdayRow({ customer, label, onNavigate, onAction }: { customer: Enriched; label: string; onNavigate: () => void; onAction: (type: string) => void }) {
   return (
     <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
@@ -342,17 +391,7 @@ function BirthdayRow({ customer, label, onNavigate, onAction }: { customer: Enri
           🎂 {customer.birthday_mmdd} — <span className="font-medium text-pink-600">{label}</span>
         </p>
       </div>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <Button variant="ghost" size="icon" className="h-7 w-7" title="Call" onClick={onAction}>
-          <Phone className="w-3.5 h-3.5 text-primary" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" title="Text" onClick={onAction}>
-          <MessageSquare className="w-3.5 h-3.5 text-primary" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" title="Add note" onClick={onAction}>
-          <FileText className="w-3.5 h-3.5 text-primary" />
-        </Button>
-      </div>
+      <QuickActions customer={customer} onAction={onAction} />
     </div>
   );
 }
