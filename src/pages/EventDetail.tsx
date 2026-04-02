@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
+
 import { fetchEvents, fetchOrders, upsertEvent } from "@/lib/queries";
+import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
@@ -52,7 +53,7 @@ export default function EventDetail() {
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date || !event) return;
-    const dateStr = format(date, "yyyy-MM-dd");
+    const dateStr = toLocalDateKey(date);
     if (dateStr !== event.event_date) {
       eventMutation.mutate({ event_id: event.event_id, event_date: dateStr });
     }
@@ -92,13 +93,13 @@ export default function EventDetail() {
                     )}
                   >
                     <CalendarIcon className="w-3 h-3 mr-1 opacity-50" />
-                    {event?.event_date ? new Date(event.event_date + "T00:00:00").toLocaleDateString() : "Set date"}
+                    {event?.event_date ? formatDateOnly(event.event_date) : "Set date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={event?.event_date ? new Date(event.event_date + "T00:00:00") : undefined}
+                    selected={event?.event_date ? parseLocalDate(event.event_date) : undefined}
                     onSelect={handleDateSelect}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
@@ -157,13 +158,13 @@ export default function EventDetail() {
                         )}
                       >
                         <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
-                        {event.event_date ? format(new Date(event.event_date + "T00:00:00"), "MMM d, yyyy") : "Pick date"}
+                        {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={event.event_date ? new Date(event.event_date + "T00:00:00") : undefined}
+                        selected={event.event_date ? parseLocalDate(event.event_date) : undefined}
                         onSelect={handleDateSelect}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
@@ -283,7 +284,7 @@ export default function EventDetail() {
                 <TableBody>
                   {linkedOrders.map((o) => (
                     <TableRow key={o.id} className="hover:bg-muted/50">
-                      <TableCell className="text-xs whitespace-nowrap">{new Date(o.order_date).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDateOnly(o.order_date)}</TableCell>
                       <TableCell className="text-sm font-medium">{o.customer_name || o.customers?.full_name || "—"}</TableCell>
                       <TableCell className="text-sm font-semibold text-right">${Number(o.retail_amount).toFixed(2)}</TableCell>
                       <TableCell>

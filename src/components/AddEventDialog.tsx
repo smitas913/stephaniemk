@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { upsertEvent } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ interface AddEventDialogProps {
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
   const [eventType, setEventType] = useState<string>("Party");
-  const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
+  const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
 
   const mutation = useMutation({
@@ -53,7 +54,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
 
   const resetForm = () => {
     setEventType("Party");
-    setEventDate(new Date().toISOString().split("T")[0]);
+    setEventDate(toLocalDateKey());
     setHostessName("");
   };
 

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -169,22 +170,22 @@ export default function ProspectDetail() {
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
-              <p className="text-lg font-bold text-foreground">{prospect.date_shared ? new Date(prospect.date_shared).toLocaleDateString() : "—"}</p>
+              <p className="text-lg font-bold text-foreground">{formatDateOnly(prospect.date_shared)}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Date Shared</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
-              <p className="text-lg font-bold text-foreground">{prospect.last_contact_date ? new Date(prospect.last_contact_date).toLocaleDateString() : "—"}</p>
+              <p className="text-lg font-bold text-foreground">{formatDateOnly(prospect.last_contact_date)}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Last Contact</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
               <p className={cn("text-lg font-bold",
-                prospect.next_follow_up_date && new Date(prospect.next_follow_up_date) < new Date(new Date().toDateString()) ? "text-red-600" : "text-foreground"
+                prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1 ? "text-red-600" : "text-foreground"
               )}>
-                {prospect.next_follow_up_date ? new Date(prospect.next_follow_up_date).toLocaleDateString() : "—"}
+                {formatDateOnly(prospect.next_follow_up_date)}
               </p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Next Follow-Up</p>
             </CardContent>
@@ -218,7 +219,7 @@ export default function ProspectDetail() {
                 </Select>
                 <Input type="date" value={form.date_shared} onChange={(e) => setForm({ ...form, date_shared: e.target.value })} />
                 <Input type="date" value={form.last_contact_date} onChange={(e) => setForm({ ...form, last_contact_date: e.target.value })} />
-                <Input type="date" value={form.next_follow_up_date} min={new Date().toISOString().split("T")[0]} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} />
+                <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} />
                 <div className="sm:col-span-2">
                   <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>

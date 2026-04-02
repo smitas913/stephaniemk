@@ -4,6 +4,7 @@ import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from 
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
+import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -270,7 +271,7 @@ export default function CustomerDetail() {
                     <p className="text-[11px] text-muted-foreground mt-1">Auto-updated when notes are logged</p>
                   </FormField>
                   <FormField label="Next Follow-Up Date">
-                    <Input type="date" value={form.next_follow_up_date} min={new Date().toISOString().split("T")[0]} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                    <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
                   </FormField>
                   <FormField label="Follow-Up Reason">
                     <Input value={form.follow_up_reason} onChange={(e) => setForm({ ...form, follow_up_reason: e.target.value })} className="h-9" placeholder="e.g. VIP Check-In" />
@@ -385,7 +386,7 @@ export default function CustomerDetail() {
                 {orders.map((o) => (
                   <div key={o.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{new Date(o.order_date).toLocaleDateString()}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatDateOnly(o.order_date)}</p>
                       <div className="flex gap-2 mt-0.5">
                         {o.order_type && <span className="text-xs px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{o.order_type}</span>}
                         {o.payment_type && <span className="text-xs text-muted-foreground">{o.payment_type}</span>}

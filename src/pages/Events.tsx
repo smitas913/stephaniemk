@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Calendar, Users, DollarSign, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { formatDateOnly } from "@/lib/dateOnly";
 import AddEventDialog from "@/components/AddEventDialog";
 
 export default function Events() {
@@ -148,7 +149,7 @@ export default function Events() {
                       onClick={() => navigate(`/events/${e.event_id}`)}
                     >
                       <TableCell className="text-xs whitespace-nowrap">
-                        {e.event_date ? new Date(e.event_date).toLocaleDateString() : "—"}
+                        {formatDateOnly(e.event_date)}
                       </TableCell>
                       <TableCell className="text-xs font-mono max-w-[140px] truncate" title={e.event_id}>
                         {e.event_id}

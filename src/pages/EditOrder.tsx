@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateOnly } from "@/lib/dateOnly";
 
 export default function EditOrder() {
   const { id } = useParams<{ id: string }>();
@@ -125,7 +126,7 @@ export default function EditOrder() {
             <div>
               <h2 className="text-xl font-bold text-foreground">Edit Order</h2>
               <p className="text-sm text-muted-foreground">
-                {order.customer_name || order.customers?.full_name || "Unknown"} · {new Date(order.order_date).toLocaleDateString()}
+                {order.customer_name || order.customers?.full_name || "Unknown"} · {formatDateOnly(order.order_date)}
               </p>
             </div>
           </div>

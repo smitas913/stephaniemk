@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES } from "@/lib/types";
+import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import type { BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Phone, MessageSquare, Mail, Plus, UserCheck, Trash2, Search, Clock, FileText, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -196,10 +197,10 @@ export default function BookingLeads() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         {lead.phone && <span>{lead.phone}</span>}
                         {lead.email && <span>{lead.email}</span>}
-                        {lead.last_contact_date && <span>Last contact: {new Date(lead.last_contact_date).toLocaleDateString()}</span>}
+                        {lead.last_contact_date && <span>Last contact: {formatDateOnly(lead.last_contact_date)}</span>}
                         {lead.next_follow_up_date && (
                           <span className="flex items-center gap-0.5">
-                            <Clock className="w-3 h-3" />FU: {new Date(lead.next_follow_up_date).toLocaleDateString()}
+                            <Clock className="w-3 h-3" />FU: {formatDateOnly(lead.next_follow_up_date)}
                           </span>
                         )}
                       </div>
@@ -251,7 +252,7 @@ export default function BookingLeads() {
               </Select>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
-                <Input type="date" value={form.next_follow_up_date} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
               </div>
               <Textarea placeholder="Notes..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
               <Button className="w-full" onClick={() => createMut.mutate()} disabled={!form.name.trim() || createMut.isPending}>
@@ -320,7 +321,7 @@ export default function BookingLeads() {
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => updateMut.mutate({ last_contact_date: format(new Date(), "yyyy-MM-dd"), status: editLead?.status === "New" ? "Contacted" : editLead?.status })}
+                  onClick={() => updateMut.mutate({ last_contact_date: toLocalDateKey(), status: editLead?.status === "New" ? "Contacted" : editLead?.status })}
                 >
                   <Phone className="w-3.5 h-3.5 mr-1" />Mark Contacted Today
                 </Button>
@@ -351,7 +352,7 @@ export default function BookingLeads() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
                     <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
                   </label>
-                  <Input type="date" value={form.next_follow_up_date} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                  <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>

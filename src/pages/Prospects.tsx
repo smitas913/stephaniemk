@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { formatDateOnly, compareDateOnly } from "@/lib/dateOnly";
 import { Plus, Search, UserPlus, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -152,15 +153,15 @@ export default function Prospects() {
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {[p.phone, p.email].filter(Boolean).join(" · ") || "No contact info"}
-                      {p.date_shared && ` · Shared ${new Date(p.date_shared).toLocaleDateString()}`}
+                      {p.date_shared && ` · Shared ${formatDateOnly(p.date_shared)}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {p.next_follow_up_date && (
                       <span className={cn("text-[10px] font-medium",
-                        new Date(p.next_follow_up_date) < new Date(new Date().toDateString()) ? "text-red-600" : "text-muted-foreground"
+                        compareDateOnly(p.next_follow_up_date) === -1 ? "text-red-600" : "text-muted-foreground"
                       )}>
-                        FU: {new Date(p.next_follow_up_date).toLocaleDateString()}
+                        FU: {formatDateOnly(p.next_follow_up_date)}
                       </span>
                     )}
                     <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>

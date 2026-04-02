@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder } from "@/lib/queries";
 import { PAYMENT_TYPES } from "@/lib/types";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import { generateEventId } from "@/lib/eventId";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ export default function AddOrder() {
   const [customerId, setCustomerId] = useState(preselectedCustomer);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
+  const [orderDate, setOrderDate] = useState(toLocalDateKey());
   const [selectedEventId, setSelectedEventId] = useState(preselectedEvent);
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");

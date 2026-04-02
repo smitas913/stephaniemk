@@ -425,7 +425,7 @@ export default function CustomerList() {
                      <TableCell className="text-sm">
                        {c.last_contacted ? (
                          <span>
-                           {format(parseISO(c.last_contacted), "MMM d")}{" "}
+                           {formatDateOnly(c.last_contacted, "MMM d")}{" "}
                            <span className="text-muted-foreground">({formatDistanceToNowStrict(parseLocalDate(c.last_contacted), { addSuffix: false })} ago)</span>
                          </span>
                        ) : (
