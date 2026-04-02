@@ -88,7 +88,7 @@ export default function FollowUps() {
   // Detail sheet state
   const [detailItem, setDetailItem] = useState<FollowUpItem | null>(null);
   const [detailNoteText, setDetailNoteText] = useState("");
-  const [detailNoteType, setDetailNoteType] = useState("General");
+  const [detailNoteType, setDetailNoteType] = useState("Call");
   const [detailFollowUpDate, setDetailFollowUpDate] = useState("");
 
   // Bulk distribution state
