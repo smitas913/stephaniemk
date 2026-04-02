@@ -391,9 +391,9 @@ export default function ImportCustomers() {
                         <TableHead className="text-xs">Name</TableHead>
                         <TableHead className="text-xs">Email</TableHead>
                         <TableHead className="text-xs">Phone</TableHead>
-                        <TableHead className="text-xs">Birthday</TableHead>
-                        <TableHead className="text-xs">City</TableHead>
-                        <TableHead className="text-xs">State</TableHead>
+                         <TableHead className="text-xs">Last Contacted</TableHead>
+                         <TableHead className="text-xs">Follow-Up</TableHead>
+                         <TableHead className="text-xs">City</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
