@@ -292,5 +292,44 @@ export function buildCustomerRecord(row: ParsedRow): Record<string, string | nul
     birthday: m.birthday || null,
     birthday_mmdd: m.birthday_mmdd || null,
     relationship_status: "Customer",
+    last_contacted: m.last_contacted || null,
+    next_follow_up_date: m.next_follow_up_date || null,
   } as any;
+}
+
+/** Parse a generic date string into ISO YYYY-MM-DD or null */
+export function parseGenericDate(val: string): string | null {
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+
+  // ISO format: YYYY-MM-DD
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // MM/DD/YYYY or M/D/YYYY
+  const fullMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (fullMatch) {
+    const [, m, d, y] = fullMatch;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // MM/DD/YY or M/D/YY
+  const shortYearMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+  if (shortYearMatch) {
+    const [, m, d, yy] = shortYearMatch;
+    const year = parseInt(yy, 10) > 50 ? `19${yy}` : `20${yy}`;
+    return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // Try native Date.parse as fallback
+  const parsed = Date.parse(trimmed);
+  if (!isNaN(parsed)) {
+    const d = new Date(parsed);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  return null;
 }
