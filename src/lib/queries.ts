@@ -115,6 +115,8 @@ export const createOrder = async (order: {
   referral?: boolean;
   payment_type?: string | null;
   retail_amount?: number;
+  wholesale_amount?: number | null;
+  payout_amount?: number | null;
   notes?: string;
   parent_event_id?: string | null;
 }) => {
