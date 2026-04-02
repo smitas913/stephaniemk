@@ -21,7 +21,12 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO, addDays } from "date-fns";
+import { format, addDays } from "date-fns";
+
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 type Enriched = Customer & CustomerComputed;
 
@@ -174,8 +179,8 @@ export default function FollowUps() {
     const selected = distributeCandidates
       .filter((c) => distributeSelectedIds.has(c.id))
       .sort((a, b) => {
-        const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : Infinity;
-        const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : Infinity;
+        const aDate = a.next_follow_up ? parseLocalDate(a.next_follow_up).getTime() : Infinity;
+        const bDate = b.next_follow_up ? parseLocalDate(b.next_follow_up).getTime() : Infinity;
         return aDate - bDate;
       });
     const tomorrow = addDays(new Date(), 1);
@@ -212,7 +217,7 @@ export default function FollowUps() {
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
       let daysOverdue: number | null = null;
       if (c.follow_up_status === "OVERDUE" && c.next_follow_up) {
-        const nf = parseISO(c.next_follow_up);
+        const nf = parseLocalDate(c.next_follow_up);
         daysOverdue = Math.floor((todayDate.getTime() - nf.getTime()) / (1000 * 60 * 60 * 24));
       }
       const lastNote = notesByCustomer.get(c.id);
@@ -246,7 +251,7 @@ export default function FollowUps() {
         let daysOverdue: number | null = null;
         if (p.next_follow_up_date! < todayStr) {
           status = "OVERDUE";
-          daysOverdue = Math.floor((todayDate.getTime() - parseISO(p.next_follow_up_date!).getTime()) / (1000 * 60 * 60 * 24));
+          daysOverdue = Math.floor((todayDate.getTime() - parseLocalDate(p.next_follow_up_date!).getTime()) / (1000 * 60 * 60 * 24));
         } else if (p.next_follow_up_date === todayStr) {
           status = "TODAY";
         }
@@ -281,8 +286,8 @@ export default function FollowUps() {
       .sort((a, b) => {
         if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
         if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
-        const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : 0;
-        const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : 0;
+        const aDate = a.next_follow_up ? parseLocalDate(a.next_follow_up).getTime() : 0;
+        const bDate = b.next_follow_up ? parseLocalDate(b.next_follow_up).getTime() : 0;
         return aDate - bDate;
       });
 
