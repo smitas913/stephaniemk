@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles, Crown } from "lucide-react";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles, Crown, Star, RefreshCw } from "lucide-react";
 import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
@@ -93,7 +93,20 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((c) => c.retail_this_year > 0);
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+
     // Top Hostesses: group events by hostess_name, count events, sum sales from linked orders
+    // Also check ALL events (not just period) for total count & future bookings
+    const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
+    for (const evt of events) {
+      const name = evt.hostess_name?.trim();
+      if (!name) continue;
+      const entry = hostessAllEventsMap.get(name) || { totalEvents: 0, hasFuture: false };
+      entry.totalEvents += 1;
+      if (evt.event_date && evt.event_date > todayStr) entry.hasFuture = true;
+      hostessAllEventsMap.set(name, entry);
+    }
+
     const hostessMap = new Map<string, { events: number; sales: number }>();
     for (const evt of periodEvents) {
       const name = evt.hostess_name?.trim();
@@ -107,7 +120,12 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       hostessMap.set(name, entry);
     }
     const topHostesses = [...hostessMap.entries()]
-      .map(([name, data]) => ({ name, ...data }))
+      .map(([name, data]) => {
+        const allData = hostessAllEventsMap.get(name);
+        const isRepeat = (allData?.totalEvents ?? 0) >= 2;
+        const needsRebooking = (allData?.totalEvents ?? 0) >= 1 && !(allData?.hasFuture);
+        return { name, ...data, isRepeat, needsRebooking };
+      })
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
@@ -346,8 +364,22 @@ export default function FollowUpDashboard() {
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
                             <div>
-                              <p className="text-sm font-medium text-foreground">{h.name}</p>
-                              <p className="text-xs text-muted-foreground">{h.events} event{h.events !== 1 ? "s" : ""}</p>
+                              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                                {h.name}
+                                {h.isRepeat && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                                    <Star className="w-3 h-3 fill-current" />Repeat
+                                  </span>
+                                )}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-muted-foreground">{h.events} event{h.events !== 1 ? "s" : ""}</p>
+                                {h.needsRebooking && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
+                                    <RefreshCw className="w-3 h-3" />Rebook
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <p className="text-sm font-bold text-foreground">${h.sales.toFixed(2)}</p>
