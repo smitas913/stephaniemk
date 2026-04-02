@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateCustomer } from "@/lib/queries";
-import { OPPORTUNITY_STATUSES } from "@/lib/types";
+import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES } from "@/lib/types";
 import type { ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck, CalendarDays } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
@@ -20,12 +20,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const STATUS_COLORS: Record<string, string> = {
-  "New": "bg-blue-100 text-blue-700",
+  "Booked": "bg-blue-100 text-blue-700",
   "Shared": "bg-yellow-100 text-yellow-700",
   "Follow-Up": "bg-orange-100 text-orange-700",
   "Interested": "bg-green-100 text-green-700",
   "Not Interested": "bg-muted text-muted-foreground",
   "Joined": "bg-purple-100 text-purple-700",
+  "Converted": "bg-emerald-100 text-emerald-700",
+  "Closed": "bg-muted text-muted-foreground",
 };
 
 export default function ProspectDetail() {
@@ -47,11 +49,14 @@ export default function ProspectDetail() {
         name: prospect.name || "",
         phone: prospect.phone || "",
         email: prospect.email || "",
-        opportunity_status: prospect.opportunity_status || "New",
+        opportunity_status: prospect.opportunity_status || "Shared",
         date_shared: prospect.date_shared || "",
         last_contact_date: prospect.last_contact_date || "",
         next_follow_up_date: prospect.next_follow_up_date || "",
         notes: prospect.notes || "",
+        next_step_type: prospect.next_step_type || "",
+        next_step_date: prospect.next_step_date || "",
+        next_step_notes: prospect.next_step_notes || "",
       });
     }
   }, [prospect]);
@@ -99,9 +104,7 @@ export default function ProspectDetail() {
 
   const convertMut = useMutation({
     mutationFn: async () => {
-      // Update prospect status to Joined
-      await updateProspect(id!, { opportunity_status: "Joined" } as any);
-      // If linked to a customer, update their relationship_status
+      await updateProspect(id!, { opportunity_status: "Converted" } as any);
       if (prospect?.customer_id) {
         await updateCustomer(prospect.customer_id, { relationship_status: "Consultant" } as any);
       }
@@ -183,14 +186,42 @@ export default function ProspectDetail() {
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
               <p className={cn("text-lg font-bold",
-                prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1 ? "text-red-600" : "text-foreground"
+                prospect.next_step_date && compareDateOnly(prospect.next_step_date) === -1 ? "text-destructive" : "text-foreground"
               )}>
-                {formatDateOnly(prospect.next_follow_up_date)}
+                {formatDateOnly(prospect.next_step_date)}
               </p>
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Next Follow-Up</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Next Step Date</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Next Step card */}
+        {(prospect.next_step_type || prospect.next_step_date) && !editing && (
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <CalendarDays className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">
+                    {prospect.next_step_type || "Next Step"}
+                    {prospect.next_step_date && (
+                      <span className={cn("ml-2 text-xs font-normal",
+                        compareDateOnly(prospect.next_step_date) === -1 ? "text-destructive" : "text-muted-foreground"
+                      )}>
+                        {formatDateOnly(prospect.next_step_date)}
+                        {compareDateOnly(prospect.next_step_date) === -1 && " (Overdue)"}
+                        {compareDateOnly(prospect.next_step_date) === 0 && " (Today)"}
+                      </span>
+                    )}
+                  </p>
+                  {prospect.next_step_notes && (
+                    <p className="text-xs text-muted-foreground mt-1">{prospect.next_step_notes}</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Info card */}
         <Card className="border-border/50 shadow-sm">
@@ -219,9 +250,24 @@ export default function ProspectDetail() {
                 </Select>
                 <Input type="date" value={form.date_shared} onChange={(e) => setForm({ ...form, date_shared: e.target.value })} />
                 <Input type="date" value={form.last_contact_date} onChange={(e) => setForm({ ...form, last_contact_date: e.target.value })} />
-                <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} />
                 <div className="sm:col-span-2">
-                  <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                  <label className="text-xs text-muted-foreground mb-1 block">Next Step</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Select value={form.next_step_type || "none"} onValueChange={(v) => setForm({ ...form, next_step_type: v === "none" ? "" : v })}>
+                      <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {NEXT_STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input type="date" value={form.next_step_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_step_date: e.target.value })} />
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <Input placeholder="Next step notes (optional)" value={form.next_step_notes} onChange={(e) => setForm({ ...form, next_step_notes: e.target.value })} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Textarea placeholder="General notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>
               </div>
             ) : (
@@ -230,7 +276,9 @@ export default function ProspectDetail() {
                 <InfoRow label="Email" value={prospect.email} />
                 <InfoRow label="Date Shared" value={prospect.date_shared} />
                 <InfoRow label="Last Contact" value={prospect.last_contact_date} />
-                <InfoRow label="Next Follow-Up" value={prospect.next_follow_up_date} />
+                <InfoRow label="Next Step" value={prospect.next_step_type} />
+                <InfoRow label="Next Step Date" value={prospect.next_step_date} />
+                {prospect.next_step_notes && <div className="sm:col-span-2"><span className="text-muted-foreground">Step Notes:</span> {prospect.next_step_notes}</div>}
                 {prospect.notes && <div className="sm:col-span-2"><span className="text-muted-foreground">Notes:</span> {prospect.notes}</div>}
               </div>
             )}
@@ -238,7 +286,7 @@ export default function ProspectDetail() {
         </Card>
 
         {/* Conversion */}
-        {prospect.opportunity_status !== "Joined" && prospect.opportunity_status !== "Not Interested" && (
+        {prospect.opportunity_status !== "Converted" && prospect.opportunity_status !== "Joined" && prospect.opportunity_status !== "Closed" && prospect.opportunity_status !== "Not Interested" && (
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -306,7 +354,7 @@ export default function ProspectDetail() {
               <DialogTitle className="text-base">Convert to Consultant</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This will set {prospect.name}'s opportunity status to "Joined"
+              This will set {prospect.name}'s status to "Converted"
               {prospect.customer_id && " and update their customer relationship status to Consultant"}.
             </p>
             <div className="flex gap-2 justify-end">

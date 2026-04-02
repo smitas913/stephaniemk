@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchProspects, fetchCustomers, createProspect } from "@/lib/queries";
-import { OPPORTUNITY_STATUSES } from "@/lib/types";
+import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES } from "@/lib/types";
 import type { Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,16 +13,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly } from "@/lib/dateOnly";
-import { Plus, Search, UserPlus, Link2 } from "lucide-react";
+import { Plus, Search, UserPlus, Link2, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_COLORS: Record<string, string> = {
-  "New": "bg-blue-100 text-blue-700",
+  "Booked": "bg-blue-100 text-blue-700",
   "Shared": "bg-yellow-100 text-yellow-700",
   "Follow-Up": "bg-orange-100 text-orange-700",
   "Interested": "bg-green-100 text-green-700",
   "Not Interested": "bg-muted text-muted-foreground",
   "Joined": "bg-purple-100 text-purple-700",
+  "Converted": "bg-emerald-100 text-emerald-700",
+  "Closed": "bg-muted text-muted-foreground",
 };
 
 export default function Prospects() {
@@ -39,8 +41,10 @@ export default function Prospects() {
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
-  const [formStatus, setFormStatus] = useState<string>("New");
+  const [formStatus, setFormStatus] = useState<string>("Shared");
   const [formCustomerId, setFormCustomerId] = useState<string>("");
+  const [formNextStepType, setFormNextStepType] = useState<string>("");
+  const [formNextStepDate, setFormNextStepDate] = useState("");
 
   const filtered = useMemo(() => {
     let list = prospects;
@@ -66,18 +70,20 @@ export default function Prospects() {
         email: formEmail || null,
         opportunity_status: formStatus,
         customer_id: formCustomerId || null,
+        next_step_type: formNextStepType || null,
+        next_step_date: formNextStepDate || null,
       };
       return createProspect(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       setShowAdd(false);
-      setFormName(""); setFormPhone(""); setFormEmail(""); setFormStatus("New"); setFormCustomerId("");
+      setFormName(""); setFormPhone(""); setFormEmail(""); setFormStatus("Shared"); setFormCustomerId("");
+      setFormNextStepType(""); setFormNextStepDate("");
       toast.success("Prospect added!");
     },
   });
 
-  // When linking to a customer, prefill name/phone/email
   const handleCustomerLink = (custId: string) => {
     setFormCustomerId(custId);
     if (custId) {
@@ -151,18 +157,26 @@ export default function Prospects() {
                       <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
                       {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {[p.phone, p.email].filter(Boolean).join(" · ") || "No contact info"}
-                      {p.date_shared && ` · Shared ${formatDateOnly(p.date_shared)}`}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {p.next_step_type && (
+                        <span className="text-xs text-muted-foreground truncate">
+                          <CalendarDays className="w-3 h-3 inline mr-0.5 -mt-0.5" />
+                          {p.next_step_type}
+                          {p.next_step_date && ` · ${formatDateOnly(p.next_step_date)}`}
+                        </span>
+                      )}
+                      {!p.next_step_type && p.next_step_date && (
+                        <span className={cn("text-xs",
+                          compareDateOnly(p.next_step_date) === -1 ? "text-destructive" : "text-muted-foreground"
+                        )}>
+                          Next: {formatDateOnly(p.next_step_date)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {p.next_follow_up_date && (
-                      <span className={cn("text-[10px] font-medium",
-                        compareDateOnly(p.next_follow_up_date) === -1 ? "text-red-600" : "text-muted-foreground"
-                      )}>
-                        FU: {formatDateOnly(p.next_follow_up_date)}
-                      </span>
+                    {p.next_step_date && compareDateOnly(p.next_step_date) === -1 && (
+                      <span className="text-[10px] font-medium text-destructive">Overdue</span>
                     )}
                     <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
                       {p.opportunity_status}
@@ -200,6 +214,19 @@ export default function Prospects() {
                   {OPPORTUNITY_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Next Step</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={formNextStepType || "none"} onValueChange={(v) => setFormNextStepType(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {NEXT_STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Input type="date" value={formNextStepDate} onChange={(e) => setFormNextStepDate(e.target.value)} />
+                </div>
+              </div>
               <Button className="w-full" onClick={() => createMut.mutate()} disabled={!formName.trim() || createMut.isPending}>
                 {createMut.isPending ? "Adding..." : "Add Prospect"}
               </Button>

@@ -155,6 +155,9 @@ export interface Prospect {
   owner_user_id: string | null;
   created_at: string;
   updated_at: string | null;
+  next_step_type: string | null;
+  next_step_date: string | null;
+  next_step_notes: string | null;
 }
 
 export interface ProspectNote {
