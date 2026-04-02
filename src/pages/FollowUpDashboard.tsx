@@ -274,7 +274,52 @@ export default function FollowUpDashboard() {
                 ))}
               </div>
 
-              {/* Row 2: Sales Drivers - slightly smaller */}
+              {/* Scoreboard */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Weekly Scoreboard</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {scoreboard.weekly.map((item) => (
+                      <div key={item.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
+                          <span className={cn("text-sm font-bold", STATUS_COLORS[item.status])}>
+                            {item.current} / {item.goalLabel}
+                          </span>
+                        </div>
+                        <Progress value={item.pct} className={cn("h-2", PROGRESS_COLORS[item.status])} />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Scoreboard</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {scoreboard.monthly.map((item) => (
+                      <div key={item.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
+                          <span className={cn("text-sm font-bold", STATUS_COLORS[item.status])}>
+                            {item.current} / {item.goalLabel}
+                          </span>
+                        </div>
+                        <Progress value={item.pct} className={cn("h-2", PROGRESS_COLORS[item.status])} />
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+
               <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
                 {row2Cards.map((k) => (
                   <Card key={k.label} className="border-border/50 shadow-sm">
