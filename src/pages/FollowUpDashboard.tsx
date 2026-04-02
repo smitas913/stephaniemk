@@ -235,7 +235,7 @@ export default function FollowUpDashboard() {
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
               <p className="text-sm text-muted-foreground mt-0.5">{getPeriodLabel(period)}</p>
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               <Button variant={period.type === "ytd" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "ytd" })}>YTD</Button>
               <Button variant={period.type === "mtd" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "mtd" })}>MTD</Button>
               <Button variant={period.type === "last-month" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "last-month" })}>Last Month</Button>
