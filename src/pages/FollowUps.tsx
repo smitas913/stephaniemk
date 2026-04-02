@@ -302,7 +302,10 @@ function FollowUpSection({
                   className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
                 >
                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onNavigate(c.id)}>
-                    <p className="text-sm font-medium text-foreground truncate">{c.full_name}</p>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {c.full_name}
+                      {c.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {lastNote
                         ? `${lastNote.note_type} · ${new Date(lastNote.created_at).toLocaleDateString()} — ${lastNote.note_text}`
@@ -331,7 +334,10 @@ function BirthdayRow({ customer, label, onNavigate, onAction }: { customer: Enri
   return (
     <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <p className="text-sm font-medium text-foreground truncate">{customer.full_name}</p>
+        <p className="text-sm font-medium text-foreground truncate">
+          {customer.full_name}
+          {customer.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
+        </p>
         <p className="text-xs text-muted-foreground">
           🎂 {customer.birthday_mmdd} — <span className="font-medium text-pink-600">{label}</span>
         </p>
