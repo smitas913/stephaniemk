@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 
@@ -47,6 +47,7 @@ type FollowUpItem = {
   daysOverdue?: number | null;
   followUpReason?: string;
   lastNotePreview?: string;
+  lastContacted?: string | null;
 };
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
@@ -76,6 +77,19 @@ function computeFollowUpReason(c: Enriched): string {
   return c.follow_up_reason || "Customer Follow-Up";
 }
 
+function formatLastContacted(dateStr: string | null | undefined): string {
+  if (!dateStr) return "Never";
+  const d = parseLocalDate(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return `${diff}d ago`;
+  if (diff < 30) return `${Math.floor(diff / 7)}w ago`;
+  return `${Math.floor(diff / 30)}mo ago`;
+}
+
 export default function FollowUps() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -90,6 +104,12 @@ export default function FollowUps() {
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
+
+  // Inline quick-note state (no dialog needed)
+  const [inlineNoteId, setInlineNoteId] = useState<string | null>(null);
+  const [inlineNoteText, setInlineNoteText] = useState("");
+  const [inlineNoteType, setInlineNoteType] = useState("Call");
+  const [inlineFollowUpDate, setInlineFollowUpDate] = useState("");
 
   // Detail sheet state
   const [detailItem, setDetailItem] = useState<FollowUpItem | null>(null);
@@ -240,6 +260,7 @@ export default function FollowUps() {
         daysOverdue,
         followUpReason: computeFollowUpReason(c),
         lastNotePreview: notePreview,
+        lastContacted: c.last_contacted,
       };
     });
 
@@ -266,6 +287,7 @@ export default function FollowUps() {
           opportunity_status: p.opportunity_status,
           daysOverdue,
           followUpReason: `Prospect - ${p.opportunity_status}`,
+          lastContacted: p.last_contact_date,
         };
       });
 
@@ -274,7 +296,6 @@ export default function FollowUps() {
     const callsForToday = allItems
       .filter((c) => {
         if (c.follow_up_status !== "OVERDUE" && c.follow_up_status !== "TODAY") return false;
-        // Suppress recently contacted customers UNLESS they have a manual follow-up due
         if (c.itemType === "customer") {
           const enriched = enrichedCustomers.find(ec => ec.id === c.id);
           if (enriched?.recently_contacted && enriched.follow_up_reason !== "Manual Follow-Up") {
@@ -303,6 +324,8 @@ export default function FollowUps() {
 
     return { callsForToday, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, notesByCustomer]);
+
+  // --- Mutations ---
 
   const contactMutation = useMutation({
     mutationFn: async ({ item, note, type, nextDate }: { item: FollowUpItem; note: string; type: string; nextDate?: string }) => {
@@ -333,11 +356,24 @@ export default function FollowUps() {
       setNoteText("");
       setNoteType("Call");
       setFollowUpDate("");
+      setInlineNoteId(null);
+      setInlineNoteText("");
+      setInlineNoteType("Call");
+      setInlineFollowUpDate("");
       toast.success("Marked as contacted");
     },
   });
 
-  // Detail sheet mutations
+  // Inline quick-save (same mutation, triggered from inline row)
+  const handleInlineSave = (item: FollowUpItem) => {
+    contactMutation.mutate({
+      item,
+      note: inlineNoteText,
+      type: inlineNoteType,
+      nextDate: inlineFollowUpDate || undefined,
+    });
+  };
+
   const detailNoteMutation = useMutation({
     mutationFn: async () => {
       if (!detailItem || !detailNoteText.trim()) return;
@@ -398,18 +434,30 @@ export default function FollowUps() {
     });
   };
 
+  const toggleInlineNote = (item: FollowUpItem) => {
+    if (inlineNoteId === item.id) {
+      setInlineNoteId(null);
+    } else {
+      setInlineNoteId(item.id);
+      setInlineNoteText("");
+      setInlineNoteType("Call");
+      setInlineFollowUpDate("");
+    }
+  };
+
   const navigateToItem = (item: FollowUpItem) => {
     navigate(item.itemType === "customer" ? `/customers/${item.id}` : `/prospects/${item.id}`);
   };
 
   return (
     <Layout>
-      <div className="space-y-6 pb-8">
+      <div className="space-y-4 pb-8">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Today</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {callsForToday.length} calls for today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
+              {callsForToday.length} call{callsForToday.length !== 1 ? "s" : ""} · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={openDistributeDialog}>
@@ -417,6 +465,7 @@ export default function FollowUps() {
           </Button>
         </div>
 
+        {/* Today's Focus - compact goals */}
         <TodaysFocus callsToday={callsForToday.length} />
 
         {isLoading ? (
@@ -424,10 +473,160 @@ export default function FollowUps() {
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* 1. Birthdays */}
+          <div className="space-y-4">
+            {/* 1. CALLS FOR TODAY — primary workflow */}
             <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
+                      <Phone className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold text-foreground">Calls for Today</CardTitle>
+                    <Badge variant="secondary" className="text-xs">{callsForToday.length}</Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {callsForToday.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    {callsForToday.map((item) => (
+                      <div key={`${item.itemType}-${item.id}`}>
+                        {/* Compact row */}
+                        <div className="py-2.5 group">
+                          <div className="flex items-center gap-3">
+                            {/* Left: name + meta */}
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openDetailSheet(item)}>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
+                                {item.vip === "VIP" && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>
+                                )}
+                                {item.itemType === "prospect" && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 font-medium shrink-0">Prospect</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+                                <span>Last contact: {formatLastContacted(item.lastContacted)}</span>
+                                {item.followUpReason && (
+                                  <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium text-[10px]">
+                                    {item.followUpReason}
+                                  </span>
+                                )}
+                                {item.days_since_last_order !== null && item.days_since_last_order !== undefined && (
+                                  <span>{item.days_since_last_order}d since order</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right: status + actions */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {item.follow_up_status === "OVERDUE" ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
+                                  {item.daysOverdue ? `${item.daysOverdue}d overdue` : "Overdue"}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold">Today</span>
+                              )}
+                              {item.phone && (
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                    <a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                    <a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => toggleInlineNote(item)}
+                                title="Add Note"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-primary" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openDetailSheet(item)}
+                              >
+                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Last note preview */}
+                          {item.lastNotePreview && (
+                            <p className="text-[11px] text-muted-foreground truncate mt-1 ml-0 italic">
+                              📝 {item.lastNotePreview}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Inline note entry (expands below row) */}
+                        {inlineNoteId === item.id && (
+                          <div className="pb-3 pl-0 space-y-2 border-t border-border/30 pt-2 bg-muted/20 rounded-b-md px-3 -mx-0">
+                            <div className="flex gap-2">
+                              {item.itemType === "customer" && (
+                                <Select value={inlineNoteType} onValueChange={setInlineNoteType}>
+                                  <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    {NOTE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              <Input
+                                type="date"
+                                value={inlineFollowUpDate}
+                                min={format(new Date(), "yyyy-MM-dd")}
+                                onChange={(e) => setInlineFollowUpDate(e.target.value)}
+                                className="h-8 w-[140px] text-xs"
+                                placeholder="Next FU"
+                              />
+                            </div>
+                            <Textarea
+                              placeholder="Quick note (optional)..."
+                              value={inlineNoteText}
+                              onChange={(e) => setInlineNoteText(e.target.value)}
+                              className="min-h-[50px] text-sm"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="h-8 text-xs"
+                                onClick={() => handleInlineSave(item)}
+                                disabled={contactMutation.isPending}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                {contactMutation.isPending ? "Saving..." : "Mark Contacted"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs"
+                                onClick={() => setInlineNoteId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 2. BIRTHDAYS */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
@@ -437,12 +636,12 @@ export default function FollowUps() {
                     <Badge variant="secondary" className="text-xs">{birthdaysToday.length}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">Show next 7 days</label>
+                    <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">Next 7 days</label>
                     <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 {birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">No birthdays {showUpcoming7 ? "this week" : "today"} 🎂</p>
                 ) : (
@@ -458,41 +657,11 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 2. Calls for Today — enriched cards */}
-            <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
-                      <Phone className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <CardTitle className="text-sm font-semibold text-foreground">Calls for Today</CardTitle>
-                    <Badge variant="secondary" className="text-xs">{callsForToday.length}</Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {callsForToday.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">All caught up! 🎉</p>
-                ) : (
-                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                    {callsForToday.map((c) => (
-                      <FollowUpCard
-                        key={`${c.itemType}-${c.id}`}
-                        item={c}
-                        onOpenDetail={() => openDetailSheet(c)}
-                        onLogContact={(type) => openContactDialog(c, type)}
-                        onNavigate={() => navigateToItem(c)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* 3. DELIVERIES & EVENTS (optional secondary) */}
           </div>
         )}
 
-        {/* Log Contact Dialog */}
+        {/* Log Contact Dialog (fallback for birthdays etc) */}
         <Dialog open={!!actionItem} onOpenChange={(open) => !open && setActionItem(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -582,12 +751,12 @@ export default function FollowUps() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
                   {detailItem.phone && <span>📱 {detailItem.phone}</span>}
                   {detailItem.email && <span>✉️ {detailItem.email}</span>}
+                  <span>Last contact: {formatLastContacted(detailItem.lastContacted)}</span>
                   {detailItem.days_since_last_order !== null && detailItem.days_since_last_order !== undefined && (
                     <span>{detailItem.days_since_last_order}d since last order</span>
                   )}
                 </div>
               )}
-              {/* Quick contact actions in detail */}
               {detailItem && (
                 <div className="flex gap-2 mt-3">
                   {detailItem.phone && (
@@ -816,98 +985,6 @@ export default function FollowUps() {
   );
 }
 
-/* ---- Follow-Up Card Component ---- */
-
-function FollowUpCard({
-  item,
-  onOpenDetail,
-  onLogContact,
-  onNavigate,
-}: {
-  item: FollowUpItem;
-  onOpenDetail: () => void;
-  onLogContact: (type: string) => void;
-  onNavigate: () => void;
-}) {
-  return (
-    <div className="border border-border/60 rounded-lg p-3 hover:bg-muted/30 transition-colors">
-      {/* Row 1: Name + status badge */}
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={onOpenDetail}>
-          <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
-          {item.vip === "VIP" && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium shrink-0">VIP</span>
-          )}
-          {item.itemType === "prospect" && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium shrink-0">Prospect</span>
-          )}
-        </div>
-        <div className="shrink-0">
-          {item.follow_up_status === "OVERDUE" ? (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
-              Overdue {item.daysOverdue ? `${item.daysOverdue}d` : ""}
-            </span>
-          ) : (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">Due Today</span>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Phone + reason + activity + days */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-1.5">
-        {item.phone && <span className="font-medium text-foreground">{item.phone}</span>}
-        {item.followUpReason && (
-          <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">
-            {item.followUpReason}
-          </span>
-        )}
-        {item.activity_status && (
-          <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-            {item.activity_status}
-          </span>
-        )}
-        {item.days_since_last_order !== null && item.days_since_last_order !== undefined && (
-          <span className="flex items-center gap-0.5">
-            <Clock className="w-3 h-3" />{item.days_since_last_order}d since last order
-          </span>
-        )}
-      </div>
-
-      {/* Row 3: Note preview */}
-      {item.lastNotePreview && (
-        <p className="text-xs text-muted-foreground truncate mb-2 italic">
-          📝 {item.lastNotePreview}
-        </p>
-      )}
-
-      {/* Row 4: Quick actions */}
-      <div className="flex flex-wrap gap-1">
-        {item.phone && (
-          <>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
-              <a href={`tel:${item.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
-            </Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
-              <a href={`sms:${item.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
-            </Button>
-          </>
-        )}
-        {item.email && (
-          <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
-            <a href={`mailto:${item.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
-          </Button>
-        )}
-        <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => onLogContact("Call")}>
-          <CheckCircle2 className="w-3 h-3 mr-1" />Log Contact
-        </Button>
-        <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={onOpenDetail}>
-          <ExternalLink className="w-3 h-3 mr-1" />Details
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 /* ---- Birthday Row ---- */
 
 function BirthdayRow({ item, label, onNavigate, onAction }: { item: FollowUpItem; label: string; onNavigate: () => void; onAction: (type: string) => void }) {
@@ -922,34 +999,26 @@ function BirthdayRow({ item, label, onNavigate, onAction }: { item: FollowUpItem
           🎂 {item.birthday_mmdd} — <span className="font-medium text-pink-600">{label}</span>
         </p>
       </div>
-      <QuickActions item={item} onAction={onAction} />
-    </div>
-  );
-}
-
-/* ---- Quick Actions (hover) ---- */
-
-function QuickActions({ item, onAction }: { item: FollowUpItem; onAction: (type: string) => void }) {
-  return (
-    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-      {item.phone && (
-        <>
+      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {item.phone && (
+          <>
+            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+              <a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+              <a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+            </Button>
+          </>
+        )}
+        {item.email && (
           <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-            <a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+            <a href={`mailto:${item.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a>
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-            <a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-          </Button>
-        </>
-      )}
-      {item.email && (
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-          <a href={`mailto:${item.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a>
+        )}
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}>
+          <FileText className="w-3.5 h-3.5 text-primary" />
         </Button>
-      )}
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}>
-        <FileText className="w-3.5 h-3.5 text-primary" />
-      </Button>
+      </div>
     </div>
   );
 }
