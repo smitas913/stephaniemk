@@ -42,6 +42,18 @@ export default function CustomerList() {
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
+  const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (col: "last_contacted" | "last_order" | "follow_up") => {
+    if (sortCol === col) {
+      if (sortDir === "asc") setSortDir("desc");
+      else { setSortCol(null); setSortDir("asc"); }
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
