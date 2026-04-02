@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
 import Layout from "@/components/Layout";
