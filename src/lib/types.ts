@@ -70,6 +70,9 @@ export interface EventRecord {
   hostess_name: string | null;
   guest_count: number;
   ordering_guest_count: number | null;
+  future_bookings_count: number | null;
+  sharing_appointments_count: number | null;
+  is_archived: boolean | null;
   notes: string | null;
   owner_user_id: string | null;
   created_at: string;
