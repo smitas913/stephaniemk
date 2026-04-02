@@ -14,6 +14,7 @@ import AddEventDialog from "@/components/AddEventDialog";
 export default function Events() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [showAddEvent, setShowAddEvent] = useState(false);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
