@@ -143,7 +143,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
             </div>
 
             <Button size="sm" onClick={handleSubmit} disabled={addMutation.isPending || !noteText.trim()}>
-              {addMutation.isPending ? "Saving..." : "Save & Update Last Contacted"}
+              {addMutation.isPending ? "Saving..." : "Save Note"}
             </Button>
           </div>
         )}

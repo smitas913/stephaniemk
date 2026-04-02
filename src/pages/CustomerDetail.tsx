@@ -86,8 +86,12 @@ export default function CustomerDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer", id] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
       setEditing(false);
       toast.success("Customer updated!");
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to save: ${err.message || "Unknown error"}`);
     },
   });
 
