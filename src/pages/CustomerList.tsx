@@ -438,8 +438,14 @@ export default function CustomerList() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
-                      <div>{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</div>
-                      {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
+                      {c.relationship_status === "Consultant" ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <>
+                          <div>{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</div>
+                          {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
+                        </>
+                      )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
