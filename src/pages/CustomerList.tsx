@@ -159,7 +159,7 @@ export default function CustomerList() {
           </Dialog>
         </div>
 
-        {/* Search + Filters */}
+        {/* Search + Archive Toggle */}
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -170,40 +170,6 @@ export default function CustomerList() {
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Relationship" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Relationship</SelectItem>
-              {RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Activity" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Activity</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Warm">Warm</SelectItem>
-              <SelectItem value="Dormant">Dormant</SelectItem>
-              <SelectItem value="New">New</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterFollowUp} onValueChange={setFilterFollowUp}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Follow-Up" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Follow-Up</SelectItem>
-              <SelectItem value="OVERDUE">Overdue</SelectItem>
-              <SelectItem value="TODAY">Today</SelectItem>
-              <SelectItem value="UPCOMING">Upcoming</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterNew} onValueChange={setFilterNew}>
-            <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="New?" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="New">New (90d)</SelectItem>
-              <SelectItem value="not-new">Not New</SelectItem>
             </SelectContent>
           </Select>
         </div>
