@@ -81,12 +81,19 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const convEventCount = qualifyingEvents.length;
     const conversionRate = convGuests > 0 ? (convOrdering / convGuests) * 100 : 0;
 
-    // Reorder Rate: customers with 2+ lifetime orders / unique ordering customers in period
-    // Uses ALL orders for lifetime count, period orders for "who ordered this period"
-    const periodCustomerIds = new Set(periodOrders.map((o) => o.customer_id));
+    // Reorder Rate: repeat customers / total unique ordering customers in period
+    // Exclude consultants; repeat = 2+ lifetime orders
+    const consultantIds = new Set(
+      customers.filter((c) => c.relationship_status === "Consultant").map((c) => c.id)
+    );
+    const periodCustomerIds = new Set(
+      periodOrders.map((o) => o.customer_id).filter((cid) => !consultantIds.has(cid))
+    );
     const lifetimeOrderCounts: Record<string, number> = {};
     for (const o of orders) {
-      lifetimeOrderCounts[o.customer_id] = (lifetimeOrderCounts[o.customer_id] || 0) + 1;
+      if (!consultantIds.has(o.customer_id)) {
+        lifetimeOrderCounts[o.customer_id] = (lifetimeOrderCounts[o.customer_id] || 0) + 1;
+      }
     }
     const totalOrderingCustomers = periodCustomerIds.size;
     const repeatCustomers = [...periodCustomerIds].filter((cid) => (lifetimeOrderCounts[cid] || 0) >= 2).length;
