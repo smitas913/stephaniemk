@@ -340,7 +340,7 @@ export default function FollowUps() {
     });
 
     const prospectItems: FollowUpItem[] = prospects
-      .filter((p) => normalizeFollowUpDate(p.next_follow_up_date) && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
+      .filter((p) => normalizeFollowUpDate(p.next_follow_up_date) && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined" && p.opportunity_status !== "Converted" && p.opportunity_status !== "Closed")
       .map((p) => {
         const effectiveFollowUp = normalizeFollowUpDate(p.next_follow_up_date);
         const status = getFollowUpStatus(effectiveFollowUp, todayKey) || "UPCOMING";
