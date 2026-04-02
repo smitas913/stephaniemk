@@ -302,7 +302,7 @@ export default function CustomerList() {
                     </Popover>
                   </TableHead>
                   <TableHead>
-                    <Popover>
+                    <Popover open={actOpen} onOpenChange={setActOpen}>
                       <PopoverTrigger asChild>
                         <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                           Activity
