@@ -451,7 +451,7 @@ export default function FollowUps() {
       item,
       note: inlineNoteText,
       type: inlineNoteType,
-      nextDate: inlineFollowUpDate || undefined,
+      nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined,
     });
   };
 
