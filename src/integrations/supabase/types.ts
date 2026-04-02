@@ -199,6 +199,42 @@ export type Database = {
         }
         Relationships: []
       }
+      income: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["income_category"]
+          created_at: string
+          id: string
+          income_date: string
+          notes: string | null
+          owner_user_id: string | null
+          source: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          category?: Database["public"]["Enums"]["income_category"]
+          created_at?: string
+          id?: string
+          income_date?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["income_category"]
+          created_at?: string
+          id?: string
+          income_date?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          source?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -534,6 +570,7 @@ export type Database = {
         | "Events"
         | "Tools"
         | "Other"
+      income_category: "Commission" | "Bonus" | "Referral" | "Other"
       opportunity_status:
         | "New"
         | "Shared"
@@ -681,6 +718,7 @@ export const Constants = {
         "Tools",
         "Other",
       ],
+      income_category: ["Commission", "Bonus", "Referral", "Other"],
       opportunity_status: [
         "New",
         "Shared",
