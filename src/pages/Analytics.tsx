@@ -38,7 +38,14 @@ const inRange = (dateStr: string | null | undefined, s: Date, e: Date) => {
 export default function Analytics() {
   const [timeView, setTimeView] = useState<TimeView>("ytd");
   const { data: events = [], isLoading: evL } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-  const { data: orders = [], isLoading: orL } = useQuery({ queryKey: ["orders"], queryFn: fetchOrders });
+  const { data: orders = [], isLoading: orL } = useQuery({
+    queryKey: ["all-orders-analytics"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("orders").select("customer_id, order_date, retail_amount").order("order_date", { ascending: false });
+      if (error) throw error;
+      return data as { customer_id: string; order_date: string; retail_amount: number }[];
+    },
+  });
   const { data: prospects = [], isLoading: prL } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
   const { data: customers = [], isLoading: cuL } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const isLoading = evL || orL || prL || cuL;
