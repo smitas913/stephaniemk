@@ -25,7 +25,7 @@ interface AddEventDialogProps {
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
   const [eventType, setEventType] = useState<string>("Party");
-  const [eventDate, setEventDate] = useState(new Date().toISOString().split("T")[0]);
+  const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
 
   const mutation = useMutation({
