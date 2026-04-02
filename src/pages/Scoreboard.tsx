@@ -6,9 +6,9 @@ import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Target, TrendingUp } from "lucide-react";
+import { Target } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { parseISO, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays, subMonths, format } from "date-fns";
+import { parseISO, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 
 type ScoreItem = {
   label: string;
