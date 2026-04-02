@@ -45,7 +45,11 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   const daysSinceLastOrder = lastOrderDate ? differenceInDays(today, lastOrderDate) : null;
 
   let nextFollowUp: Date | null = null;
-  if (lastOrderDate) {
+
+  // Manual override takes precedence
+  if (customer.next_follow_up_date) {
+    nextFollowUp = parseISO(customer.next_follow_up_date);
+  } else if (lastOrderDate) {
     const stage = customer.new_follow_up_stage;
     const lastContacted = customer.last_contacted ? parseISO(customer.last_contacted) : null;
     const base = lastContacted || lastOrderDate;
