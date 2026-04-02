@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { formatDistanceToNowStrict, parseISO, format } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
 
 function formatPhone(phone: string | null): string {
   if (!phone) return "—";
@@ -425,14 +426,14 @@ export default function CustomerList() {
                        {c.last_contacted ? (
                          <span>
                            {format(parseISO(c.last_contacted), "MMM d")}{" "}
-                           <span className="text-muted-foreground">({formatDistanceToNowStrict(parseISO(c.last_contacted), { addSuffix: false })} ago)</span>
+                           <span className="text-muted-foreground">({formatDistanceToNowStrict(parseLocalDate(c.last_contacted), { addSuffix: false })} ago)</span>
                          </span>
                        ) : (
                          <span className="text-muted-foreground">—</span>
                        )}
                      </TableCell>
                     <TableCell className="text-sm">
-                      <div>{c.last_order_effective ? format(parseISO(c.last_order_effective), "M/d/yyyy") : "—"}</div>
+                      <div>{formatDateOnly(c.last_order_effective)}</div>
                       {c.days_since_last_order !== null && (
                         <div className="text-[11px] text-muted-foreground">{c.days_since_last_order}d ago</div>
                       )}
@@ -440,12 +441,16 @@ export default function CustomerList() {
                     <TableCell className="text-sm">
                       {c.relationship_status === "Consultant" ? (
                         <span className="text-muted-foreground">—</span>
-                      ) : (
-                        <>
-                           <div>{c.next_follow_up ? format(parseISO(c.next_follow_up), "M/d/yyyy") : "—"}</div>
-                          {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
-                        </>
-                      )}
+                      ) : (() => {
+                        const effectiveFollowUp = c.next_follow_up_date || c.next_follow_up;
+                        const followUpStatus = getFollowUpStatus(effectiveFollowUp) || c.follow_up_status;
+                        return (
+                          <>
+                            <div>{formatDateOnly(effectiveFollowUp)}</div>
+                            {followUpStatus && statusBadge(followUpStatus, followUpStatus === "OVERDUE" ? "bg-red-100 text-red-700" : followUpStatus === "TODAY" ? "bg-blue-100 text-blue-700" : followUpStatus === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
+                          </>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
