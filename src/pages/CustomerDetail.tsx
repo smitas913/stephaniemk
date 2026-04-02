@@ -72,9 +72,13 @@ export default function CustomerDetail() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, string>) => {
-      const cleaned: Record<string, string | null> = {};
+      const cleaned: Record<string, any> = {};
       for (const [k, v] of Object.entries(data)) {
-        cleaned[k] = v === "" ? null : v;
+        if (k === "new_customer_flag") {
+          cleaned[k] = v === "true";
+        } else {
+          cleaned[k] = v === "" ? null : v;
+        }
       }
       if (cleaned.full_name === null) cleaned.full_name = customer!.full_name;
       return updateCustomer(id!, cleaned as any);
