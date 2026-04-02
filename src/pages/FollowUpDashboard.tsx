@@ -187,7 +187,7 @@ const PROGRESS_COLORS = {
   red: "[&>div]:bg-red-500",
 } as const;
 
-
+export default function FollowUpDashboard() {
   const navigate = useNavigate();
   const { period, setPeriod } = usePeriodFilter();
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
