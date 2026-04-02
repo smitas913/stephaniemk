@@ -174,24 +174,36 @@ export default function Orders() {
     const totalOrders = filtered.length;
     const totalRetail = filtered.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const reorderTotal = filtered.filter((o) => o.order_type === "Reorder").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    const partyTotal = filtered.filter((o) => o.order_type === "Party").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+
+    // Party analytics: group by event_id where order_type = "Party"
+    const partyOrders = filtered.filter((o) => o.order_type === "Party");
+    const partyTotal = partyOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+    const partyEventIds = new Set(partyOrders.map((o) => o.event_id).filter(Boolean));
+    const partyCount = partyEventIds.size || (partyOrders.length > 0 ? 1 : 0);
+    const avgPartySales = partyCount > 0 ? partyTotal / partyCount : 0;
+    const avgOrdersPerParty = partyCount > 0 ? partyOrders.length / partyCount : 0;
+
     const facialTotal = filtered.filter((o) => o.order_type === "Facial").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    return { totalOrders, totalRetail, reorderTotal, partyTotal, facialTotal };
+    return { totalOrders, totalRetail, reorderTotal, partyTotal, partyCount, avgPartySales, avgOrdersPerParty, facialTotal };
   }, [filtered]);
 
-  // Grouping
+  // Grouping: group all orders sharing the same event_id (party orders)
   const { grouped, standalone } = useMemo(() => {
+    // Count how many orders share each event_id
+    const eventCounts = new Map<string, number>();
+    for (const o of filtered) {
+      const eid = o.event_id || o.parent_event_id;
+      if (eid) eventCounts.set(eid, (eventCounts.get(eid) || 0) + 1);
+    }
+
     const eventMap = new Map<string, OrderWithCustomer[]>();
     const standaloneOrders: OrderWithCustomer[] = [];
     for (const o of filtered) {
-      if (o.parent_event_id) {
-        const group = eventMap.get(o.parent_event_id) || [];
+      const eid = o.event_id || o.parent_event_id;
+      if (eid && (eventCounts.get(eid) || 0) > 1) {
+        const group = eventMap.get(eid) || [];
         group.push(o);
-        eventMap.set(o.parent_event_id, group);
-      } else if (o.event_id && filtered.some((x) => x.parent_event_id === o.event_id)) {
-        const group = eventMap.get(o.event_id) || [];
-        group.unshift(o);
-        eventMap.set(o.event_id, group);
+        eventMap.set(eid, group);
       } else {
         standaloneOrders.push(o);
       }
@@ -237,8 +249,8 @@ export default function Orders() {
     { label: "Total Orders", value: String(summary.totalOrders), icon: ShoppingBag, accent: "text-blue-600" },
     { label: "Total Retail", value: `$${summary.totalRetail.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: "Reorders", value: `$${summary.reorderTotal.toFixed(2)}`, icon: RotateCcw, accent: "text-purple-600" },
-    { label: "Party", value: `$${summary.partyTotal.toFixed(2)}`, icon: Users, accent: "text-pink-600" },
-    { label: "Facial", value: `$${summary.facialTotal.toFixed(2)}`, icon: Sparkles, accent: "text-amber-600" },
+    { label: `Parties (${summary.partyCount})`, value: `$${summary.partyTotal.toFixed(2)}`, icon: Users, accent: "text-pink-600" },
+    { label: "Avg/Party", value: `$${summary.avgPartySales.toFixed(2)} · ${summary.avgOrdersPerParty.toFixed(1)} orders`, icon: Sparkles, accent: "text-amber-600" },
   ];
 
   const renderOrderRow = (o: OrderWithCustomer, isChild = false) => (
@@ -455,8 +467,6 @@ export default function Orders() {
               <TableBody>
                 {Array.from(grouped.entries()).map(([eventId, group]) => {
                   const isExpanded = expandedEvents.has(eventId);
-                  const parentOrder = group[0];
-                  const childOrders = group.slice(1);
                   const groupTotal = group.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
                   return [
                     <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
@@ -465,13 +475,13 @@ export default function Orders() {
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                           <Users className="w-3.5 h-3.5 text-pink-600" />
                           <span className="font-mono">{eventId}</span>
-                          <span className="text-muted-foreground">({group.length} orders)</span>
+                          <span className="text-muted-foreground">({group.length} orders · ${groupTotal.toFixed(2)})</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
                       <TableCell colSpan={9}></TableCell>
                     </TableRow>,
-                    ...(isExpanded ? [renderOrderRow(parentOrder, false), ...childOrders.map((o) => renderOrderRow(o, true))] : []),
+                    ...(isExpanded ? group.map((o) => renderOrderRow(o, true)) : []),
                   ];
                 })}
                 {standalone.map((o) => renderOrderRow(o))}
