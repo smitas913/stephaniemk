@@ -93,12 +93,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((c) => c.retail_this_year > 0);
 
-    const needsFollowUp = enriched
-      .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY" || (c.days_since_last_order !== null && c.days_since_last_order >= 45))
-      .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
-      .slice(0, 10);
-
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -288,69 +283,31 @@ export default function FollowUpDashboard() {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {m.topCustomers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">No orders this period</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {m.topCustomers.map((c, i) => (
-                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{c.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
-                            </div>
-                          </div>
-                          <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Needs Follow-Up</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {m.needsFollowUp.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">All caught up! 🎉</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {m.needsFollowUp.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {m.topCustomers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No orders this period</p>
+                ) : (
+                  <div className="space-y-1">
+                    {m.topCustomers.map((c, i) => (
+                      <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
                           <div>
                             <p className="text-sm font-medium text-foreground">{c.full_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {c.days_since_last_order !== null ? `${c.days_since_last_order}d since last order` : "No orders"}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            {c.follow_up_status && (
-                              <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
-                                c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" :
-                                c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" :
-                                "bg-accent text-accent-foreground"
-                              )}>
-                                {c.follow_up_status}
-                              </span>
-                            )}
-                            {c.activity_status && <p className="text-[10px] text-muted-foreground mt-0.5">{c.activity_status}</p>}
+                            <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                        <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
