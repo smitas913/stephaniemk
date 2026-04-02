@@ -358,10 +358,10 @@ export default function CustomerList() {
                      <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                      <TableCell className="text-sm">
                        {c.last_contacted ? (
-                         <div>
-                           <div>{format(parseISO(c.last_contacted), "MMM d")}</div>
-                           <div className="text-[11px] text-muted-foreground">{formatDistanceToNowStrict(parseISO(c.last_contacted), { addSuffix: true })}</div>
-                         </div>
+                         <span>
+                           {format(parseISO(c.last_contacted), "MMM d")}{" "}
+                           <span className="text-muted-foreground">({formatDistanceToNowStrict(parseISO(c.last_contacted), { addSuffix: false })} ago)</span>
+                         </span>
                        ) : (
                          <span className="text-muted-foreground">—</span>
                        )}
