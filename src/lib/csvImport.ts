@@ -200,9 +200,16 @@ export function processRows(
       mapped.phone = normalizePhone(mapped.phone.trim());
     }
 
-    // Convert birthday
+    // Parse birthday
     if (mapped.birthday) {
-      mapped.birthday = toBirthdayMmdd(mapped.birthday.trim());
+      const parsed = parseBirthday(mapped.birthday.trim());
+      if (parsed) {
+        mapped.birthday = parsed.date;
+        mapped.birthday_mmdd = parsed.mmdd;
+      } else {
+        warnings.push(`Could not parse birthday: "${mapped.birthday}"`);
+        mapped.birthday = "";
+      }
     }
 
     return { rowIndex: i + 1, raw, mapped, errors, warnings };
