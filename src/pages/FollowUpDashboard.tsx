@@ -63,12 +63,22 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion Rate: sum(ordering_guest_count) / sum(guest_count) for Party+Facial events with guest_count > 0
+    // Conversion Rate: count distinct customers with orders linked to Party/Facial events / total guest_count
     const qualifyingEvents = periodEvents.filter(
       (e) => (e.event_type === "Party" || e.event_type === "Facial") && Number(e.guest_count || 0) > 0
     );
     const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const convOrdering = qualifyingEvents.reduce((s, e) => s + Number(e.ordering_guest_count || 0), 0);
+    // Calculate ordering guests from actual orders linked to these events
+    const qualifyingEventIds = new Set(qualifyingEvents.map((e) => e.event_id));
+    const convOrderingSet = new Set<string>();
+    for (const o of periodOrders) {
+      const linkedEventId = o.event_id || (o as any).parent_event_id;
+      if (linkedEventId && qualifyingEventIds.has(linkedEventId)) {
+        convOrderingSet.add(`${linkedEventId}::${o.customer_id}`);
+      }
+    }
+    const convOrdering = convOrderingSet.size;
+    const convEventCount = qualifyingEvents.length;
     const conversionRate = convGuests > 0 ? (convOrdering / convGuests) * 100 : 0;
 
     // Reorder Rate: customers with 2+ lifetime orders / unique ordering customers in period
@@ -128,7 +138,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, convOrdering, convGuests, topCustomers, topHostesses };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, convOrdering, convGuests, convEventCount, topCustomers, topHostesses };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -168,7 +178,7 @@ export default function FollowUpDashboard() {
     ];
 
     const row4Cards = [
-      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests}`, icon: TrendingUp, accent: "text-primary" },
+      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests} (${m.convEventCount} events)`, icon: TrendingUp, accent: "text-primary" },
       { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, subtitle: "", icon: Users, accent: "text-primary" },
     ];
 
