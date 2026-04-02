@@ -215,7 +215,7 @@ export default function Orders() {
     });
 
     return sorted;
-  }, [orders, search, filterCustomer, filterMonth, filterYear, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
+  }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
 
   // Summary
   const summary = useMemo(() => {
