@@ -251,7 +251,7 @@ export default function BookingLeads() {
               </Select>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
-                <Input type="date" value={form.next_follow_up_date} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
               </div>
               <Textarea placeholder="Notes..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
               <Button className="w-full" onClick={() => createMut.mutate()} disabled={!form.name.trim() || createMut.isPending}>
