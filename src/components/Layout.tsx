@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 const adminNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/scoreboard", label: "Scoreboard", icon: Target },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/events", label: "Events", icon: Calendar },
