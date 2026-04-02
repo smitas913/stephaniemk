@@ -35,6 +35,7 @@ export default function CustomerList() {
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
 
   const addMutation = useMutation({
     mutationFn: createCustomer,
