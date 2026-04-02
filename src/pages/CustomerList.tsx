@@ -29,6 +29,7 @@ export default function CustomerList() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterVip, setFilterVip] = useState("all");
+  const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterNew, setFilterNew] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
