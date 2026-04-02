@@ -9,70 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon, Receipt, PiggyBank, Wallet } from "lucide-react";
-import { parseISO, isWithinInterval, startOfYear, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, CalendarIcon, Receipt, PiggyBank, Wallet } from "lucide-react";
+import { parseISO, isWithinInterval } from "date-fns";
+import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
 type Enriched = Customer & CustomerComputed;
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-type PeriodValue =
-  | { type: "ytd" }
-  | { type: "mtd" }
-  | { type: "last-month" }
-  | { type: "month"; year: number; month: number };
-
-function getDateRange(period: PeriodValue): { start: Date; end: Date } {
-  const now = new Date();
-
-  switch (period.type) {
-    case "ytd":
-      return { start: startOfYear(now), end: now };
-    case "mtd":
-      return { start: startOfMonth(now), end: now };
-    case "last-month": {
-      const prev = subMonths(now, 1);
-      return { start: startOfMonth(prev), end: endOfMonth(prev) };
-    }
-    case "month":
-      return {
-        start: new Date(period.year, period.month, 1),
-        end: endOfMonth(new Date(period.year, period.month, 1)),
-      };
-  }
-}
-
-function getPeriodLabel(period: PeriodValue): string {
-  const now = new Date();
-  switch (period.type) {
-    case "ytd":
-      return `${now.getFullYear()} year-to-date overview`;
-    case "mtd":
-      return `${MONTHS[now.getMonth()]} ${now.getFullYear()} month-to-date`;
-    case "last-month": {
-      const prev = subMonths(now, 1);
-      return `${MONTHS[prev.getMonth()]} ${prev.getFullYear()} overview`;
-    }
-    case "month":
-      return `${MONTHS[period.month]} ${period.year} overview`;
-  }
-}
-
-function getShortLabel(period: PeriodValue): string {
-  const now = new Date();
-  switch (period.type) {
-    case "ytd": return "YTD";
-    case "mtd": return "MTD";
-    case "last-month": {
-      const prev = subMonths(now, 1);
-      return MONTHS[prev.getMonth()];
-    }
-    case "month": return MONTHS[period.month];
-  }
-}
 
 function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses: Expense[], period: PeriodValue) {
   return useMemo(() => {
