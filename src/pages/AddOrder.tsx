@@ -160,6 +160,8 @@ export default function AddOrder() {
         setCustomerName("");
         setCustomerSearch("");
         setRetailAmount("");
+        setWholesaleAmount("");
+        setPayoutAmount("");
         setNotes("");
         setHostess(false);
         setHalfPriceDeal(false);
