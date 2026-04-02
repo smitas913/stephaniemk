@@ -342,14 +342,15 @@ export default function CustomerList() {
                     </button>
                   </TableHead>
                   <TableHead>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                          Follow-Up
-                          <ChevronDown className="w-3 h-3" />
-                          {filterFollowUp !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </button>
-                      </PopoverTrigger>
+                    <div className="flex items-center gap-1">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                            Follow-Up
+                            <ChevronDown className="w-3 h-3" />
+                            {filterFollowUp !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                          </button>
+                        </PopoverTrigger>
                       <PopoverContent className="w-40 p-1" align="start">
                         <div className="space-y-0.5">
                           {[
