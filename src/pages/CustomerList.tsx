@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ export default function CustomerList() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterVip, setFilterVip] = useState("all");
+  const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterNew, setFilterNew] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
@@ -102,7 +104,7 @@ export default function CustomerList() {
   }, [customers, allOrders, notesByCustomer]);
 
   const filtered = useMemo(() => {
-    return enriched.filter((c) => {
+    let result = enriched.filter((c) => {
       const isActive = c.is_active !== false;
       const matchArchive = filterArchive === "active" ? isActive : !isActive;
       if (!matchArchive) return false;
@@ -116,7 +118,15 @@ export default function CustomerList() {
       const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchNew;
     });
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive]);
+
+    if (sortByVip === "vip-first") {
+      result = [...result].sort((a, b) => (b.vip === "VIP" ? 1 : 0) - (a.vip === "VIP" ? 1 : 0));
+    } else if (sortByVip === "nonvip-first") {
+      result = [...result].sort((a, b) => (a.vip === "VIP" ? 1 : 0) - (b.vip === "VIP" ? 1 : 0));
+    }
+
+    return result;
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive, sortByVip]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -178,14 +188,6 @@ export default function CustomerList() {
               <SelectItem value="New">New</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterVip} onValueChange={setFilterVip}>
-            <SelectTrigger className="w-[100px] h-9"><SelectValue placeholder="VIP" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="VIP">VIP</SelectItem>
-              <SelectItem value="non-vip">Non-VIP</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={filterFollowUp} onValueChange={setFilterFollowUp}>
             <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Follow-Up" /></SelectTrigger>
             <SelectContent>
@@ -216,7 +218,55 @@ export default function CustomerList() {
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Relationship</TableHead>
-                  <TableHead>VIP</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          <Star className="w-3.5 h-3.5" />
+                          VIP
+                          <ChevronDown className="w-3 h-3" />
+                          {filterVip !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="start">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 py-1">Filter</p>
+                          {[
+                            { value: "all", label: "All" },
+                            { value: "VIP", label: "VIP Only" },
+                            { value: "non-vip", label: "Non-VIP" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterVip === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterVip(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                          <div className="border-t border-border my-1" />
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium px-2 py-1">Sort</p>
+                          {[
+                            { value: "none" as const, label: "Default" },
+                            { value: "vip-first" as const, label: "VIP First" },
+                            { value: "nonvip-first" as const, label: "Non-VIP First" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                sortByVip === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setSortByVip(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead>Activity</TableHead>
                   <TableHead>Last Order</TableHead>
                   <TableHead>Follow-Up</TableHead>
@@ -243,7 +293,13 @@ export default function CustomerList() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
+                    <TableCell>
+                      {c.vip === "VIP" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded font-medium bg-purple-100 text-purple-700">
+                          <Star className="w-3 h-3 fill-current" />VIP
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                     <TableCell className="text-sm">
                       <div>{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</div>
