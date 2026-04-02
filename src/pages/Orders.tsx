@@ -49,6 +49,13 @@ export default function Orders() {
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+
+  const eventsMap = useMemo(() => {
+    const map = new Map<string, EventRecord>();
+    for (const e of events) map.set(e.event_id, e);
+    return map;
+  }, [events]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteOrder,
@@ -65,6 +72,15 @@ export default function Orders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Payment updated");
+    },
+  });
+
+  const guestCountMutation = useMutation({
+    mutationFn: ({ eventId, guest_count }: { eventId: string; guest_count: number }) =>
+      updateEvent(eventId, { guest_count } as any),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Guest count updated");
     },
   });
 
