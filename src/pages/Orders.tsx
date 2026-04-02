@@ -120,30 +120,23 @@ export default function Orders() {
       result = result.filter((o) => o.customer_id === filterCustomer);
     }
 
-    // Month/Year quick filter (only if no custom dates)
-    if (!dateFrom && !dateTo) {
-      const yr = parseInt(filterYear);
-      if (filterMonth === "this-month") {
-        const m = now.getMonth();
-        const y = now.getFullYear();
-        result = result.filter((o) => {
-          const d = new Date(o.order_date);
-          return d.getMonth() === m && d.getFullYear() === y;
-        });
-      } else if (filterMonth !== "all") {
-        const mi = parseInt(filterMonth);
-        result = result.filter((o) => {
-          const d = new Date(o.order_date);
-          return d.getMonth() === mi && d.getFullYear() === yr;
-        });
-      } else {
-        // All dates but filter by year
-        result = result.filter((o) => o.order_date.startsWith(filterYear));
-      }
+    // Month/Year filter
+    const yr = parseInt(filterYear);
+    if (filterMonth === "this-month") {
+      const m = now.getMonth();
+      const y = now.getFullYear();
+      result = result.filter((o) => {
+        const d = new Date(o.order_date);
+        return d.getMonth() === m && d.getFullYear() === y;
+      });
+    } else if (filterMonth !== "all") {
+      const mi = parseInt(filterMonth);
+      result = result.filter((o) => {
+        const d = new Date(o.order_date);
+        return d.getMonth() === mi && d.getFullYear() === yr;
+      });
     } else {
-      // Custom date range
-      if (dateFrom) result = result.filter((o) => o.order_date >= dateFrom);
-      if (dateTo) result = result.filter((o) => o.order_date <= dateTo);
+      result = result.filter((o) => o.order_date.startsWith(filterYear));
     }
 
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
