@@ -147,29 +147,33 @@ export default function FollowUps() {
     setDistributeSelectedIds(new Set());
   };
 
-  // Preview assignments
+  // Preview assignments — cap at 10 per day
+  const MAX_PER_DAY = 10;
+
   const distributePreview = useMemo(() => {
-    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const maxDays = Math.max(1, parseInt(distributeDays) || 60);
     const selected = distributeCandidates
       .filter((c) => distributeSelectedIds.has(c.id))
       .sort((a, b) => {
-        // Most overdue first (earliest next_follow_up, then those with no date)
         const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : Infinity;
         const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : Infinity;
         return aDate - bDate;
       });
     const tomorrow = addDays(new Date(), 1);
+    // Distribute evenly but never exceed MAX_PER_DAY
+    const daysNeeded = Math.max(maxDays, Math.ceil(selected.length / MAX_PER_DAY));
     return selected.map((c, i) => ({
       id: c.id,
       name: c.full_name,
-      date: format(addDays(tomorrow, i % days), "yyyy-MM-dd"),
+      date: format(addDays(tomorrow, i % daysNeeded), "yyyy-MM-dd"),
     }));
   }, [distributeCandidates, distributeSelectedIds, distributeDays]);
 
   const perDay = useMemo(() => {
-    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const maxDays = Math.max(1, parseInt(distributeDays) || 60);
     const count = distributeSelectedIds.size;
-    return Math.ceil(count / days);
+    const daysNeeded = Math.max(maxDays, Math.ceil(count / MAX_PER_DAY));
+    return Math.ceil(count / daysNeeded);
   }, [distributeSelectedIds, distributeDays]);
 
   const distributeMutation = useMutation({
