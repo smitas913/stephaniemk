@@ -94,8 +94,26 @@ function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } 
   return { month, day };
 }
 
-function daysToBirthday(mmdd: string | null): number | null {
-  const parsed = parseBirthdayMMDD(mmdd);
+/** Extract month/day from a birthday date field (YYYY-MM-DD) or birthday_mmdd field */
+function getBirthdayMonthDay(customer: { birthday?: string | null; birthday_mmdd?: string | null }): { month: number; day: number } | null {
+  // Try birthday_mmdd first
+  const fromMMDD = parseBirthdayMMDD(customer.birthday_mmdd ?? null);
+  if (fromMMDD) return fromMMDD;
+  // Fall back to birthday date field
+  if (customer.birthday) {
+    const dateStr = customer.birthday.slice(0, 10);
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { month, day };
+    }
+  }
+  return null;
+}
+
+function daysToBirthday(customer: { birthday?: string | null; birthday_mmdd?: string | null }): number | null {
+  const parsed = getBirthdayMonthDay(customer);
   if (!parsed) return null;
   const today = getLocalToday();
   let bday = new Date(today.getFullYear(), parsed.month - 1, parsed.day);
