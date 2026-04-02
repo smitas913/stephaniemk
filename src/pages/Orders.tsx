@@ -87,7 +87,7 @@ export default function Orders() {
   }, [orders]);
 
   const hasActiveFilters = search || filterCustomer !== "all" || filterMonth !== "this-month" ||
-    filterYear !== String(now.getFullYear()) || dateFrom || dateTo ||
+    filterYear !== String(now.getFullYear()) ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
     filterHostess || filterBirthday || filterReferral;
 
