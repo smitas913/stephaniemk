@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useMemo } from "react";
@@ -38,7 +39,18 @@ export default function CustomerDetail() {
 
   const { data: customer } = useQuery({ queryKey: ["customer", id], queryFn: () => fetchCustomer(id!) });
   const { data: orders = [] } = useQuery({ queryKey: ["customer-orders", id], queryFn: () => fetchCustomerOrders(id!) });
-
+  const { data: deliveryCount = 0 } = useQuery({
+    queryKey: ["delivery-count", id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("daily_plan_items" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("customer_id", id!)
+        .eq("item_type", "delivery");
+      if (error) throw error;
+      return count || 0;
+    },
+  });
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
 
@@ -329,6 +341,13 @@ export default function CustomerDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <InfoRow label="Relationship" value={customer.relationship_status} />
                   <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
+                  <div className="flex flex-col gap-0.5 py-1.5">
+                    <span className="text-muted-foreground text-xs">Deliveries</span>
+                    <span className="text-foreground flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                      {deliveryCount}
+                    </span>
+                  </div>
                 </div>
 
                 <SectionHeader title="Follow-Up & Activity" />

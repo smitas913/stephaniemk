@@ -150,6 +150,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          customer_id: string | null
           customer_name: string
           event_location: string | null
           event_time: string | null
@@ -157,12 +158,14 @@ export type Database = {
           item_type: string
           notes: string | null
           owner_user_id: string | null
+          phone: string | null
           plan_date: string
           sort_order: number
         }
         Insert: {
           address?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
           event_location?: string | null
           event_time?: string | null
@@ -170,12 +173,14 @@ export type Database = {
           item_type: string
           notes?: string | null
           owner_user_id?: string | null
+          phone?: string | null
           plan_date?: string
           sort_order?: number
         }
         Update: {
           address?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
           event_location?: string | null
           event_time?: string | null
@@ -183,6 +188,7 @@ export type Database = {
           item_type?: string
           notes?: string | null
           owner_user_id?: string | null
+          phone?: string | null
           plan_date?: string
           sort_order?: number
         }
