@@ -69,6 +69,9 @@ export interface CustomerComputed {
 export const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
 export type EventFormat = typeof EVENT_FORMATS[number];
 
+export const COACHING_STATUSES = ["Booked", "Coaching Scheduled", "Invites Sent", "Confirmed", "Completed"] as const;
+export const RSVP_OPTIONS = ["Yes", "No", "Maybe"] as const;
+
 export interface EventRecord {
   id: string;
   event_id: string;
@@ -85,6 +88,17 @@ export interface EventRecord {
   owner_user_id: string | null;
   created_at: string;
   updated_at: string;
+  hostess_phone: string | null;
+  hostess_email: string | null;
+  coaching_status: string | null;
+  coaching_call_date: string | null;
+  coaching_notes: string | null;
+  checklist_invitations_sent: boolean;
+  checklist_guest_list_received: boolean;
+  checklist_google_form_completed: boolean;
+  checklist_samples_sent: boolean;
+  checklist_reminders_sent: boolean;
+  google_form_link: string | null;
 }
 
 export interface EventGuest {
@@ -96,6 +110,10 @@ export interface EventGuest {
   converted_customer_id: string | null;
   owner_user_id: string | null;
   created_at: string;
+  rsvp: string | null;
+  attending: boolean;
+  ordered: boolean;
+  interested: boolean;
 }
 
 export const RELATIONSHIP_STATUSES = ["Customer", "Consultant", "Former Consultant"] as const;
