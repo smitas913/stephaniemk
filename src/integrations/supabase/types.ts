@@ -244,47 +244,70 @@ export type Database = {
       }
       event_guests: {
         Row: {
+          attending: boolean | null
           converted_customer_id: string | null
           created_at: string
           event_id: string
           id: string
+          interested: boolean | null
           name: string
           notes: string | null
+          ordered: boolean | null
           owner_user_id: string | null
           phone: string | null
+          rsvp: string | null
         }
         Insert: {
+          attending?: boolean | null
           converted_customer_id?: string | null
           created_at?: string
           event_id: string
           id?: string
+          interested?: boolean | null
           name: string
           notes?: string | null
+          ordered?: boolean | null
           owner_user_id?: string | null
           phone?: string | null
+          rsvp?: string | null
         }
         Update: {
+          attending?: boolean | null
           converted_customer_id?: string | null
           created_at?: string
           event_id?: string
           id?: string
+          interested?: boolean | null
           name?: string
           notes?: string | null
+          ordered?: boolean | null
           owner_user_id?: string | null
           phone?: string | null
+          rsvp?: string | null
         }
         Relationships: []
       }
       events: {
         Row: {
+          checklist_google_form_completed: boolean | null
+          checklist_guest_list_received: boolean | null
+          checklist_invitations_sent: boolean | null
+          checklist_reminders_sent: boolean | null
+          checklist_samples_sent: boolean | null
+          coaching_call_date: string | null
+          coaching_notes: string | null
+          coaching_status: string | null
           created_at: string
           event_date: string | null
           event_format: string
           event_id: string
           event_type: string | null
           future_bookings_count: number | null
+          google_form_link: string | null
           guest_count: number | null
+          hostess_email: string | null
           hostess_name: string | null
+          hostess_phone: string | null
           id: string
           is_archived: boolean | null
           notes: string | null
@@ -294,14 +317,25 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          checklist_google_form_completed?: boolean | null
+          checklist_guest_list_received?: boolean | null
+          checklist_invitations_sent?: boolean | null
+          checklist_reminders_sent?: boolean | null
+          checklist_samples_sent?: boolean | null
+          coaching_call_date?: string | null
+          coaching_notes?: string | null
+          coaching_status?: string | null
           created_at?: string
           event_date?: string | null
           event_format?: string
           event_id: string
           event_type?: string | null
           future_bookings_count?: number | null
+          google_form_link?: string | null
           guest_count?: number | null
+          hostess_email?: string | null
           hostess_name?: string | null
+          hostess_phone?: string | null
           id?: string
           is_archived?: boolean | null
           notes?: string | null
@@ -311,14 +345,25 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          checklist_google_form_completed?: boolean | null
+          checklist_guest_list_received?: boolean | null
+          checklist_invitations_sent?: boolean | null
+          checklist_reminders_sent?: boolean | null
+          checklist_samples_sent?: boolean | null
+          coaching_call_date?: string | null
+          coaching_notes?: string | null
+          coaching_status?: string | null
           created_at?: string
           event_date?: string | null
           event_format?: string
           event_id?: string
           event_type?: string | null
           future_bookings_count?: number | null
+          google_form_link?: string | null
           guest_count?: number | null
+          hostess_email?: string | null
           hostess_name?: string | null
+          hostess_phone?: string | null
           id?: string
           is_archived?: boolean | null
           notes?: string | null
