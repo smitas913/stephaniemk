@@ -63,15 +63,23 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    const totalOrderingGuests = periodEvents.reduce((s, e) => s + Number(e.ordering_guest_count || 0), 0);
-    const conversionRate = totalFaces > 0 ? (totalOrderingGuests / totalFaces) * 100 : 0;
+    // Conversion Rate: sum(ordering_guest_count) / sum(guest_count) for Party+Facial events with guest_count > 0
+    const qualifyingEvents = periodEvents.filter(
+      (e) => (e.event_type === "Party" || e.event_type === "Facial") && Number(e.guest_count || 0) > 0
+    );
+    const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const convOrdering = qualifyingEvents.reduce((s, e) => s + Number(e.ordering_guest_count || 0), 0);
+    const conversionRate = convGuests > 0 ? (convOrdering / convGuests) * 100 : 0;
 
-    const customerOrderCounts: Record<string, number> = {};
-    for (const o of periodOrders) {
-      customerOrderCounts[o.customer_id] = (customerOrderCounts[o.customer_id] || 0) + 1;
+    // Reorder Rate: customers with 2+ lifetime orders / unique ordering customers in period
+    // Uses ALL orders for lifetime count, period orders for "who ordered this period"
+    const periodCustomerIds = new Set(periodOrders.map((o) => o.customer_id));
+    const lifetimeOrderCounts: Record<string, number> = {};
+    for (const o of orders) {
+      lifetimeOrderCounts[o.customer_id] = (lifetimeOrderCounts[o.customer_id] || 0) + 1;
     }
-    const totalOrderingCustomers = Object.keys(customerOrderCounts).length;
-    const repeatCustomers = Object.values(customerOrderCounts).filter((c) => c >= 2).length;
+    const totalOrderingCustomers = periodCustomerIds.size;
+    const repeatCustomers = [...periodCustomerIds].filter((cid) => (lifetimeOrderCounts[cid] || 0) >= 2).length;
     const reorderRate = totalOrderingCustomers > 0 ? (repeatCustomers / totalOrderingCustomers) * 100 : 0;
 
     const enriched: Enriched[] = customers.map((c) => {
