@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserPlus, CalendarRange } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, addDays } from "date-fns";
 
