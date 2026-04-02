@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, Package, LogOut, UserCog, ClipboardList } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package, LogOut, UserCog, ClipboardList, Upload } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
