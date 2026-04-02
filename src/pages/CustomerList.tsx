@@ -1,0 +1,206 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer } from "@/lib/queries";
+import { computeCustomerFields } from "@/lib/computedFields";
+import type { Customer, CustomerComputed } from "@/lib/types";
+import { CUSTOMER_STATUSES } from "@/lib/types";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+type EnrichedCustomer = Customer & CustomerComputed;
+
+export default function CustomerList() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterVip, setFilterVip] = useState("all");
+  const [filterFollowUp, setFilterFollowUp] = useState("all");
+  const [filterNew, setFilterNew] = useState("all");
+  const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
+
+  const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+
+  const addMutation = useMutation({
+    mutationFn: createCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setOpen(false);
+      setForm({ full_name: "", phone: "", email: "" });
+      toast.success("Customer added!");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Customer deleted");
+    },
+  });
+
+  const enriched: EnrichedCustomer[] = useMemo(() => {
+    return customers.map((c) => {
+      const custOrders = allOrders.filter((o) => o.customer_id === c.id);
+      const computed = computeCustomerFields(c, custOrders);
+      return { ...c, ...computed };
+    });
+  }, [customers, allOrders]);
+
+  const filtered = useMemo(() => {
+    return enriched.filter((c) => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
+      const matchStatus = filterStatus === "all" || c.current_status === filterStatus;
+      const matchCat = filterCategory === "all" || c.category === filterCategory;
+      const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
+      const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
+      const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchNew;
+    });
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew]);
+
+  const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
+
+  return (
+    <Layout>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Customers</h2>
+            <p className="text-sm text-muted-foreground">{enriched.length} total · {filtered.length} shown</p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="w-4 h-4 mr-1" />Add</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
+              <form onSubmit={(e) => { e.preventDefault(); addMutation.mutate(form); }} className="space-y-3">
+                <Input placeholder="Full Name *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required className="h-11" />
+                <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" className="h-11" />
+                <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" className="h-11" />
+                <Button type="submit" className="w-full h-11" disabled={addMutation.isPending}>
+                  {addMutation.isPending ? "Adding..." : "Add Customer"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Search + Filters */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search name, phone, email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              {CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Warm">Warm</SelectItem>
+              <SelectItem value="Dormant">Dormant</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterVip} onValueChange={setFilterVip}>
+            <SelectTrigger className="w-[100px] h-9"><SelectValue placeholder="VIP" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="VIP">VIP</SelectItem>
+              <SelectItem value="non-vip">Non-VIP</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterFollowUp} onValueChange={setFilterFollowUp}>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Follow-Up" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Follow-Up</SelectItem>
+              <SelectItem value="OVERDUE">Overdue</SelectItem>
+              <SelectItem value="TODAY">Today</SelectItem>
+              <SelectItem value="UPCOMING">Upcoming</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterNew} onValueChange={setFilterNew}>
+            <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="New?" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="New">New (90d)</SelectItem>
+              <SelectItem value="not-new">Not New</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Table */}
+        {isLoading ? (
+          <p className="text-muted-foreground text-center py-12">Loading...</p>
+        ) : (
+          <div className="border border-border rounded-lg overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[160px]">Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>VIP</TableHead>
+                  <TableHead>Last Order</TableHead>
+                  <TableHead className="text-right">Days</TableHead>
+                  <TableHead className="text-right">Orders YTD</TableHead>
+                  <TableHead className="text-right">Retail YTD</TableHead>
+                  <TableHead>Next Follow-Up</TableHead>
+                  <TableHead>FU Status</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                ) : filtered.map((c) => (
+                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
+                    <TableCell className="font-medium">{c.full_name}</TableCell>
+                    <TableCell className="text-sm">{c.phone || "—"}</TableCell>
+                    <TableCell className="text-sm">{c.email || "—"}</TableCell>
+                    <TableCell>{statusBadge(c.current_status || "", "bg-accent text-accent-foreground")}</TableCell>
+                    <TableCell>{statusBadge(c.category, c.category === "Active" ? "bg-green-100 text-green-700" : c.category === "Warm" ? "bg-yellow-100 text-yellow-700" : c.category === "Dormant" ? "bg-red-100 text-red-700" : "")}</TableCell>
+                    <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
+                    <TableCell className="text-sm">{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="text-right text-sm">{c.days_since_last_order !== null ? c.days_since_last_order : "—"}</TableCell>
+                    <TableCell className="text-right text-sm">{c.orders_this_year}</TableCell>
+                    <TableCell className="text-right text-sm font-medium">${c.retail_this_year.toFixed(2)}</TableCell>
+                    <TableCell className="text-sm">{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell>{statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(c.id); }}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+}

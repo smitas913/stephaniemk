@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, Package, Bell, LogOut, UserCog, ClipboardList } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, Package, LogOut, UserCog, ClipboardList } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
@@ -8,7 +8,6 @@ const adminNavItems = [
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/inventory", label: "Inventory", icon: Package },
-  { to: "/follow-ups", label: "Follow-Ups", icon: Bell },
   { to: "/users", label: "Users", icon: UserCog },
   { to: "/consultant-requests", label: "Requests", icon: ClipboardList },
 ];
@@ -31,9 +30,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-50">
         <div className="container flex items-center h-14 gap-4 md:gap-8">
-          <h1 className="text-lg font-bold tracking-tight text-primary shrink-0">
-            ✨ MK CRM
-          </h1>
+          <h1 className="text-lg font-bold tracking-tight text-primary shrink-0">✨ MK CRM</h1>
           <nav className="flex gap-0.5 overflow-x-auto flex-1">
             {navItems.map(({ to, label, icon: Icon }) => (
               <NavLink
@@ -42,9 +39,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 end={to === "/dashboard"}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-2.5 md:px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`
                 }
               >
@@ -59,13 +54,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {profile.role}
               </span>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              onClick={signOut}
-              title="Sign out"
-            >
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={signOut} title="Sign out">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>

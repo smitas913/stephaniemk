@@ -16,40 +16,70 @@ export type Database = {
     Tables: {
       customers: {
         Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          birthday_mmdd: string | null
+          city: string | null
           created_at: string
+          current_status: string | null
           email: string | null
-          follow_up_needed: boolean
+          follow_up_reason: string | null
+          full_name: string
           id: string
-          last_contact_date: string | null
-          last_order_date: string | null
-          name: string
+          last_contacted: string | null
+          last_order_date_order_log: string | null
+          last_order_mk: string | null
+          new_follow_up_stage: string | null
           notes: string | null
           phone: string | null
-          total_spent: number
+          postal_code: string | null
+          profile_date_first_order_date: string | null
+          state_territory: string | null
+          updated_at: string | null
         }
         Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          birthday_mmdd?: string | null
+          city?: string | null
           created_at?: string
+          current_status?: string | null
           email?: string | null
-          follow_up_needed?: boolean
+          follow_up_reason?: string | null
+          full_name: string
           id?: string
-          last_contact_date?: string | null
-          last_order_date?: string | null
-          name: string
+          last_contacted?: string | null
+          last_order_date_order_log?: string | null
+          last_order_mk?: string | null
+          new_follow_up_stage?: string | null
           notes?: string | null
           phone?: string | null
-          total_spent?: number
+          postal_code?: string | null
+          profile_date_first_order_date?: string | null
+          state_territory?: string | null
+          updated_at?: string | null
         }
         Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          birthday_mmdd?: string | null
+          city?: string | null
           created_at?: string
+          current_status?: string | null
           email?: string | null
-          follow_up_needed?: boolean
+          follow_up_reason?: string | null
+          full_name?: string
           id?: string
-          last_contact_date?: string | null
-          last_order_date?: string | null
-          name?: string
+          last_contacted?: string | null
+          last_order_date_order_log?: string | null
+          last_order_mk?: string | null
+          new_follow_up_stage?: string | null
           notes?: string | null
           phone?: string | null
-          total_spent?: number
+          postal_code?: string | null
+          profile_date_first_order_date?: string | null
+          state_territory?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -95,10 +125,10 @@ export type Database = {
           id: string
           notes: string | null
           order_date: string
-          order_source: Database["public"]["Enums"]["order_source"]
-          payment_method: Database["public"]["Enums"]["payment_method"] | null
-          payment_status: Database["public"]["Enums"]["payment_status"]
-          total_amount: number
+          payment_type: string | null
+          retail_total: number
+          source: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -106,10 +136,10 @@ export type Database = {
           id?: string
           notes?: string | null
           order_date?: string
-          order_source?: Database["public"]["Enums"]["order_source"]
-          payment_method?: Database["public"]["Enums"]["payment_method"] | null
-          payment_status?: Database["public"]["Enums"]["payment_status"]
-          total_amount?: number
+          payment_type?: string | null
+          retail_total?: number
+          source?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -117,10 +147,10 @@ export type Database = {
           id?: string
           notes?: string | null
           order_date?: string
-          order_source?: Database["public"]["Enums"]["order_source"]
-          payment_method?: Database["public"]["Enums"]["payment_method"] | null
-          payment_status?: Database["public"]["Enums"]["payment_status"]
-          total_amount?: number
+          payment_type?: string | null
+          retail_total?: number
+          source?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
