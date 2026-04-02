@@ -42,6 +42,10 @@ export default function CustomerList() {
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
+  const [relOpen, setRelOpen] = useState(false);
+  const [vipOpen, setVipOpen] = useState(false);
+  const [actOpen, setActOpen] = useState(false);
+  const [fuOpen, setFuOpen] = useState(false);
   const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
