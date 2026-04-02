@@ -231,7 +231,7 @@ export default function CustomerList() {
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
