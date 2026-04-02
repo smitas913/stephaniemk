@@ -21,7 +21,7 @@ type PendingProfile = {
   created_at: string;
 };
 
-export default function ConsultantRequests() {
+export default function ConsultantRequests({ embedded = false }: { embedded?: boolean }) {
   const { profile: myProfile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -65,16 +65,17 @@ export default function ConsultantRequests() {
     return <Navigate to="/access-denied" replace />;
   }
 
-  return (
-    <Layout>
+  const content = (
       <div className="max-w-2xl mx-auto space-y-5 pb-8">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="w-6 h-6 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Consultant Requests</h2>
-            <p className="text-sm text-muted-foreground">Review pending consultant applications</p>
+        {!embedded && (
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-6 h-6 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Consultant Requests</h2>
+              <p className="text-sm text-muted-foreground">Review pending consultant applications</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading…</div>
@@ -130,6 +131,8 @@ export default function ConsultantRequests() {
           </div>
         )}
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }

@@ -19,6 +19,8 @@ import UserManagement from "./pages/UserManagement";
 import ConsultantRequests from "./pages/ConsultantRequests";
 import ConsultantRequest from "./pages/ConsultantRequest";
 import ImportCustomers from "./pages/ImportCustomers";
+import FollowUps from "./pages/FollowUps";
+import AdminTools from "./pages/AdminTools";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -107,6 +109,8 @@ const AppRoutes = () => (
     <Route path="/orders/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddOrder /></ProtectedRoute>} />
     <Route path="/import-customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ImportCustomers /></ProtectedRoute>} />
     <Route path="/inventory" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Inventory /></ProtectedRoute>} />
+    <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
+    <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminTools /></ProtectedRoute>} />
     <Route path="/users" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><UserManagement /></ProtectedRoute>} />
     <Route path="/consultant-requests" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ConsultantRequests /></ProtectedRoute>} />
     <Route path="/become-consultant" element={<ProtectedRoute allowedRoles={["customer"]}><ConsultantRequest /></ProtectedRoute>} />

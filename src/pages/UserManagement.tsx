@@ -27,7 +27,7 @@ type Profile = {
 
 const ALL_ROLES = ["owner", "admin", "consultant", "customer"] as const;
 
-export default function UserManagement() {
+export default function UserManagement({ embedded = false }: { embedded?: boolean }) {
   const { profile: myProfile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -179,18 +179,19 @@ export default function UserManagement() {
     ? [...ALL_ROLES]
     : (["admin", "consultant", "customer"] as const);
 
-  return (
-    <Layout>
+  const content = (
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <UserCog className="w-6 h-6 text-primary" />
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
-              <p className="text-sm text-muted-foreground">Manage team access and roles</p>
+          {!embedded && (
+            <div className="flex items-center gap-2">
+              <UserCog className="w-6 h-6 text-primary" />
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
+                <p className="text-sm text-muted-foreground">Manage team access and roles</p>
+              </div>
             </div>
-          </div>
+          )}
 
           {(isOwner || isAdmin) && (
             <Dialog open={showAdd} onOpenChange={setShowAdd}>
@@ -340,6 +341,8 @@ export default function UserManagement() {
           {filtered.length} of {profiles.length} users shown
         </p>
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }
