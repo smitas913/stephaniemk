@@ -62,6 +62,7 @@ export default function Events() {
           <Button onClick={() => navigate("/events/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New Event
           </Button>
+        </div>
 
         {/* Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
