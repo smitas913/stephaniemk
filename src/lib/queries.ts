@@ -1,6 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Order, OrderWithCustomer } from "./types";
 
+// Helper to get current user id for ownership
+const getCurrentUserId = async () => {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
+};
+
 // Customers
 export const fetchCustomers = async (): Promise<Customer[]> => {
   const { data, error } = await supabase.from("customers").select("*").order("full_name");
@@ -15,7 +21,8 @@ export const fetchCustomer = async (id: string): Promise<Customer> => {
 };
 
 export const createCustomer = async (customer: Partial<Customer> & { full_name: string }) => {
-  const { data, error } = await supabase.from("customers").insert(customer as any).select().single();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("customers").insert({ ...customer, owner_user_id: userId } as any).select().single();
   if (error) throw error;
   return data;
 };
@@ -76,7 +83,8 @@ export const createOrder = async (order: {
   notes?: string;
   parent_event_id?: string | null;
 }) => {
-  const { data, error } = await supabase.from("orders").insert(order as any).select().single();
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("orders").insert({ ...order, owner_user_id: userId } as any).select().single();
   if (error) throw error;
   return data;
 };
