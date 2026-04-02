@@ -183,7 +183,8 @@ export default function FollowUpDashboard() {
 
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
-  const m = useMetrics(customers, allOrders, period);
+  const { data: allExpenses = [] } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
+  const m = useMetrics(customers, allOrders, allExpenses, period);
   const isLoading = cLoading || oLoading;
 
   const periodLabel = getShortLabel(period);
@@ -191,6 +192,8 @@ export default function FollowUpDashboard() {
   const kpiCards = [
     { label: `Revenue ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
+    { label: `Expenses ${periodLabel}`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-orange-600" },
+    { label: `Net ${periodLabel}`, value: `$${m.netProfit.toFixed(2)}`, icon: TrendingUp, accent: m.netProfit >= 0 ? "text-green-600" : "text-red-600" },
     { label: "Avg Order Value", value: `$${m.avgOrder.toFixed(2)}`, icon: TrendingUp, accent: "text-purple-600" },
     { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
   ];
