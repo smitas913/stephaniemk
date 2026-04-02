@@ -97,37 +97,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       pct: monthSharingConvPct,
     };
 
-    // Trends: last 6 months (including current)
-    const trendMonths: MonthRow[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const refDate = subMonths(now, i);
-      const mStart = startOfMonth(refDate);
-      const mEnd = endOfMonth(refDate);
-      const mLabel = format(mStart, "MMM yyyy");
-      const mEvents = events.filter((e) => inRange(e.event_date, mStart, mEnd));
-      const mPF = mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
-      trendMonths.push({
-        label: mLabel,
-        faces: mPF.reduce((s, e) => s + Number(e.guest_count || 0), 0),
-        parties: mEvents.filter((e) => e.event_type === "Party").length,
-        sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
-        newTeam: prospects.filter((p) =>
-          (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
-        ).length,
-      });
-    }
-
-    // 3-month average (last 3 entries)
-    const last3 = trendMonths.slice(-3);
-    const avg3: MonthRow = {
-      label: "3-Mo Avg",
-      faces: Math.round(last3.reduce((s, r) => s + r.faces, 0) / 3),
-      parties: Math.round(last3.reduce((s, r) => s + r.parties, 0) / 3 * 10) / 10,
-      sharings: Math.round(last3.reduce((s, r) => s + r.sharings, 0) / 3 * 10) / 10,
-      newTeam: Math.round(last3.reduce((s, r) => s + r.newTeam, 0) / 3 * 10) / 10,
-    };
-
-    return { weekly, monthly, monthlySharingConversion, trendMonths, avg3 };
+    return { weekly, monthly, monthlySharingConversion };
   }, [events, prospects]);
 }
 
