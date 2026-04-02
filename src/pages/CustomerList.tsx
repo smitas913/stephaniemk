@@ -150,16 +150,16 @@ export default function CustomerList() {
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Relationship" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              {CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              <SelectItem value="all">All Relationship</SelectItem>
+              {RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Activity" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">All Activity</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Warm">Warm</SelectItem>
               <SelectItem value="Dormant">Dormant</SelectItem>
