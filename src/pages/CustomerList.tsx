@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatDistanceToNowStrict, parseISO, format } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
@@ -268,6 +269,7 @@ export default function CustomerList() {
                     </Popover>
                   </TableHead>
                   <TableHead>Activity</TableHead>
+                  <TableHead>Last Contacted</TableHead>
                   <TableHead>Last Order</TableHead>
                   <TableHead>Follow-Up</TableHead>
                   <TableHead className="w-20">Actions</TableHead>
@@ -275,7 +277,7 @@ export default function CustomerList() {
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
@@ -300,7 +302,17 @@ export default function CustomerList() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
+                     <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
+                     <TableCell className="text-sm">
+                       {c.last_contacted ? (
+                         <div>
+                           <div>{format(parseISO(c.last_contacted), "MMM d")}</div>
+                           <div className="text-[11px] text-muted-foreground">{formatDistanceToNowStrict(parseISO(c.last_contacted), { addSuffix: true })}</div>
+                         </div>
+                       ) : (
+                         <span className="text-muted-foreground">—</span>
+                       )}
+                     </TableCell>
                     <TableCell className="text-sm">
                       <div>{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</div>
                       {c.days_since_last_order !== null && (
