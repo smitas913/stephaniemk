@@ -145,7 +145,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, convOrdering, convGuests, convEventCount, topCustomers, topHostesses };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses };
   }, [customers, orders, expenses, events, period]);
 }
 
