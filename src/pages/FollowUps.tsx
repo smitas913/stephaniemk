@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchProspects, updateProspect, createProspectNote, bulkUpdateCustomerFollowUps } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes, fetchProspects, updateProspect, createProspectNote, fetchProspectNotes, bulkUpdateCustomerFollowUps } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
-import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
+import type { Customer, CustomerComputed, CustomerNote, ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,16 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, addDays } from "date-fns";
 
 type Enriched = Customer & CustomerComputed;
 
-// Unified item for follow-up lists
 type FollowUpItem = {
   id: string;
   itemType: "customer" | "prospect";
@@ -36,9 +37,10 @@ type FollowUpItem = {
   days_since_last_order?: number | null;
   opportunity_status?: string;
   new_follow_up_stage?: string | null;
-  // birthday fields (only for customers)
   birthday_mmdd?: string | null;
   daysOverdue?: number | null;
+  followUpReason?: string;
+  lastNotePreview?: string;
 };
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
@@ -64,6 +66,18 @@ function daysToBirthday(mmdd: string | null): number | null {
   return Math.round((bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function computeFollowUpReason(c: Enriched): string {
+  if (c.new_first_90_days === "New") {
+    const stage = c.new_follow_up_stage;
+    if (stage) return `New - ${stage}`;
+    return "New - First Follow-Up";
+  }
+  if (c.days_since_last_order !== null && c.days_since_last_order >= 90) {
+    return "90+ Day Reorder";
+  }
+  return "90 Day Cycle";
+}
+
 export default function FollowUps() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -78,6 +92,12 @@ export default function FollowUps() {
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
+
+  // Detail sheet state
+  const [detailItem, setDetailItem] = useState<FollowUpItem | null>(null);
+  const [detailNoteText, setDetailNoteText] = useState("");
+  const [detailNoteType, setDetailNoteType] = useState("General");
+  const [detailFollowUpDate, setDetailFollowUpDate] = useState("");
 
   // Bulk distribution state
   const [showDistribute, setShowDistribute] = useState(false);
@@ -94,7 +114,6 @@ export default function FollowUps() {
     return map;
   }, [allNotes]);
 
-  // Enriched customers for distribution
   const enrichedCustomers = useMemo(() => {
     return customers
       .filter((c) => c.is_active !== false)
@@ -105,7 +124,20 @@ export default function FollowUps() {
       });
   }, [customers, allOrders]);
 
-  // Distribution candidates based on filter
+  // Detail sheet queries
+  const { data: detailNotes = [] } = useQuery({
+    queryKey: ["customer-notes", detailItem?.id],
+    queryFn: () => fetchCustomerNotes(detailItem!.id),
+    enabled: !!detailItem && detailItem.itemType === "customer",
+  });
+
+  const { data: detailProspectNotes = [] } = useQuery({
+    queryKey: ["prospect-notes", detailItem?.id],
+    queryFn: () => fetchProspectNotes(detailItem!.id),
+    enabled: !!detailItem && detailItem.itemType === "prospect",
+  });
+
+  // Distribution candidates
   const distributeCandidates = useMemo(() => {
     switch (distributeFilter) {
       case "overdue-today":
@@ -119,7 +151,6 @@ export default function FollowUps() {
     }
   }, [enrichedCustomers, distributeFilter]);
 
-  // When filter changes, auto-select all candidates
   const openDistributeDialog = () => {
     setDistributeStep("configure");
     setShowDistribute(true);
@@ -140,15 +171,9 @@ export default function FollowUps() {
     });
   };
 
-  const selectAllCandidates = () => {
-    setDistributeSelectedIds(new Set(distributeCandidates.map((c) => c.id)));
-  };
+  const selectAllCandidates = () => setDistributeSelectedIds(new Set(distributeCandidates.map((c) => c.id)));
+  const deselectAllCandidates = () => setDistributeSelectedIds(new Set());
 
-  const deselectAllCandidates = () => {
-    setDistributeSelectedIds(new Set());
-  };
-
-  // Preview assignments — cap at 10 per day
   const MAX_PER_DAY = 10;
 
   const distributePreview = useMemo(() => {
@@ -161,7 +186,6 @@ export default function FollowUps() {
         return aDate - bDate;
       });
     const tomorrow = addDays(new Date(), 1);
-    // Distribute evenly but never exceed MAX_PER_DAY
     const daysNeeded = Math.max(maxDays, Math.ceil(selected.length / MAX_PER_DAY));
     return selected.map((c, i) => ({
       id: c.id,
@@ -192,13 +216,16 @@ export default function FollowUps() {
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
 
-    // Customer follow-up items
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
       let daysOverdue: number | null = null;
       if (c.follow_up_status === "OVERDUE" && c.next_follow_up) {
         const nf = parseISO(c.next_follow_up);
         daysOverdue = Math.floor((todayDate.getTime() - nf.getTime()) / (1000 * 60 * 60 * 24));
       }
+      const lastNote = notesByCustomer.get(c.id);
+      const notePreview = lastNote
+        ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
+        : undefined;
       return {
         id: c.id,
         itemType: "customer" as const,
@@ -213,10 +240,11 @@ export default function FollowUps() {
         new_follow_up_stage: c.new_follow_up_stage,
         birthday_mmdd: c.birthday_mmdd,
         daysOverdue,
+        followUpReason: computeFollowUpReason(c),
+        lastNotePreview: notePreview,
       };
     });
 
-    // Prospect follow-up items
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const prospectItems: FollowUpItem[] = prospects
       .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
@@ -239,25 +267,22 @@ export default function FollowUps() {
           follow_up_status: status,
           opportunity_status: p.opportunity_status,
           daysOverdue,
+          followUpReason: `Prospect - ${p.opportunity_status}`,
         };
       });
 
     const allItems = [...customerItems, ...prospectItems];
 
-    // Unified call list: overdue + today, sorted overdue-first (oldest first)
     const callsForToday = allItems
       .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY")
       .sort((a, b) => {
-        // Overdue before today
         if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
         if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
-        // Within same status, sort by date (oldest first)
         const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : 0;
         const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : 0;
         return aDate - bDate;
       });
 
-    // Birthdays (customers only)
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
     const birthdaysUpcoming: (FollowUpItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
@@ -269,14 +294,14 @@ export default function FollowUps() {
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
     return { callsForToday, birthdaysToday, birthdaysUpcoming };
-  }, [enrichedCustomers, prospects]);
+  }, [enrichedCustomers, prospects, notesByCustomer]);
 
   const contactMutation = useMutation({
     mutationFn: async ({ item, note, type, nextDate }: { item: FollowUpItem; note: string; type: string; nextDate?: string }) => {
       const today = format(new Date(), "yyyy-MM-dd");
-
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
+        if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
         if (note.trim()) {
           await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: type });
@@ -304,11 +329,55 @@ export default function FollowUps() {
     },
   });
 
+  // Detail sheet mutations
+  const detailNoteMutation = useMutation({
+    mutationFn: async () => {
+      if (!detailItem || !detailNoteText.trim()) return;
+      if (detailItem.itemType === "customer") {
+        await createCustomerNote({ customer_id: detailItem.id, note_text: detailNoteText.trim(), note_type: detailNoteType });
+      } else {
+        await createProspectNote({ prospect_id: detailItem.id, note_text: detailNoteText.trim() });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer-notes", detailItem?.id] });
+      queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      setDetailNoteText("");
+      setDetailNoteType("General");
+      toast.success("Note added");
+    },
+  });
+
+  const detailFollowUpMutation = useMutation({
+    mutationFn: async () => {
+      if (!detailItem || !detailFollowUpDate) return;
+      if (detailItem.itemType === "customer") {
+        await updateCustomer(detailItem.id, { next_follow_up_date: detailFollowUpDate } as any);
+      } else {
+        await updateProspect(detailItem.id, { next_follow_up_date: detailFollowUpDate } as any);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      setDetailFollowUpDate("");
+      toast.success("Follow-up date updated");
+    },
+  });
+
   const openContactDialog = (item: FollowUpItem, defaultType = "Call") => {
     setActionItem(item);
     setNoteText("");
     setNoteType(defaultType);
     setFollowUpDate("");
+  };
+
+  const openDetailSheet = (item: FollowUpItem) => {
+    setDetailItem(item);
+    setDetailNoteText("");
+    setDetailNoteType("General");
+    setDetailFollowUpDate(item.next_follow_up || "");
   };
 
   const handleSubmitAction = () => {
@@ -379,7 +448,7 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 2. Calls for Today */}
+            {/* 2. Calls for Today — enriched cards */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -397,88 +466,15 @@ export default function FollowUps() {
                   <p className="text-sm text-muted-foreground py-4 text-center">All caught up! 🎉</p>
                 ) : (
                   <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                    {callsForToday.map((c) => {
-                      const lastNote = c.itemType === "customer" ? notesByCustomer.get(c.id) : undefined;
-                      return (
-                        <div
-                          key={`${c.itemType}-${c.id}`}
-                          className="border border-border/60 rounded-lg p-3 hover:bg-muted/30 transition-colors"
-                        >
-                          {/* Top row: name + status badge */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => navigateToItem(c)}>
-                              <p className="text-sm font-semibold text-foreground truncate">
-                                {c.name}
-                              </p>
-                              {c.vip === "VIP" && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium shrink-0">VIP</span>
-                              )}
-                              {c.itemType === "prospect" && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium shrink-0">Prospect</span>
-                              )}
-                            </div>
-                            <div className="shrink-0">
-                              {c.follow_up_status === "OVERDUE" ? (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
-                                  Overdue {c.daysOverdue ? `${c.daysOverdue}d` : ""}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
-                                  Due Today
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Info row */}
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
-                            {c.activity_status && (
-                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                                {c.activity_status}
-                              </span>
-                            )}
-                            {c.days_since_last_order !== null && c.days_since_last_order !== undefined && (
-                              <span>{c.days_since_last_order}d since last order</span>
-                            )}
-                            {c.opportunity_status && (
-                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                                {c.opportunity_status}
-                              </span>
-                            )}
-                            {lastNote && (
-                              <span className="truncate max-w-[200px]">
-                                Last: {lastNote.note_type} · {new Date(lastNote.created_at).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Quick actions */}
-                          <div className="flex flex-wrap gap-1">
-                            {c.phone && (
-                              <>
-                                <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
-                                  <a href={`tel:${c.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
-                                </Button>
-                                <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
-                                  <a href={`sms:${c.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
-                                </Button>
-                              </>
-                            )}
-                            {c.email && (
-                              <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
-                                <a href={`mailto:${c.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
-                              </Button>
-                            )}
-                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openContactDialog(c, "General")}>
-                              <FileText className="w-3 h-3 mr-1" />Note
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openContactDialog(c, "Call")}>
-                              <CheckCircle2 className="w-3 h-3 mr-1" />Log Contact
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {callsForToday.map((c) => (
+                      <FollowUpCard
+                        key={`${c.itemType}-${c.id}`}
+                        item={c}
+                        onOpenDetail={() => openDetailSheet(c)}
+                        onLogContact={(type) => openContactDialog(c, type)}
+                        onNavigate={() => navigateToItem(c)}
+                      />
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -486,7 +482,7 @@ export default function FollowUps() {
           </div>
         )}
 
-        {/* Action Dialog */}
+        {/* Log Contact Dialog */}
         <Dialog open={!!actionItem} onOpenChange={(open) => !open && setActionItem(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -532,15 +528,171 @@ export default function FollowUps() {
                 <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
                 <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="h-9" />
               </div>
-              <div className="flex items-center gap-2">
-                <Button className="flex-1" onClick={handleSubmitAction} disabled={contactMutation.isPending}>
-                  <CheckCircle2 className="w-4 h-4 mr-1" />
-                  {contactMutation.isPending ? "Saving..." : "Mark Contacted"}
-                </Button>
-              </div>
+              <Button className="w-full" onClick={handleSubmitAction} disabled={contactMutation.isPending}>
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                {contactMutation.isPending ? "Saving..." : "Mark Contacted"}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Detail Sheet */}
+        <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
+          <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
+            <SheetHeader className="p-6 pb-4 border-b border-border">
+              <div className="flex items-center justify-between">
+                <SheetTitle className="text-lg">{detailItem?.name}</SheetTitle>
+                {detailItem && (
+                  <Button variant="outline" size="sm" onClick={() => navigateToItem(detailItem)}>
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" />Full Profile
+                  </Button>
+                )}
+              </div>
+              {detailItem && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {detailItem.follow_up_status === "OVERDUE" ? (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
+                      Overdue {detailItem.daysOverdue ? `${detailItem.daysOverdue}d` : ""}
+                    </span>
+                  ) : detailItem.follow_up_status === "TODAY" ? (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">Due Today</span>
+                  ) : null}
+                  {detailItem.vip === "VIP" && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>
+                  )}
+                  {detailItem.activity_status && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{detailItem.activity_status}</span>
+                  )}
+                  {detailItem.followUpReason && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{detailItem.followUpReason}</span>
+                  )}
+                </div>
+              )}
+              {detailItem && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
+                  {detailItem.phone && <span>📱 {detailItem.phone}</span>}
+                  {detailItem.email && <span>✉️ {detailItem.email}</span>}
+                  {detailItem.days_since_last_order !== null && detailItem.days_since_last_order !== undefined && (
+                    <span>{detailItem.days_since_last_order}d since last order</span>
+                  )}
+                </div>
+              )}
+              {/* Quick contact actions in detail */}
+              {detailItem && (
+                <div className="flex gap-2 mt-3">
+                  {detailItem.phone && (
+                    <>
+                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+                        <a href={`tel:${detailItem.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+                        <a href={`sms:${detailItem.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                      </Button>
+                    </>
+                  )}
+                  {detailItem.email && (
+                    <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
+                      <a href={`mailto:${detailItem.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                    </Button>
+                  )}
+                </div>
+              )}
+            </SheetHeader>
+
+            <ScrollArea className="flex-1 p-6">
+              {/* Update next follow-up date */}
+              <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={detailFollowUpDate}
+                    onChange={(e) => setDetailFollowUpDate(e.target.value)}
+                    className="h-9 flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => detailFollowUpMutation.mutate()}
+                    disabled={detailFollowUpMutation.isPending || !detailFollowUpDate}
+                  >
+                    {detailFollowUpMutation.isPending ? "Saving..." : "Update"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Add new note */}
+              <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> Add Note
+                </label>
+                {detailItem?.itemType === "customer" && (
+                  <Select value={detailNoteType} onValueChange={setDetailNoteType}>
+                    <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {NOTE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Textarea
+                  placeholder="Enter note..."
+                  value={detailNoteText}
+                  onChange={(e) => setDetailNoteText(e.target.value)}
+                  className="min-h-[60px]"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => detailNoteMutation.mutate()}
+                  disabled={detailNoteMutation.isPending || !detailNoteText.trim()}
+                >
+                  {detailNoteMutation.isPending ? "Saving..." : "Save Note"}
+                </Button>
+              </div>
+
+              {/* Notes Timeline */}
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
+                {detailItem?.itemType === "customer" ? (
+                  detailNotes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {detailNotes.map((note) => (
+                        <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{note.note_type}</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  detailProspectNotes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {detailProspectNotes.map((note) => (
+                        <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
 
         {/* Distribute Dialog */}
         <Dialog open={showDistribute} onOpenChange={(open) => { setShowDistribute(open); if (!open) { setDistributeStep("configure"); setDistributeSelectedIds(new Set()); } }}>
@@ -573,17 +725,8 @@ export default function FollowUps() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    Spread across how many days?
-                  </label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={distributeDays}
-                    onChange={(e) => setDistributeDays(e.target.value)}
-                    className="h-9 w-32"
-                  />
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Spread across how many days?</label>
+                  <Input type="number" min="1" max="365" value={distributeDays} onChange={(e) => setDistributeDays(e.target.value)} className="h-9 w-32" />
                 </div>
 
                 <div>
@@ -602,10 +745,7 @@ export default function FollowUps() {
                     ) : (
                       distributeCandidates.map((c) => (
                         <label key={c.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer">
-                          <Checkbox
-                            checked={distributeSelectedIds.has(c.id)}
-                            onCheckedChange={() => toggleDistributeId(c.id)}
-                          />
+                          <Checkbox checked={distributeSelectedIds.has(c.id)} onCheckedChange={() => toggleDistributeId(c.id)} />
                           <span className="text-sm text-foreground truncate">{c.full_name}</span>
                           {c.activity_status && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium ml-auto shrink-0">
@@ -628,11 +768,7 @@ export default function FollowUps() {
                   </div>
                 )}
 
-                <Button
-                  className="w-full"
-                  disabled={distributeSelectedIds.size === 0}
-                  onClick={() => setDistributeStep("preview")}
-                >
+                <Button className="w-full" disabled={distributeSelectedIds.size === 0} onClick={() => setDistributeStep("preview")}>
                   Preview Distribution
                 </Button>
               </div>
@@ -649,17 +785,13 @@ export default function FollowUps() {
                   {distributePreview.map((p) => (
                     <div key={p.id} className="flex items-center justify-between px-3 py-1.5 text-sm border-b border-border/50 last:border-b-0">
                       <span className="text-foreground truncate">{p.name}</span>
-                      <span className="text-muted-foreground text-xs shrink-0 ml-2">
-                        {new Date(p.date).toLocaleDateString()}
-                      </span>
+                      <span className="text-muted-foreground text-xs shrink-0 ml-2">{new Date(p.date).toLocaleDateString()}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setDistributeStep("configure")}>
-                    Back
-                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setDistributeStep("configure")}>Back</Button>
                   <Button className="flex-1" onClick={() => distributeMutation.mutate()} disabled={distributeMutation.isPending}>
                     {distributeMutation.isPending ? "Distributing..." : "Apply Distribution"}
                   </Button>
@@ -672,6 +804,119 @@ export default function FollowUps() {
     </Layout>
   );
 }
+
+/* ---- Follow-Up Card Component ---- */
+
+function FollowUpCard({
+  item,
+  onOpenDetail,
+  onLogContact,
+  onNavigate,
+}: {
+  item: FollowUpItem;
+  onOpenDetail: () => void;
+  onLogContact: (type: string) => void;
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="border border-border/60 rounded-lg p-3 hover:bg-muted/30 transition-colors">
+      {/* Row 1: Name + status badge */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={onOpenDetail}>
+          <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
+          {item.vip === "VIP" && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium shrink-0">VIP</span>
+          )}
+          {item.itemType === "prospect" && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium shrink-0">Prospect</span>
+          )}
+        </div>
+        <div className="shrink-0">
+          {item.follow_up_status === "OVERDUE" ? (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
+              Overdue {item.daysOverdue ? `${item.daysOverdue}d` : ""}
+            </span>
+          ) : (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">Due Today</span>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2: Phone + reason + activity + days */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-1.5">
+        {item.phone && <span className="font-medium text-foreground">{item.phone}</span>}
+        {item.followUpReason && (
+          <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">
+            {item.followUpReason}
+          </span>
+        )}
+        {item.activity_status && (
+          <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+            {item.activity_status}
+          </span>
+        )}
+        {item.days_since_last_order !== null && item.days_since_last_order !== undefined && (
+          <span className="flex items-center gap-0.5">
+            <Clock className="w-3 h-3" />{item.days_since_last_order}d since last order
+          </span>
+        )}
+      </div>
+
+      {/* Row 3: Note preview */}
+      {item.lastNotePreview && (
+        <p className="text-xs text-muted-foreground truncate mb-2 italic">
+          📝 {item.lastNotePreview}
+        </p>
+      )}
+
+      {/* Row 4: Quick actions */}
+      <div className="flex flex-wrap gap-1">
+        {item.phone && (
+          <>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+              <a href={`tel:${item.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+              <a href={`sms:${item.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+            </Button>
+          </>
+        )}
+        {item.email && (
+          <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+            <a href={`mailto:${item.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => onLogContact("Call")}>
+          <CheckCircle2 className="w-3 h-3 mr-1" />Log Contact
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={onOpenDetail}>
+          <ExternalLink className="w-3 h-3 mr-1" />Details
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ---- Birthday Row ---- */
+
+function BirthdayRow({ item, label, onNavigate, onAction }: { item: FollowUpItem; label: string; onNavigate: () => void; onAction: (type: string) => void }) {
+  return (
+    <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
+        <p className="text-sm font-medium text-foreground truncate">
+          {item.name}
+          {item.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          🎂 {item.birthday_mmdd} — <span className="font-medium text-pink-600">{label}</span>
+        </p>
+      </div>
+      <QuickActions item={item} onAction={onAction} />
+    </div>
+  );
+}
+
+/* ---- Quick Actions (hover) ---- */
 
 function QuickActions({ item, onAction }: { item: FollowUpItem; onAction: (type: string) => void }) {
   return (
@@ -694,89 +939,6 @@ function QuickActions({ item, onAction }: { item: FollowUpItem; onAction: (type:
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}>
         <FileText className="w-3.5 h-3.5 text-primary" />
       </Button>
-    </div>
-  );
-}
-
-function FollowUpSection({
-  title, icon: Icon, iconColor, iconBg, items, notesByCustomer, onNavigate, onAction, renderMeta,
-}: {
-  title: string;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
-  items: FollowUpItem[];
-  notesByCustomer: Map<string, CustomerNote>;
-  onNavigate: (item: FollowUpItem) => void;
-  onAction: (item: FollowUpItem, type?: string) => void;
-  renderMeta: (c: FollowUpItem) => React.ReactNode;
-}) {
-  return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn("p-1.5 rounded-md", iconBg)}>
-              <Icon className={cn("w-4 h-4", iconColor)} />
-            </div>
-            <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
-          </div>
-          <Badge variant="secondary" className="text-xs">{items.length}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">All caught up! 🎉</p>
-        ) : (
-          <div className="space-y-1 max-h-[420px] overflow-y-auto">
-            {items.map((c) => {
-              const lastNote = c.itemType === "customer" ? notesByCustomer.get(c.id) : undefined;
-              return (
-                <div
-                  key={`${c.itemType}-${c.id}`}
-                  className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onNavigate(c)}>
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {c.name}
-                      {c.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
-                      {c.itemType === "prospect" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium align-middle">Prospect</span>}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {c.itemType === "prospect"
-                        ? c.opportunity_status || "Prospect"
-                        : lastNote
-                          ? `${lastNote.note_type} · ${new Date(lastNote.created_at).toLocaleDateString()} — ${lastNote.note_text}`
-                          : c.days_since_last_order !== null
-                            ? `${c.days_since_last_order}d since last order`
-                            : "No orders yet"}
-                    </p>
-                  </div>
-                  {renderMeta(c)}
-                  <QuickActions item={c} onAction={(type) => onAction(c, type)} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function BirthdayRow({ item, label, onNavigate, onAction }: { item: FollowUpItem; label: string; onNavigate: () => void; onAction: (type: string) => void }) {
-  return (
-    <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <p className="text-sm font-medium text-foreground truncate">
-          {item.name}
-          {item.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          🎂 {item.birthday_mmdd} — <span className="font-medium text-pink-600">{label}</span>
-        </p>
-      </div>
-      <QuickActions item={item} onAction={onAction} />
     </div>
   );
 }
