@@ -235,7 +235,7 @@ export default function FollowUpDashboard() {
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
               <p className="text-sm text-muted-foreground mt-0.5">{getPeriodLabel(period)}</p>
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               <Button variant={period.type === "ytd" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "ytd" })}>YTD</Button>
               <Button variant={period.type === "mtd" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "mtd" })}>MTD</Button>
               <Button variant={period.type === "last-month" ? "default" : "outline"} size="sm" className="h-8 text-xs" onClick={() => setPeriod({ type: "last-month" })}>Last Month</Button>
@@ -260,7 +260,7 @@ export default function FollowUpDashboard() {
           ) : (
             <>
               {/* Row 1: Activity Volume - most prominent */}
-              <div className="grid grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {row1Cards.map((k) => (
                   <Card key={k.label} className="border-primary/20 shadow-md bg-primary/5">
                     <CardContent className="p-5">
@@ -320,7 +320,7 @@ export default function FollowUpDashboard() {
                 </Card>
               </div>
 
-              <div className="grid grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {row2Cards.map((k) => (
                   <Card key={k.label} className="border-border/50 shadow-sm">
                     <CardContent className="p-3.5">
@@ -335,7 +335,7 @@ export default function FollowUpDashboard() {
               </div>
 
               {/* Row 3: Financial - medium emphasis */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {row3Cards.map((k) => (
                   <Card key={k.label} className="border-border/50 shadow-sm">
                     <CardContent className="p-4">
