@@ -42,6 +42,10 @@ export default function CustomerList() {
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
+  const [relOpen, setRelOpen] = useState(false);
+  const [vipOpen, setVipOpen] = useState(false);
+  const [actOpen, setActOpen] = useState(false);
+  const [fuOpen, setFuOpen] = useState(false);
   const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -220,7 +224,7 @@ export default function CustomerList() {
                   <TableHead className="min-w-[140px]">Name</TableHead>
                   <TableHead className="whitespace-nowrap min-w-[140px]">Phone</TableHead>
                   <TableHead>
-                    <Popover>
+                    <Popover open={relOpen} onOpenChange={setRelOpen}>
                       <PopoverTrigger asChild>
                         <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                           Relationship
@@ -239,7 +243,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterStatus === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterStatus(opt.value)}
+                              onClick={() => { setFilterStatus(opt.value); setRelOpen(false); }}
                             >
                               {opt.label}
                             </button>
@@ -249,7 +253,7 @@ export default function CustomerList() {
                     </Popover>
                   </TableHead>
                   <TableHead>
-                    <Popover>
+                    <Popover open={vipOpen} onOpenChange={setVipOpen}>
                       <PopoverTrigger asChild>
                         <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                           <Star className="w-3.5 h-3.5" />
@@ -271,7 +275,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterVip === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterVip(opt.value)}
+                              onClick={() => { setFilterVip(opt.value); setVipOpen(false); }}
                             >
                               {opt.label}
                             </button>
@@ -288,7 +292,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 sortByVip === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setSortByVip(opt.value)}
+                              onClick={() => { setSortByVip(opt.value); setVipOpen(false); }}
                             >
                               {opt.label}
                             </button>
@@ -298,7 +302,7 @@ export default function CustomerList() {
                     </Popover>
                   </TableHead>
                   <TableHead>
-                    <Popover>
+                    <Popover open={actOpen} onOpenChange={setActOpen}>
                       <PopoverTrigger asChild>
                         <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                           Activity
@@ -320,7 +324,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterCategory === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterCategory(opt.value)}
+                              onClick={() => { setFilterCategory(opt.value); setActOpen(false); }}
                             >
                               {opt.label}
                             </button>
@@ -343,7 +347,7 @@ export default function CustomerList() {
                   </TableHead>
                   <TableHead>
                     <div className="flex items-center gap-1">
-                      <Popover>
+                      <Popover open={fuOpen} onOpenChange={setFuOpen}>
                         <PopoverTrigger asChild>
                           <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                             Follow-Up
@@ -364,7 +368,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterFollowUp === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterFollowUp(opt.value)}
+                              onClick={() => { setFilterFollowUp(opt.value); setFuOpen(false); }}
                             >
                               {opt.label}
                             </button>
@@ -416,7 +420,7 @@ export default function CustomerList() {
                         </span>
                       )}
                     </TableCell>
-                     <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
+                     <TableCell>{c.relationship_status === "Consultant" ? <span className="text-muted-foreground">—</span> : statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                      <TableCell className="text-sm">
                        {c.last_contacted ? (
                          <span>
@@ -434,8 +438,14 @@ export default function CustomerList() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
-                      <div>{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</div>
-                      {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
+                      {c.relationship_status === "Consultant" ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <>
+                          <div>{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</div>
+                          {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
+                        </>
+                      )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
