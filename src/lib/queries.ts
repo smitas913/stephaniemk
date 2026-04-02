@@ -33,6 +33,16 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>) => 
   return data;
 };
 
+export const bulkUpdateCustomerFollowUps = async (assignments: { id: string; next_follow_up_date: string }[]) => {
+  for (const { id, next_follow_up_date } of assignments) {
+    const { error } = await supabase
+      .from("customers")
+      .update({ next_follow_up_date } as any)
+      .eq("id", id);
+    if (error) throw error;
+  }
+};
+
 export const deleteCustomer = async (id: string) => {
   // Check for order history first
   const { count, error: countError } = await supabase

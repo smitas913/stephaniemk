@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchProspects, updateProspect, createProspectNote } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchProspects, updateProspect, createProspectNote, bulkUpdateCustomerFollowUps } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
@@ -12,12 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserPlus } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserPlus, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 
 type Enriched = Customer & CustomerComputed;
 
@@ -77,6 +78,13 @@ export default function FollowUps() {
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
 
+  // Bulk distribution state
+  const [showDistribute, setShowDistribute] = useState(false);
+  const [distributeDays, setDistributeDays] = useState("60");
+  const [distributeFilter, setDistributeFilter] = useState<"overdue-today" | "no-date" | "dormant-warm">("overdue-today");
+  const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
+  const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
+
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
     for (const n of allNotes) {
@@ -85,28 +93,105 @@ export default function FollowUps() {
     return map;
   }, [allNotes]);
 
-  const { overdue, todayList, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
-    // Customer follow-up items
-    const customerItems: FollowUpItem[] = customers
+  // Enriched customers for distribution
+  const enrichedCustomers = useMemo(() => {
+    return customers
       .filter((c) => c.is_active !== false)
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
         const computed = computeCustomerFields(c, custOrders);
-        return {
-          id: c.id,
-          itemType: "customer" as const,
-          name: c.full_name,
-          phone: c.phone,
-          email: c.email,
-          vip: computed.vip,
-          next_follow_up: computed.next_follow_up,
-          follow_up_status: computed.follow_up_status,
-          activity_status: computed.activity_status,
-          days_since_last_order: computed.days_since_last_order,
-          new_follow_up_stage: c.new_follow_up_stage,
-          birthday_mmdd: c.birthday_mmdd,
-        };
+        return { ...c, ...computed };
       });
+  }, [customers, allOrders]);
+
+  // Distribution candidates based on filter
+  const distributeCandidates = useMemo(() => {
+    switch (distributeFilter) {
+      case "overdue-today":
+        return enrichedCustomers.filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY");
+      case "no-date":
+        return enrichedCustomers.filter((c) => !c.next_follow_up);
+      case "dormant-warm":
+        return enrichedCustomers.filter((c) => c.activity_status === "Dormant" || c.activity_status === "Warm");
+      default:
+        return [];
+    }
+  }, [enrichedCustomers, distributeFilter]);
+
+  // When filter changes, auto-select all candidates
+  const openDistributeDialog = () => {
+    setDistributeStep("configure");
+    setShowDistribute(true);
+  };
+
+  const handleDistributeFilterChange = (filter: typeof distributeFilter) => {
+    setDistributeFilter(filter);
+    setDistributeSelectedIds(new Set());
+    setDistributeStep("configure");
+  };
+
+  const toggleDistributeId = (id: string) => {
+    setDistributeSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllCandidates = () => {
+    setDistributeSelectedIds(new Set(distributeCandidates.map((c) => c.id)));
+  };
+
+  const deselectAllCandidates = () => {
+    setDistributeSelectedIds(new Set());
+  };
+
+  // Preview assignments
+  const distributePreview = useMemo(() => {
+    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const selected = distributeCandidates.filter((c) => distributeSelectedIds.has(c.id));
+    const tomorrow = addDays(new Date(), 1);
+    return selected.map((c, i) => ({
+      id: c.id,
+      name: c.full_name,
+      date: format(addDays(tomorrow, i % days), "yyyy-MM-dd"),
+    }));
+  }, [distributeCandidates, distributeSelectedIds, distributeDays]);
+
+  const perDay = useMemo(() => {
+    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const count = distributeSelectedIds.size;
+    return Math.ceil(count / days);
+  }, [distributeSelectedIds, distributeDays]);
+
+  const distributeMutation = useMutation({
+    mutationFn: () => bulkUpdateCustomerFollowUps(distributePreview.map((p) => ({ id: p.id, next_follow_up_date: p.date }))),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setShowDistribute(false);
+      setDistributeSelectedIds(new Set());
+      toast.success(`Distributed ${distributePreview.length} follow-ups across ${distributeDays} days`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const { overdue, todayList, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+    // Customer follow-up items
+    const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => ({
+      id: c.id,
+      itemType: "customer" as const,
+      name: c.full_name,
+      phone: c.phone,
+      email: c.email,
+      vip: c.vip,
+      next_follow_up: c.next_follow_up,
+      follow_up_status: c.follow_up_status,
+      activity_status: c.activity_status,
+      days_since_last_order: c.days_since_last_order,
+      new_follow_up_stage: c.new_follow_up_stage,
+      birthday_mmdd: c.birthday_mmdd,
+    }));
 
     // Prospect follow-up items
     const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -152,7 +237,7 @@ export default function FollowUps() {
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
     return { overdue, todayList, birthdaysToday, birthdaysUpcoming };
-  }, [customers, allOrders, prospects]);
+  }, [enrichedCustomers, prospects]);
 
   const contactMutation = useMutation({
     mutationFn: async ({ item, note, type, nextDate }: { item: FollowUpItem; note: string; type: string; nextDate?: string }) => {
@@ -211,11 +296,16 @@ export default function FollowUps() {
   return (
     <Layout>
       <div className="space-y-6 pb-8">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {overdue.length} overdue · {todayList.length} today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {overdue.length} overdue · {todayList.length} today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={openDistributeDialog}>
+            <CalendarRange className="w-4 h-4 mr-1" />Distribute
+          </Button>
         </div>
 
         {isLoading ? (
@@ -364,6 +454,133 @@ export default function FollowUps() {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Distribute Dialog */}
+        <Dialog open={showDistribute} onOpenChange={(open) => { setShowDistribute(open); if (!open) { setDistributeStep("configure"); setDistributeSelectedIds(new Set()); } }}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base">Distribute Follow-Ups</DialogTitle>
+            </DialogHeader>
+
+            {distributeStep === "configure" ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Select group</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {([
+                      { value: "overdue-today" as const, label: "Overdue + Today" },
+                      { value: "no-date" as const, label: "No follow-up date" },
+                      { value: "dormant-warm" as const, label: "Dormant + Warm" },
+                    ]).map((opt) => (
+                      <Button
+                        key={opt.value}
+                        variant={distributeFilter === opt.value ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleDistributeFilterChange(opt.value)}
+                      >
+                        {opt.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                    Spread across how many days?
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={distributeDays}
+                    onChange={(e) => setDistributeDays(e.target.value)}
+                    className="h-9 w-32"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {distributeCandidates.length} customers found · {distributeSelectedIds.size} selected
+                    </span>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={selectAllCandidates}>Select All</Button>
+                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={deselectAllCandidates}>Clear</Button>
+                    </div>
+                  </div>
+                  <div className="border border-border rounded-md max-h-48 overflow-y-auto">
+                    {distributeCandidates.length === 0 ? (
+                      <p className="text-sm text-muted-foreground p-4 text-center">No customers match this filter</p>
+                    ) : (
+                      distributeCandidates.map((c) => (
+                        <label key={c.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer">
+                          <Checkbox
+                            checked={distributeSelectedIds.has(c.id)}
+                            onCheckedChange={() => toggleDistributeId(c.id)}
+                          />
+                          <span className="text-sm text-foreground truncate">{c.full_name}</span>
+                          {c.activity_status && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium ml-auto shrink-0">
+                              {c.activity_status}
+                            </span>
+                          )}
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {distributeSelectedIds.size > 0 && (
+                  <div className="bg-muted/50 rounded-md p-3">
+                    <p className="text-sm text-foreground">
+                      <span className="font-semibold">{distributeSelectedIds.size}</span> customers will be spread across{" "}
+                      <span className="font-semibold">{distributeDays}</span> days = ~<span className="font-semibold">{perDay}</span> per day
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Starting tomorrow</p>
+                  </div>
+                )}
+
+                <Button
+                  className="w-full"
+                  disabled={distributeSelectedIds.size === 0}
+                  onClick={() => setDistributeStep("preview")}
+                >
+                  Preview Distribution
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-muted/50 rounded-md p-3">
+                  <p className="text-sm text-foreground">
+                    <span className="font-semibold">{distributePreview.length}</span> follow-ups across{" "}
+                    <span className="font-semibold">{distributeDays}</span> days (~{perDay}/day)
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-md max-h-60 overflow-y-auto">
+                  {distributePreview.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between px-3 py-1.5 text-sm border-b border-border/50 last:border-b-0">
+                      <span className="text-foreground truncate">{p.name}</span>
+                      <span className="text-muted-foreground text-xs shrink-0 ml-2">
+                        {new Date(p.date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setDistributeStep("configure")}>
+                    Back
+                  </Button>
+                  <Button className="flex-1" onClick={() => distributeMutation.mutate()} disabled={distributeMutation.isPending}>
+                    {distributeMutation.isPending ? "Distributing..." : "Apply Distribution"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

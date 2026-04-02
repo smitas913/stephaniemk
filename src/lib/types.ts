@@ -17,6 +17,7 @@ export interface Customer {
   follow_up_reason: string | null;
   notes: string | null;
   new_follow_up_stage: string | null;
+  next_follow_up_date: string | null;
   is_active: boolean;
   archived_at: string | null;
   created_at: string;
