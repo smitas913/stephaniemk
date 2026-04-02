@@ -74,7 +74,7 @@ function getShortLabel(period: PeriodValue): string {
   }
 }
 
-function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: PeriodValue) {
+function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses: Expense[], period: PeriodValue) {
   return useMemo(() => {
     const { start, end } = getDateRange(period);
 
@@ -89,6 +89,13 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: 
 
     const unpaidOrders = periodOrders.filter((o) => !o.payment_type);
     const outstandingTotal = unpaidOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+
+    const periodExpenses = expenses.filter((e) => {
+      const d = parseISO(e.expense_date);
+      return isWithinInterval(d, { start, end });
+    });
+    const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const netProfit = periodRevenue - totalExpenses;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
@@ -126,8 +133,8 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: 
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, periodCount, avgOrder, outstandingTotal, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
-  }, [customers, orders, period]);
+    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+  }, [customers, orders, expenses, period]);
 }
 
 function MonthYearPicker({ onSelect }: { onSelect: (year: number, month: number) => void }) {
