@@ -36,7 +36,7 @@ export default function Orders() {
   // Filters
   const [search, setSearch] = useState("");
   const [filterCustomer, setFilterCustomer] = useState("all");
-  const [period, setPeriod] = useState<PeriodValue>({ type: "mtd" });
+  const { period, setPeriod } = usePeriodFilter();
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
