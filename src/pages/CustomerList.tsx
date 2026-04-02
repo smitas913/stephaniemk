@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed } from "@/lib/types";
 import { CUSTOMER_STATUSES } from "@/lib/types";
