@@ -135,7 +135,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, expenseReserve, netIncome, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
   }, [customers, orders, expenses, period]);
 }
 
