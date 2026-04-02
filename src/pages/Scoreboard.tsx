@@ -127,7 +127,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       newTeam: Math.round(last3.reduce((s, r) => s + r.newTeam, 0) / 3 * 10) / 10,
     };
 
-    return { weekly, monthly, sharingConversion, trendMonths, avg3 };
+    return { weekly, monthly, monthlySharingConversion, trendMonths, avg3 };
   }, [events, prospects]);
 }
 
