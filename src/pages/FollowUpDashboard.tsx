@@ -116,17 +116,22 @@ export default function FollowUpDashboard() {
 
   const periodLabel = getShortLabel(period);
 
-  const kpiCards = [
-    // Activity metrics (left 4)
-    { label: `Total Sales`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
-    { label: `Total Faces`, value: String(m.totalFaces), icon: Users, accent: "text-primary" },
-    { label: `Total Parties`, value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
-    { label: `Total Facials`, value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
-    // Financial metrics (right 4)
-    { label: `Profit`, value: `$${m.periodProfit.toFixed(2)}`, icon: TrendingUp, accent: m.periodProfit >= 0 ? "text-primary" : "text-destructive" },
-    { label: `Expenses`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
-    { label: `Planned Net`, value: `$${m.plannedNet.toFixed(2)}`, icon: Wallet, accent: m.plannedNet >= 0 ? "text-primary" : "text-destructive" },
-    { label: `Actual Net`, value: `$${m.actualNet.toFixed(2)}`, icon: Wallet, accent: m.actualNet >= 0 ? "text-primary" : "text-destructive" },
+  const activityCards = [
+    { label: "Total Faces", value: String(m.totalFaces), icon: Users, accent: "text-primary" },
+    { label: "Total Parties", value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
+    { label: "Total Facials", value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
+    { label: "Avg / Face", value: `$${m.avgFace.toFixed(2)}`, icon: TrendingUp, accent: "text-primary" },
+  ];
+
+  const financialCards = [
+    { label: "Total Sales", value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
+    { label: "Expenses", value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
+    { label: "Net Profit", value: `$${m.netProfit.toFixed(2)}`, icon: Wallet, accent: m.netProfit >= 0 ? "text-primary" : "text-destructive" },
+  ];
+
+  const performanceCards = [
+    { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, icon: TrendingUp, accent: "text-primary" },
+    { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, icon: Users, accent: "text-primary" },
   ];
 
   return (
