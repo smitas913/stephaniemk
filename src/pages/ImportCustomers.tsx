@@ -99,13 +99,16 @@ export default function ImportCustomers() {
       updated = 0,
       skipped = 0,
       errored = 0;
+    let contactDataWarnings = 0;
 
     for (const row of validRows) {
       const duplicate = findDuplicate(row, existing);
       const record = buildCustomerRecord(row);
-      const source = row.mapped.source || "InTouch";
+      const legacyNotes = row.mapped.legacy_notes?.trim() || null;
 
       try {
+        let customerId: string | null = null;
+
         if (duplicate) {
           if (duplicateMode === "skip") {
             skipped++;
@@ -117,7 +120,6 @@ export default function ImportCustomers() {
             const updates: Record<string, any> = {};
             for (const [k, v] of Object.entries(record)) {
               if (v !== null && v !== "" && k !== "full_name") {
-                // Only fill if existing field is empty/null
                 const existingVal = (duplicate as any)[k];
                 if (existingVal === null || existingVal === undefined || existingVal === "") {
                   updates[k] = v;
@@ -127,22 +129,41 @@ export default function ImportCustomers() {
             if (record.full_name && !duplicate.full_name) updates.full_name = record.full_name;
             const { error } = await supabase.from("customers").update(updates as any).eq("id", duplicate.id);
             if (error) throw error;
+            customerId = duplicate.id;
             updated++;
-            details.push({ rowIndex: row.rowIndex, status: "updated" });
-            // Update existing list for subsequent duplicate checks
+
+            // Flag if last_contacted could not be mapped
+            const hasContactWarning = row.warnings.some(w => w.includes("last contacted"));
+            if (hasContactWarning) contactDataWarnings++;
+
+            details.push({ rowIndex: row.rowIndex, status: "updated", reason: hasContactWarning ? "⚠ Could not parse last contacted date" : undefined });
             Object.assign(duplicate, updates);
-            continue;
+          } else {
+            // create_new — fall through below
+            customerId = null;
           }
-          // create_new — fall through
         }
 
-        const insertData = { ...record, relationship_status: "Customer" } as any;
-        const { error } = await supabase.from("customers").insert(insertData);
-        if (error) throw error;
-        imported++;
-        details.push({ rowIndex: row.rowIndex, status: "imported" });
-        // Add to existing for duplicate checks
-        existing.push({ id: "new", ...record, created_at: "", updated_at: "" } as any);
+        if (!duplicate || duplicateMode === "create_new") {
+          const insertData = { ...record, relationship_status: "Customer" } as any;
+          const { data: inserted, error } = await supabase.from("customers").insert(insertData).select("id").single();
+          if (error) throw error;
+          customerId = inserted?.id || null;
+          imported++;
+          const hasContactWarning = row.warnings.some(w => w.includes("last contacted"));
+          if (hasContactWarning) contactDataWarnings++;
+          details.push({ rowIndex: row.rowIndex, status: "imported", reason: hasContactWarning ? "⚠ Could not parse last contacted date" : undefined });
+          existing.push({ id: customerId || "new", ...record, created_at: "", updated_at: "" } as any);
+        }
+
+        // Insert legacy notes as a customer note if available
+        if (customerId && legacyNotes) {
+          await supabase.from("customer_notes").insert({
+            customer_id: customerId,
+            note_text: legacyNotes,
+            note_type: "General",
+          });
+        }
       } catch (err: any) {
         errored++;
         details.push({ rowIndex: row.rowIndex, status: "error", reason: err.message });
@@ -166,7 +187,9 @@ export default function ImportCustomers() {
     setResult(res);
     setStep("results");
     queryClient.invalidateQueries({ queryKey: ["customers"] });
-    toast.success(`Import complete: ${imported} imported, ${updated} updated`);
+    queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+    const warnings = contactDataWarnings > 0 ? ` (${contactDataWarnings} rows had unparseable contact dates)` : "";
+    toast.success(`Import complete: ${imported} imported, ${updated} updated${warnings}`);
   };
 
   return (
