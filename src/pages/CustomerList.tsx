@@ -97,8 +97,8 @@ export default function CustomerList() {
 
       const q = search.toLowerCase();
       const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
-      const matchStatus = filterStatus === "all" || c.current_status === filterStatus;
-      const matchCat = filterCategory === "all" || c.category === filterCategory;
+      const matchStatus = filterStatus === "all" || c.relationship_status === filterStatus;
+      const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
       const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
