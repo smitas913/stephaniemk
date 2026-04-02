@@ -361,7 +361,7 @@ export default function ImportCustomers() {
               <CardHeader className="pb-2"><CardTitle className="text-base">Matching + Updates</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Existing customers are matched and updated automatically by: email first → phone second → exact name third. Matched rows never create duplicates, and older Last Contacted values never overwrite newer ones.
+                  Existing customers are matched and updated automatically by: email first → phone second → exact name third. Column X is the only historical source for Last Contacted, so matched rows overwrite or clear that field directly from the CSV.
                 </p>
               </CardContent>
             </Card>
