@@ -275,7 +275,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterVip === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterVip(opt.value)}
+                              onClick={() => { setFilterVip(opt.value); setVipOpen(false); }}
                             >
                               {opt.label}
                             </button>
