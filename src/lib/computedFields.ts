@@ -79,9 +79,9 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
       if (lastContacted) {
         nextFollowUp = addDays(lastContacted, 90);
       } else {
-        if (lastOrderDate >= yearStart) {
-          nextFollowUp = addDays(lastOrderDate, 90);
-        }
+        // No contact history: use last order date to generate follow-up
+        // regardless of whether the order is from this year
+        nextFollowUp = addDays(lastOrderDate, 90);
       }
     }
     if (nextFollowUp) nextFollowUp = toBusinessDay(nextFollowUp);
@@ -99,7 +99,16 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   // --- Follow-up reason (priority order) ---
   let followUpReason = "";
-  if (followUpStatus === "OVERDUE" || followUpStatus === "TODAY") {
+  const needsFollowUpReason = followUpStatus === "OVERDUE" || followUpStatus === "TODAY";
+
+  // Also flag customers with no contact and 90+ day old orders even if
+  // the computed follow-up date hasn't triggered yet
+  const uncontactedOverdue = !lastContacted && daysSinceLastOrder !== null && daysSinceLastOrder >= 90;
+  if (uncontactedOverdue && !followUpStatus) {
+    followUpStatus = "OVERDUE";
+  }
+
+  if (needsFollowUpReason || uncontactedOverdue) {
     if (hasManualDate) {
       followUpReason = "Manual Follow-Up";
     } else if (isNew) {
@@ -124,7 +133,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
     days_since_last_order: daysSinceLastOrder,
     orders_this_year: ordersThisYear,
     retail_this_year: retailThisYear,
-    next_follow_up: nextFollowUp ? format(nextFollowUp, "yyyy-MM-dd") : null,
+    next_follow_up: nextFollowUp ? format(nextFollowUp, "yyyy-MM-dd") : (uncontactedOverdue && lastOrderDate ? format(toBusinessDay(addDays(lastOrderDate, 90)), "yyyy-MM-dd") : null),
     follow_up_status: followUpStatus,
     follow_up_reason: followUpReason,
     recently_contacted: recentlyContacted,
