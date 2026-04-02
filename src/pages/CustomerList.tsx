@@ -16,7 +16,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type EnrichedCustomer = Customer & CustomerComputed;
+type EnrichedCustomer = Customer & CustomerComputed & {
+  latest_note?: CustomerNote;
+};
 
 export default function CustomerList() {
   const queryClient = useQueryClient();
