@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      customer_notes: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          note_text: string
+          note_type: string
+          owner_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          note_text: string
+          note_type?: string
+          owner_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          note_text?: string
+          note_type?: string
+          owner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address_line_1: string | null
