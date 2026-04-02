@@ -270,7 +270,7 @@ export default function CustomerDetail() {
                     <p className="text-[11px] text-muted-foreground mt-1">Auto-updated when notes are logged</p>
                   </FormField>
                   <FormField label="Next Follow-Up Date">
-                    <Input type="date" value={form.next_follow_up_date} min={new Date().toISOString().split("T")[0]} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                    <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
                   </FormField>
                   <FormField label="Follow-Up Reason">
                     <Input value={form.follow_up_reason} onChange={(e) => setForm({ ...form, follow_up_reason: e.target.value })} className="h-9" placeholder="e.g. VIP Check-In" />
