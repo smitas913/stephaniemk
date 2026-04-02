@@ -41,6 +41,15 @@ export default function Orders() {
     },
   });
 
+  const paymentMutation = useMutation({
+    mutationFn: ({ id, payment_type }: { id: string; payment_type: string | null }) =>
+      updateOrder(id, { payment_type }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Payment updated");
+    },
+  });
+
   const filtered = useMemo(() => {
     let result = orders;
     if (search) {
