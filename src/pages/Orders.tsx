@@ -466,33 +466,38 @@ export default function Orders() {
                   const orderingCount = group.length;
                   const conversionRate = guestCount > 0 ? ((orderingCount / guestCount) * 100).toFixed(0) : null;
                   return [
-                    <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
-                      <TableCell colSpan={2} className="text-xs font-medium">
+                    <TableRow key={`group-${eventId}`} className="bg-accent/30 hover:bg-accent/50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
+                      <TableCell className="text-xs font-medium">
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                          <Users className="w-3.5 h-3.5 text-pink-600" />
-                          <span className="font-mono">{eventId}</span>
+                          <Users className="w-3.5 h-3.5 text-primary" />
+                          {ev?.event_date ? new Date(ev.event_date).toLocaleDateString() : "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {group.length} orders ({orderingCount} ordered) · ${groupTotal.toFixed(2)}
+                      <TableCell className="text-xs font-mono max-w-[140px] truncate" title={eventId}>{eventId}</TableCell>
+                      <TableCell className="text-xs">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-muted-foreground">Hostess:</span>
+                          <Input
+                            className="h-6 w-24 text-xs px-1.5"
+                            defaultValue={hostessName}
+                            placeholder="Name"
+                            onBlur={(e) => {
+                              if (e.target.value !== hostessName) {
+                                eventMutation.mutate({ event_id: eventId, hostess_name: e.target.value });
+                              }
+                            }}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
-                      <TableCell colSpan={9} className="text-xs">
-                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground">Hostess:</span>
-                            <Input
-                              className="h-6 w-24 text-xs px-1.5"
-                              defaultValue={hostessName}
-                              placeholder="Name"
-                              onBlur={(e) => {
-                                if (e.target.value !== hostessName) {
-                                  eventMutation.mutate({ event_id: eventId, hostess_name: e.target.value });
-                                }
-                              }}
-                            />
-                          </div>
+                      <TableCell>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-accent text-accent-foreground">
+                          {group.length} {group.length === 1 ? "order" : "orders"}
+                        </span>
+                      </TableCell>
+                      <TableCell colSpan={8} className="text-xs">
+                        <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
                             <span className="text-muted-foreground">Guests:</span>
                             <Input
