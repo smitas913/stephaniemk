@@ -65,8 +65,7 @@ export default function ConsultantRequests({ embedded = false }: { embedded?: bo
     return <Navigate to="/access-denied" replace />;
   }
 
-  return (
-    <Layout>
+  const content = (
       <div className="max-w-2xl mx-auto space-y-5 pb-8">
         <div className="flex items-center gap-2">
           <ClipboardList className="w-6 h-6 text-primary" />
