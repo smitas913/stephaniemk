@@ -361,7 +361,7 @@ export default function Orders() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Orders</h2>
-            <p className="text-sm text-muted-foreground">{orders.length} total · {filtered.length} shown</p>
+            <p className="text-sm text-muted-foreground">{orders.length} total · {filtered.length} shown ({periodLabel})</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={exportCSV}>
