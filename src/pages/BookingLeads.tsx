@@ -141,7 +141,7 @@ export default function BookingLeads() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Booking Leads</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {leads.length} total · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
             </p>
           </div>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
