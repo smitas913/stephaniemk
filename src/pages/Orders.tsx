@@ -499,7 +499,7 @@ export default function Orders() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {group.length} orders · ${groupTotal.toFixed(2)}
+                        {group.length} orders ({orderingCount} ordered) · ${groupTotal.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
                       <TableCell colSpan={9} className="text-xs">
