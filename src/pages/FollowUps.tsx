@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchProspects, updateProspect, createProspectNote } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
-import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
+import type { Customer, CustomerComputed, CustomerNote, Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
