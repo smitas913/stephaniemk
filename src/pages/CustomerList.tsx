@@ -129,6 +129,7 @@ export default function CustomerList() {
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Warm">Warm</SelectItem>
               <SelectItem value="Dormant">Dormant</SelectItem>
+              <SelectItem value="New">New</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterVip} onValueChange={setFilterVip}>
@@ -202,7 +203,7 @@ export default function CustomerList() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{statusBadge(c.category, c.category === "Active" ? "bg-green-100 text-green-700" : c.category === "Warm" ? "bg-yellow-100 text-yellow-700" : c.category === "Dormant" ? "bg-red-100 text-red-700" : "")}</TableCell>
+                    <TableCell>{statusBadge(c.category, c.category === "Active" ? "bg-green-100 text-green-700" : c.category === "Warm" ? "bg-yellow-100 text-yellow-700" : c.category === "Dormant" ? "bg-red-100 text-red-700" : c.category === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                     <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
                     <TableCell className="text-sm">{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="text-right text-sm">{c.days_since_last_order !== null ? c.days_since_last_order : "—"}</TableCell>

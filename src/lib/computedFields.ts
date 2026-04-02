@@ -21,11 +21,13 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   const isNew = newFirst90 === "New";
 
   let category = "";
-  if (customer.current_status !== "Consultant" && lastOrderDate) {
+  if (lastOrderDate) {
     const days = differenceInDays(today, lastOrderDate);
     if (days <= 180) category = "Active";
     else if (days <= 540) category = "Warm";
     else category = "Dormant";
+  } else {
+    category = "New";
   }
 
   const thisYearOrders = orders.filter((o) => {
