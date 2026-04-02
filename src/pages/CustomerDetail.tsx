@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -286,7 +287,27 @@ export default function CustomerDetail() {
                   <InfoRow label="Phone" value={customer.phone} />
                   <InfoRow label="Email" value={customer.email} />
                   <InfoRow label="Birthday" value={(customer as any).birthday ? formatDate((customer as any).birthday) : customer.birthday_mmdd} />
-                  <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
+                  {(() => {
+                    const fullAddress = [customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+                    const mapsUrl = fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}` : null;
+                    return (
+                      <div className="flex flex-col gap-0.5 py-1.5 sm:col-span-1">
+                        <span className="text-muted-foreground text-xs">Address</span>
+                        <span className="text-foreground">{fullAddress || "—"}</span>
+                        {mapsUrl && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5 w-fit">
+                                <MapPin className="w-3.5 h-3.5" />
+                                Open in Maps
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Open in Google Maps</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <SectionHeader title="Customer Status" />
