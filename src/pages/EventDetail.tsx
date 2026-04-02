@@ -92,7 +92,7 @@ export default function EventDetail() {
                     )}
                   >
                     <CalendarIcon className="w-3 h-3 mr-1 opacity-50" />
-                    {event?.event_date ? new Date(event.event_date + "T00:00:00").toLocaleDateString() : "Set date"}
+                    {event?.event_date ? formatDateOnly(event.event_date) : "Set date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
