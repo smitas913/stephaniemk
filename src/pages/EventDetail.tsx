@@ -163,7 +163,7 @@ export default function EventDetail() {
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={event.event_date ? new Date(event.event_date + "T00:00:00") : undefined}
+                        selected={event.event_date ? parseLocalDate(event.event_date) : undefined}
                         onSelect={handleDateSelect}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
