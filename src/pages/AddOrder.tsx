@@ -48,6 +48,7 @@ export default function AddOrder() {
   const [customerName, setCustomerName] = useState("");
   const [orderDate, setOrderDate] = useState(toLocalDateKey());
   const [selectedEventId, setSelectedEventId] = useState(preselectedEvent);
+  const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
   const [wholesaleAmount, setWholesaleAmount] = useState("");
@@ -129,7 +130,7 @@ export default function AddOrder() {
     if (!orderType) errors.push("Select an order type");
     if (!customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
-    if (!paymentType) errors.push("Select a payment type");
+    if (paymentStatus === "Paid" && !paymentType) errors.push("Select a payment type");
     if (isEventBased && !selectedEventId) errors.push("Select an event");
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentType, isEventBased, selectedEventId]);
@@ -182,7 +183,7 @@ export default function AddOrder() {
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
-        payment_type: paymentType,
+        payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
         wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
         notes: notes || undefined,
@@ -208,10 +209,7 @@ export default function AddOrder() {
         setWholesaleAmount("");
         setNotes("");
         setPaymentType("");
-        setRetailAmount("");
-        setWholesaleAmount("");
-        setNotes("");
-        setPaymentType("");
+        setPaymentStatus("Paid");
       } else {
         navigate("/orders");
       }
@@ -220,7 +218,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -483,22 +481,41 @@ export default function AddOrder() {
           <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={e => setWholesaleAmount(e.target.value)} className="h-9" />
         </div>
 
-        {/* Payment Type — button pills */}
+        {/* Payment Status */}
         <div>
-          <label className="text-sm font-medium text-foreground">Payment *</label>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {PAYMENT_TYPES.map(p => (
-              <button key={p} type="button"
-                className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
-                  paymentType === p
+          <label className="text-sm font-medium text-foreground">Payment Status</label>
+          <div className="flex gap-1.5 mt-1">
+            {(["Paid", "Unpaid"] as const).map(s => (
+              <button key={s} type="button"
+                className={cn("h-8 px-4 rounded-md text-xs font-medium border transition-colors",
+                  paymentStatus === s
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-border bg-background text-muted-foreground hover:bg-muted"
                 )}
-                onClick={() => setPaymentType(paymentType === p ? "" : p)}
-              >{p}</button>
+                onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+              >{s}</button>
             ))}
           </div>
         </div>
+
+        {/* Payment Type — button pills (only when Paid) */}
+        {paymentStatus === "Paid" && (
+          <div>
+            <label className="text-sm font-medium text-foreground">Payment Method *</label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {PAYMENT_TYPES.map(p => (
+                <button key={p} type="button"
+                  className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
+                    paymentType === p
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => setPaymentType(paymentType === p ? "" : p)}
+                >{p}</button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         <div>

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDateOnly } from "@/lib/dateOnly";
 
@@ -32,6 +33,7 @@ export default function EditOrder() {
   const [orderType, setOrderType] = useState("");
   const [faceType, setFaceType] = useState("");
   const [paymentType, setPaymentType] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [notes, setNotes] = useState("");
   const [hostess, setHostess] = useState(false);
   const [halfPrice, setHalfPrice] = useState(false);
@@ -46,6 +48,7 @@ export default function EditOrder() {
       setOrderType(order.order_type || "");
       setFaceType(order.face_type || "");
       setPaymentType(order.payment_type || "");
+      setPaymentStatus(order.payment_type ? "Paid" : "Unpaid");
       setNotes(order.notes || "");
       setHostess(!!order.hostess);
       setHalfPrice(!!order.half_price_deal);
@@ -88,7 +91,7 @@ export default function EditOrder() {
       wholesale_amount: wholesaleAmount ? parseFloat(wholesaleAmount) : null,
       order_type: orderType || null,
       face_type: faceType || null,
-      payment_type: paymentType || null,
+      payment_type: paymentStatus === "Unpaid" ? null : (paymentType || null),
       notes: notes || null,
       hostess,
       half_price_deal: halfPrice,
@@ -193,15 +196,32 @@ export default function EditOrder() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Payment</label>
-                <Select value={paymentType || "__none__"} onValueChange={(v) => setPaymentType(v === "__none__" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— Unpaid</SelectItem>
-                    {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs font-medium text-muted-foreground">Payment Status</label>
+                <div className="flex gap-1.5">
+                  {(["Paid", "Unpaid"] as const).map(s => (
+                    <button key={s} type="button"
+                      className={cn("h-9 px-4 rounded-md text-xs font-medium border transition-colors",
+                        paymentStatus === s
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                      onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+                    >{s}</button>
+                  ))}
+                </div>
               </div>
+              {paymentStatus === "Paid" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
+                  <Select value={paymentType || "__none__"} onValueChange={(v) => setPaymentType(v === "__none__" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Select</SelectItem>
+                      {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-5">
