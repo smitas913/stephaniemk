@@ -10,12 +10,10 @@ import { Search, Calendar, Users, DollarSign, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly } from "@/lib/dateOnly";
-import AddEventDialog from "@/components/AddEventDialog";
 
 export default function Events() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [showAddEvent, setShowAddEvent] = useState(false);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
@@ -61,17 +59,10 @@ export default function Events() {
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
             <p className="text-sm text-muted-foreground">{totalEvents} events</p>
           </div>
-          <Button onClick={() => setShowAddEvent(true)} className="gap-1.5">
+          <Button onClick={() => navigate("/events/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New Event
           </Button>
         </div>
-
-        <AddEventDialog
-          open={showAddEvent}
-          onOpenChange={setShowAddEvent}
-          existingEventIds={events.map(e => e.event_id)}
-          onCreated={(eventId) => navigate(`/events/${eventId}`)}
-        />
 
         {/* Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

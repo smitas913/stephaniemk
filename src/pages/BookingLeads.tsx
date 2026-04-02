@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer } from "@/lib/queries";
+import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import type { BookingLead } from "@/lib/types";
@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Phone, MessageSquare, Mail, Plus, UserCheck, Trash2, Search, Clock, FileText, CalendarRange } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -29,7 +30,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function BookingLeads() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -45,6 +48,8 @@ export default function BookingLeads() {
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
+      // Hide converted leads from default "all" view
+      if (statusFilter === "all" && l.converted_customer_id) return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -90,12 +95,16 @@ export default function BookingLeads() {
   });
 
   const convertMut = useMutation({
-    mutationFn: () => convertBookingLeadToCustomer(convertLead!),
-    onSuccess: () => {
+    mutationFn: () => convertBookingLeadToCustomer(convertLead!, events.map(e => e.event_id)),
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setConvertLead(null);
-      toast.success("Lead converted to customer!");
+      toast.success("Lead converted! Event created.");
+      if (result.eventId) {
+        navigate(`/events/${result.eventId}`);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -124,11 +133,12 @@ export default function BookingLeads() {
     });
   };
 
+  const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
     const c: Record<string, number> = { New: 0, Contacted: 0, Booked: 0, "Not Interested": 0 };
-    leads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
+    activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
-  }, [leads]);
+  }, [activeLeads]);
 
   return (
     <Layout>
@@ -138,7 +148,7 @@ export default function BookingLeads() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Booking Leads</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {leads.length} total · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
             </p>
           </div>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>

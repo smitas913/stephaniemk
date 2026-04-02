@@ -28,6 +28,7 @@ import AdminTools from "./pages/AdminTools";
 import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
+import NewEvent from "./pages/NewEvent";
 import Scoreboard from "./pages/Scoreboard";
 import BookingLeads from "./pages/BookingLeads";
 import RestoreContactDates from "./pages/RestoreContactDates";
@@ -120,6 +121,7 @@ const AppRoutes = () => (
     <Route path="/orders/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddOrder /></ProtectedRoute>} />
     <Route path="/orders/:id/edit" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EditOrder /></ProtectedRoute>} />
     <Route path="/events" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Events /></ProtectedRoute>} />
+    <Route path="/events/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><NewEvent /></ProtectedRoute>} />
     <Route path="/events/:eventId" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EventDetail /></ProtectedRoute>} />
     <Route path="/import-customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ImportCustomers /></ProtectedRoute>} />
     <Route path="/restore-contact-dates" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><RestoreContactDates /></ProtectedRoute>} />
