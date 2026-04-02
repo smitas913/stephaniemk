@@ -150,7 +150,14 @@ export default function FollowUps() {
   // Preview assignments
   const distributePreview = useMemo(() => {
     const days = Math.max(1, parseInt(distributeDays) || 60);
-    const selected = distributeCandidates.filter((c) => distributeSelectedIds.has(c.id));
+    const selected = distributeCandidates
+      .filter((c) => distributeSelectedIds.has(c.id))
+      .sort((a, b) => {
+        // Most overdue first (earliest next_follow_up, then those with no date)
+        const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : Infinity;
+        const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : Infinity;
+        return aDate - bDate;
+      });
     const tomorrow = addDays(new Date(), 1);
     return selected.map((c, i) => ({
       id: c.id,
