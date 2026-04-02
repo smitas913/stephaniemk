@@ -19,6 +19,8 @@ export default function Events() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [formatFilter, setFormatFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
