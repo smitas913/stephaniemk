@@ -28,6 +28,7 @@ import AdminTools from "./pages/AdminTools";
 import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
+import NewEvent from "./pages/NewEvent";
 import Scoreboard from "./pages/Scoreboard";
 import BookingLeads from "./pages/BookingLeads";
 import RestoreContactDates from "./pages/RestoreContactDates";
