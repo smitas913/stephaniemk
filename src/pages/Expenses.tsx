@@ -33,7 +33,7 @@ export default function Expenses() {
   const [filterCat, setFilterCat] = useState<string>("all");
   const [formDate, setFormDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [formAmount, setFormAmount] = useState("");
-  const [formCategory, setFormCategory] = useState<string>("Other");
+  const [formCategory, setFormCategory] = useState<string>("Inventory");
   const [formNotes, setFormNotes] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
