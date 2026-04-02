@@ -269,6 +269,7 @@ export default function CustomerList() {
                     </Popover>
                   </TableHead>
                   <TableHead>Activity</TableHead>
+                  <TableHead>Last Contacted</TableHead>
                   <TableHead>Last Order</TableHead>
                   <TableHead>Follow-Up</TableHead>
                   <TableHead className="w-20">Actions</TableHead>
