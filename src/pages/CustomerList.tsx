@@ -372,6 +372,10 @@ export default function CustomerList() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                      <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("follow_up")}>
+                        {sortCol === "follow_up" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                      </button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
