@@ -168,7 +168,7 @@ export const fetchEvents = async (): Promise<EventRecord[]> => {
   return data as unknown as EventRecord[];
 };
 
-export const upsertEvent = async (event: { event_id: string; guest_count?: number; ordering_guest_count?: number; event_date?: string | null; event_type?: string | null; event_format?: string; hostess_name?: string; notes?: string | null; future_bookings_count?: number; sharing_appointments_count?: number }) => {
+export const upsertEvent = async (event: Partial<EventRecord> & { event_id: string }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("events")
@@ -177,6 +177,17 @@ export const upsertEvent = async (event: { event_id: string; guest_count?: numbe
     .single();
   if (error) throw error;
   return data;
+};
+
+export const updateEventGuest = async (id: string, updates: Partial<EventGuest>) => {
+  const { data, error } = await supabase
+    .from("event_guests")
+    .update(updates as any)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as EventGuest;
 };
 
 export const deleteEvent = async (eventId: string) => {
