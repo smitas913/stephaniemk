@@ -111,6 +111,7 @@ export default function AddOrder() {
   const handleSubmit = async (e: React.FormEvent, addAnother = false) => {
     e.preventDefault();
     if (!customerId) { toast.error("Select a customer"); return; }
+    if (!retailAmount || Number(retailAmount) <= 0) { toast.error("Retail amount must be greater than $0. Non-ordering attendees should be tracked as event guests, not orders."); return; }
 
     setSubmitting(true);
     try {
