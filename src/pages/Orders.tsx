@@ -150,14 +150,7 @@ export default function Orders() {
     return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
   }, [orders]);
 
-  // Available years
-  const yearOptions = useMemo(() => {
-    const years = new Set<string>();
-    for (const o of orders) years.add(o.order_date.slice(0, 4));
-    const arr = Array.from(years).sort().reverse();
-    if (!arr.includes(String(now.getFullYear()))) arr.unshift(String(now.getFullYear()));
-    return arr;
-  }, [orders]);
+  const periodLabel = getShortLabel(period);
 
   // Remove year options (no longer needed)
 
