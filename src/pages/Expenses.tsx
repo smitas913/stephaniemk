@@ -64,7 +64,7 @@ export default function Expenses() {
   const resetForm = () => {
     setFormAmount("");
     setFormNotes("");
-    setFormCategory("Other");
+    setFormCategory("Inventory");
     clearReceipt();
   };
 
