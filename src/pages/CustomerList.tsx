@@ -223,9 +223,10 @@ export default function CustomerList() {
                   <TableHead className="text-right">Days</TableHead>
                   <TableHead className="text-right">Orders YTD</TableHead>
                   <TableHead className="text-right">Retail YTD</TableHead>
-                  <TableHead>Next Follow-Up</TableHead>
-                  <TableHead>FU Status</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
+                   <TableHead>Next Follow-Up</TableHead>
+                   <TableHead>FU Status</TableHead>
+                   <TableHead>Last Contact</TableHead>
+                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
