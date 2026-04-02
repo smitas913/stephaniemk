@@ -72,7 +72,7 @@ export interface EventRecord {
   updated_at: string;
 }
 
-export const CUSTOMER_STATUSES = ["Customer", "Consultant", "Former Consultant"] as const;
+export const RELATIONSHIP_STATUSES = ["Prospect", "Customer", "VIP", "Consultant", "Former Consultant"] as const;
 export const ORDER_TYPES = ["Reorder", "Party", "Facial"] as const;
 export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Credit Card", "CashApp", "Paypal", "Other"] as const;
