@@ -32,7 +32,6 @@ export default function CustomerList() {
   const [filterVip, setFilterVip] = useState("all");
   const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
-  const [filterNew, setFilterNew] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
 
@@ -116,8 +115,7 @@ export default function CustomerList() {
       const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
-      const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchNew;
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU;
     });
 
     if (sortByVip === "vip-first") {
@@ -127,7 +125,7 @@ export default function CustomerList() {
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive, sortByVip]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -159,7 +157,7 @@ export default function CustomerList() {
           </Dialog>
         </div>
 
-        {/* Search + Filters */}
+        {/* Search + Archive Toggle */}
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -170,40 +168,6 @@ export default function CustomerList() {
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Relationship" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Relationship</SelectItem>
-              {RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Activity" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Activity</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Warm">Warm</SelectItem>
-              <SelectItem value="Dormant">Dormant</SelectItem>
-              <SelectItem value="New">New</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterFollowUp} onValueChange={setFilterFollowUp}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Follow-Up" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Follow-Up</SelectItem>
-              <SelectItem value="OVERDUE">Overdue</SelectItem>
-              <SelectItem value="TODAY">Today</SelectItem>
-              <SelectItem value="UPCOMING">Upcoming</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterNew} onValueChange={setFilterNew}>
-            <SelectTrigger className="w-[110px] h-9"><SelectValue placeholder="New?" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="New">New (90d)</SelectItem>
-              <SelectItem value="not-new">Not New</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -218,7 +182,35 @@ export default function CustomerList() {
                 <TableRow>
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Relationship</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          Relationship
+                          <ChevronDown className="w-3 h-3" />
+                          {filterStatus !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-44 p-1" align="start">
+                        <div className="space-y-0.5">
+                          {[
+                            { value: "all", label: "All" },
+                            ...RELATIONSHIP_STATUSES.map((s) => ({ value: s, label: s })),
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterStatus === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterStatus(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -268,10 +260,71 @@ export default function CustomerList() {
                       </PopoverContent>
                     </Popover>
                   </TableHead>
-                  <TableHead>Activity</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          Activity
+                          <ChevronDown className="w-3 h-3" />
+                          {filterCategory !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="start">
+                        <div className="space-y-0.5">
+                          {[
+                            { value: "all", label: "All" },
+                            { value: "Active", label: "Active" },
+                            { value: "Warm", label: "Warm" },
+                            { value: "Dormant", label: "Dormant" },
+                            { value: "New", label: "New" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterCategory === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterCategory(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead>Last Contacted</TableHead>
                   <TableHead>Last Order</TableHead>
-                  <TableHead>Follow-Up</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          Follow-Up
+                          <ChevronDown className="w-3 h-3" />
+                          {filterFollowUp !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="start">
+                        <div className="space-y-0.5">
+                          {[
+                            { value: "all", label: "All" },
+                            { value: "TODAY", label: "Due Today" },
+                            { value: "UPCOMING", label: "Upcoming" },
+                            { value: "OVERDUE", label: "Overdue" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterFollowUp === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterFollowUp(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
