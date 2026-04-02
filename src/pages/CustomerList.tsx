@@ -183,7 +183,35 @@ export default function CustomerList() {
                 <TableRow>
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Relationship</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          Relationship
+                          <ChevronDown className="w-3 h-3" />
+                          {filterStatus !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-44 p-1" align="start">
+                        <div className="space-y-0.5">
+                          {[
+                            { value: "all", label: "All" },
+                            ...RELATIONSHIP_STATUSES.map((s) => ({ value: s, label: s })),
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterStatus === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterStatus(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -233,10 +261,71 @@ export default function CustomerList() {
                       </PopoverContent>
                     </Popover>
                   </TableHead>
-                  <TableHead>Activity</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          Activity
+                          <ChevronDown className="w-3 h-3" />
+                          {filterCategory !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="start">
+                        <div className="space-y-0.5">
+                          {[
+                            { value: "all", label: "All" },
+                            { value: "Active", label: "Active" },
+                            { value: "Warm", label: "Warm" },
+                            { value: "Dormant", label: "Dormant" },
+                            { value: "New", label: "New" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterCategory === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterCategory(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead>Last Contacted</TableHead>
                   <TableHead>Last Order</TableHead>
-                  <TableHead>Follow-Up</TableHead>
+                  <TableHead>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          Follow-Up
+                          <ChevronDown className="w-3 h-3" />
+                          {filterFollowUp !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="start">
+                        <div className="space-y-0.5">
+                          {[
+                            { value: "all", label: "All" },
+                            { value: "TODAY", label: "Due Today" },
+                            { value: "UPCOMING", label: "Upcoming" },
+                            { value: "OVERDUE", label: "Overdue" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
+                                filterFollowUp === opt.value && "bg-accent font-medium"
+                              )}
+                              onClick={() => setFilterFollowUp(opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </TableHead>
                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
