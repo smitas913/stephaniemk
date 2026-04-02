@@ -379,60 +379,110 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 2. Overdue */}
-            <FollowUpSection
-              title="Overdue"
-              icon={AlertTriangle}
-              iconColor="text-red-600"
-              iconBg="bg-red-50 dark:bg-red-950/30"
-              items={overdue}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  <p className="text-[11px] text-red-600 font-medium">
-                    Since {c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}
-                  </p>
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
+            {/* 2. Calls for Today */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
+                      <Phone className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold text-foreground">Calls for Today</CardTitle>
+                    <Badge variant="secondary" className="text-xs">{callsForToday.length}</Badge>
+                  </div>
                 </div>
-              )}
-            />
+              </CardHeader>
+              <CardContent>
+                {callsForToday.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">All caught up! 🎉</p>
+                ) : (
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {callsForToday.map((c) => {
+                      const lastNote = c.itemType === "customer" ? notesByCustomer.get(c.id) : undefined;
+                      return (
+                        <div
+                          key={`${c.itemType}-${c.id}`}
+                          className="border border-border/60 rounded-lg p-3 hover:bg-muted/30 transition-colors"
+                        >
+                          {/* Top row: name + status badge */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => navigateToItem(c)}>
+                              <p className="text-sm font-semibold text-foreground truncate">
+                                {c.name}
+                              </p>
+                              {c.vip === "VIP" && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium shrink-0">VIP</span>
+                              )}
+                              {c.itemType === "prospect" && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium shrink-0">Prospect</span>
+                              )}
+                            </div>
+                            <div className="shrink-0">
+                              {c.follow_up_status === "OVERDUE" ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
+                                  Overdue {c.daysOverdue ? `${c.daysOverdue}d` : ""}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">
+                                  Due Today
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-            {/* 3. Today */}
-            <FollowUpSection
-              title="Today"
-              icon={CalendarCheck}
-              iconColor="text-blue-600"
-              iconBg="bg-blue-50 dark:bg-blue-950/30"
-              items={todayList}
-              notesByCustomer={notesByCustomer}
-              onNavigate={navigateToItem}
-              onAction={openContactDialog}
-              renderMeta={(c) => (
-                <div className="text-right shrink-0">
-                  {c.activity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.activity_status}
-                    </span>
-                  )}
-                  {c.opportunity_status && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
-                      {c.opportunity_status}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
+                          {/* Info row */}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
+                            {c.activity_status && (
+                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                                {c.activity_status}
+                              </span>
+                            )}
+                            {c.days_since_last_order !== null && c.days_since_last_order !== undefined && (
+                              <span>{c.days_since_last_order}d since last order</span>
+                            )}
+                            {c.opportunity_status && (
+                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
+                                {c.opportunity_status}
+                              </span>
+                            )}
+                            {lastNote && (
+                              <span className="truncate max-w-[200px]">
+                                Last: {lastNote.note_type} · {new Date(lastNote.created_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick actions */}
+                          <div className="flex flex-wrap gap-1">
+                            {c.phone && (
+                              <>
+                                <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+                                  <a href={`tel:${c.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+                                  <a href={`sms:${c.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                                </Button>
+                              </>
+                            )}
+                            {c.email && (
+                              <Button variant="outline" size="sm" className="h-7 text-xs px-2" asChild>
+                                <a href={`mailto:${c.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                              </Button>
+                            )}
+                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openContactDialog(c, "General")}>
+                              <FileText className="w-3 h-3 mr-1" />Note
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => openContactDialog(c, "Call")}>
+                              <CheckCircle2 className="w-3 h-3 mr-1" />Log Contact
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
