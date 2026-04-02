@@ -1,0 +1,237 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
+import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
+export default function EditOrder() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: order, isLoading } = useQuery({
+    queryKey: ["order", id],
+    queryFn: () => fetchOrder(id!),
+    enabled: !!id,
+  });
+
+  const [orderDate, setOrderDate] = useState("");
+  const [retailAmount, setRetailAmount] = useState("");
+  const [wholesaleAmount, setWholesaleAmount] = useState("");
+  const [orderType, setOrderType] = useState("");
+  const [faceType, setFaceType] = useState("");
+  const [paymentType, setPaymentType] = useState("");
+  const [notes, setNotes] = useState("");
+  const [hostess, setHostess] = useState(false);
+  const [halfPrice, setHalfPrice] = useState(false);
+  const [birthday, setBirthday] = useState(false);
+  const [referral, setReferral] = useState(false);
+
+  useEffect(() => {
+    if (order) {
+      setOrderDate(order.order_date);
+      setRetailAmount(String(order.retail_amount));
+      setWholesaleAmount(order.wholesale_amount != null ? String(order.wholesale_amount) : "");
+      setOrderType(order.order_type || "");
+      setFaceType(order.face_type || "");
+      setPaymentType(order.payment_type || "");
+      setNotes(order.notes || "");
+      setHostess(!!order.hostess);
+      setHalfPrice(!!order.half_price_deal);
+      setBirthday(!!order.birthday);
+      setReferral(!!order.referral);
+    }
+  }, [order]);
+
+  const updateMutation = useMutation({
+    mutationFn: (updates: Record<string, unknown>) => updateOrder(id!, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["order", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Order updated");
+      navigate("/orders");
+    },
+    onError: () => toast.error("Failed to update order"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteOrder(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Order deleted");
+      navigate("/orders");
+    },
+  });
+
+  const handleSave = () => {
+    const retail = parseFloat(retailAmount);
+    if (!retail || retail <= 0) {
+      toast.error("Retail amount must be greater than zero");
+      return;
+    }
+    updateMutation.mutate({
+      order_date: orderDate,
+      retail_amount: retail,
+      wholesale_amount: wholesaleAmount ? parseFloat(wholesaleAmount) : null,
+      order_type: orderType || null,
+      face_type: faceType || null,
+      payment_type: paymentType || null,
+      notes: notes || null,
+      hostess,
+      half_price_deal: halfPrice,
+      birthday,
+      referral,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Layout>
+        <p className="text-muted-foreground text-center py-12">Order not found.</p>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-2xl mx-auto space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/orders")}>
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Edit Order</h2>
+              <p className="text-sm text-muted-foreground">
+                {order.customer_name || order.customers?.full_name || "Unknown"} · {new Date(order.order_date).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="w-4 h-4 mr-1" />Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteMutation.mutate()}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Order Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Date</label>
+                <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Order Type</label>
+                <Select value={orderType} onValueChange={setOrderType}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    {ORDER_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Retail Amount ($)</label>
+                <Input type="number" step="0.01" min="0" value={retailAmount} onChange={(e) => setRetailAmount(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Wholesale Amount ($)</label>
+                <Input type="number" step="0.01" min="0" value={wholesaleAmount} onChange={(e) => setWholesaleAmount(e.target.value)} placeholder="Optional" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Face Type</label>
+                <Select value={faceType || "__none__"} onValueChange={(v) => setFaceType(v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None</SelectItem>
+                    {FACE_TYPES.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Payment</label>
+                <Select value={paymentType || "__none__"} onValueChange={(v) => setPaymentType(v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Unpaid</SelectItem>
+                    {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-5">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={hostess} onCheckedChange={(v) => setHostess(!!v)} /> Hostess
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={halfPrice} onCheckedChange={(v) => setHalfPrice(!!v)} /> Half Price
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={birthday} onCheckedChange={(v) => setBirthday(!!v)} /> Birthday
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={referral} onCheckedChange={(v) => setReferral(!!v)} /> Referral
+              </label>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Notes</label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional notes..." />
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={handleSave} disabled={updateMutation.isPending}>
+                <Save className="w-4 h-4 mr-1" />
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+}

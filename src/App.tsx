@@ -11,6 +11,7 @@ import CustomerList from "./pages/CustomerList";
 import CustomerDetail from "./pages/CustomerDetail";
 import Orders from "./pages/Orders";
 import AddOrder from "./pages/AddOrder";
+import EditOrder from "./pages/EditOrder";
 
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -113,6 +114,7 @@ const AppRoutes = () => (
     <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerDetail /></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Orders /></ProtectedRoute>} />
     <Route path="/orders/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddOrder /></ProtectedRoute>} />
+    <Route path="/orders/:id/edit" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EditOrder /></ProtectedRoute>} />
     <Route path="/events" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Events /></ProtectedRoute>} />
     <Route path="/events/:eventId" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EventDetail /></ProtectedRoute>} />
     <Route path="/import-customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ImportCustomers /></ProtectedRoute>} />

@@ -22,8 +22,8 @@ import { cn } from "@/lib/utils";
 import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
-type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type";
-type SortDir = "asc" | "desc";
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
+type SortDir = "asc" | "desc" | null;
 
 export default function Orders() {
   const queryClient = useQueryClient();
@@ -111,6 +111,8 @@ export default function Orders() {
     if (filterBirthday) result = result.filter((o) => o.birthday);
     if (filterReferral) result = result.filter((o) => o.referral);
 
+    if (sortDir === null) return result;
+
     const sorted = [...result].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
@@ -119,6 +121,11 @@ export default function Orders() {
         case "retail_amount": cmp = Number(a.retail_amount) - Number(b.retail_amount); break;
         case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
         case "payment_type": cmp = (a.payment_type || "").localeCompare(b.payment_type || ""); break;
+        case "face_type": cmp = (a.face_type || "").localeCompare(b.face_type || ""); break;
+        case "hostess": cmp = Number(!!a.hostess) - Number(!!b.hostess); break;
+        case "half_price_deal": cmp = Number(!!a.half_price_deal) - Number(!!b.half_price_deal); break;
+        case "birthday": cmp = Number(!!a.birthday) - Number(!!b.birthday); break;
+        case "referral": cmp = Number(!!a.referral) - Number(!!b.referral); break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
@@ -136,13 +143,19 @@ export default function Orders() {
   }, [filtered]);
 
   const toggleSort = (field: SortField) => {
-    if (sortField === field) setSortDir((d) => d === "asc" ? "desc" : "asc");
-    else { setSortField(field); setSortDir("desc"); }
+    if (sortField === field) {
+      if (sortDir === "asc") setSortDir("desc");
+      else if (sortDir === "desc") { setSortField("order_date"); setSortDir("desc"); }
+      else setSortDir("asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground/50" />;
-    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+    if (sortField !== field || sortDir === null) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground/50" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1 text-primary" /> : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
   const exportCSV = () => {
@@ -308,11 +321,21 @@ export default function Orders() {
                   <TableHead className="text-xs w-[80px] cursor-pointer select-none" onClick={() => toggleSort("order_type")}>
                     <span className="flex items-center">Type<SortIcon field="order_type" /></span>
                   </TableHead>
-                  <TableHead className="text-xs w-[60px]">Face</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">H</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">½</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">BD</TableHead>
-                  <TableHead className="text-xs text-center w-[40px]">Ref</TableHead>
+                  <TableHead className="text-xs w-[60px] cursor-pointer select-none" onClick={() => toggleSort("face_type")}>
+                    <span className="flex items-center">Face<SortIcon field="face_type" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("hostess")}>
+                    <span className="flex items-center justify-center">H<SortIcon field="hostess" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("half_price_deal")}>
+                    <span className="flex items-center justify-center">½<SortIcon field="half_price_deal" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("birthday")}>
+                    <span className="flex items-center justify-center">BD<SortIcon field="birthday" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("referral")}>
+                    <span className="flex items-center justify-center">Ref<SortIcon field="referral" /></span>
+                  </TableHead>
                   <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_type")}>
                     <span className="flex items-center">Pay<SortIcon field="payment_type" /></span>
                   </TableHead>
@@ -322,7 +345,7 @@ export default function Orders() {
               </TableHeader>
               <TableBody>
                 {filtered.map((o) => (
-                  <TableRow key={o.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow key={o.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate(`/orders/${o.id}/edit`)}>
                     <TableCell className="text-xs whitespace-nowrap">{new Date(o.order_date).toLocaleDateString()}</TableCell>
                     <TableCell className="text-sm font-medium">{o.customer_name || o.customers?.full_name || "—"}</TableCell>
                     <TableCell className="text-sm font-semibold text-right">${Number(o.retail_amount).toFixed(2)}</TableCell>
@@ -355,7 +378,7 @@ export default function Orders() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate"
                           onClick={() => navigate(`/orders/new?duplicate=${o.id}`)}>
