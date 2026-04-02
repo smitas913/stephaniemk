@@ -182,9 +182,9 @@ export default function ProspectDetail() {
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
               <p className={cn("text-lg font-bold",
-                prospect.next_follow_up_date && new Date(prospect.next_follow_up_date) < new Date(new Date().toDateString()) ? "text-red-600" : "text-foreground"
+                prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1 ? "text-red-600" : "text-foreground"
               )}>
-                {prospect.next_follow_up_date ? new Date(prospect.next_follow_up_date).toLocaleDateString() : "—"}
+                {formatDateOnly(prospect.next_follow_up_date)}
               </p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Next Follow-Up</p>
             </CardContent>
