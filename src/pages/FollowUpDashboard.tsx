@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, fetchExpenses } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchExpenses, fetchEvents } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import type { Customer, CustomerComputed, OrderWithCustomer, Expense } from "@/lib/types";
+import type { Customer, CustomerComputed, OrderWithCustomer, Expense, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, CalendarIcon, Receipt, PiggyBank, Wallet } from "lucide-react";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles } from "lucide-react";
 import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
