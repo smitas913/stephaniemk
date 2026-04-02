@@ -326,6 +326,27 @@ export default function FollowUps() {
     return { callsForToday, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, notesByCustomer]);
 
+  // Booking leads due today/overdue
+  const bookingLeadsDue = useMemo(() => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    return bookingLeads
+      .filter((l) => l.status !== "Booked" && l.status !== "Not Interested" && l.next_follow_up_date && l.next_follow_up_date <= todayStr)
+      .sort((a, b) => (a.next_follow_up_date || "").localeCompare(b.next_follow_up_date || ""));
+  }, [bookingLeads]);
+
+  const bookingLeadContactMut = useMutation({
+    mutationFn: async (lead: BookingLead) => {
+      await updateBookingLead(lead.id, {
+        last_contact_date: format(new Date(), "yyyy-MM-dd"),
+        status: lead.status === "New" ? "Contacted" : lead.status,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      toast.success("Lead marked as contacted");
+    },
+  });
+
   // --- Mutations ---
 
   const contactMutation = useMutation({
