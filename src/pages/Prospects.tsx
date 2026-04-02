@@ -148,7 +148,7 @@ export default function Prospects() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                      {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" title="Linked to customer" />}
+                      {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {[p.phone, p.email].filter(Boolean).join(" · ") || "No contact info"}
