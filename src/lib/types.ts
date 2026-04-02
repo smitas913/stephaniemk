@@ -150,12 +150,12 @@ export interface Note {
 export const OPPORTUNITY_STATUSES = ["Booked", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined", "Converted", "Closed"] as const;
 
 export const NEXT_STEP_TYPES = [
-  "Book Career Chat",
-  "Attend Event",
   "Follow-Up Call",
-  "Send Info",
-  "Invite to Facial",
-  "Invite to Event",
+  "Invited to Event",
+  "Attend Event",
+  "Booked Party",
+  "Booked Facial",
+  "Send Information",
   "Other",
 ] as const;
 
