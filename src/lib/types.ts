@@ -89,3 +89,29 @@ export interface CustomerNote {
 }
 
 export const NOTE_TYPES = ["Call", "Text", "Email", "Appointment", "Follow-Up", "General"] as const;
+
+export const OPPORTUNITY_STATUSES = ["New", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined"] as const;
+
+export interface Prospect {
+  id: string;
+  customer_id: string | null;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  opportunity_status: string;
+  date_shared: string | null;
+  last_contact_date: string | null;
+  next_follow_up_date: string | null;
+  notes: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface ProspectNote {
+  id: string;
+  prospect_id: string;
+  note_text: string;
+  created_at: string;
+  owner_user_id: string | null;
+}
