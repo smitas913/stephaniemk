@@ -93,28 +93,105 @@ export default function FollowUps() {
     return map;
   }, [allNotes]);
 
-  const { overdue, todayList, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
-    // Customer follow-up items
-    const customerItems: FollowUpItem[] = customers
+  // Enriched customers for distribution
+  const enrichedCustomers = useMemo(() => {
+    return customers
       .filter((c) => c.is_active !== false)
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
         const computed = computeCustomerFields(c, custOrders);
-        return {
-          id: c.id,
-          itemType: "customer" as const,
-          name: c.full_name,
-          phone: c.phone,
-          email: c.email,
-          vip: computed.vip,
-          next_follow_up: computed.next_follow_up,
-          follow_up_status: computed.follow_up_status,
-          activity_status: computed.activity_status,
-          days_since_last_order: computed.days_since_last_order,
-          new_follow_up_stage: c.new_follow_up_stage,
-          birthday_mmdd: c.birthday_mmdd,
-        };
+        return { ...c, ...computed };
       });
+  }, [customers, allOrders]);
+
+  // Distribution candidates based on filter
+  const distributeCandidates = useMemo(() => {
+    switch (distributeFilter) {
+      case "overdue-today":
+        return enrichedCustomers.filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY");
+      case "no-date":
+        return enrichedCustomers.filter((c) => !c.next_follow_up);
+      case "dormant-warm":
+        return enrichedCustomers.filter((c) => c.activity_status === "Dormant" || c.activity_status === "Warm");
+      default:
+        return [];
+    }
+  }, [enrichedCustomers, distributeFilter]);
+
+  // When filter changes, auto-select all candidates
+  const openDistributeDialog = () => {
+    setDistributeStep("configure");
+    setShowDistribute(true);
+  };
+
+  const handleDistributeFilterChange = (filter: typeof distributeFilter) => {
+    setDistributeFilter(filter);
+    setDistributeSelectedIds(new Set());
+    setDistributeStep("configure");
+  };
+
+  const toggleDistributeId = (id: string) => {
+    setDistributeSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllCandidates = () => {
+    setDistributeSelectedIds(new Set(distributeCandidates.map((c) => c.id)));
+  };
+
+  const deselectAllCandidates = () => {
+    setDistributeSelectedIds(new Set());
+  };
+
+  // Preview assignments
+  const distributePreview = useMemo(() => {
+    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const selected = distributeCandidates.filter((c) => distributeSelectedIds.has(c.id));
+    const tomorrow = addDays(new Date(), 1);
+    return selected.map((c, i) => ({
+      id: c.id,
+      name: c.full_name,
+      date: format(addDays(tomorrow, i % days), "yyyy-MM-dd"),
+    }));
+  }, [distributeCandidates, distributeSelectedIds, distributeDays]);
+
+  const perDay = useMemo(() => {
+    const days = Math.max(1, parseInt(distributeDays) || 60);
+    const count = distributeSelectedIds.size;
+    return Math.ceil(count / days);
+  }, [distributeSelectedIds, distributeDays]);
+
+  const distributeMutation = useMutation({
+    mutationFn: () => bulkUpdateCustomerFollowUps(distributePreview),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setShowDistribute(false);
+      setDistributeSelectedIds(new Set());
+      toast.success(`Distributed ${distributePreview.length} follow-ups across ${distributeDays} days`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const { overdue, todayList, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+    // Customer follow-up items
+    const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => ({
+      id: c.id,
+      itemType: "customer" as const,
+      name: c.full_name,
+      phone: c.phone,
+      email: c.email,
+      vip: c.vip,
+      next_follow_up: c.next_follow_up,
+      follow_up_status: c.follow_up_status,
+      activity_status: c.activity_status,
+      days_since_last_order: c.days_since_last_order,
+      new_follow_up_stage: c.new_follow_up_stage,
+      birthday_mmdd: c.birthday_mmdd,
+    }));
 
     // Prospect follow-up items
     const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -160,7 +237,7 @@ export default function FollowUps() {
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
     return { overdue, todayList, birthdaysToday, birthdaysUpcoming };
-  }, [customers, allOrders, prospects]);
+  }, [enrichedCustomers, prospects]);
 
   const contactMutation = useMutation({
     mutationFn: async ({ item, note, type, nextDate }: { item: FollowUpItem; note: string; type: string; nextDate?: string }) => {
