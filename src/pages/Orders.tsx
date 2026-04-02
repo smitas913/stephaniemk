@@ -93,7 +93,7 @@ export default function Orders() {
 
   const clearFilters = useCallback(() => {
     setSearch(""); setFilterCustomer("all"); setFilterMonth("this-month");
-    setFilterYear(String(now.getFullYear())); setDateFrom(""); setDateTo("");
+    setFilterYear(String(now.getFullYear()));
     setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
     setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
   }, []);
