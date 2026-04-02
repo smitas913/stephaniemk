@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchOrders, deleteOrder, updateOrder, fetchEvents, upsertEvent } from "@/lib/queries";
+import { fetchOrders, deleteOrder, updateOrder } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
-import type { OrderWithCustomer, EventRecord } from "@/lib/types";
-import EventGuestPanel from "@/components/EventGuestPanel";
+import type { OrderWithCustomer } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Plus, Trash2, Search, Copy, ChevronDown, ChevronRight, ShoppingBag,
-  DollarSign, RotateCcw, Users, Sparkles, ArrowUpDown, ArrowUp, ArrowDown,
-  X, Download, CalendarIcon, ChevronLeft,
+  Plus, Trash2, Search, Copy, ShoppingBag,
+  DollarSign, RotateCcw, Sparkles, ArrowUpDown, ArrowUp, ArrowDown,
+  X, Download, CalendarIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,17 +22,13 @@ import { cn } from "@/lib/utils";
 import { parseISO, isWithinInterval } from "date-fns";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
-
-
-type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "event_id";
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type";
 type SortDir = "asc" | "desc";
 
 export default function Orders() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const now = new Date();
 
-  // Filters
   const [search, setSearch] = useState("");
   const [filterCustomer, setFilterCustomer] = useState("all");
   const { period, setPeriod } = usePeriodFilter();
@@ -46,16 +41,8 @@ export default function Orders() {
   const [filterReferral, setFilterReferral] = useState(false);
   const [sortField, setSortField] = useState<SortField>("order_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
-  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-
-  const eventsMap = useMemo(() => {
-    const map = new Map<string, EventRecord>();
-    for (const e of events) map.set(e.event_id, e);
-    return map;
-  }, [events]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteOrder,
@@ -75,15 +62,6 @@ export default function Orders() {
     },
   });
 
-  const eventMutation = useMutation({
-    mutationFn: (params: { event_id: string; guest_count?: number; hostess_name?: string }) =>
-      upsertEvent(params),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-    },
-  });
-
-  // Unique customers for filter
   const customerOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const o of orders) {
@@ -95,8 +73,6 @@ export default function Orders() {
 
   const periodLabel = getShortLabel(period);
 
-  // Remove year options (no longer needed)
-
   const hasActiveFilters = search || filterCustomer !== "all" || period.type !== "mtd" ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
     filterHostess || filterBirthday || filterReferral;
@@ -107,29 +83,21 @@ export default function Orders() {
     setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
   }, []);
 
-  // Filter + Sort
   const filtered = useMemo(() => {
     let result = orders;
 
-    // Global search
     if (search) {
       const q = search.toLowerCase();
       result = result.filter((o) =>
         (o.customer_name || o.customers?.full_name || "").toLowerCase().includes(q) ||
-        (o.event_id || "").toLowerCase().includes(q) ||
         (o.notes || "").toLowerCase().includes(q) ||
         (o.payment_type || "").toLowerCase().includes(q) ||
-        (o.order_type || "").toLowerCase().includes(q) ||
-        (o.face_type || "").toLowerCase().includes(q)
+        (o.order_type || "").toLowerCase().includes(q)
       );
     }
 
-    // Customer filter
-    if (filterCustomer !== "all") {
-      result = result.filter((o) => o.customer_id === filterCustomer);
-    }
+    if (filterCustomer !== "all") result = result.filter((o) => o.customer_id === filterCustomer);
 
-    // Period filter
     const { start, end } = getDateRange(period);
     result = result.filter((o) => {
       const d = parseISO(o.order_date);
@@ -143,7 +111,6 @@ export default function Orders() {
     if (filterBirthday) result = result.filter((o) => o.birthday);
     if (filterReferral) result = result.filter((o) => o.referral);
 
-    // Sort
     const sorted = [...result].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
@@ -152,7 +119,6 @@ export default function Orders() {
         case "retail_amount": cmp = Number(a.retail_amount) - Number(b.retail_amount); break;
         case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
         case "payment_type": cmp = (a.payment_type || "").localeCompare(b.payment_type || ""); break;
-        case "event_id": cmp = (a.event_id || "").localeCompare(b.event_id || ""); break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
@@ -160,55 +126,14 @@ export default function Orders() {
     return sorted;
   }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
 
-  // Summary
   const summary = useMemo(() => {
     const totalOrders = filtered.length;
     const totalRetail = filtered.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const reorderTotal = filtered.filter((o) => o.order_type === "Reorder").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-
-    // Party analytics: group by event_id where order_type = "Party"
-    const partyOrders = filtered.filter((o) => o.order_type === "Party");
-    const partyTotal = partyOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    const partyEventIds = new Set(partyOrders.map((o) => o.event_id).filter(Boolean));
-    const partyCount = partyEventIds.size || (partyOrders.length > 0 ? 1 : 0);
-    const avgPartySales = partyCount > 0 ? partyTotal / partyCount : 0;
-    const avgOrdersPerParty = partyCount > 0 ? partyOrders.length / partyCount : 0;
-
+    const partyTotal = filtered.filter((o) => o.order_type === "Party").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const facialTotal = filtered.filter((o) => o.order_type === "Facial").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    return { totalOrders, totalRetail, reorderTotal, partyTotal, partyCount, avgPartySales, avgOrdersPerParty, facialTotal };
+    return { totalOrders, totalRetail, reorderTotal, partyTotal, facialTotal };
   }, [filtered]);
-
-  // Grouping: group all orders sharing the same event_id (party orders)
-  const { grouped, standalone } = useMemo(() => {
-    // Count how many orders share each event_id
-    const eventCounts = new Map<string, number>();
-    for (const o of filtered) {
-      const eid = o.event_id || o.parent_event_id;
-      if (eid) eventCounts.set(eid, (eventCounts.get(eid) || 0) + 1);
-    }
-
-    const eventMap = new Map<string, OrderWithCustomer[]>();
-    const standaloneOrders: OrderWithCustomer[] = [];
-    for (const o of filtered) {
-      const eid = o.event_id || o.parent_event_id;
-      if (eid && (eventCounts.get(eid) || 0) > 1) {
-        const group = eventMap.get(eid) || [];
-        group.push(o);
-        eventMap.set(eid, group);
-      } else {
-        standaloneOrders.push(o);
-      }
-    }
-    return { grouped: eventMap, standalone: standaloneOrders };
-  }, [filtered]);
-
-  const toggleEvent = (eventId: string) => {
-    setExpandedEvents((prev) => {
-      const next = new Set(prev);
-      if (next.has(eventId)) next.delete(eventId); else next.add(eventId);
-      return next;
-    });
-  };
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => d === "asc" ? "desc" : "asc");
@@ -221,9 +146,9 @@ export default function Orders() {
   };
 
   const exportCSV = () => {
-    const headers = ["Date", "Event ID", "Customer", "Amount", "Type", "Face", "Hostess", "Half Price", "Birthday", "Referral", "Payment", "Notes"];
+    const headers = ["Date", "Customer", "Amount", "Type", "Face", "Hostess", "Half Price", "Birthday", "Referral", "Payment", "Notes"];
     const rows = filtered.map((o) => [
-      o.order_date, o.event_id || "", o.customer_name || o.customers?.full_name || "",
+      o.order_date, o.customer_name || o.customers?.full_name || "",
       Number(o.retail_amount).toFixed(2), o.order_type || "", o.face_type || "",
       o.hostess ? "Yes" : "", o.half_price_deal ? "Yes" : "", o.birthday ? "Yes" : "",
       o.referral ? "Yes" : "", o.payment_type || "", (o.notes || "").replace(/"/g, '""'),
@@ -240,62 +165,8 @@ export default function Orders() {
     { label: "Total Orders", value: String(summary.totalOrders), icon: ShoppingBag, accent: "text-blue-600" },
     { label: "Total Retail", value: `$${summary.totalRetail.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: "Reorders", value: `$${summary.reorderTotal.toFixed(2)}`, icon: RotateCcw, accent: "text-purple-600" },
-    { label: `Parties (${summary.partyCount})`, value: `$${summary.partyTotal.toFixed(2)}`, icon: Users, accent: "text-pink-600" },
-    { label: "Avg/Party", value: `$${summary.avgPartySales.toFixed(2)} · ${summary.avgOrdersPerParty.toFixed(1)} orders`, icon: Sparkles, accent: "text-amber-600" },
+    { label: "Party Sales", value: `$${summary.partyTotal.toFixed(2)}`, icon: Sparkles, accent: "text-pink-600" },
   ];
-
-  const renderOrderRow = (o: OrderWithCustomer, isChild = false) => (
-    <TableRow key={o.id} className={cn("hover:bg-muted/50 transition-colors", isChild && "bg-muted/20")}>
-      <TableCell className="text-xs whitespace-nowrap">{new Date(o.order_date).toLocaleDateString()}</TableCell>
-      <TableCell className="text-xs font-mono max-w-[140px] truncate" title={o.event_id || ""}>
-        {isChild && <span className="text-muted-foreground mr-1">↳</span>}
-        {o.event_id || "—"}
-      </TableCell>
-      <TableCell className="text-sm font-medium">{o.customer_name || o.customers?.full_name || "—"}</TableCell>
-      <TableCell className="text-sm font-semibold text-right">${Number(o.retail_amount).toFixed(2)}</TableCell>
-      <TableCell>
-        {o.order_type && (
-          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
-            o.order_type === "Reorder" ? "bg-purple-100 text-purple-700" :
-            o.order_type === "Party" ? "bg-pink-100 text-pink-700" :
-            "bg-amber-100 text-amber-700"
-          )}>{o.order_type}</span>
-        )}
-      </TableCell>
-      <TableCell className="text-xs">{o.face_type || "—"}</TableCell>
-      <TableCell className="text-center">{o.hostess ? "✓" : ""}</TableCell>
-      <TableCell className="text-center">{o.half_price_deal ? "✓" : ""}</TableCell>
-      <TableCell className="text-center">{o.birthday ? "✓" : ""}</TableCell>
-      <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
-      <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
-        <Select
-          value={o.payment_type || "__blank__"}
-          onValueChange={(v) => paymentMutation.mutate({ id: o.id, payment_type: v === "__blank__" ? null : v })}
-        >
-          <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-1.5 w-[90px] focus:ring-1">
-            <SelectValue placeholder="—" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__blank__">— Unpaid</SelectItem>
-            {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
-      <TableCell>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate"
-            onClick={(e) => { e.stopPropagation(); navigate(`/orders/new?duplicate=${o.id}`); }}>
-            <Copy className="w-3 h-3 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6"
-            onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(o.id); }}>
-            <Trash2 className="w-3 h-3 text-destructive" />
-          </Button>
-        </div>
-      </TableCell>
-    </TableRow>
-  );
 
   return (
     <Layout>
@@ -310,17 +181,14 @@ export default function Orders() {
             <Button size="sm" variant="outline" onClick={exportCSV}>
               <Download className="w-4 h-4 mr-1" />CSV
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate("/orders/new?mode=party")}>
-              <Users className="w-4 h-4 mr-1" />Party
-            </Button>
             <Button size="sm" onClick={() => navigate("/orders/new")}>
-              <Plus className="w-4 h-4 mr-1" />New
+              <Plus className="w-4 h-4 mr-1" />New Order
             </Button>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {summaryCards.map((c) => (
             <Card key={c.label} className="border-border/50 shadow-sm">
               <CardContent className="p-3">
@@ -334,11 +202,11 @@ export default function Orders() {
           ))}
         </div>
 
-        {/* Row 1: Search + Quick Filters */}
+        {/* Filters */}
         <div className="flex flex-wrap gap-2 items-end">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search name, event, notes, type..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            <Input placeholder="Search name, notes, type..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
           <Select value={filterCustomer} onValueChange={setFilterCustomer}>
             <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Customer" /></SelectTrigger>
@@ -355,7 +223,7 @@ export default function Orders() {
               <PopoverTrigger asChild>
                 <Button variant={period.type === "month" ? "default" : "outline"} size="sm" className="h-9 text-xs">
                   <CalendarIcon className="w-3.5 h-3.5 mr-1" />
-                  {period.type === "month" ? `${MONTHS[period.month].slice(0, 3)} ${period.year}` : "Select Month..."}
+                  {period.type === "month" ? `${MONTHS[period.month].slice(0, 3)} ${period.year}` : "Month"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -376,7 +244,6 @@ export default function Orders() {
           </Select>
         </div>
 
-        {/* Row 2: Additional Filters */}
         <div className="flex flex-wrap gap-2 items-center">
           <Select value={filterOrderType} onValueChange={setFilterOrderType}>
             <SelectTrigger className="h-9 w-[120px]"><SelectValue placeholder="Type" /></SelectTrigger>
@@ -432,9 +299,6 @@ export default function Orders() {
                   <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("order_date")}>
                     <span className="flex items-center">Date<SortIcon field="order_date" /></span>
                   </TableHead>
-                  <TableHead className="text-xs w-[140px] cursor-pointer select-none" onClick={() => toggleSort("event_id")}>
-                    <span className="flex items-center">Event ID<SortIcon field="event_id" /></span>
-                  </TableHead>
                   <TableHead className="text-xs cursor-pointer select-none" onClick={() => toggleSort("customer_name")}>
                     <span className="flex items-center">Customer<SortIcon field="customer_name" /></span>
                   </TableHead>
@@ -444,11 +308,11 @@ export default function Orders() {
                   <TableHead className="text-xs w-[80px] cursor-pointer select-none" onClick={() => toggleSort("order_type")}>
                     <span className="flex items-center">Type<SortIcon field="order_type" /></span>
                   </TableHead>
-                  <TableHead className="text-xs w-[80px]">Face</TableHead>
-                  <TableHead className="text-xs text-center w-[50px]">H</TableHead>
-                  <TableHead className="text-xs text-center w-[50px]">½</TableHead>
-                  <TableHead className="text-xs text-center w-[50px]">BD</TableHead>
-                  <TableHead className="text-xs text-center w-[50px]">Ref</TableHead>
+                  <TableHead className="text-xs w-[60px]">Face</TableHead>
+                  <TableHead className="text-xs text-center w-[40px]">H</TableHead>
+                  <TableHead className="text-xs text-center w-[40px]">½</TableHead>
+                  <TableHead className="text-xs text-center w-[40px]">BD</TableHead>
+                  <TableHead className="text-xs text-center w-[40px]">Ref</TableHead>
                   <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_type")}>
                     <span className="flex items-center">Pay<SortIcon field="payment_type" /></span>
                   </TableHead>
@@ -457,82 +321,54 @@ export default function Orders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.from(grouped.entries()).map(([eventId, group]) => {
-                  const isExpanded = expandedEvents.has(eventId);
-                  const groupTotal = group.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-                  const ev = eventsMap.get(eventId);
-                  const guestCount = ev?.guest_count || 0;
-                  const hostessName = ev?.hostess_name || "";
-                  const orderingCount = group.length;
-                  const conversionRate = guestCount > 0 ? ((orderingCount / guestCount) * 100).toFixed(0) : null;
-                  return [
-                    <TableRow key={`group-${eventId}`} className="bg-accent/30 hover:bg-accent/50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
-                      <TableCell className="text-xs font-medium">
-                        <div className="flex items-center gap-2">
-                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                          <Users className="w-3.5 h-3.5 text-primary" />
-                          {ev?.event_date ? new Date(ev.event_date).toLocaleDateString() : "—"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono max-w-[140px] truncate" title={eventId}>{eventId}</TableCell>
-                      <TableCell className="text-xs">
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <span className="text-muted-foreground">Hostess:</span>
-                          <Input
-                            className="h-6 w-24 text-xs px-1.5"
-                            defaultValue={hostessName}
-                            placeholder="Name"
-                            onBlur={(e) => {
-                              if (e.target.value !== hostessName) {
-                                eventMutation.mutate({ event_id: eventId, hostess_name: e.target.value });
-                              }
-                            }}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-accent text-accent-foreground">
-                          {group.length} {group.length === 1 ? "order" : "orders"}
-                        </span>
-                      </TableCell>
-                      <TableCell colSpan={8} className="text-xs">
-                        <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground">Guests:</span>
-                            <Input
-                              type="number"
-                              min={0}
-                              className="h-6 w-14 text-xs px-1.5"
-                              defaultValue={guestCount || ""}
-                              placeholder="0"
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                if (val !== guestCount) {
-                                  eventMutation.mutate({ event_id: eventId, guest_count: val });
-                                }
-                              }}
-                            />
-                          </div>
-                          {conversionRate && (
-                            <span className="text-muted-foreground whitespace-nowrap">
-                              Conv: <span className="font-semibold text-foreground">{conversionRate}%</span>
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>,
-                    ...(isExpanded ? [
-                      ...group.map((o) => renderOrderRow(o, true)),
-                      <TableRow key={`guests-${eventId}`}>
-                        <TableCell colSpan={13} className="p-0">
-                          <EventGuestPanel eventId={eventId} />
-                        </TableCell>
-                      </TableRow>,
-                    ] : []),
-                  ];
-                })}
-                {standalone.map((o) => renderOrderRow(o))}
+                {filtered.map((o) => (
+                  <TableRow key={o.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="text-xs whitespace-nowrap">{new Date(o.order_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-sm font-medium">{o.customer_name || o.customers?.full_name || "—"}</TableCell>
+                    <TableCell className="text-sm font-semibold text-right">${Number(o.retail_amount).toFixed(2)}</TableCell>
+                    <TableCell>
+                      {o.order_type && (
+                        <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
+                          o.order_type === "Reorder" ? "bg-purple-100 text-purple-700" :
+                          o.order_type === "Party" ? "bg-pink-100 text-pink-700" :
+                          "bg-amber-100 text-amber-700"
+                        )}>{o.order_type}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">{o.face_type || "—"}</TableCell>
+                    <TableCell className="text-center">{o.hostess ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center">{o.half_price_deal ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center">{o.birthday ? "✓" : ""}</TableCell>
+                    <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
+                    <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={o.payment_type || "__blank__"}
+                        onValueChange={(v) => paymentMutation.mutate({ id: o.id, payment_type: v === "__blank__" ? null : v })}
+                      >
+                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-1.5 w-[90px] focus:ring-1">
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__blank__">— Unpaid</SelectItem>
+                          {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate"
+                          onClick={() => navigate(`/orders/new?duplicate=${o.id}`)}>
+                          <Copy className="w-3 h-3 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6"
+                          onClick={() => deleteMutation.mutate(o.id)}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
