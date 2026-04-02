@@ -9,7 +9,7 @@ export interface Customer {
   city: string | null;
   state_territory: string | null;
   postal_code: string | null;
-  current_status: string | null;
+  relationship_status: string | null;
   profile_date_first_order_date: string | null;
   last_order_mk: string | null;
   last_order_date_order_log: string | null;
