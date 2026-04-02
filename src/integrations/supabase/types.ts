@@ -31,6 +31,7 @@ export type Database = {
           last_order_mk: string | null
           new_follow_up_stage: string | null
           notes: string | null
+          owner_user_id: string | null
           phone: string | null
           postal_code: string | null
           profile_date_first_order_date: string | null
@@ -53,6 +54,7 @@ export type Database = {
           last_order_mk?: string | null
           new_follow_up_stage?: string | null
           notes?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           postal_code?: string | null
           profile_date_first_order_date?: string | null
@@ -75,6 +77,7 @@ export type Database = {
           last_order_mk?: string | null
           new_follow_up_stage?: string | null
           notes?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           postal_code?: string | null
           profile_date_first_order_date?: string | null
@@ -132,6 +135,7 @@ export type Database = {
           notes: string | null
           order_date: string
           order_type: string | null
+          owner_user_id: string | null
           parent_event_id: string | null
           payment_type: string | null
           referral: boolean | null
@@ -151,6 +155,7 @@ export type Database = {
           notes?: string | null
           order_date?: string
           order_type?: string | null
+          owner_user_id?: string | null
           parent_event_id?: string | null
           payment_type?: string | null
           referral?: boolean | null
@@ -170,6 +175,7 @@ export type Database = {
           notes?: string | null
           order_date?: string
           order_type?: string | null
+          owner_user_id?: string | null
           parent_event_id?: string | null
           payment_type?: string | null
           referral?: boolean | null
