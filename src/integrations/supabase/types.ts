@@ -146,6 +146,48 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_plan_items: {
+        Row: {
+          address: string | null
+          created_at: string
+          customer_name: string
+          event_location: string | null
+          event_time: string | null
+          id: string
+          item_type: string
+          notes: string | null
+          owner_user_id: string | null
+          plan_date: string
+          sort_order: number
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          customer_name?: string
+          event_location?: string | null
+          event_time?: string | null
+          id?: string
+          item_type: string
+          notes?: string | null
+          owner_user_id?: string | null
+          plan_date?: string
+          sort_order?: number
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          customer_name?: string
+          event_location?: string | null
+          event_time?: string | null
+          id?: string
+          item_type?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          plan_date?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       event_guests: {
         Row: {
           converted_customer_id: string | null
