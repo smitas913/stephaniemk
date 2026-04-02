@@ -84,6 +84,9 @@ const HEADER_HINTS: Record<DestField, string[]> = {
   birthday: ["birthday", "birth_date", "birthdate", "dob", "date of birth"],
   birthday_mmdd: ["birthday_mmdd"],
   source: ["source", "lead source", "external_source"],
+  last_contacted: ["last_contacted", "last contacted", "last contact", "last contact date", "last_contact_date", "contacted"],
+  next_follow_up_date: ["next_follow_up_date", "next follow up", "next followup", "follow up date", "follow_up_date", "next follow-up"],
+  legacy_notes: ["legacy_notes", "legacy notes", "history", "contact history", "activity log"],
 };
 
 export function autoMapHeaders(csvHeaders: string[]): Record<string, DestField | ""> {
