@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Plus, Trash2, DollarSign, Upload, Image, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatDateOnly } from "@/lib/dateOnly";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Inventory: "bg-blue-100 text-blue-700",

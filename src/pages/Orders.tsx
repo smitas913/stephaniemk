@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { parseISO, isWithinInterval } from "date-fns";
+import { formatDateOnly } from "@/lib/dateOnly";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
 type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";

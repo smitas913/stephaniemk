@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Calendar, Users, DollarSign, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { formatDateOnly } from "@/lib/dateOnly";
 import AddEventDialog from "@/components/AddEventDialog";
 
 export default function Events() {

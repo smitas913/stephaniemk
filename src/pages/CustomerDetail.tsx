@@ -4,6 +4,7 @@ import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from 
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
+import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
