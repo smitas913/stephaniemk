@@ -115,16 +115,24 @@ export default function AddOrder() {
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedEvent = events.find(e => e.event_id === selectedEventId);
 
+  // Duplicate detection for new customer
+  useEffect(() => {
+    if (!isNewCustomer || !newCustName.trim()) { setDuplicateMatch(null); return; }
+    const q = newCustName.trim().toLowerCase();
+    const match = customers.find(c => c.full_name.toLowerCase() === q);
+    setDuplicateMatch(match || null);
+  }, [newCustName, isNewCustomer, customers]);
+
   // --- Validation ---
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
     if (!orderType) errors.push("Select an order type");
-    if (!customerId) errors.push("Select a customer");
+    if (!customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
     if (!paymentType) errors.push("Select a payment type");
     if (isEventBased && !selectedEventId) errors.push("Select an event");
     return errors;
-  }, [orderType, customerId, retailAmount, paymentType, isEventBased, selectedEventId]);
+  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentType, isEventBased, selectedEventId]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
