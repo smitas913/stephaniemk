@@ -159,14 +159,14 @@ export default function Orders() {
     return arr;
   }, [orders]);
 
-  const hasActiveFilters = search || filterCustomer !== "all" || filterMonth !== "this-month" ||
-    filterYear !== String(now.getFullYear()) ||
+  // Remove year options (no longer needed)
+
+  const hasActiveFilters = search || filterCustomer !== "all" || period.type !== "mtd" ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
     filterHostess || filterBirthday || filterReferral;
 
   const clearFilters = useCallback(() => {
-    setSearch(""); setFilterCustomer("all"); setFilterMonth("this-month");
-    setFilterYear(String(now.getFullYear()));
+    setSearch(""); setFilterCustomer("all"); setPeriod({ type: "mtd" });
     setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
     setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
   }, []);
