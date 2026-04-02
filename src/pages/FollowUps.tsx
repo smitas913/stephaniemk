@@ -21,7 +21,12 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO, addDays } from "date-fns";
+import { format, addDays } from "date-fns";
+
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 type Enriched = Customer & CustomerComputed;
 
