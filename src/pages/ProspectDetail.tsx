@@ -240,33 +240,59 @@ export default function ProspectDetail() {
           <CardContent>
             {editing ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                <Select value={form.opportunity_status} onValueChange={(v) => setForm({ ...form, opportunity_status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{OPPORTUNITY_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-                <Input type="date" value={form.date_shared} onChange={(e) => setForm({ ...form, date_shared: e.target.value })} />
-                <Input type="date" value={form.last_contact_date} onChange={(e) => setForm({ ...form, last_contact_date: e.target.value })} />
-                <div className="sm:col-span-2">
-                  <label className="text-xs text-muted-foreground mb-1 block">Next Step</label>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Name *</label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+                  <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
+                  <Select value={form.opportunity_status} onValueChange={(v) => setForm({ ...form, opportunity_status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{OPPORTUNITY_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Date Shared</label>
+                  <Input type="date" value={form.date_shared} onChange={(e) => setForm({ ...form, date_shared: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Last Contact</label>
+                  <Input type="date" value={form.last_contact_date} onChange={(e) => setForm({ ...form, last_contact_date: e.target.value })} />
+                </div>
+                <div className="sm:col-span-2 p-3 rounded-lg bg-muted/30 border border-border/50 space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Next Step</label>
                   <div className="grid grid-cols-2 gap-2">
-                    <Select value={form.next_step_type || "none"} onValueChange={(v) => setForm({ ...form, next_step_type: v === "none" ? "" : v })}>
-                      <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {NEXT_STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Input type="date" value={form.next_step_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_step_date: e.target.value })} />
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-0.5 block">Type</label>
+                      <Select value={form.next_step_type || "none"} onValueChange={(v) => setForm({ ...form, next_step_type: v === "none" ? "" : v })}>
+                        <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {NEXT_STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-0.5 block">Date</label>
+                      <Input type="date" value={form.next_step_date} onChange={(e) => setForm({ ...form, next_step_date: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-muted-foreground mb-0.5 block">Notes</label>
+                    <Input placeholder="Next step notes (optional)" value={form.next_step_notes} onChange={(e) => setForm({ ...form, next_step_notes: e.target.value })} />
                   </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <Input placeholder="Next step notes (optional)" value={form.next_step_notes} onChange={(e) => setForm({ ...form, next_step_notes: e.target.value })} />
-                </div>
-                <div className="sm:col-span-2">
-                  <Textarea placeholder="General notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">General Notes</label>
+                  <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>
               </div>
             ) : (
