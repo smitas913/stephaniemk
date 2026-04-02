@@ -19,6 +19,7 @@ export interface Customer {
   new_follow_up_stage: string | null;
   next_follow_up_date: string | null;
   is_active: boolean;
+  new_customer_flag: boolean;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
