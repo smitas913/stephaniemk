@@ -188,8 +188,8 @@ export default function CustomerList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[160px]">Name</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead className="min-w-[140px]">Name</TableHead>
+                  <TableHead className="whitespace-nowrap min-w-[140px]">Phone</TableHead>
                   <TableHead>
                     <Popover>
                       <PopoverTrigger asChild>
