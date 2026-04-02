@@ -432,7 +432,7 @@ export default function CustomerList() {
                        )}
                      </TableCell>
                     <TableCell className="text-sm">
-                      <div>{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</div>
+                      <div>{c.last_order_effective ? format(parseISO(c.last_order_effective), "M/d/yyyy") : "—"}</div>
                       {c.days_since_last_order !== null && (
                         <div className="text-[11px] text-muted-foreground">{c.days_since_last_order}d ago</div>
                       )}
@@ -442,7 +442,7 @@ export default function CustomerList() {
                         <span className="text-muted-foreground">—</span>
                       ) : (
                         <>
-                          <div>{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</div>
+                           <div>{c.next_follow_up ? format(parseISO(c.next_follow_up), "M/d/yyyy") : "—"}</div>
                           {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
                         </>
                       )}

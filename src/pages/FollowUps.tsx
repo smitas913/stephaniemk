@@ -23,6 +23,21 @@ import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 
+const MONTH_NAME_TO_NUMBER: Record<string, number> = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
+};
+
 function parseLocalDate(dateStr: string): Date {
   const normalized = dateStr.slice(0, 10);
   const [y, m, d] = normalized.split("-").map(Number);
@@ -40,6 +55,11 @@ function getDateOnlyTime(dateStr: string | null | undefined): number | null {
   const parsed = parseLocalDate(dateStr);
   const time = parsed.getTime();
   return Number.isNaN(time) ? null : time;
+}
+
+function formatDateOnly(dateStr: string | null | undefined, pattern = "M/d/yyyy"): string {
+  if (!dateStr) return "—";
+  return format(parseLocalDate(dateStr), pattern);
 }
 
 function getFollowUpStatus(dateStr: string | null | undefined, today = getLocalToday()): "" | "OVERDUE" | "TODAY" | "UPCOMING" {
@@ -87,7 +107,31 @@ type FollowUpItem = {
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
   if (!mmdd) return null;
-  const cleaned = mmdd.replace(/[^0-9]/g, "");
+  const normalized = mmdd.trim();
+  if (!normalized) return null;
+
+  const monthNameMatch = normalized.match(/^([A-Za-z]+)\s+(\d{1,2})$/);
+  if (monthNameMatch) {
+    const month = MONTH_NAME_TO_NUMBER[monthNameMatch[1].toLowerCase()];
+    const day = parseInt(monthNameMatch[2], 10);
+    if (month && day >= 1 && day <= 31) return { month, day };
+  }
+
+  const isoLikeMatch = normalized.match(/^\d{4}-(\d{1,2})-(\d{1,2})$/);
+  if (isoLikeMatch) {
+    const month = parseInt(isoLikeMatch[1], 10);
+    const day = parseInt(isoLikeMatch[2], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { month, day };
+  }
+
+  const slashOrDashMatch = normalized.match(/^(\d{1,2})[/-](\d{1,2})$/);
+  if (slashOrDashMatch) {
+    const month = parseInt(slashOrDashMatch[1], 10);
+    const day = parseInt(slashOrDashMatch[2], 10);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { month, day };
+  }
+
+  const cleaned = normalized.replace(/\D/g, "");
   if (cleaned.length < 3) return null;
   const month = parseInt(cleaned.slice(0, cleaned.length === 3 ? 1 : 2), 10);
   const day = parseInt(cleaned.slice(cleaned.length === 3 ? 1 : 2), 10);
@@ -122,7 +166,13 @@ function daysToBirthday(customer: { birthday?: string | null; birthday_mmdd?: st
   if (bday < today) {
     bday = new Date(today.getFullYear() + 1, parsed.month - 1, parsed.day);
   }
-  return Math.round((bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor((bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function formatBirthday(customer: { birthday?: string | null; birthday_mmdd?: string | null }): string {
+  const parsed = getBirthdayMonthDay(customer);
+  if (!parsed) return customer.birthday_mmdd || (customer.birthday ? formatDateOnly(customer.birthday, "MMM d") : "Birthday");
+  return format(new Date(2000, parsed.month - 1, parsed.day), "MMMM dd");
 }
 
 function computeFollowUpReason(c: Enriched): string {
@@ -717,7 +767,7 @@ export default function FollowUps() {
                           </div>
                           <div className="flex items-center gap-x-3 text-xs text-muted-foreground mt-0.5">
                             {lead.phone && <span>{lead.phone}</span>}
-                            <span>FU: {lead.next_follow_up_date && new Date(lead.next_follow_up_date + "T00:00:00").toLocaleDateString()}</span>
+                            <span>FU: {formatDateOnly(lead.next_follow_up_date)}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
@@ -1095,7 +1145,7 @@ export default function FollowUps() {
                   {distributePreview.map((p) => (
                     <div key={p.id} className="flex items-center justify-between px-3 py-1.5 text-sm border-b border-border/50 last:border-b-0">
                       <span className="text-foreground truncate">{p.name}</span>
-                      <span className="text-muted-foreground text-xs shrink-0 ml-2">{new Date(p.date).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground text-xs shrink-0 ml-2">{formatDateOnly(p.date)}</span>
                     </div>
                   ))}
                 </div>
@@ -1126,7 +1176,7 @@ function BirthdayRow({ item, label, onNavigate, onAction }: { item: FollowUpItem
           {item.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
         </p>
         <p className="text-xs text-muted-foreground">
-          🎂 {item.birthday_mmdd} — <span className="font-medium text-pink-600">{label}</span>
+          🎂 {formatBirthday(item)} — <span className="font-medium text-pink-600">{label}</span>
         </p>
       </div>
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
