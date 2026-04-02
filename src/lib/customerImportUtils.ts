@@ -4,7 +4,7 @@ import type { Customer } from "./types";
 export const FORCED_LAST_CONTACTED_COLUMN_INDEX = 23;
 
 type CustomerImportRecord = Record<string, string | null>;
-type LastContactedDecision = "applied" | "preserved" | "missing";
+type LastContactedDecision = "applied" | "cleared" | "missing";
 
 export function getForcedLastContactedHeader(headers: string[]): string | null {
   return headers[FORCED_LAST_CONTACTED_COLUMN_INDEX] ?? null;
@@ -40,19 +40,17 @@ export function planCustomerImportUpdate(existing: Customer, record: CustomerImp
   const existingRecord = existing as unknown as Record<string, string | null | undefined>;
 
   for (const [key, value] of Object.entries(record)) {
-    if (key === "full_name" || value === null || value === "") continue;
+    if (key === "full_name") continue;
 
     const existingValue = existingRecord[key];
 
     if (key === "last_contacted") {
-      if (!existingValue || new Date(value).getTime() > new Date(existingValue).getTime()) {
-        updates[key] = value;
-        lastContactedDecision = "applied";
-      } else {
-        lastContactedDecision = "preserved";
-      }
+      updates[key] = value ?? null;
+      lastContactedDecision = value ? "applied" : "cleared";
       continue;
     }
+
+    if (value === null || value === "") continue;
 
     if (existingValue === null || existingValue === undefined || existingValue === "") {
       updates[key] = value;

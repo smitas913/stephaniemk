@@ -127,22 +127,22 @@ export default function ImportCustomers() {
             details.push({
               rowIndex: row.rowIndex,
               status: "updated",
-              reason: hasContactWarning
-                ? "⚠ Could not parse Last Contacted"
-                : lastContactedDecision === "preserved"
-                  ? "Kept newer existing Last Contacted"
-                  : undefined,
-            });
-          } else {
-            skipped++;
-            details.push({
-              rowIndex: row.rowIndex,
-              status: "skipped",
-              reason: hasContactWarning
-                ? "⚠ Could not parse Last Contacted"
-                : lastContactedDecision === "preserved"
-                  ? "Kept newer existing Last Contacted"
-                  : `No changes needed for ${duplicate.full_name}`,
+                reason: hasContactWarning
+                  ? "⚠ Could not parse Last Contacted"
+                  : lastContactedDecision === "cleared"
+                    ? "Cleared Last Contacted from blank CSV column X"
+                    : undefined,
+              });
+            } else {
+              skipped++;
+              details.push({
+                rowIndex: row.rowIndex,
+                status: "skipped",
+                reason: hasContactWarning
+                  ? "⚠ Could not parse Last Contacted"
+                  : lastContactedDecision === "missing"
+                    ? `No changes needed for ${duplicate.full_name}`
+                    : undefined,
             });
           }
 
@@ -361,7 +361,7 @@ export default function ImportCustomers() {
               <CardHeader className="pb-2"><CardTitle className="text-base">Matching + Updates</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Existing customers are matched and updated automatically by: email first → phone second → exact name third. Matched rows never create duplicates, and older Last Contacted values never overwrite newer ones.
+                  Existing customers are matched and updated automatically by: email first → phone second → exact name third. Column X is the only historical source for Last Contacted, so matched rows overwrite or clear that field directly from the CSV.
                 </p>
               </CardContent>
             </Card>
