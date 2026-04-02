@@ -506,11 +506,13 @@ export default function Orders() {
                             type="number"
                             min={0}
                             className="h-6 w-16 text-xs px-1.5"
-                            value={guestCount || ""}
+                            defaultValue={guestCount || ""}
                             placeholder="0"
-                            onChange={(e) => {
+                            onBlur={(e) => {
                               const val = parseInt(e.target.value) || 0;
-                              guestCountMutation.mutate({ eventId, guest_count: val });
+                              if (val !== guestCount) {
+                                guestCountMutation.mutate({ eventId, guest_count: val });
+                              }
                             }}
                           />
                           {conversionRate && (
