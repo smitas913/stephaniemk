@@ -19,6 +19,8 @@ import UserManagement from "./pages/UserManagement";
 import ConsultantRequests from "./pages/ConsultantRequests";
 import ConsultantRequest from "./pages/ConsultantRequest";
 import ImportCustomers from "./pages/ImportCustomers";
+import FollowUps from "./pages/FollowUps";
+import AdminTools from "./pages/AdminTools";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
