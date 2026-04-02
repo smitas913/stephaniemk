@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchEvents } from "@/lib/queries";
-import type { EventRecord } from "@/lib/types";
+import { fetchEvents, fetchProspects } from "@/lib/queries";
+import type { EventRecord, Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -17,7 +17,14 @@ type ScoreItem = {
   status: "green" | "yellow" | "red";
 };
 
-function useScoreboard(events: EventRecord[]) {
+type ConversionItem = {
+  label: string;
+  numerator: number;
+  denominator: number;
+  pct: number;
+};
+
+function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
   return useMemo(() => {
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -36,6 +43,17 @@ function useScoreboard(events: EventRecord[]) {
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
+
+    // Sharing Conversion: prospects who joined this week / total sharing appointments this week
+    const weekJoined = prospects.filter((p) =>
+      p.opportunity_status === "Joined" && inRange(p.updated_at, weekStart, weekEnd)
+    ).length;
+    const sharingConversion: ConversionItem = {
+      label: "Sharing Conversion Rate",
+      numerator: weekJoined,
+      denominator: weekSharing,
+      pct: weekSharing > 0 ? Math.round((weekJoined / weekSharing) * 1000) / 10 : 0,
+    };
 
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
     const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
@@ -65,8 +83,8 @@ function useScoreboard(events: EventRecord[]) {
       { label: "Faces", current: monthFaces, goal: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
     ];
 
-    return { weekly, monthly };
-  }, [events]);
+    return { weekly, monthly, sharingConversion };
+  }, [events, prospects]);
 }
 
 const STATUS_COLORS = {
@@ -108,8 +126,10 @@ function ScoreSection({ title, items }: { title: string; items: ScoreItem[] }) {
 }
 
 export default function Scoreboard() {
-  const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-  const scoreboard = useScoreboard(events);
+  const { data: events = [], isLoading: evLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: prospects = [], isLoading: prLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const scoreboard = useScoreboard(events, prospects);
+  const isLoading = evLoading || prLoading;
 
   return (
     <Layout>
@@ -125,7 +145,39 @@ export default function Scoreboard() {
           </div>
         ) : (
           <div className="space-y-4">
-            <ScoreSection title="This Week" items={scoreboard.weekly} />
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">This Week</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {scoreboard.weekly.map((item) => (
+                  <div key={item.label} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">{item.label}</span>
+                      <span className={cn("text-lg font-bold tabular-nums", STATUS_COLORS[item.status])}>
+                        {item.current} <span className="text-muted-foreground font-normal text-sm">/ {item.goal}</span>
+                      </span>
+                    </div>
+                    <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
+                  </div>
+                ))}
+                {/* Sharing Conversion Rate */}
+                <div className="space-y-1 pt-1 border-t border-border/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">{scoreboard.sharingConversion.label}</span>
+                    <span className="text-lg font-bold tabular-nums text-primary">
+                      {scoreboard.sharingConversion.pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {scoreboard.sharingConversion.numerator} / {scoreboard.sharingConversion.denominator} sharing appointments
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
             <ScoreSection title="This Month" items={scoreboard.monthly} />
           </div>
         )}
