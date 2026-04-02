@@ -42,6 +42,18 @@ export default function CustomerList() {
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
+  const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (col: "last_contacted" | "last_order" | "follow_up") => {
+    if (sortCol === col) {
+      if (sortDir === "asc") setSortDir("desc");
+      else { setSortCol(null); setSortDir("asc"); }
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
@@ -132,8 +144,25 @@ export default function CustomerList() {
       result = [...result].sort((a, b) => (a.vip === "VIP" ? 1 : 0) - (b.vip === "VIP" ? 1 : 0));
     }
 
+    if (sortCol) {
+      const getVal = (c: EnrichedCustomer): string | null => {
+        if (sortCol === "last_contacted") return c.last_contacted;
+        if (sortCol === "last_order") return c.last_order_effective;
+        return c.next_follow_up;
+      };
+      const dir = sortDir === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const av = getVal(a);
+        const bv = getVal(b);
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return av < bv ? -dir : av > bv ? dir : 0;
+      });
+    }
+
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip, sortCol, sortDir]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -300,17 +329,28 @@ export default function CustomerList() {
                       </PopoverContent>
                     </Popover>
                   </TableHead>
-                  <TableHead>Last Contacted</TableHead>
-                  <TableHead>Last Order</TableHead>
                   <TableHead>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                          Follow-Up
-                          <ChevronDown className="w-3 h-3" />
-                          {filterFollowUp !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </button>
-                      </PopoverTrigger>
+                    <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("last_contacted")}>
+                      Last Contacted
+                      {sortCol === "last_contacted" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("last_order")}>
+                      Last Order
+                      {sortCol === "last_order" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+                            Follow-Up
+                            <ChevronDown className="w-3 h-3" />
+                            {filterFollowUp !== "all" && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                          </button>
+                        </PopoverTrigger>
                       <PopoverContent className="w-40 p-1" align="start">
                         <div className="space-y-0.5">
                           {[
@@ -332,6 +372,10 @@ export default function CustomerList() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                      <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("follow_up")}>
+                        {sortCol === "follow_up" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                      </button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
