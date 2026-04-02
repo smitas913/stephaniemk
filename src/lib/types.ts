@@ -49,7 +49,7 @@ export interface OrderWithCustomer extends Order {
 
 export interface CustomerComputed {
   new_first_90_days: string;
-  category: string;
+  activity_status: string;
   vip: string;
   last_order_effective: string | null;
   days_since_last_order: number | null;
