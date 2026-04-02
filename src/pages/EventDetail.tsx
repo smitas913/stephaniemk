@@ -212,6 +212,7 @@ export default function EventDetail() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Hostess</label>
                   <Input
