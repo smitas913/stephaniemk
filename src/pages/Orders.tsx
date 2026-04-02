@@ -367,18 +367,23 @@ export default function Orders() {
                     <TableCell className="text-center">{o.birthday ? "✓" : ""}</TableCell>
                     <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
-                      <Select
-                        value={o.payment_type || "__blank__"}
-                        onValueChange={(v) => paymentMutation.mutate({ id: o.id, payment_type: v === "__blank__" ? null : v })}
-                      >
-                        <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-1.5 w-[90px] focus:ring-1">
-                          <SelectValue placeholder="—" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__blank__">— Unpaid</SelectItem>
-                          {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-1">
+                        {!o.payment_type && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-destructive/10 text-destructive whitespace-nowrap">Unpaid</span>
+                        )}
+                        <Select
+                          value={o.payment_type || "__blank__"}
+                          onValueChange={(v) => paymentMutation.mutate({ id: o.id, payment_type: v === "__blank__" ? null : v })}
+                        >
+                          <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-1.5 w-[80px] focus:ring-1">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__blank__">— None</SelectItem>
+                            {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
