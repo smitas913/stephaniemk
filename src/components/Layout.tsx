@@ -14,7 +14,7 @@ const adminNavItems = [
   { to: "/events", label: "Events", icon: Calendar },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
-  { to: "/prospects", label: "Prospects", icon: UserPlus },
+  { to: "/leadership", label: "Leadership", icon: Crown },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
