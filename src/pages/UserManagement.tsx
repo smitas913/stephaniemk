@@ -179,8 +179,7 @@ export default function UserManagement({ embedded = false }: { embedded?: boolea
     ? [...ALL_ROLES]
     : (["admin", "consultant", "customer"] as const);
 
-  return (
-    <Layout>
+  const content = (
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
