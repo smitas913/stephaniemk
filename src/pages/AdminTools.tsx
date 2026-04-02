@@ -41,6 +41,10 @@ export default function AdminTools() {
               <Upload className="w-4 h-4" />
               Data Tools
             </TabsTrigger>
+            <TabsTrigger value="deliveries" className="gap-1.5">
+              <Truck className="w-4 h-4" />
+              Deliveries
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
