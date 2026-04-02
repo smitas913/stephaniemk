@@ -18,7 +18,8 @@ import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, Ca
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const EVENT_TYPES = ["Party", "Facial", "Other"] as const;
+const EVENT_TYPES = ["Party", "Facial"] as const;
+const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -188,6 +189,26 @@ export default function EventDetail() {
                     <SelectContent>
                       {EVENT_TYPES.map((t) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Format</label>
+                  <Select
+                    value={event.event_format || "In-Person"}
+                    onValueChange={(val) => {
+                      if (val !== (event.event_format || "In-Person")) {
+                        eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVENT_FORMATS.map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

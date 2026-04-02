@@ -4,6 +4,7 @@ import { fetchEvents, fetchOrders, deleteEvent } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -18,6 +19,8 @@ export default function Events() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [formatFilter, setFormatFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
@@ -50,14 +53,20 @@ export default function Events() {
   }, [orders]);
 
   const filtered = useMemo(() => {
-    if (!search) return events;
-    const q = search.toLowerCase();
-    return events.filter((e) =>
-      (e.hostess_name || "").toLowerCase().includes(q) ||
-      (e.event_id || "").toLowerCase().includes(q) ||
-      (e.event_type || "").toLowerCase().includes(q)
-    );
-  }, [events, search]);
+    return events.filter((e) => {
+      if (typeFilter !== "all" && e.event_type !== typeFilter) return false;
+      if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (
+          !(e.hostess_name || "").toLowerCase().includes(q) &&
+          !(e.event_id || "").toLowerCase().includes(q) &&
+          !(e.event_type || "").toLowerCase().includes(q)
+        ) return false;
+      }
+      return true;
+    });
+  }, [events, search, typeFilter, formatFilter]);
 
   const sorted = useMemo(() =>
     [...filtered].sort((a, b) => (b.event_date || "").localeCompare(a.event_date || "")),
@@ -114,10 +123,32 @@ export default function Events() {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search hostess, event ID, type..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+        {/* Search & Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search hostess, event ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-9 w-[130px] text-sm">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="Party">Party</SelectItem>
+              <SelectItem value="Facial">Facial</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={formatFilter} onValueChange={setFormatFilter}>
+            <SelectTrigger className="h-9 w-[140px] text-sm">
+              <SelectValue placeholder="All Formats" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Formats</SelectItem>
+              <SelectItem value="In-Person">In-Person</SelectItem>
+              <SelectItem value="Zoom">Zoom</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
@@ -165,7 +196,12 @@ export default function Events() {
                       <TableCell className="text-xs font-mono max-w-[140px] truncate" title={e.event_id}>
                         {e.event_id}
                       </TableCell>
-                      <TableCell className="text-xs">{e.event_type || "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        {e.event_type || "—"}
+                        {(e.event_format && e.event_format !== "In-Person") && (
+                          <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{e.ordering_guest_count || orderCount || "—"}</TableCell>

@@ -279,6 +279,7 @@ export type Database = {
         Row: {
           created_at: string
           event_date: string | null
+          event_format: string
           event_id: string
           event_type: string | null
           future_bookings_count: number | null
@@ -295,6 +296,7 @@ export type Database = {
         Insert: {
           created_at?: string
           event_date?: string | null
+          event_format?: string
           event_id: string
           event_type?: string | null
           future_bookings_count?: number | null
@@ -311,6 +313,7 @@ export type Database = {
         Update: {
           created_at?: string
           event_date?: string | null
+          event_format?: string
           event_id?: string
           event_type?: string | null
           future_bookings_count?: number | null

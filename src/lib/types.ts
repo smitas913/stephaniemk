@@ -66,10 +66,14 @@ export interface CustomerComputed {
   recently_contacted: boolean;
 }
 
+export const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
+export type EventFormat = typeof EVENT_FORMATS[number];
+
 export interface EventRecord {
   id: string;
   event_id: string;
   event_type: string | null;
+  event_format: string;
   event_date: string | null;
   hostess_name: string | null;
   guest_count: number;
