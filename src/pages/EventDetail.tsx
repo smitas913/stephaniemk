@@ -53,7 +53,7 @@ export default function EventDetail() {
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date || !event) return;
-    const dateStr = format(date, "yyyy-MM-dd");
+    const dateStr = toLocalDateKey(date);
     if (dateStr !== event.event_date) {
       eventMutation.mutate({ event_id: event.event_id, event_date: dateStr });
     }

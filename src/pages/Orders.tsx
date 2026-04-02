@@ -346,7 +346,7 @@ export default function Orders() {
               <TableBody>
                 {filtered.map((o) => (
                   <TableRow key={o.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate(`/orders/${o.id}/edit`)}>
-                    <TableCell className="text-xs whitespace-nowrap">{new Date(o.order_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{formatDateOnly(o.order_date)}</TableCell>
                     <TableCell className="text-sm font-medium">{o.customer_name || o.customers?.full_name || "—"}</TableCell>
                     <TableCell className="text-sm font-semibold text-right">${Number(o.retail_amount).toFixed(2)}</TableCell>
                     <TableCell>

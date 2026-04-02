@@ -125,7 +125,7 @@ export default function EditOrder() {
             <div>
               <h2 className="text-xl font-bold text-foreground">Edit Order</h2>
               <p className="text-sm text-muted-foreground">
-                {order.customer_name || order.customers?.full_name || "Unknown"} · {new Date(order.order_date).toLocaleDateString()}
+                {order.customer_name || order.customers?.full_name || "Unknown"} · {formatDateOnly(order.order_date)}
               </p>
             </div>
           </div>

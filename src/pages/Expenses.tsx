@@ -153,7 +153,7 @@ export default function Expenses() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {new Date(e.expense_date).toLocaleDateString()}
+                      {formatDateOnly(e.expense_date)}
                       {e.notes && ` — ${e.notes}`}
                     </p>
                   </div>

@@ -385,7 +385,7 @@ export default function CustomerDetail() {
                 {orders.map((o) => (
                   <div key={o.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{new Date(o.order_date).toLocaleDateString()}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatDateOnly(o.order_date)}</p>
                       <div className="flex gap-2 mt-0.5">
                         {o.order_type && <span className="text-xs px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{o.order_type}</span>}
                         {o.payment_type && <span className="text-xs text-muted-foreground">{o.payment_type}</span>}

@@ -158,9 +158,9 @@ export default function Prospects() {
                   <div className="flex items-center gap-2 shrink-0">
                     {p.next_follow_up_date && (
                       <span className={cn("text-[10px] font-medium",
-                        new Date(p.next_follow_up_date) < new Date(new Date().toDateString()) ? "text-red-600" : "text-muted-foreground"
+                        compareDateOnly(p.next_follow_up_date) === -1 ? "text-red-600" : "text-muted-foreground"
                       )}>
-                        FU: {new Date(p.next_follow_up_date).toLocaleDateString()}
+                        FU: {formatDateOnly(p.next_follow_up_date)}
                       </span>
                     )}
                     <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>

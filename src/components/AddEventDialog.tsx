@@ -54,7 +54,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
 
   const resetForm = () => {
     setEventType("Party");
-    setEventDate(new Date().toISOString().split("T")[0]);
+    setEventDate(toLocalDateKey());
     setHostessName("");
   };
 

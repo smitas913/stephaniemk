@@ -351,7 +351,7 @@ export default function BookingLeads() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
                     <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
                   </label>
-                  <Input type="date" value={form.next_follow_up_date} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
+                  <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
