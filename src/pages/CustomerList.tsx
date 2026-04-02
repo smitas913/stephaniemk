@@ -368,7 +368,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterFollowUp === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterFollowUp(opt.value)}
+                              onClick={() => { setFilterFollowUp(opt.value); setFuOpen(false); }}
                             >
                               {opt.label}
                             </button>
