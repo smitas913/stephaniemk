@@ -22,6 +22,17 @@ import { cn } from "@/lib/utils";
 import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw, ChevronRight, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
+import {
+  formatDateOnly,
+  getDateOnlyTime,
+  getDaysOverdue,
+  getFollowUpStatus,
+  getLocalToday,
+  isDueTodayOrEarlier,
+  normalizeDateOnly,
+  parseLocalDate,
+  toLocalDateKey,
+} from "@/lib/dateOnly";
 
 const MONTH_NAME_TO_NUMBER: Record<string, number> = {
   january: 1,
@@ -38,65 +49,11 @@ const MONTH_NAME_TO_NUMBER: Record<string, number> = {
   december: 12,
 };
 
-function parseLocalDate(dateStr: string): Date {
-  const normalized = dateStr.slice(0, 10);
-  const [y, m, d] = normalized.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-function getLocalToday(): Date {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return today;
-}
-
-function toLocalDateKey(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function normalizeDateOnly(dateStr: string | null | undefined): string | null {
-  if (!dateStr) return null;
-  const trimmed = dateStr.trim();
-  if (!trimmed) return null;
-  const match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (!match) return null;
-  const [, year, month, day] = match;
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-function getDateOnlyTime(dateStr: string | null | undefined): number | null {
-  const normalized = normalizeDateOnly(dateStr);
-  if (!normalized) return null;
-  const parsed = parseLocalDate(normalized);
-  const time = parsed.getTime();
-  return Number.isNaN(time) ? null : time;
-}
-
-function formatDateOnly(dateStr: string | null | undefined, pattern = "M/d/yyyy"): string {
-  if (!dateStr) return "—";
-  return format(parseLocalDate(dateStr), pattern);
-}
-
-function getFollowUpStatus(dateStr: string | null | undefined, todayKey = toLocalDateKey(getLocalToday())): "" | "OVERDUE" | "TODAY" | "UPCOMING" {
-  const normalized = normalizeDateOnly(dateStr);
-  if (!normalized) return "";
-  if (normalized < todayKey) return "OVERDUE";
-  if (normalized === todayKey) return "TODAY";
-  return "UPCOMING";
-}
-
-function isDueTodayOrEarlier(dateStr: string | null | undefined, todayKey = toLocalDateKey(getLocalToday())): boolean {
-  const normalized = normalizeDateOnly(dateStr);
-  return normalized !== null && normalized <= todayKey;
-}
-
-function getDaysOverdue(dateStr: string | null | undefined, today = getLocalToday()): number | null {
-  const dueTime = getDateOnlyTime(dateStr);
-  if (dueTime === null || dueTime >= today.getTime()) return null;
-  return Math.floor((today.getTime() - dueTime) / (1000 * 60 * 60 * 24));
+function normalizeFollowUpDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const sliced = value.trim().slice(0, 10);
+  if (!sliced) return null;
+  return normalizeDateOnly(sliced);
 }
 
 type Enriched = Customer & CustomerComputed;
