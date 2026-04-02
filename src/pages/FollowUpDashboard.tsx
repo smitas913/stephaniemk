@@ -4,7 +4,7 @@ import { fetchCustomers, fetchOrders, fetchExpenses, fetchEvents } from "@/lib/q
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, OrderWithCustomer, Expense, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
-import TodaysPlan from "@/components/TodaysPlan";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -216,7 +216,7 @@ export default function FollowUpDashboard() {
             </div>
           </div>
 
-          <TodaysPlan />
+          
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
