@@ -243,7 +243,7 @@ export default function CustomerList() {
                               className={cn("w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors",
                                 filterStatus === opt.value && "bg-accent font-medium"
                               )}
-                              onClick={() => setFilterStatus(opt.value)}
+                              onClick={() => { setFilterStatus(opt.value); setRelOpen(false); }}
                             >
                               {opt.label}
                             </button>
