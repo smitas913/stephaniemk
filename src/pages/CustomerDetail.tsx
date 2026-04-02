@@ -341,6 +341,13 @@ export default function CustomerDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <InfoRow label="Relationship" value={customer.relationship_status} />
                   <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
+                  <div className="flex flex-col gap-0.5 py-1.5">
+                    <span className="text-muted-foreground text-xs">Deliveries</span>
+                    <span className="text-foreground flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-muted-foreground" />
+                      {deliveryCount}
+                    </span>
+                  </div>
                 </div>
 
                 <SectionHeader title="Follow-Up & Activity" />
