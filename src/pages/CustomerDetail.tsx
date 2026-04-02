@@ -219,6 +219,8 @@ export default function CustomerDetail() {
             )}
           </CardContent>
         </Card>
+
+        <CustomerNotesTimeline customerId={id!} />
       </div>
     </Layout>
   );
