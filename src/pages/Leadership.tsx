@@ -6,6 +6,7 @@ import {
 } from "@/lib/queries";
 import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
+import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
