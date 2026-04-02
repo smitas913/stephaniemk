@@ -26,7 +26,6 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
 
     const periodRevenue = periodOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
-    // Event metrics filtered by period
     const periodEvents = events.filter((e) => {
       if (!e.event_date) return false;
       const d = parseISO(e.event_date);
@@ -36,6 +35,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
     const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
+    const avgFace = totalFaces > 0 ? periodRevenue / totalFaces : 0;
 
     const periodExpenses = expenses.filter((e) => {
       const d = parseISO(e.expense_date);
@@ -47,9 +47,20 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       if (o.payment_type === "MyShop") return s + Number((o as any).payout_amount || 0);
       return s + (Number(o.retail_amount || 0) - Number((o as any).wholesale_amount || 0));
     }, 0);
-    const expenseReserve = periodRevenue * 0.10;
-    const plannedNet = periodProfit - expenseReserve;
-    const actualNet = periodProfit - expenseReserve - totalExpenses;
+    const netProfit = periodProfit - totalExpenses;
+
+    // Conversion rate: ordering guests / total guests
+    const totalOrderingGuests = periodEvents.reduce((s, e) => s + Number(e.ordering_guest_count || 0), 0);
+    const conversionRate = totalFaces > 0 ? (totalOrderingGuests / totalFaces) * 100 : 0;
+
+    // Reorder rate: customers with 2+ orders in period / customers with any orders
+    const customerOrderCounts: Record<string, number> = {};
+    for (const o of periodOrders) {
+      customerOrderCounts[o.customer_id] = (customerOrderCounts[o.customer_id] || 0) + 1;
+    }
+    const totalOrderingCustomers = Object.keys(customerOrderCounts).length;
+    const repeatCustomers = Object.values(customerOrderCounts).filter((c) => c >= 2).length;
+    const reorderRate = totalOrderingCustomers > 0 ? (repeatCustomers / totalOrderingCustomers) * 100 : 0;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
@@ -87,7 +98,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, totalExpenses, periodProfit, plannedNet, actualNet, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
   }, [customers, orders, expenses, events, period]);
 }
 
