@@ -129,6 +129,12 @@ export default function Orders() {
         const d = new Date(o.order_date);
         return d.getMonth() === m && d.getFullYear() === y;
       });
+    } else if (filterMonth === "ytd") {
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      result = result.filter((o) => {
+        const d = new Date(o.order_date);
+        return d >= yearStart && d <= now;
+      });
     } else if (filterMonth !== "all") {
       const mi = parseInt(filterMonth);
       result = result.filter((o) => {
