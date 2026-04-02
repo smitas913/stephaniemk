@@ -220,7 +220,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
