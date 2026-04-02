@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Customer, Order, OrderWithCustomer, EventRecord, CustomerNote, Prospect, ProspectNote, Expense, Income } from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income } from "./types";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
@@ -156,7 +156,7 @@ export const fetchEvents = async (): Promise<EventRecord[]> => {
   return data as unknown as EventRecord[];
 };
 
-export const upsertEvent = async (event: { event_id: string; guest_count?: number; event_date?: string | null; event_type?: string | null; hostess_name?: string; notes?: string | null }) => {
+export const upsertEvent = async (event: { event_id: string; guest_count?: number; ordering_guest_count?: number; event_date?: string | null; event_type?: string | null; hostess_name?: string; notes?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("events")
@@ -165,6 +165,65 @@ export const upsertEvent = async (event: { event_id: string; guest_count?: numbe
     .single();
   if (error) throw error;
   return data;
+};
+
+// Event Guests
+export const fetchEventGuests = async (eventId: string): Promise<EventGuest[]> => {
+  const { data, error } = await supabase
+    .from("event_guests")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data as unknown as EventGuest[];
+};
+
+export const fetchAllEventGuests = async (): Promise<EventGuest[]> => {
+  const { data, error } = await supabase
+    .from("event_guests")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data as unknown as EventGuest[];
+};
+
+export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; notes?: string | null }) => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("event_guests")
+    .insert({ ...guest, owner_user_id: userId } as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as EventGuest;
+};
+
+export const deleteEventGuest = async (id: string) => {
+  const { error } = await supabase.from("event_guests").delete().eq("id", id);
+  if (error) throw error;
+};
+
+export const convertGuestToCustomer = async (guest: EventGuest) => {
+  const userId = await getCurrentUserId();
+  // Create customer
+  const { data: customer, error: cErr } = await supabase
+    .from("customers")
+    .insert({
+      full_name: guest.name,
+      phone: guest.phone,
+      relationship_status: "Customer",
+      owner_user_id: userId,
+    } as any)
+    .select()
+    .single();
+  if (cErr) throw cErr;
+  // Link guest to customer
+  const { error: gErr } = await supabase
+    .from("event_guests")
+    .update({ converted_customer_id: customer.id } as any)
+    .eq("id", guest.id);
+  if (gErr) throw gErr;
+  return customer;
 };
 
 export const updateEvent = async (eventId: string, updates: Partial<EventRecord>) => {

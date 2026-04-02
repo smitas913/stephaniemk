@@ -127,6 +127,39 @@ export type Database = {
         }
         Relationships: []
       }
+      event_guests: {
+        Row: {
+          converted_customer_id: string | null
+          created_at: string
+          event_id: string
+          id: string
+          name: string
+          notes: string | null
+          owner_user_id: string | null
+          phone: string | null
+        }
+        Insert: {
+          converted_customer_id?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+        }
+        Update: {
+          converted_customer_id?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -137,6 +170,7 @@ export type Database = {
           hostess_name: string | null
           id: string
           notes: string | null
+          ordering_guest_count: number | null
           owner_user_id: string | null
           updated_at: string | null
         }
@@ -149,6 +183,7 @@ export type Database = {
           hostess_name?: string | null
           id?: string
           notes?: string | null
+          ordering_guest_count?: number | null
           owner_user_id?: string | null
           updated_at?: string | null
         }
@@ -161,6 +196,7 @@ export type Database = {
           hostess_name?: string | null
           id?: string
           notes?: string | null
+          ordering_guest_count?: number | null
           owner_user_id?: string | null
           updated_at?: string | null
         }

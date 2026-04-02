@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchOrders, deleteOrder, updateOrder, fetchEvents, upsertEvent } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
 import type { OrderWithCustomer, EventRecord } from "@/lib/types";
+import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -487,7 +488,8 @@ export default function Orders() {
                   const ev = eventsMap.get(eventId);
                   const guestCount = ev?.guest_count || 0;
                   const hostessName = ev?.hostess_name || "";
-                  const conversionRate = guestCount > 0 ? ((group.length / guestCount) * 100).toFixed(0) : null;
+                  const orderingCount = group.length;
+                  const conversionRate = guestCount > 0 ? ((orderingCount / guestCount) * 100).toFixed(0) : null;
                   return [
                     <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
                       <TableCell colSpan={2} className="text-xs font-medium">
@@ -498,7 +500,7 @@ export default function Orders() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {group.length} orders · ${groupTotal.toFixed(2)}
+                        {group.length} orders ({orderingCount} ordered) · ${groupTotal.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
                       <TableCell colSpan={9} className="text-xs">
@@ -540,7 +542,14 @@ export default function Orders() {
                         </div>
                       </TableCell>
                     </TableRow>,
-                    ...(isExpanded ? group.map((o) => renderOrderRow(o, true)) : []),
+                    ...(isExpanded ? [
+                      ...group.map((o) => renderOrderRow(o, true)),
+                      <TableRow key={`guests-${eventId}`}>
+                        <TableCell colSpan={13} className="p-0">
+                          <EventGuestPanel eventId={eventId} />
+                        </TableCell>
+                      </TableRow>,
+                    ] : []),
                   ];
                 })}
                 {standalone.map((o) => renderOrderRow(o))}

@@ -66,10 +66,22 @@ export interface EventRecord {
   event_date: string | null;
   hostess_name: string | null;
   guest_count: number;
+  ordering_guest_count: number | null;
   notes: string | null;
   owner_user_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface EventGuest {
+  id: string;
+  event_id: string;
+  name: string;
+  phone: string | null;
+  notes: string | null;
+  converted_customer_id: string | null;
+  owner_user_id: string | null;
+  created_at: string;
 }
 
 export const RELATIONSHIP_STATUSES = ["Prospect", "Customer", "VIP", "Consultant", "Former Consultant"] as const;
