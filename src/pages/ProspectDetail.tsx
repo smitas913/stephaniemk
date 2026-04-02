@@ -169,7 +169,7 @@ export default function ProspectDetail() {
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3 text-center">
-              <p className="text-lg font-bold text-foreground">{prospect.date_shared ? new Date(prospect.date_shared).toLocaleDateString() : "—"}</p>
+              <p className="text-lg font-bold text-foreground">{formatDateOnly(prospect.date_shared)}</p>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Date Shared</p>
             </CardContent>
           </Card>
