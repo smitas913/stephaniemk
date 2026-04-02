@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const adminNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/scoreboard", label: "Scoreboard", icon: Target },
+  { to: "/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/follow-ups", label: "Today", icon: Clock },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/events", label: "Events", icon: Calendar },

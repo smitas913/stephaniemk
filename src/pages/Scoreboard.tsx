@@ -25,13 +25,6 @@ type ConversionItem = {
   pct: number;
 };
 
-type MonthRow = {
-  label: string;
-  faces: number;
-  parties: number;
-  sharings: number;
-  newTeam: number;
-};
 
 function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
   return useMemo(() => {
