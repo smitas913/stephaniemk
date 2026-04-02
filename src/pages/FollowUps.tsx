@@ -78,6 +78,7 @@ type FollowUpItem = {
   opportunity_status?: string;
   new_follow_up_stage?: string | null;
   birthday_mmdd?: string | null;
+  birthday?: string | null;
   daysOverdue?: number | null;
   followUpReason?: string;
   lastNotePreview?: string;
@@ -94,8 +95,26 @@ function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } 
   return { month, day };
 }
 
-function daysToBirthday(mmdd: string | null): number | null {
-  const parsed = parseBirthdayMMDD(mmdd);
+/** Extract month/day from a birthday date field (YYYY-MM-DD) or birthday_mmdd field */
+function getBirthdayMonthDay(customer: { birthday?: string | null; birthday_mmdd?: string | null }): { month: number; day: number } | null {
+  // Try birthday_mmdd first
+  const fromMMDD = parseBirthdayMMDD(customer.birthday_mmdd ?? null);
+  if (fromMMDD) return fromMMDD;
+  // Fall back to birthday date field
+  if (customer.birthday) {
+    const dateStr = customer.birthday.slice(0, 10);
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { month, day };
+    }
+  }
+  return null;
+}
+
+function daysToBirthday(customer: { birthday?: string | null; birthday_mmdd?: string | null }): number | null {
+  const parsed = getBirthdayMonthDay(customer);
   if (!parsed) return null;
   const today = getLocalToday();
   let bday = new Date(today.getFullYear(), parsed.month - 1, parsed.day);
@@ -267,9 +286,12 @@ export default function FollowUps() {
     const todayDate = getLocalToday();
 
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
-      const derivedStatus = getFollowUpStatus(c.next_follow_up, todayDate);
+      // Use the raw DB next_follow_up_date first, fall back to computed
+      const rawFollowUp = c.next_follow_up_date || null;
+      const effectiveFollowUp = rawFollowUp || c.next_follow_up;
+      const derivedStatus = getFollowUpStatus(effectiveFollowUp, todayDate);
       const followUpStatus = derivedStatus || c.follow_up_status;
-      const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(c.next_follow_up, todayDate) : null;
+      const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
       const lastNote = notesByCustomer.get(c.id);
       const notePreview = lastNote
         ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
@@ -281,12 +303,13 @@ export default function FollowUps() {
         phone: c.phone,
         email: c.email,
         vip: c.vip,
-        next_follow_up: c.next_follow_up,
+        next_follow_up: effectiveFollowUp,
         follow_up_status: followUpStatus,
         activity_status: c.activity_status,
         days_since_last_order: c.days_since_last_order,
         new_follow_up_stage: c.new_follow_up_stage,
         birthday_mmdd: c.birthday_mmdd,
+        birthday: c.birthday,
         daysOverdue,
         followUpReason: computeFollowUpReason(c),
         lastNotePreview: notePreview,
@@ -334,7 +357,7 @@ export default function FollowUps() {
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
     const birthdaysUpcoming: (FollowUpItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
-      const days = daysToBirthday(c.birthday_mmdd || null);
+      const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
       else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });

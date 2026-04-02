@@ -3,6 +3,7 @@ export interface Customer {
   full_name: string;
   phone: string | null;
   email: string | null;
+  birthday: string | null;
   birthday_mmdd: string | null;
   address_line_1: string | null;
   address_line_2: string | null;
