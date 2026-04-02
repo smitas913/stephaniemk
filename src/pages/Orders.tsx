@@ -18,7 +18,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { OrderWithCustomer } from "@/lib/types";
+
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
