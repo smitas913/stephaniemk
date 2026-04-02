@@ -43,6 +43,8 @@ export default function AddOrder() {
   const [referral, setReferral] = useState(false);
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
+  const [wholesaleAmount, setWholesaleAmount] = useState("");
+  const [payoutAmount, setPayoutAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
