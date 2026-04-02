@@ -148,10 +148,12 @@ function useScoreboard(events: EventRecord[]) {
     const weekEvents = events.filter((e) => inRange(e.event_date, weekStart, weekEnd));
     const monthEvents = events.filter((e) => inRange(e.event_date, monthStart, monthEnd));
 
-    const weekFaces = weekEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+    const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
-    const monthFaces = monthEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+    const monthFaces = monthPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
 
     const dayOfWeek = differenceInDays(now, weekStart) + 1;
     const weekPace = dayOfWeek / 7;
@@ -175,7 +177,7 @@ function useScoreboard(events: EventRecord[]) {
     ];
 
     const monthly: ScoreItem[] = [
-      { label: "Parties", current: monthParties, goalLabel: "6–10", goalMin: 6, pct: Math.min((monthParties / 6) * 100, 100), status: getStatus(monthParties, 6, monthPace) },
+      { label: "Parties", current: monthParties, goalLabel: "8", goalMin: 8, pct: Math.min((monthParties / 8) * 100, 100), status: getStatus(monthParties, 8, monthPace) },
       { label: "Faces", current: monthFaces, goalLabel: "40", goalMin: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
     ];
 
@@ -288,7 +290,7 @@ export default function FollowUpDashboard() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-primary" />
-                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Weekly Scoreboard</CardTitle>
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Weekly Scoreboard — This Week</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -309,7 +311,7 @@ export default function FollowUpDashboard() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-primary" />
-                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Scoreboard</CardTitle>
+                      <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Monthly Scoreboard — This Month</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
