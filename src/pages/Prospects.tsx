@@ -114,7 +114,6 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
 
   const content = (
       <div className="space-y-5 pb-8">
-      <div className="space-y-5 pb-8">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Prospects</h2>
