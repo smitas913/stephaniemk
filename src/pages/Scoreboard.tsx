@@ -51,17 +51,8 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
 
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
-
-    const weekJoined = prospects.filter((p) =>
-      p.opportunity_status === "Joined" && inRange(p.updated_at, weekStart, weekEnd)
-    ).length;
-    const sharingConversion: ConversionItem = {
-      label: "Sharing Conversion Rate",
-      numerator: weekJoined,
-      denominator: weekSharing,
-      pct: weekSharing > 0 ? Math.round((weekJoined / weekSharing) * 1000) / 10 : 0,
-    };
 
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
     const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
@@ -70,6 +61,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const monthNewTeam = prospects.filter((p) =>
       p.opportunity_status === "Joined" && inRange(p.updated_at, monthStart, monthEnd)
     ).length;
+    const monthSharingConvPct = monthSharing > 0 ? Math.round((monthNewTeam / monthSharing) * 1000) / 10 : 0;
 
     const dayOfWeek = differenceInDays(now, weekStart) + 1;
     const weekPace = dayOfWeek / 7;
@@ -87,7 +79,8 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
 
     const weekly: ScoreItem[] = [
       { label: "Faces", current: weekFaces, goal: 10, pct: Math.min((weekFaces / 10) * 100, 100), status: getStatus(weekFaces, 10, weekPace) },
-      { label: "Sharing Appointments", current: weekSharing, goal: 5, pct: Math.min((weekSharing / 5) * 100, 100), status: getStatus(weekSharing, 5, weekPace) },
+      { label: "Parties", current: weekParties, goal: 2, pct: Math.min((weekParties / 2) * 100, 100), status: getStatus(weekParties, 2, weekPace) },
+      { label: "Sharings", current: weekSharing, goal: 5, pct: Math.min((weekSharing / 5) * 100, 100), status: getStatus(weekSharing, 5, weekPace) },
     ];
 
     const monthly: ScoreItem[] = [
@@ -96,6 +89,13 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       { label: "Sharings", current: monthSharing, goal: 20, pct: Math.min((monthSharing / 20) * 100, 100), status: getStatus(monthSharing, 20, monthPace) },
       { label: "New Team Members", current: monthNewTeam, goal: 3, pct: Math.min((monthNewTeam / 3) * 100, 100), status: getStatus(monthNewTeam, 3, monthPace) },
     ];
+
+    const monthlySharingConversion: ConversionItem = {
+      label: "Sharing Conversion",
+      numerator: monthNewTeam,
+      denominator: monthSharing,
+      pct: monthSharingConvPct,
+    };
 
     // Trends: last 6 months (including current)
     const trendMonths: MonthRow[] = [];
@@ -127,7 +127,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       newTeam: Math.round(last3.reduce((s, r) => s + r.newTeam, 0) / 3 * 10) / 10,
     };
 
-    return { weekly, monthly, sharingConversion, trendMonths, avg3 };
+    return { weekly, monthly, monthlySharingConversion, trendMonths, avg3 };
   }, [events, prospects]);
 }
 
@@ -151,7 +151,7 @@ export default function Scoreboard() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Scoreboard</h1>
           <p className="text-sm text-muted-foreground mt-1">Track your weekly and monthly execution goals</p>
@@ -163,6 +163,7 @@ export default function Scoreboard() {
           </div>
         ) : (
           <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* This Week */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
@@ -183,17 +184,6 @@ export default function Scoreboard() {
                     <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
                   </div>
                 ))}
-                <div className="space-y-1 pt-1 border-t border-border/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{scoreboard.sharingConversion.label}</span>
-                    <span className="text-lg font-bold tabular-nums text-primary">
-                      {scoreboard.sharingConversion.pct.toFixed(1)}%
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {scoreboard.sharingConversion.numerator} / {scoreboard.sharingConversion.denominator} sharing appointments
-                  </p>
-                </div>
               </CardContent>
             </Card>
 
@@ -217,52 +207,64 @@ export default function Scoreboard() {
                     <Progress value={item.pct} className={cn("h-2.5", PROGRESS_COLORS[item.status])} />
                   </div>
                 ))}
+                {/* Sharing Conversion */}
+                <div className="space-y-1 pt-1 border-t border-border/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">{scoreboard.monthlySharingConversion.label}</span>
+                    <span className="text-lg font-bold tabular-nums text-primary">
+                      {scoreboard.monthlySharingConversion.pct.toFixed(1)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {scoreboard.monthlySharingConversion.numerator} joined / {scoreboard.monthlySharingConversion.denominator} sharings
+                  </p>
+                </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Trends */}
-            <Card className="border-border/50 shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-base font-semibold text-foreground">Trends (Monthly)</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead className="text-xs">Month</TableHead>
-                        <TableHead className="text-xs text-center">Faces</TableHead>
-                        <TableHead className="text-xs text-center">Parties</TableHead>
-                        <TableHead className="text-xs text-center">Sharings</TableHead>
-                        <TableHead className="text-xs text-center">New Team</TableHead>
+          {/* Trends */}
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <CardTitle className="text-base font-semibold text-foreground">Trends (Monthly)</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="text-xs">Month</TableHead>
+                      <TableHead className="text-xs text-center">Faces</TableHead>
+                      <TableHead className="text-xs text-center">Parties</TableHead>
+                      <TableHead className="text-xs text-center">Sharings</TableHead>
+                      <TableHead className="text-xs text-center">New Team</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {scoreboard.trendMonths.map((row) => (
+                      <TableRow key={row.label}>
+                        <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
+                        <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {scoreboard.trendMonths.map((row) => (
-                        <TableRow key={row.label}>
-                          <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
-                          <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
-                        </TableRow>
-                      ))}
-                      {/* Average row */}
-                      <TableRow className="border-t-2 border-border bg-muted/20">
-                        <TableCell className="text-sm font-semibold text-foreground">{scoreboard.avg3.label}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.faces}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.parties}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.sharings}</TableCell>
-                        <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.newTeam}</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                    <TableRow className="border-t-2 border-border bg-muted/20">
+                      <TableCell className="text-sm font-semibold text-foreground">{scoreboard.avg3.label}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.faces}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.parties}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.sharings}</TableCell>
+                      <TableCell className="text-sm text-center font-semibold tabular-nums">{scoreboard.avg3.newTeam}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
           </div>
         )}
       </div>
