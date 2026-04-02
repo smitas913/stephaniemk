@@ -31,6 +31,7 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
 import Scoreboard from "./pages/Scoreboard";
+import Analytics from "./pages/Analytics";
 import BookingLeads from "./pages/BookingLeads";
 import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
