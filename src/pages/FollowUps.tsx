@@ -286,9 +286,12 @@ export default function FollowUps() {
     const todayDate = getLocalToday();
 
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
-      const derivedStatus = getFollowUpStatus(c.next_follow_up, todayDate);
+      // Use the raw DB next_follow_up_date first, fall back to computed
+      const rawFollowUp = c.next_follow_up_date || null;
+      const effectiveFollowUp = rawFollowUp || c.next_follow_up;
+      const derivedStatus = getFollowUpStatus(effectiveFollowUp, todayDate);
       const followUpStatus = derivedStatus || c.follow_up_status;
-      const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(c.next_follow_up, todayDate) : null;
+      const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
       const lastNote = notesByCustomer.get(c.id);
       const notePreview = lastNote
         ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
@@ -300,12 +303,13 @@ export default function FollowUps() {
         phone: c.phone,
         email: c.email,
         vip: c.vip,
-        next_follow_up: c.next_follow_up,
+        next_follow_up: effectiveFollowUp,
         follow_up_status: followUpStatus,
         activity_status: c.activity_status,
         days_since_last_order: c.days_since_last_order,
         new_follow_up_stage: c.new_follow_up_stage,
         birthday_mmdd: c.birthday_mmdd,
+        birthday: c.birthday,
         daysOverdue,
         followUpReason: computeFollowUpReason(c),
         lastNotePreview: notePreview,
