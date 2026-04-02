@@ -528,7 +528,7 @@ export const deleteBookingLead = async (id: string) => {
   if (error) throw error;
 };
 
-export const convertBookingLeadToCustomer = async (lead: BookingLead) => {
+export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEventIds: string[] = []) => {
   const userId = await getCurrentUserId();
   const { data: customer, error: cErr } = await supabase
     .from("customers")
@@ -543,11 +543,32 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead) => {
     .select()
     .single();
   if (cErr) throw cErr;
-  // Link lead to customer
+
+  // Mark lead as converted (Booked)
   const { error: uErr } = await supabase
     .from("booking_leads" as any)
     .update({ converted_customer_id: customer.id, status: "Booked" } as any)
     .eq("id", lead.id);
   if (uErr) throw uErr;
-  return customer;
+
+  // Auto-create an event for the booking
+  const { generateEventId } = await import("./eventId");
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const eventType = "Party"; // default type, editable on event detail
+  const eventId = generateEventId(eventType, dateStr, lead.name, existingEventIds);
+  const { error: evErr } = await supabase
+    .from("events")
+    .insert({
+      event_id: eventId,
+      event_type: eventType,
+      event_date: null, // date TBD, user sets on event page
+      hostess_name: lead.name,
+      guest_count: 0,
+      owner_user_id: userId,
+      notes: lead.notes ? `Converted from booking lead. ${lead.notes}` : "Converted from booking lead.",
+    } as any);
+  if (evErr) throw evErr;
+
+  return { customer, eventId };
 };
