@@ -279,7 +279,10 @@ export default function ImportCustomers() {
                       <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       <Select
                         value={mapping[header] || "unmapped"}
-                        onValueChange={(v) => setMapping({ ...mapping, [header]: v === "unmapped" ? "" : (v as DestField) })}
+                        onValueChange={(v) => {
+                          const nextValue = v === "unmapped" ? "" : (v as DestField);
+                          setMapping(applyForcedLastContactedMapping(csvHeaders, { ...mapping, [header]: nextValue }));
+                        }}
                         disabled={header === forcedLastContactedHeader}
                       >
                         <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>

@@ -37,11 +37,12 @@ export function planCustomerImportUpdate(existing: Customer, record: CustomerImp
 } {
   const updates: CustomerImportRecord = {};
   let lastContactedDecision: LastContactedDecision = "missing";
+  const existingRecord = existing as unknown as Record<string, string | null | undefined>;
 
   for (const [key, value] of Object.entries(record)) {
     if (key === "full_name" || value === null || value === "") continue;
 
-    const existingValue = (existing as Record<string, string | null | undefined>)[key];
+    const existingValue = existingRecord[key];
 
     if (key === "last_contacted") {
       if (!existingValue || new Date(value).getTime() > new Date(existingValue).getTime()) {
