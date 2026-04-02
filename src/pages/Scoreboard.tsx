@@ -265,7 +265,7 @@ export default function Scoreboard() {
               </div>
             </CardContent>
           </Card>
-        
+          </div>
         )}
       </div>
     </Layout>
