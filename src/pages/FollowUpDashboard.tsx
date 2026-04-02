@@ -266,7 +266,7 @@ export default function FollowUpDashboard() {
                                 {c.follow_up_status}
                               </span>
                             )}
-                            {c.category && <p className="text-[10px] text-muted-foreground mt-0.5">{c.category}</p>}
+                            {c.activity_status && <p className="text-[10px] text-muted-foreground mt-0.5">{c.activity_status}</p>}
                           </div>
                         </div>
                       ))}
