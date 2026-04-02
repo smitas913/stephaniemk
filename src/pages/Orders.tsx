@@ -271,6 +271,7 @@ export default function Orders() {
             <SelectTrigger className="h-9 w-[120px]"><SelectValue placeholder="Payment" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Payments</SelectItem>
+              <SelectItem value="__unpaid__">Unpaid</SelectItem>
               {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
