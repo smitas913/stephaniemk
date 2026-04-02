@@ -299,11 +299,8 @@ export default function ProspectDetail() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <InfoRow label="Phone" value={prospect.phone} />
                 <InfoRow label="Email" value={prospect.email} />
-                <InfoRow label="Date Shared" value={prospect.date_shared} />
-                <InfoRow label="Last Contact" value={prospect.last_contact_date} />
-                <InfoRow label="Next Step" value={prospect.next_step_type} />
-                <InfoRow label="Next Step Date" value={prospect.next_step_date} />
-                {prospect.next_step_notes && <div className="sm:col-span-2"><span className="text-muted-foreground">Step Notes:</span> {prospect.next_step_notes}</div>}
+                <InfoRow label="Date Shared" value={prospect.date_shared ? formatDateOnly(prospect.date_shared) : null} />
+                <InfoRow label="Last Contact" value={prospect.last_contact_date ? formatDateOnly(prospect.last_contact_date) : null} />
                 {prospect.notes && <div className="sm:col-span-2"><span className="text-muted-foreground">Notes:</span> {prospect.notes}</div>}
               </div>
             )}

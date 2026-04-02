@@ -180,27 +180,29 @@ export default function Prospects() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
                         {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
+                        <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
+                          {p.opportunity_status}
+                        </Badge>
                       </div>
-                      {(p.next_step_type || p.next_step_date) && (
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
+                        {p.next_step_type || p.next_step_date ? (
                           <span className={cn("text-xs truncate",
                             overdue ? "text-destructive font-medium" :
                             today ? "text-primary font-medium" :
                             "text-muted-foreground"
                           )}>
                             {p.next_step_type || "Next step"}
-                            {p.next_step_date && ` · ${formatDateOnly(p.next_step_date)}`}
-                            {overdue && " · Overdue"}
-                            {today && " · Today"}
+                            {p.next_step_date && ` • ${formatDateOnly(p.next_step_date, "MMM d")}`}
+                            {overdue && " • Overdue"}
+                            {today && " • Today"}
                           </span>
-                        </div>
-                      )}
+                        ) : (
+                          <span className="text-xs text-muted-foreground/60 italic">No next step scheduled</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
-                        {p.opportunity_status}
-                      </Badge>
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
