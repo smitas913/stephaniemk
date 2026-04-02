@@ -99,20 +99,23 @@ export default function FollowUpDashboard() {
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allExpenses = [] } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
-  const m = useMetrics(customers, allOrders, allExpenses, period);
+  const { data: allEvents = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const m = useMetrics(customers, allOrders, allExpenses, allEvents, period);
   const isLoading = cLoading || oLoading;
 
   const periodLabel = getShortLabel(period);
 
   const kpiCards = [
-    { label: `Sales ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
-    { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
-    { label: `Profit ${periodLabel}`, value: `$${m.periodProfit.toFixed(2)}`, icon: TrendingUp, accent: m.periodProfit >= 0 ? "text-green-600" : "text-red-600" },
-    { label: `Expenses ${periodLabel}`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-orange-600" },
-    { label: `10% Reserve`, value: `$${m.expenseReserve.toFixed(2)}`, icon: PiggyBank, accent: "text-amber-600" },
-    { label: `Planned Net`, value: `$${m.plannedNet.toFixed(2)}`, icon: Wallet, accent: m.plannedNet >= 0 ? "text-green-600" : "text-red-600" },
-    { label: `Actual Net`, value: `$${m.actualNet.toFixed(2)}`, icon: Wallet, accent: m.actualNet >= 0 ? "text-green-600" : "text-red-600" },
-    { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
+    // Activity metrics (left 4)
+    { label: `Total Sales`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
+    { label: `Total Faces`, value: String(m.totalFaces), icon: Users, accent: "text-primary" },
+    { label: `Total Parties`, value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
+    { label: `Total Facials`, value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
+    // Financial metrics (right 4)
+    { label: `Profit`, value: `$${m.periodProfit.toFixed(2)}`, icon: TrendingUp, accent: m.periodProfit >= 0 ? "text-primary" : "text-destructive" },
+    { label: `Expenses`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-muted-foreground" },
+    { label: `Planned Net`, value: `$${m.plannedNet.toFixed(2)}`, icon: Wallet, accent: m.plannedNet >= 0 ? "text-primary" : "text-destructive" },
+    { label: `Actual Net`, value: `$${m.actualNet.toFixed(2)}`, icon: Wallet, accent: m.actualNet >= 0 ? "text-primary" : "text-destructive" },
   ];
 
   return (
