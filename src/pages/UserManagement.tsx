@@ -339,6 +339,8 @@ export default function UserManagement({ embedded = false }: { embedded?: boolea
           {filtered.length} of {profiles.length} users shown
         </p>
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }

@@ -129,6 +129,8 @@ export default function ConsultantRequests({ embedded = false }: { embedded?: bo
           </div>
         )}
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }
