@@ -62,11 +62,19 @@ export const fetchOrder = async (id: string) => {
 
 export const createOrder = async (order: {
   customer_id: string;
+  customer_name?: string;
   order_date?: string;
-  source?: string;
-  payment_type?: string;
-  retail_total?: number;
+  event_id?: string;
+  order_type?: string;
+  face_type?: string;
+  hostess?: boolean;
+  half_price_deal?: boolean;
+  birthday?: boolean;
+  referral?: boolean;
+  payment_type?: string | null;
+  retail_amount?: number;
   notes?: string;
+  parent_event_id?: string | null;
 }) => {
   const { data, error } = await supabase.from("orders").insert(order as any).select().single();
   if (error) throw error;

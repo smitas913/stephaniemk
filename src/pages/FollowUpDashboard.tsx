@@ -23,37 +23,34 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[]) {
       return isWithinInterval(d, { start: monthStart, end: monthEnd });
     });
 
-    const monthRevenue = monthOrders.reduce((s, o) => s + Number(o.retail_total || 0), 0);
+    const monthRevenue = monthOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const monthCount = monthOrders.length;
     const avgOrder = monthCount > 0 ? monthRevenue / monthCount : 0;
 
-    // Outstanding: orders with no payment_type (unpaid indicator)
-    // Since we don't have payment_status anymore, we count orders where payment_type is null
     const unpaidOrders = orders.filter((o) => !o.payment_type);
-    const outstandingTotal = unpaidOrders.reduce((s, o) => s + Number(o.retail_total || 0), 0);
+    const outstandingTotal = unpaidOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
-    // Orders by source
-    const sourceMap: Record<string, number> = {};
+    // Orders by order_type
+    const typeMap: Record<string, number> = {};
     for (const o of monthOrders) {
-      const src = o.source || "Other";
-      sourceMap[src] = (sourceMap[src] || 0) + 1;
+      const t = o.order_type || "Other";
+      typeMap[t] = (typeMap[t] || 0) + 1;
     }
-    const ordersBySource = ["Text", "Phone", "Online", "In Person", "Other"].map((s) => ({
+    const ordersBySource = ["Reorder", "Party", "Facial", "Other"].map((s) => ({
       label: s,
-      count: sourceMap[s] || 0,
+      count: typeMap[s] || 0,
     }));
 
     // Revenue by payment method
     const payMap: Record<string, number> = {};
     for (const o of monthOrders) {
       const pt = o.payment_type || "None";
-      payMap[pt] = (payMap[pt] || 0) + Number(o.retail_total || 0);
+      payMap[pt] = (payMap[pt] || 0) + Number(o.retail_amount || 0);
     }
     const revenueByPayment = ["Cash", "Check", "Venmo", "Zelle", "Card", "Other", "None"]
       .map((p) => ({ label: p, amount: payMap[p] || 0 }))
       .filter((p) => p.amount > 0);
 
-    // Top 5 customers by YTD spend
     const enriched: Enriched[] = customers.map((c) => {
       const custOrders = orders.filter((o) => o.customer_id === c.id);
       return { ...c, ...computeCustomerFields(c, custOrders) };
@@ -63,7 +60,6 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[]) {
       .slice(0, 5)
       .filter((c) => c.retail_this_year > 0);
 
-    // Needs follow-up: overdue or no order in 45+ days
     const needsFollowUp = enriched
       .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY" || (c.days_since_last_order !== null && c.days_since_last_order >= 45))
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
@@ -101,7 +97,6 @@ export default function FollowUpDashboard() {
           </div>
         ) : (
           <>
-            {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {kpiCards.map((k) => (
                 <Card key={k.label} className="border-border/50 shadow-sm">
@@ -116,12 +111,10 @@ export default function FollowUpDashboard() {
               ))}
             </div>
 
-            {/* Middle Row: Source + Payment */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Orders by Source */}
               <Card className="border-border/50 shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Orders by Source</CardTitle>
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Orders by Type</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2.5">
                   {m.ordersBySource.map((s) => {
@@ -142,7 +135,6 @@ export default function FollowUpDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Revenue by Payment Method */}
               <Card className="border-border/50 shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Revenue by Payment Method</CardTitle>
@@ -168,9 +160,7 @@ export default function FollowUpDashboard() {
               </Card>
             </div>
 
-            {/* Bottom Row: Top Customers + Follow-Up */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Customers */}
               <Card className="border-border/50 shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers (YTD)</CardTitle>
@@ -181,11 +171,7 @@ export default function FollowUpDashboard() {
                   ) : (
                     <div className="space-y-1">
                       {m.topCustomers.map((c, i) => (
-                        <div
-                          key={c.id}
-                          className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                          onClick={() => navigate(`/customers/${c.id}`)}
-                        >
+                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
                             <div>
@@ -204,7 +190,6 @@ export default function FollowUpDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Needs Follow-Up */}
               <Card className="border-border/50 shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Needs Follow-Up</CardTitle>
@@ -215,11 +200,7 @@ export default function FollowUpDashboard() {
                   ) : (
                     <div className="space-y-1">
                       {m.needsFollowUp.map((c) => (
-                        <div
-                          key={c.id}
-                          className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                          onClick={() => navigate(`/customers/${c.id}`)}
-                        >
+                        <div key={c.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => navigate(`/customers/${c.id}`)}>
                           <div>
                             <p className="text-sm font-medium text-foreground">{c.full_name}</p>
                             <p className="text-xs text-muted-foreground">

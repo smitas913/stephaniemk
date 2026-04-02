@@ -10,11 +10,9 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   today.setHours(0, 0, 0, 0);
   const yearStart = startOfYear(today);
 
-  // last_order_effective
   const lastOrderEffective = customer.last_order_date_order_log || customer.last_order_mk || null;
   const lastOrderDate = lastOrderEffective ? parseISO(lastOrderEffective) : null;
 
-  // new_first_90_days
   let newFirst90 = "";
   if (customer.profile_date_first_order_date) {
     const pd = parseISO(customer.profile_date_first_order_date);
@@ -22,7 +20,6 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   }
   const isNew = newFirst90 === "New";
 
-  // category
   let category = "";
   if (customer.current_status !== "Consultant" && lastOrderDate) {
     const days = differenceInDays(today, lastOrderDate);
@@ -31,24 +28,20 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
     else category = "Dormant";
   }
 
-  // orders_this_year & retail_this_year
   const thisYearOrders = orders.filter((o) => {
     const d = parseISO(o.order_date);
     return d >= yearStart && d <= today;
   });
   const ordersThisYear = thisYearOrders.length;
-  const retailThisYear = thisYearOrders.reduce((s, o) => s + Number(o.retail_total || 0), 0);
+  const retailThisYear = thisYearOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
-  // vip
   const last365 = addDays(today, -365);
   const recentOrders = orders.filter((o) => parseISO(o.order_date) >= last365);
-  const recentTotal = recentOrders.reduce((s, o) => s + Number(o.retail_total || 0), 0);
+  const recentTotal = recentOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
   const vip = recentOrders.length >= 3 && recentTotal >= 300 ? "VIP" : "";
 
-  // days_since_last_order
   const daysSinceLastOrder = lastOrderDate ? differenceInDays(today, lastOrderDate) : null;
 
-  // next_follow_up
   let nextFollowUp: Date | null = null;
   if (lastOrderDate) {
     const stage = customer.new_follow_up_stage;
@@ -77,7 +70,6 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
     if (nextFollowUp) nextFollowUp = toBusinessDay(nextFollowUp);
   }
 
-  // follow_up_status
   let followUpStatus = "";
   if (nextFollowUp) {
     const nf = new Date(nextFollowUp);
