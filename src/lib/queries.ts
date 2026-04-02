@@ -179,6 +179,35 @@ export const upsertEvent = async (event: { event_id: string; guest_count?: numbe
   return data;
 };
 
+export const deleteEvent = async (eventId: string) => {
+  // Unlink orders that reference this event
+  const { error: oErr1 } = await supabase
+    .from("orders")
+    .update({ event_id: null } as any)
+    .eq("event_id", eventId);
+  if (oErr1) throw oErr1;
+
+  const { error: oErr2 } = await supabase
+    .from("orders")
+    .update({ parent_event_id: null } as any)
+    .eq("parent_event_id", eventId);
+  if (oErr2) throw oErr2;
+
+  // Delete event guests (they belong to the event)
+  const { error: gErr } = await supabase
+    .from("event_guests")
+    .delete()
+    .eq("event_id", eventId);
+  if (gErr) throw gErr;
+
+  // Delete the event itself
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("event_id", eventId);
+  if (error) throw error;
+};
+
 // Event Guests
 export const fetchEventGuests = async (eventId: string): Promise<EventGuest[]> => {
   const { data, error } = await supabase

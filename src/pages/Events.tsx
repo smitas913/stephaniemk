@@ -1,22 +1,39 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchEvents, fetchOrders } from "@/lib/queries";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchEvents, fetchOrders, deleteEvent } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Calendar, Users, DollarSign, Plus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Search, Calendar, Users, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { toast } from "sonner";
+import type { EventRecord } from "@/lib/types";
 
 export default function Events() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+
+  const deleteMutation = useMutation({
+    mutationFn: (eventId: string) => deleteEvent(eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["event-guests"] });
+      setDeleteTarget(null);
+      toast.success("Event deleted");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   // Calculate totals per event from orders
   const eventSales = useMemo(() => {
@@ -50,6 +67,8 @@ export default function Events() {
   const totalEvents = sorted.length;
   const totalSales = sorted.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
   const totalGuests = sorted.reduce((s, e) => s + (e.guest_count || 0), 0);
+
+  const deleteTargetLinkedCount = deleteTarget ? (eventSales.get(deleteTarget.event_id)?.orderCount || 0) : 0;
 
   return (
     <Layout>
@@ -123,13 +142,14 @@ export default function Events() {
                   <TableHead className="text-xs text-center">Bookings</TableHead>
                   <TableHead className="text-xs text-center">Sharings</TableHead>
                   <TableHead className="text-xs text-center">Conv %</TableHead>
+                  <TableHead className="text-xs w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sorted.map((e) => {
                   const sales = eventSales.get(e.event_id);
                   const orderCount = sales?.orderCount || 0;
-                  const totalSales = sales?.total || 0;
+                  const evTotalSales = sales?.total || 0;
                   const guestCount = e.guest_count || 0;
                   const convRate = guestCount > 0 ? ((orderCount / guestCount) * 100).toFixed(0) : "—";
 
@@ -150,7 +170,7 @@ export default function Events() {
                       <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{e.ordering_guest_count || orderCount || "—"}</TableCell>
                       <TableCell className="text-right text-sm font-semibold">
-                        {totalSales > 0 ? `$${totalSales.toFixed(2)}` : "—"}
+                        {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
                       </TableCell>
                       <TableCell className="text-center text-sm">{e.future_bookings_count || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{e.sharing_appointments_count || "—"}</TableCell>
@@ -161,6 +181,19 @@ export default function Events() {
                           )}>{convRate}%</span>
                         ) : "—"}
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setDeleteTarget(e);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -169,6 +202,34 @@ export default function Events() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span>Are you sure you want to delete <strong>{deleteTarget?.hostess_name || deleteTarget?.event_id}</strong>?</span>
+              {deleteTargetLinkedCount > 0 && (
+                <span className="block text-amber-600 font-medium">
+                  ⚠ This event has {deleteTargetLinkedCount} linked order{deleteTargetLinkedCount > 1 ? "s" : ""}. Orders will be unlinked (not deleted).
+                </span>
+              )}
+              <span className="block">Guest records for this event will be removed. Orders and customers will not be deleted.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.event_id)}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete Event"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
