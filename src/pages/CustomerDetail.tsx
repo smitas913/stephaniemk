@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ export default function CustomerDetail() {
         notes: customer.notes || "",
         new_follow_up_stage: customer.new_follow_up_stage || "",
         next_follow_up_date: customer.next_follow_up_date || "",
+        new_customer_flag: (customer as any).new_customer_flag ? "true" : "false",
       });
     }
   }, [customer]);
@@ -70,9 +72,13 @@ export default function CustomerDetail() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, string>) => {
-      const cleaned: Record<string, string | null> = {};
+      const cleaned: Record<string, any> = {};
       for (const [k, v] of Object.entries(data)) {
-        cleaned[k] = v === "" ? null : v;
+        if (k === "new_customer_flag") {
+          cleaned[k] = v === "true";
+        } else {
+          cleaned[k] = v === "" ? null : v;
+        }
       }
       if (cleaned.full_name === null) cleaned.full_name = customer!.full_name;
       return updateCustomer(id!, cleaned as any);
@@ -133,7 +139,7 @@ export default function CustomerDetail() {
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
             <div className="flex gap-2 mt-0.5">
-              {computed.new_first_90_days && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New</span>}
+              {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New Customer</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
               <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>
@@ -225,6 +231,15 @@ export default function CustomerDetail() {
                   </FormField>
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
+                  </FormField>
+                  <FormField label="New Customer">
+                    <div className="flex items-center gap-2 h-9">
+                      <Checkbox
+                        checked={(form as any).new_customer_flag === "true"}
+                        onCheckedChange={(checked) => setForm({ ...form, new_customer_flag: checked ? "true" : "false" } as any)}
+                      />
+                      <span className="text-sm text-muted-foreground">Mark as new customer</span>
+                    </div>
                   </FormField>
                 </div>
 

@@ -420,7 +420,7 @@ export default function CustomerList() {
                         </span>
                       )}
                     </TableCell>
-                     <TableCell>{c.relationship_status === "Consultant" ? <span className="text-muted-foreground">—</span> : statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
+                     <TableCell>{c.relationship_status === "Consultant" ? <span className="text-muted-foreground">—</span> : statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "No Orders" ? "bg-muted text-muted-foreground" : "")}</TableCell>
                      <TableCell className="text-sm">
                        {c.last_contacted ? (
                          <span>

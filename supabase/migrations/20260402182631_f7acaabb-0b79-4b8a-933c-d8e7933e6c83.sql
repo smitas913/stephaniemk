@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ADD COLUMN new_customer_flag boolean NOT NULL DEFAULT false;
