@@ -59,7 +59,6 @@ export default function CustomerDetail() {
       for (const [k, v] of Object.entries(data)) {
         cleaned[k] = v === "" ? null : v;
       }
-      // full_name must not be null
       if (cleaned.full_name === null) cleaned.full_name = customer!.full_name;
       return updateCustomer(id!, cleaned as any);
     },
@@ -98,7 +97,6 @@ export default function CustomerDetail() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate("/customers")}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex-1 min-w-0">
@@ -112,7 +110,6 @@ export default function CustomerDetail() {
           <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {statCards.map((s) => (
             <Card key={s.label} className="border-border/50 shadow-sm">
@@ -124,7 +121,6 @@ export default function CustomerDetail() {
           ))}
         </div>
 
-        {/* Editable Info */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Customer Info</CardTitle>
@@ -188,7 +184,6 @@ export default function CustomerDetail() {
           </CardContent>
         </Card>
 
-        {/* Order History */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Order History ({orders.length})</CardTitle>
@@ -206,12 +201,13 @@ export default function CustomerDetail() {
                     <div>
                       <p className="text-sm font-semibold text-foreground">{new Date(o.order_date).toLocaleDateString()}</p>
                       <div className="flex gap-2 mt-0.5">
-                        {o.source && <span className="text-xs px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{o.source}</span>}
+                        {o.order_type && <span className="text-xs px-1.5 py-0.5 rounded bg-accent text-accent-foreground">{o.order_type}</span>}
                         {o.payment_type && <span className="text-xs text-muted-foreground">{o.payment_type}</span>}
+                        {o.event_id && <span className="text-[10px] font-mono text-muted-foreground">{o.event_id}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-foreground">${Number(o.retail_total).toFixed(2)}</p>
+                      <p className="font-bold text-foreground">${Number(o.retail_amount).toFixed(2)}</p>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteOrderMut.mutate(o.id)}>
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </Button>
