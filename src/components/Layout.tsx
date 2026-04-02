@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils";
 const adminNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/scoreboard", label: "Scoreboard", icon: Target },
-  { to: "/customers", label: "Customers", icon: Users },
+  { to: "/follow-ups", label: "Today", icon: Clock },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/events", label: "Events", icon: Calendar },
-  { to: "/follow-ups", label: "Follow-Ups", icon: Clock },
+  { to: "/customers", label: "Customers", icon: Users },
   { to: "/prospects", label: "Prospects", icon: UserPlus },
   { to: "/expenses", label: "Expenses", icon: Receipt },
-  { to: "/admin", label: "Admin Tools", icon: Settings, adminOnly: true },
+  { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
 
 const consultantNavItems = [
