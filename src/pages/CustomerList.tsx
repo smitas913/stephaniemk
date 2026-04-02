@@ -116,8 +116,7 @@ export default function CustomerList() {
       const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
-      const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchNew;
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU;
     });
 
     if (sortByVip === "vip-first") {
@@ -127,7 +126,7 @@ export default function CustomerList() {
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive, sortByVip]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
