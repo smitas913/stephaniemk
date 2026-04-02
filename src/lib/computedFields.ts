@@ -8,6 +8,7 @@ function toBusinessDay(d: Date): Date {
 const RECENT_CONTACT_DAYS = 7;
 
 export function computeCustomerFields(customer: Customer, orders: Order[]): CustomerComputed {
+  const isConsultant = customer.relationship_status === "Consultant";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const yearStart = startOfYear(today);
