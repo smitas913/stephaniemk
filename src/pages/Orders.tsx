@@ -37,8 +37,6 @@ export default function Orders() {
   const [filterCustomer, setFilterCustomer] = useState("all");
   const [filterMonth, setFilterMonth] = useState("this-month");
   const [filterYear, setFilterYear] = useState(String(now.getFullYear()));
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [filterFaceType, setFilterFaceType] = useState("all");
