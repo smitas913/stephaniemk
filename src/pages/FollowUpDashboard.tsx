@@ -101,13 +101,13 @@ export default function FollowUpDashboard() {
   const periodLabel = getShortLabel(period);
 
   const kpiCards = [
-    { label: `Revenue ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
+    { label: `Sales ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
+    { label: `Profit ${periodLabel}`, value: `$${m.periodProfit.toFixed(2)}`, icon: TrendingUp, accent: m.periodProfit >= 0 ? "text-green-600" : "text-red-600" },
     { label: `Expenses ${periodLabel}`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-orange-600" },
-    { label: `Profit ${periodLabel}`, value: `$${m.netProfit.toFixed(2)}`, icon: TrendingUp, accent: m.netProfit >= 0 ? "text-green-600" : "text-red-600" },
-    { label: `10% Reserve ${periodLabel}`, value: `$${m.expenseReserve.toFixed(2)}`, icon: PiggyBank, accent: "text-amber-600" },
-    { label: `Net Income ${periodLabel}`, value: `$${m.netIncome.toFixed(2)}`, icon: Wallet, accent: m.netIncome >= 0 ? "text-green-600" : "text-red-600" },
-    { label: "Avg Order Value", value: `$${m.avgOrder.toFixed(2)}`, icon: TrendingUp, accent: "text-purple-600" },
+    { label: `10% Reserve`, value: `$${m.expenseReserve.toFixed(2)}`, icon: PiggyBank, accent: "text-amber-600" },
+    { label: `Planned Net`, value: `$${m.plannedNet.toFixed(2)}`, icon: Wallet, accent: m.plannedNet >= 0 ? "text-green-600" : "text-red-600" },
+    { label: `Actual Net`, value: `$${m.actualNet.toFixed(2)}`, icon: Wallet, accent: m.actualNet >= 0 ? "text-green-600" : "text-red-600" },
     { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
   ];
 
