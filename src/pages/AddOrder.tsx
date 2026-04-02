@@ -145,16 +145,40 @@ export default function AddOrder() {
 
     setSubmitting(true);
     try {
+      let resolvedCustomerId = customerId;
+      let resolvedCustomerName = customerName;
+
+      // Create new customer if needed
+      if (isNewCustomer && newCustName.trim() && !customerId) {
+        const birthdayMMDD = newCustBirthday ? (() => {
+          const parts = newCustBirthday.split("-");
+          return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
+        })() : null;
+
+        const newCust = await createCustomer({
+          full_name: newCustName.trim(),
+          phone: newCustPhone.trim() || null,
+          email: newCustEmail.trim() || null,
+          address_line_1: newCustAddress.trim() || null,
+          city: newCustCity.trim() || null,
+          state_territory: newCustState.trim() || null,
+          postal_code: newCustPostal.trim() || null,
+          birthday: newCustBirthday || null,
+          birthday_mmdd: birthdayMMDD,
+        } as any);
+        resolvedCustomerId = newCust.id;
+        resolvedCustomerName = newCust.full_name;
+      }
+
       let eventId: string | null = null;
 
       if (isEventBased && selectedEventId) {
-        // Use the selected event's event_id as parent, generate unique order event_id
         eventId = selectedEventId;
       }
 
       await createOrder({
-        customer_id: customerId,
-        customer_name: customerName,
+        customer_id: resolvedCustomerId,
+        customer_name: resolvedCustomerName,
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
@@ -167,16 +191,23 @@ export default function AddOrder() {
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-orders", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
 
       setSavedCount(prev => prev + 1);
-      toast.success(`Order saved for ${customerName}`);
+      toast.success(`Order saved for ${resolvedCustomerName}`);
 
       if (addAnother || bulkMode) {
-        // Reset per-order fields, keep event + type + date
         setCustomerId("");
         setCustomerName("");
         setCustomerSearch("");
+        setIsNewCustomer(false);
+        setNewCustName(""); setNewCustPhone(""); setNewCustEmail("");
+        setNewCustAddress(""); setNewCustCity(""); setNewCustState(""); setNewCustPostal("");
+        setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
+        setRetailAmount("");
+        setWholesaleAmount("");
+        setNotes("");
+        setPaymentType("");
         setRetailAmount("");
         setWholesaleAmount("");
         setNotes("");
