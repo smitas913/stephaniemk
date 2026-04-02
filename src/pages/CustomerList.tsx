@@ -144,8 +144,25 @@ export default function CustomerList() {
       result = [...result].sort((a, b) => (a.vip === "VIP" ? 1 : 0) - (b.vip === "VIP" ? 1 : 0));
     }
 
+    if (sortCol) {
+      const getVal = (c: EnrichedCustomer): string | null => {
+        if (sortCol === "last_contacted") return c.last_contacted;
+        if (sortCol === "last_order") return c.last_order_effective;
+        return c.next_follow_up;
+      };
+      const dir = sortDir === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const av = getVal(a);
+        const bv = getVal(b);
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return av < bv ? -dir : av > bv ? dir : 0;
+      });
+    }
+
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip, sortCol, sortDir]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
