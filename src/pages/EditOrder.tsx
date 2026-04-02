@@ -32,6 +32,7 @@ export default function EditOrder() {
   const [orderType, setOrderType] = useState("");
   const [faceType, setFaceType] = useState("");
   const [paymentType, setPaymentType] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [notes, setNotes] = useState("");
   const [hostess, setHostess] = useState(false);
   const [halfPrice, setHalfPrice] = useState(false);
