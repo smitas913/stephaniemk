@@ -121,7 +121,14 @@ export default function ImportCustomers() {
             for (const [k, v] of Object.entries(record)) {
               if (v !== null && v !== "" && k !== "full_name") {
                 const existingVal = (duplicate as any)[k];
-                if (existingVal === null || existingVal === undefined || existingVal === "") {
+                // For last_contacted: don't overwrite newer dates with older ones
+                if (k === "last_contacted" && existingVal && v) {
+                  const existingDate = new Date(existingVal);
+                  const newDate = new Date(v as string);
+                  if (newDate > existingDate) {
+                    updates[k] = v;
+                  }
+                } else if (existingVal === null || existingVal === undefined || existingVal === "") {
                   updates[k] = v;
                 }
               }
