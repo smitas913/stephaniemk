@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon, Receipt } from "lucide-react";
+import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon, Receipt, PiggyBank, Wallet } from "lucide-react";
 import { parseISO, isWithinInterval, startOfYear, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
 type Enriched = Customer & CustomerComputed;
@@ -96,6 +96,8 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     });
     const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
     const netProfit = periodRevenue - totalExpenses;
+    const expenseReserve = periodRevenue * 0.10;
+    const netIncome = netProfit - expenseReserve;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
@@ -133,7 +135,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, expenseReserve, netIncome, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
   }, [customers, orders, expenses, period]);
 }
 
@@ -193,7 +195,9 @@ export default function FollowUpDashboard() {
     { label: `Revenue ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
     { label: `Expenses ${periodLabel}`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-orange-600" },
-    { label: `Net ${periodLabel}`, value: `$${m.netProfit.toFixed(2)}`, icon: TrendingUp, accent: m.netProfit >= 0 ? "text-green-600" : "text-red-600" },
+    { label: `Profit ${periodLabel}`, value: `$${m.netProfit.toFixed(2)}`, icon: TrendingUp, accent: m.netProfit >= 0 ? "text-green-600" : "text-red-600" },
+    { label: `10% Reserve ${periodLabel}`, value: `$${m.expenseReserve.toFixed(2)}`, icon: PiggyBank, accent: "text-amber-600" },
+    { label: `Net Income ${periodLabel}`, value: `$${m.netIncome.toFixed(2)}`, icon: Wallet, accent: m.netIncome >= 0 ? "text-green-600" : "text-red-600" },
     { label: "Avg Order Value", value: `$${m.avgOrder.toFixed(2)}`, icon: TrendingUp, accent: "text-purple-600" },
     { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
   ];
@@ -258,7 +262,7 @@ export default function FollowUpDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {kpiCards.map((k) => (
                 <Card key={k.label} className="border-border/50 shadow-sm">
                   <CardContent className="p-5">
