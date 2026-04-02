@@ -260,7 +260,8 @@ export function buildCustomerRecord(row: ParsedRow): Record<string, string | nul
     state_territory: m.state || null,
     postal_code: m.zip || null,
     notes: m.notes || null,
-    birthday_mmdd: m.birthday || null,
+    birthday: m.birthday || null,
+    birthday_mmdd: m.birthday_mmdd || null,
     relationship_status: "Customer",
   } as any;
 }

@@ -61,6 +61,7 @@ export type Database = {
           address_line_1: string | null
           address_line_2: string | null
           archived_at: string | null
+          birthday: string | null
           birthday_mmdd: string | null
           city: string | null
           created_at: string
@@ -88,6 +89,7 @@ export type Database = {
           address_line_1?: string | null
           address_line_2?: string | null
           archived_at?: string | null
+          birthday?: string | null
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
@@ -115,6 +117,7 @@ export type Database = {
           address_line_1?: string | null
           address_line_2?: string | null
           archived_at?: string | null
+          birthday?: string | null
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
