@@ -20,6 +20,8 @@ import ConsultantRequests from "./pages/ConsultantRequests";
 import ConsultantRequest from "./pages/ConsultantRequest";
 import ImportCustomers from "./pages/ImportCustomers";
 import FollowUps from "./pages/FollowUps";
+import Prospects from "./pages/Prospects";
+import ProspectDetail from "./pages/ProspectDetail";
 import AdminTools from "./pages/AdminTools";
 import NotFound from "./pages/NotFound";
 
