@@ -294,7 +294,6 @@ export default function FollowUps() {
       };
     });
 
-    const todayStr = format(new Date(), "yyyy-MM-dd");
     const prospectItems: FollowUpItem[] = prospects
       .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
       .map((p) => {
