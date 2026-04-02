@@ -253,7 +253,7 @@ export default function CustomerList() {
                     </Popover>
                   </TableHead>
                   <TableHead>
-                    <Popover>
+                    <Popover open={vipOpen} onOpenChange={setVipOpen}>
                       <PopoverTrigger asChild>
                         <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                           <Star className="w-3.5 h-3.5" />
