@@ -187,22 +187,33 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const { overdue, todayList, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+  const { callsForToday, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
     // Customer follow-up items
-    const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => ({
-      id: c.id,
-      itemType: "customer" as const,
-      name: c.full_name,
-      phone: c.phone,
-      email: c.email,
-      vip: c.vip,
-      next_follow_up: c.next_follow_up,
-      follow_up_status: c.follow_up_status,
-      activity_status: c.activity_status,
-      days_since_last_order: c.days_since_last_order,
-      new_follow_up_stage: c.new_follow_up_stage,
-      birthday_mmdd: c.birthday_mmdd,
-    }));
+    const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
+      let daysOverdue: number | null = null;
+      if (c.follow_up_status === "OVERDUE" && c.next_follow_up) {
+        const nf = parseISO(c.next_follow_up);
+        daysOverdue = Math.floor((todayDate.getTime() - nf.getTime()) / (1000 * 60 * 60 * 24));
+      }
+      return {
+        id: c.id,
+        itemType: "customer" as const,
+        name: c.full_name,
+        phone: c.phone,
+        email: c.email,
+        vip: c.vip,
+        next_follow_up: c.next_follow_up,
+        follow_up_status: c.follow_up_status,
+        activity_status: c.activity_status,
+        days_since_last_order: c.days_since_last_order,
+        new_follow_up_stage: c.new_follow_up_stage,
+        birthday_mmdd: c.birthday_mmdd,
+        daysOverdue,
+      };
+    });
 
     // Prospect follow-up items
     const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -210,8 +221,13 @@ export default function FollowUps() {
       .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
       .map((p) => {
         let status = "UPCOMING";
-        if (p.next_follow_up_date! < todayStr) status = "OVERDUE";
-        else if (p.next_follow_up_date === todayStr) status = "TODAY";
+        let daysOverdue: number | null = null;
+        if (p.next_follow_up_date! < todayStr) {
+          status = "OVERDUE";
+          daysOverdue = Math.floor((todayDate.getTime() - parseISO(p.next_follow_up_date!).getTime()) / (1000 * 60 * 60 * 24));
+        } else if (p.next_follow_up_date === todayStr) {
+          status = "TODAY";
+        }
         return {
           id: p.id,
           itemType: "prospect" as const,
@@ -221,20 +237,24 @@ export default function FollowUps() {
           next_follow_up: p.next_follow_up_date,
           follow_up_status: status,
           opportunity_status: p.opportunity_status,
+          daysOverdue,
         };
       });
 
     const allItems = [...customerItems, ...prospectItems];
 
-    const overdue = allItems
-      .filter((c) => c.follow_up_status === "OVERDUE")
+    // Unified call list: overdue + today, sorted overdue-first (oldest first)
+    const callsForToday = allItems
+      .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY")
       .sort((a, b) => {
+        // Overdue before today
+        if (a.follow_up_status === "OVERDUE" && b.follow_up_status !== "OVERDUE") return -1;
+        if (a.follow_up_status !== "OVERDUE" && b.follow_up_status === "OVERDUE") return 1;
+        // Within same status, sort by date (oldest first)
         const aDate = a.next_follow_up ? parseISO(a.next_follow_up).getTime() : 0;
         const bDate = b.next_follow_up ? parseISO(b.next_follow_up).getTime() : 0;
         return aDate - bDate;
       });
-
-    const todayList = allItems.filter((c) => c.follow_up_status === "TODAY");
 
     // Birthdays (customers only)
     const birthdaysToday: (FollowUpItem & { _daysUntil?: number })[] = [];
@@ -247,7 +267,7 @@ export default function FollowUps() {
     }
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { overdue, todayList, birthdaysToday, birthdaysUpcoming };
+    return { callsForToday, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects]);
 
   const contactMutation = useMutation({
