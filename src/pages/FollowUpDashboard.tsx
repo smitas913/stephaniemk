@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchExpenses } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import type { Customer, CustomerComputed, OrderWithCustomer } from "@/lib/types";
+import type { Customer, CustomerComputed, OrderWithCustomer, Expense } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
+import { DollarSign, ShoppingBag, TrendingUp, AlertCircle, ChevronLeft, ChevronRight, CalendarIcon, Receipt } from "lucide-react";
 import { parseISO, isWithinInterval, startOfYear, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
 type Enriched = Customer & CustomerComputed;
@@ -74,7 +74,7 @@ function getShortLabel(period: PeriodValue): string {
   }
 }
 
-function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: PeriodValue) {
+function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses: Expense[], period: PeriodValue) {
   return useMemo(() => {
     const { start, end } = getDateRange(period);
 
@@ -89,6 +89,13 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: 
 
     const unpaidOrders = periodOrders.filter((o) => !o.payment_type);
     const outstandingTotal = unpaidOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+
+    const periodExpenses = expenses.filter((e) => {
+      const d = parseISO(e.expense_date);
+      return isWithinInterval(d, { start, end });
+    });
+    const totalExpenses = periodExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const netProfit = periodRevenue - totalExpenses;
 
     const typeMap: Record<string, number> = {};
     for (const o of periodOrders) {
@@ -126,8 +133,8 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: 
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { periodRevenue, periodCount, avgOrder, outstandingTotal, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
-  }, [customers, orders, period]);
+    return { periodRevenue, periodCount, avgOrder, outstandingTotal, totalExpenses, netProfit, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+  }, [customers, orders, expenses, period]);
 }
 
 function MonthYearPicker({ onSelect }: { onSelect: (year: number, month: number) => void }) {
@@ -176,7 +183,8 @@ export default function FollowUpDashboard() {
 
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
-  const m = useMetrics(customers, allOrders, period);
+  const { data: allExpenses = [] } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
+  const m = useMetrics(customers, allOrders, allExpenses, period);
   const isLoading = cLoading || oLoading;
 
   const periodLabel = getShortLabel(period);
@@ -184,6 +192,8 @@ export default function FollowUpDashboard() {
   const kpiCards = [
     { label: `Revenue ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
+    { label: `Expenses ${periodLabel}`, value: `$${m.totalExpenses.toFixed(2)}`, icon: Receipt, accent: "text-orange-600" },
+    { label: `Net ${periodLabel}`, value: `$${m.netProfit.toFixed(2)}`, icon: TrendingUp, accent: m.netProfit >= 0 ? "text-green-600" : "text-red-600" },
     { label: "Avg Order Value", value: `$${m.avgOrder.toFixed(2)}`, icon: TrendingUp, accent: "text-purple-600" },
     { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
   ];
@@ -248,7 +258,7 @@ export default function FollowUpDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
               {kpiCards.map((k) => (
                 <Card key={k.label} className="border-border/50 shadow-sm">
                   <CardContent className="p-5">

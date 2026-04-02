@@ -115,3 +115,16 @@ export interface ProspectNote {
   created_at: string;
   owner_user_id: string | null;
 }
+
+export const EXPENSE_CATEGORIES = ["Inventory", "Supplies", "Marketing", "Events", "Tools", "Other"] as const;
+
+export interface Expense {
+  id: string;
+  expense_date: string;
+  amount: number;
+  category: string;
+  notes: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}

@@ -166,6 +166,39 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          expense_date: string
+          id: string
+          notes: string | null
+          owner_user_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           id: string
@@ -494,6 +527,13 @@ export type Database = {
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
       consultant_status: "none" | "pending" | "approved" | "rejected"
+      expense_category:
+        | "Inventory"
+        | "Supplies"
+        | "Marketing"
+        | "Events"
+        | "Tools"
+        | "Other"
       opportunity_status:
         | "New"
         | "Shared"
@@ -633,6 +673,14 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
       consultant_status: ["none", "pending", "approved", "rejected"],
+      expense_category: [
+        "Inventory",
+        "Supplies",
+        "Marketing",
+        "Events",
+        "Tools",
+        "Other",
+      ],
       opportunity_status: [
         "New",
         "Shared",
