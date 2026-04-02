@@ -249,8 +249,8 @@ export default function Orders() {
     { label: "Total Orders", value: String(summary.totalOrders), icon: ShoppingBag, accent: "text-blue-600" },
     { label: "Total Retail", value: `$${summary.totalRetail.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: "Reorders", value: `$${summary.reorderTotal.toFixed(2)}`, icon: RotateCcw, accent: "text-purple-600" },
-    { label: "Party", value: `$${summary.partyTotal.toFixed(2)}`, icon: Users, accent: "text-pink-600" },
-    { label: "Facial", value: `$${summary.facialTotal.toFixed(2)}`, icon: Sparkles, accent: "text-amber-600" },
+    { label: `Parties (${summary.partyCount})`, value: `$${summary.partyTotal.toFixed(2)}`, icon: Users, accent: "text-pink-600" },
+    { label: "Avg/Party", value: `$${summary.avgPartySales.toFixed(2)} · ${summary.avgOrdersPerParty.toFixed(1)} orders`, icon: Sparkles, accent: "text-amber-600" },
   ];
 
   const renderOrderRow = (o: OrderWithCustomer, isChild = false) => (
