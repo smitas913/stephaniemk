@@ -83,6 +83,10 @@ export default function AdminTools() {
               </Card>
             </div>
           </TabsContent>
+
+          <TabsContent value="deliveries">
+            <DeliveryTracking />
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>
