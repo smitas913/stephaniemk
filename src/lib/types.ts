@@ -59,6 +59,17 @@ export interface CustomerComputed {
   follow_up_status: string;
 }
 
+export interface EventRecord {
+  id: string;
+  event_id: string;
+  event_date: string | null;
+  guest_count: number;
+  notes: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const CUSTOMER_STATUSES = ["Customer", "Consultant", "Former Consultant"] as const;
 export const ORDER_TYPES = ["Reorder", "Party", "Facial"] as const;
 export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
