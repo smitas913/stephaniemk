@@ -67,13 +67,15 @@ export default function ConsultantRequests({ embedded = false }: { embedded?: bo
 
   const content = (
       <div className="max-w-2xl mx-auto space-y-5 pb-8">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="w-6 h-6 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Consultant Requests</h2>
-            <p className="text-sm text-muted-foreground">Review pending consultant applications</p>
+        {!embedded && (
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-6 h-6 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Consultant Requests</h2>
+              <p className="text-sm text-muted-foreground">Review pending consultant applications</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading…</div>
