@@ -102,7 +102,8 @@ export default function AddOrder() {
   const existingPartyEvents = useMemo(() => {
     const ids = new Set<string>();
     allOrders.forEach((o) => {
-      if (o.order_type === "Party" && o.event_id) ids.add(o.event_id);
+      const t = o.order_type;
+      if ((t === "Party" || t === "Facial" || t === "Appointment") && o.event_id) ids.add(o.event_id);
       if (o.parent_event_id) ids.add(o.parent_event_id);
     });
     return Array.from(ids);
