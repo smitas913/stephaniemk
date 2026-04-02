@@ -62,7 +62,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   if (!isConsultant && hasManualDate) {
     nextFollowUp = parseISO(customer.next_follow_up_date!);
-  } else if (lastOrderDate) {
+  } else if (!isConsultant && lastOrderDate) {
     const stage = customer.new_follow_up_stage;
     const base = lastContacted || lastOrderDate;
 
