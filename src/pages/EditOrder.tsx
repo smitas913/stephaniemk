@@ -195,15 +195,32 @@ export default function EditOrder() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Payment</label>
-                <Select value={paymentType || "__none__"} onValueChange={(v) => setPaymentType(v === "__none__" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— Unpaid</SelectItem>
-                    {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs font-medium text-muted-foreground">Payment Status</label>
+                <div className="flex gap-1.5">
+                  {(["Paid", "Unpaid"] as const).map(s => (
+                    <button key={s} type="button"
+                      className={cn("h-9 px-4 rounded-md text-xs font-medium border transition-colors",
+                        paymentStatus === s
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                      onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+                    >{s}</button>
+                  ))}
+                </div>
               </div>
+              {paymentStatus === "Paid" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
+                  <Select value={paymentType || "__none__"} onValueChange={(v) => setPaymentType(v === "__none__" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Select</SelectItem>
+                      {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-5">
