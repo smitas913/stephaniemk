@@ -50,9 +50,27 @@ function getLocalToday(): Date {
   return today;
 }
 
-function getDateOnlyTime(dateStr: string | null | undefined): number | null {
+function toLocalDateKey(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeDateOnly(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
-  const parsed = parseLocalDate(dateStr);
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function getDateOnlyTime(dateStr: string | null | undefined): number | null {
+  const normalized = normalizeDateOnly(dateStr);
+  if (!normalized) return null;
+  const parsed = parseLocalDate(normalized);
   const time = parsed.getTime();
   return Number.isNaN(time) ? null : time;
 }
@@ -62,18 +80,17 @@ function formatDateOnly(dateStr: string | null | undefined, pattern = "M/d/yyyy"
   return format(parseLocalDate(dateStr), pattern);
 }
 
-function getFollowUpStatus(dateStr: string | null | undefined, today = getLocalToday()): "" | "OVERDUE" | "TODAY" | "UPCOMING" {
-  const dueTime = getDateOnlyTime(dateStr);
-  if (dueTime === null) return "";
-  const todayTime = today.getTime();
-  if (dueTime < todayTime) return "OVERDUE";
-  if (dueTime === todayTime) return "TODAY";
+function getFollowUpStatus(dateStr: string | null | undefined, todayKey = toLocalDateKey(getLocalToday())): "" | "OVERDUE" | "TODAY" | "UPCOMING" {
+  const normalized = normalizeDateOnly(dateStr);
+  if (!normalized) return "";
+  if (normalized < todayKey) return "OVERDUE";
+  if (normalized === todayKey) return "TODAY";
   return "UPCOMING";
 }
 
-function isDueTodayOrEarlier(dateStr: string | null | undefined, today = getLocalToday()): boolean {
-  const dueTime = getDateOnlyTime(dateStr);
-  return dueTime !== null && dueTime <= today.getTime();
+function isDueTodayOrEarlier(dateStr: string | null | undefined, todayKey = toLocalDateKey(getLocalToday())): boolean {
+  const normalized = normalizeDateOnly(dateStr);
+  return normalized !== null && normalized <= todayKey;
 }
 
 function getDaysOverdue(dateStr: string | null | undefined, today = getLocalToday()): number | null {
@@ -334,12 +351,11 @@ export default function FollowUps() {
 
   const { callsForToday, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
     const todayDate = getLocalToday();
+    const todayKey = toLocalDateKey(todayDate);
 
     const customerItems: FollowUpItem[] = enrichedCustomers.map((c) => {
-      // Use the raw DB next_follow_up_date first, fall back to computed
-      const rawFollowUp = c.next_follow_up_date || null;
-      const effectiveFollowUp = rawFollowUp || c.next_follow_up;
-      const derivedStatus = getFollowUpStatus(effectiveFollowUp, todayDate);
+      const effectiveFollowUp = normalizeDateOnly(c.next_follow_up_date) || normalizeDateOnly(c.next_follow_up);
+      const derivedStatus = getFollowUpStatus(effectiveFollowUp, todayKey);
       const followUpStatus = derivedStatus || c.follow_up_status;
       const daysOverdue = followUpStatus === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
       const lastNote = notesByCustomer.get(c.id);
@@ -370,7 +386,8 @@ export default function FollowUps() {
     const prospectItems: FollowUpItem[] = prospects
       .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
       .map((p) => {
-        const status = getFollowUpStatus(p.next_follow_up_date, todayDate) || "UPCOMING";
+        const effectiveFollowUp = normalizeDateOnly(p.next_follow_up_date);
+        const status = getFollowUpStatus(effectiveFollowUp, todayKey) || "UPCOMING";
         const daysOverdue = status === "OVERDUE" ? getDaysOverdue(p.next_follow_up_date, todayDate) : null;
         return {
           id: p.id,
@@ -378,7 +395,7 @@ export default function FollowUps() {
           name: p.name,
           phone: p.phone,
           email: p.email,
-          next_follow_up: p.next_follow_up_date,
+          next_follow_up: effectiveFollowUp,
           follow_up_status: status,
           opportunity_status: p.opportunity_status,
           daysOverdue,
@@ -392,7 +409,7 @@ export default function FollowUps() {
     const callsForToday = allItems
       .filter((c) => {
         const includedByDate = c.next_follow_up
-          ? isDueTodayOrEarlier(c.next_follow_up, todayDate)
+          ? isDueTodayOrEarlier(c.next_follow_up, todayKey)
           : c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
         return includedByDate;
       })
@@ -419,16 +436,16 @@ export default function FollowUps() {
 
   // Booking leads due today/overdue
   const bookingLeadsDue = useMemo(() => {
-    const todayDate = getLocalToday();
+    const todayKey = toLocalDateKey();
     return bookingLeads
-      .filter((l) => l.status !== "Booked" && l.status !== "Not Interested" && l.next_follow_up_date && isDueTodayOrEarlier(l.next_follow_up_date, todayDate))
+      .filter((l) => l.status !== "Booked" && l.status !== "Not Interested" && l.next_follow_up_date && isDueTodayOrEarlier(l.next_follow_up_date, todayKey))
       .sort((a, b) => (getDateOnlyTime(a.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER) - (getDateOnlyTime(b.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER));
   }, [bookingLeads]);
 
   const bookingLeadContactMut = useMutation({
     mutationFn: async (lead: BookingLead) => {
       await updateBookingLead(lead.id, {
-        last_contact_date: format(new Date(), "yyyy-MM-dd"),
+        last_contact_date: toLocalDateKey(),
         status: lead.status === "New" ? "Contacted" : lead.status,
       });
     },
@@ -442,7 +459,7 @@ export default function FollowUps() {
 
   const contactMutation = useMutation({
     mutationFn: async ({ item, note, type, nextDate }: { item: FollowUpItem; note: string; type: string; nextDate?: string }) => {
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = toLocalDateKey();
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
@@ -573,9 +590,6 @@ export default function FollowUps() {
               {callsForToday.length} call{callsForToday.length !== 1 ? "s" : ""} · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={openDistributeDialog}>
-            <CalendarRange className="w-4 h-4 mr-1" />Distribute
-          </Button>
         </div>
 
         {isLoading ? (
@@ -696,7 +710,7 @@ export default function FollowUps() {
                               <Input
                                 type="date"
                                 value={inlineFollowUpDate}
-                                min={format(new Date(), "yyyy-MM-dd")}
+                                min={toLocalDateKey()}
                                 onChange={(e) => setInlineFollowUpDate(e.target.value)}
                                 className="h-8 w-[140px] text-xs"
                                 placeholder="Next FU"
