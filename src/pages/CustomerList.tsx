@@ -293,7 +293,13 @@ export default function CustomerList() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
+                    <TableCell>
+                      {c.vip === "VIP" && (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded font-medium bg-purple-100 text-purple-700">
+                          <Star className="w-3 h-3 fill-current" />VIP
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                     <TableCell className="text-sm">
                       <div>{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</div>
