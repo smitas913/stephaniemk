@@ -258,6 +258,21 @@ export default function CustomerList() {
                     <TableCell className="text-right text-sm font-medium">${c.retail_this_year.toFixed(2)}</TableCell>
                     <TableCell className="text-sm">{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</TableCell>
                     <TableCell>{statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}</TableCell>
+                    <TableCell>
+                      {c.latest_note ? (
+                        <div className="max-w-[180px]">
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <MessageSquare className="w-3 h-3 shrink-0" />
+                            <span>{c.latest_note.note_type}</span>
+                            <span>·</span>
+                            <span>{new Date(c.latest_note.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-xs text-foreground truncate">{c.latest_note.note_text}</p>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         {c.is_active !== false ? (
