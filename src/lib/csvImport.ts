@@ -15,6 +15,7 @@ export const DESTINATION_FIELDS = [
   { key: "zip", label: "Zip", required: false },
   { key: "notes", label: "Notes", required: false },
   { key: "birthday", label: "Birthday", required: false },
+  { key: "birthday_mmdd", label: "Birthday (MM/DD)", required: false },
   { key: "source", label: "Source", required: false },
 ] as const;
 
@@ -78,6 +79,7 @@ const HEADER_HINTS: Record<DestField, string[]> = {
   zip: ["zip", "postal_code", "zipcode", "zip code", "postal"],
   notes: ["notes", "note", "comments", "comment", "memo"],
   birthday: ["birthday", "birth_date", "birthdate", "dob", "date of birth"],
+  birthday_mmdd: ["birthday_mmdd"],
   source: ["source", "lead source", "external_source"],
 };
 
@@ -121,14 +123,44 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function toBirthdayMmdd(val: string): string {
-  // Try parsing various date formats
-  const dateMatch = val.match(/(\d{1,2})[\/\-](\d{1,2})/);
-  if (dateMatch) return `${dateMatch[1].padStart(2, "0")}/${dateMatch[2].padStart(2, "0")}`;
-  // ISO format
-  const isoMatch = val.match(/\d{4}-(\d{2})-(\d{2})/);
-  if (isoMatch) return `${isoMatch[1]}/${isoMatch[2]}`;
-  return val;
+/**
+ * Parse birthday string into { date: ISO date string, mmdd: MM/DD string } or null.
+ * Supports MM/DD/YYYY, MM/DD/YY, YYYY-MM-DD, MM/DD, M/D/YYYY etc.
+ */
+export function parseBirthday(val: string): { date: string; mmdd: string } | null {
+  const trimmed = val.trim();
+  if (!trimmed) return null;
+
+  // ISO format: YYYY-MM-DD
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return { date: `${y}-${m}-${d}`, mmdd: `${m}/${d}` };
+  }
+
+  // MM/DD/YYYY or M/D/YYYY
+  const fullMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (fullMatch) {
+    const [, m, d, y] = fullMatch;
+    return { date: `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`, mmdd: `${m.padStart(2, "0")}/${d.padStart(2, "0")}` };
+  }
+
+  // MM/DD/YY or M/D/YY
+  const shortYearMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+  if (shortYearMatch) {
+    const [, m, d, yy] = shortYearMatch;
+    const year = parseInt(yy, 10) > 50 ? `19${yy}` : `20${yy}`;
+    return { date: `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`, mmdd: `${m.padStart(2, "0")}/${d.padStart(2, "0")}` };
+  }
+
+  // MM/DD only (no year) — use 1900 as placeholder year
+  const mmddMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (mmddMatch) {
+    const [, m, d] = mmddMatch;
+    return { date: `1900-${m.padStart(2, "0")}-${d.padStart(2, "0")}`, mmdd: `${m.padStart(2, "0")}/${d.padStart(2, "0")}` };
+  }
+
+  return null; // unparseable
 }
 
 export function processRows(
@@ -170,9 +202,16 @@ export function processRows(
       mapped.phone = normalizePhone(mapped.phone.trim());
     }
 
-    // Convert birthday
+    // Parse birthday
     if (mapped.birthday) {
-      mapped.birthday = toBirthdayMmdd(mapped.birthday.trim());
+      const parsed = parseBirthday(mapped.birthday.trim());
+      if (parsed) {
+        mapped.birthday = parsed.date;
+        mapped.birthday_mmdd = parsed.mmdd;
+      } else {
+        warnings.push(`Could not parse birthday: "${mapped.birthday}"`);
+        mapped.birthday = "";
+      }
     }
 
     return { rowIndex: i + 1, raw, mapped, errors, warnings };
@@ -222,7 +261,8 @@ export function buildCustomerRecord(row: ParsedRow): Record<string, string | nul
     state_territory: m.state || null,
     postal_code: m.zip || null,
     notes: m.notes || null,
-    birthday_mmdd: m.birthday || null,
+    birthday: m.birthday || null,
+    birthday_mmdd: m.birthday_mmdd || null,
     relationship_status: "Customer",
   } as any;
 }

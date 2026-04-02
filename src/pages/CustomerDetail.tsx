@@ -32,6 +32,7 @@ export default function CustomerDetail() {
         full_name: customer.full_name || "",
         phone: customer.phone || "",
         email: customer.email || "",
+        birthday: (customer as any).birthday || "",
         birthday_mmdd: customer.birthday_mmdd || "",
         address_line_1: customer.address_line_1 || "",
         address_line_2: customer.address_line_2 || "",
@@ -159,6 +160,7 @@ export default function CustomerDetail() {
                 <Input placeholder="Full Name *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
                 <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input type="date" placeholder="Birthday" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
                 <Input placeholder="Birthday (MM/DD)" value={form.birthday_mmdd} onChange={(e) => setForm({ ...form, birthday_mmdd: e.target.value })} />
                 <Input placeholder="Address Line 1" value={form.address_line_1} onChange={(e) => setForm({ ...form, address_line_1: e.target.value })} />
                 <Input placeholder="Address Line 2" value={form.address_line_2} onChange={(e) => setForm({ ...form, address_line_2: e.target.value })} />
@@ -188,7 +190,7 @@ export default function CustomerDetail() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <InfoRow label="Phone" value={customer.phone} />
                 <InfoRow label="Email" value={customer.email} />
-                <InfoRow label="Birthday" value={customer.birthday_mmdd} />
+                <InfoRow label="Birthday" value={(customer as any).birthday ? new Date((customer as any).birthday + "T00:00:00").toLocaleDateString() : customer.birthday_mmdd} />
                 <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
                 <InfoRow label="Relationship" value={customer.relationship_status} />
                 <InfoRow label="First Order Date" value={customer.profile_date_first_order_date} />

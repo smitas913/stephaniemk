@@ -113,12 +113,18 @@ export default function ImportCustomers() {
             continue;
           }
           if (duplicateMode === "update") {
-            // Only update non-null fields, don't overwrite with empty
+            // Only update fields that are empty on the existing record
             const updates: Record<string, any> = {};
             for (const [k, v] of Object.entries(record)) {
-              if (v !== null && v !== "" && k !== "full_name") updates[k] = v;
+              if (v !== null && v !== "" && k !== "full_name") {
+                // Only fill if existing field is empty/null
+                const existingVal = (duplicate as any)[k];
+                if (existingVal === null || existingVal === undefined || existingVal === "") {
+                  updates[k] = v;
+                }
+              }
             }
-            if (record.full_name) updates.full_name = record.full_name;
+            if (record.full_name && !duplicate.full_name) updates.full_name = record.full_name;
             const { error } = await supabase.from("customers").update(updates as any).eq("id", duplicate.id);
             if (error) throw error;
             updated++;
@@ -357,11 +363,12 @@ export default function ImportCustomers() {
                 <div className="overflow-auto max-h-64">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                     <TableRow>
                         <TableHead className="text-xs">Row</TableHead>
                         <TableHead className="text-xs">Name</TableHead>
                         <TableHead className="text-xs">Email</TableHead>
                         <TableHead className="text-xs">Phone</TableHead>
+                        <TableHead className="text-xs">Birthday</TableHead>
                         <TableHead className="text-xs">City</TableHead>
                         <TableHead className="text-xs">State</TableHead>
                       </TableRow>
@@ -373,6 +380,7 @@ export default function ImportCustomers() {
                           <TableCell className="text-xs py-1.5 font-medium">{r.mapped.full_name}</TableCell>
                           <TableCell className="text-xs py-1.5">{r.mapped.email || "—"}</TableCell>
                           <TableCell className="text-xs py-1.5">{r.mapped.phone || "—"}</TableCell>
+                          <TableCell className="text-xs py-1.5">{r.mapped.birthday || "—"}</TableCell>
                           <TableCell className="text-xs py-1.5">{r.mapped.city || "—"}</TableCell>
                           <TableCell className="text-xs py-1.5">{r.mapped.state || "—"}</TableCell>
                         </TableRow>
