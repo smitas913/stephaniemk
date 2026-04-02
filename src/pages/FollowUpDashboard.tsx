@@ -80,48 +80,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
   }, [customers, orders, expenses, period]);
 }
 
-function MonthYearPicker({ onSelect }: { onSelect: (year: number, month: number) => void }) {
-  const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-
-  return (
-    <div className="p-3 w-[260px]">
-      <div className="flex items-center justify-between mb-3">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear - 1)}>
-          <ChevronLeft className="w-4 h-4" />
-        </Button>
-        <span className="text-sm font-semibold text-foreground">{viewYear}</span>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear + 1)}>
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {MONTHS.map((m, i) => {
-          const isFuture = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && i > now.getMonth());
-          return (
-            <Button
-              key={m}
-              variant="ghost"
-              size="sm"
-              disabled={isFuture}
-              className={cn(
-                "text-xs h-8",
-                viewYear === now.getFullYear() && i === now.getMonth() && "border border-primary/50"
-              )}
-              onClick={() => onSelect(viewYear, i)}
-            >
-              {m.slice(0, 3)}
-            </Button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export default function FollowUpDashboard() {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<PeriodValue>({ type: "mtd" });
+  const { period, setPeriod } = usePeriodFilter();
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
 
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });

@@ -197,7 +197,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <PeriodProvider>
+            <AppRoutes />
+          </PeriodProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
