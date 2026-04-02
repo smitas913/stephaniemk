@@ -64,12 +64,7 @@ export default function Leadership() {
           </TabsList>
 
           <TabsContent value="prospects" className="mt-4">
-            <div className="text-center py-8">
-              <p className="text-muted-foreground text-sm mb-3">Manage your recruiting pipeline</p>
-              <Button size="sm" onClick={() => navigate("/prospects")}>
-                <UserPlus className="w-4 h-4 mr-1" />Go to Prospects
-              </Button>
-            </div>
+            <Prospects embedded />
           </TabsContent>
 
           <TabsContent value="consultants" className="mt-4">
