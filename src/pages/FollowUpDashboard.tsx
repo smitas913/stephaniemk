@@ -260,7 +260,7 @@ export default function FollowUpDashboard() {
           ) : (
             <>
               {/* Row 1: Activity Volume - most prominent */}
-              <div className="grid grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {row1Cards.map((k) => (
                   <Card key={k.label} className="border-primary/20 shadow-md bg-primary/5">
                     <CardContent className="p-5">
