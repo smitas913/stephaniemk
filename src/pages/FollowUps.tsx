@@ -512,7 +512,7 @@ export default function FollowUps() {
       item: actionItem,
       note: noteText,
       type: noteType,
-      nextDate: followUpDate || undefined,
+      nextDate: normalizeFollowUpDate(followUpDate) || undefined,
     });
   };
 
