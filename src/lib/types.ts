@@ -129,7 +129,17 @@ export interface Note {
   created_at: string;
 }
 
-export const OPPORTUNITY_STATUSES = ["New", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined"] as const;
+export const OPPORTUNITY_STATUSES = ["Booked", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined", "Converted", "Closed"] as const;
+
+export const NEXT_STEP_TYPES = [
+  "Book Career Chat",
+  "Attend Event",
+  "Follow-Up Call",
+  "Send Info",
+  "Invite to Facial",
+  "Invite to Event",
+  "Other",
+] as const;
 
 export interface Prospect {
   id: string;
@@ -145,6 +155,9 @@ export interface Prospect {
   owner_user_id: string | null;
   created_at: string;
   updated_at: string | null;
+  next_step_type: string | null;
+  next_step_date: string | null;
+  next_step_notes: string | null;
 }
 
 export interface ProspectNote {

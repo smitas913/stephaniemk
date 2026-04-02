@@ -741,6 +741,9 @@ export type Database = {
           last_contact_date: string | null
           name: string
           next_follow_up_date: string | null
+          next_step_date: string | null
+          next_step_notes: string | null
+          next_step_type: string | null
           notes: string | null
           opportunity_status: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id: string | null
@@ -756,6 +759,9 @@ export type Database = {
           last_contact_date?: string | null
           name: string
           next_follow_up_date?: string | null
+          next_step_date?: string | null
+          next_step_notes?: string | null
+          next_step_type?: string | null
           notes?: string | null
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
@@ -771,6 +777,9 @@ export type Database = {
           last_contact_date?: string | null
           name?: string
           next_follow_up_date?: string | null
+          next_step_date?: string | null
+          next_step_notes?: string | null
+          next_step_type?: string | null
           notes?: string | null
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
@@ -937,6 +946,9 @@ export type Database = {
         | "Interested"
         | "Not Interested"
         | "Joined"
+        | "Booked"
+        | "Converted"
+        | "Closed"
       order_source: "Online" | "Phone" | "Text" | "Event" | "Other"
       payment_method: "Cash" | "Check" | "Venmo" | "Zelle" | "Card" | "Other"
       payment_status: "Paid" | "Unpaid" | "Partial"
@@ -1088,6 +1100,9 @@ export const Constants = {
         "Interested",
         "Not Interested",
         "Joined",
+        "Booked",
+        "Converted",
+        "Closed",
       ],
       order_source: ["Online", "Phone", "Text", "Event", "Other"],
       payment_method: ["Cash", "Check", "Venmo", "Zelle", "Card", "Other"],

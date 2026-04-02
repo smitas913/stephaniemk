@@ -59,7 +59,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const monthFaces = monthPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const monthSharing = monthEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
     const monthNewTeam = prospects.filter((p) =>
-      p.opportunity_status === "Joined" && inRange(p.updated_at, monthStart, monthEnd)
+      (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, monthStart, monthEnd)
     ).length;
     const monthSharingConvPct = monthSharing > 0 ? Math.round((monthNewTeam / monthSharing) * 1000) / 10 : 0;
 
@@ -112,7 +112,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
         parties: mEvents.filter((e) => e.event_type === "Party").length,
         sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
         newTeam: prospects.filter((p) =>
-          p.opportunity_status === "Joined" && inRange(p.updated_at, mStart, mEnd)
+          (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
         ).length,
       });
     }
