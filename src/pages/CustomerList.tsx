@@ -204,8 +204,8 @@ export default function CustomerList() {
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Category</TableHead>
+                   <TableHead>Relationship</TableHead>
+                   <TableHead>Activity</TableHead>
                   <TableHead>VIP</TableHead>
                   <TableHead>Last Order</TableHead>
                   <TableHead className="text-right">Days</TableHead>
