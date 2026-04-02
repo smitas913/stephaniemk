@@ -47,6 +47,7 @@ export default function EditOrder() {
       setOrderType(order.order_type || "");
       setFaceType(order.face_type || "");
       setPaymentType(order.payment_type || "");
+      setPaymentStatus(order.payment_type ? "Paid" : "Unpaid");
       setNotes(order.notes || "");
       setHostess(!!order.hostess);
       setHalfPrice(!!order.half_price_deal);
