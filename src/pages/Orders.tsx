@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchOrders, deleteOrder } from "@/lib/queries";
+import { fetchOrders, deleteOrder, updateOrder } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,15 @@ export default function Orders() {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Order deleted");
+    },
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: ({ id, payment_type }: { id: string; payment_type: string | null }) =>
+      updateOrder(id, { payment_type }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Payment updated");
     },
   });
 
@@ -132,7 +141,20 @@ export default function Orders() {
       <TableCell className="text-center">{o.half_price_deal ? "✓" : ""}</TableCell>
       <TableCell className="text-center">{o.birthday ? "✓" : ""}</TableCell>
       <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
-      <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
+      <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
+        <Select
+          value={o.payment_type || "__blank__"}
+          onValueChange={(v) => paymentMutation.mutate({ id: o.id, payment_type: v === "__blank__" ? null : v })}
+        >
+          <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-1.5 w-[90px] focus:ring-1">
+            <SelectValue placeholder="—" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__blank__">— Unpaid</SelectItem>
+            {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableCell>
       <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
       <TableCell>
         <div className="flex gap-1">
