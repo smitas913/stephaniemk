@@ -104,7 +104,7 @@ export default function CustomerList() {
   }, [customers, allOrders, notesByCustomer]);
 
   const filtered = useMemo(() => {
-    return enriched.filter((c) => {
+    let result = enriched.filter((c) => {
       const isActive = c.is_active !== false;
       const matchArchive = filterArchive === "active" ? isActive : !isActive;
       if (!matchArchive) return false;
@@ -118,7 +118,15 @@ export default function CustomerList() {
       const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchNew;
     });
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive]);
+
+    if (sortByVip === "vip-first") {
+      result = [...result].sort((a, b) => (b.vip === "VIP" ? 1 : 0) - (a.vip === "VIP" ? 1 : 0));
+    } else if (sortByVip === "nonvip-first") {
+      result = [...result].sort((a, b) => (a.vip === "VIP" ? 1 : 0) - (b.vip === "VIP" ? 1 : 0));
+    }
+
+    return result;
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive, sortByVip]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
