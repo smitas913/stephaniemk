@@ -485,6 +485,9 @@ export default function Orders() {
                 {Array.from(grouped.entries()).map(([eventId, group]) => {
                   const isExpanded = expandedEvents.has(eventId);
                   const groupTotal = group.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+                  const eventRecord = eventsMap.get(eventId);
+                  const guestCount = eventRecord?.guest_count || 0;
+                  const conversionRate = guestCount > 0 ? ((group.length / guestCount) * 100).toFixed(0) : null;
                   return [
                     <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
                       <TableCell colSpan={3} className="text-xs font-medium">
@@ -496,7 +499,28 @@ export default function Orders() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
-                      <TableCell colSpan={9}></TableCell>
+                      <TableCell colSpan={4} className="text-xs">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-muted-foreground whitespace-nowrap">Guests:</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="h-6 w-16 text-xs px-1.5"
+                            value={guestCount || ""}
+                            placeholder="0"
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              guestCountMutation.mutate({ eventId, guest_count: val });
+                            }}
+                          />
+                          {conversionRate && (
+                            <span className="text-muted-foreground whitespace-nowrap">
+                              Conv: <span className="font-semibold text-foreground">{conversionRate}%</span>
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell colSpan={5}></TableCell>
                     </TableRow>,
                     ...(isExpanded ? group.map((o) => renderOrderRow(o, true)) : []),
                   ];
