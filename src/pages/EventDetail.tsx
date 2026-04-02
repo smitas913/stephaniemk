@@ -18,7 +18,8 @@ import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, Ca
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const EVENT_TYPES = ["Party", "Facial", "Other"] as const;
+const EVENT_TYPES = ["Party", "Facial"] as const;
+const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
