@@ -111,6 +111,8 @@ export default function Orders() {
     if (filterBirthday) result = result.filter((o) => o.birthday);
     if (filterReferral) result = result.filter((o) => o.referral);
 
+    if (sortDir === null) return result;
+
     const sorted = [...result].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
@@ -119,6 +121,11 @@ export default function Orders() {
         case "retail_amount": cmp = Number(a.retail_amount) - Number(b.retail_amount); break;
         case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
         case "payment_type": cmp = (a.payment_type || "").localeCompare(b.payment_type || ""); break;
+        case "face_type": cmp = (a.face_type || "").localeCompare(b.face_type || ""); break;
+        case "hostess": cmp = Number(!!a.hostess) - Number(!!b.hostess); break;
+        case "half_price_deal": cmp = Number(!!a.half_price_deal) - Number(!!b.half_price_deal); break;
+        case "birthday": cmp = Number(!!a.birthday) - Number(!!b.birthday); break;
+        case "referral": cmp = Number(!!a.referral) - Number(!!b.referral); break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
