@@ -115,23 +115,26 @@ export default function AddOrder() {
 
     setSubmitting(true);
     try {
-      // Generate event ID
-      let eventId = "";
+      const isEventBased = orderType === "Party" || orderType === "Facial" || orderType === "Appointment";
+
+      // Generate event ID only for event-based orders
+      let eventId: string | null = null;
       let parentId: string | null = null;
 
-      if (useExistingParty && partyEventId) {
-        // Adding to existing party
-        eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
-        parentId = partyEventId;
-      } else {
-        eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
+      if (isEventBased) {
+        if (useExistingParty && partyEventId) {
+          eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
+          parentId = partyEventId;
+        } else {
+          eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
+        }
       }
 
       await createOrder({
         customer_id: customerId,
         customer_name: customerName,
         order_date: orderDate,
-        event_id: eventId,
+        event_id: eventId || undefined,
         order_type: orderType,
         face_type: faceType,
         hostess,
