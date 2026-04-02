@@ -102,7 +102,8 @@ export default function AddOrder() {
   const existingPartyEvents = useMemo(() => {
     const ids = new Set<string>();
     allOrders.forEach((o) => {
-      if (o.order_type === "Party" && o.event_id) ids.add(o.event_id);
+      const t = o.order_type;
+      if ((t === "Party" || t === "Facial" || t === "Appointment") && o.event_id) ids.add(o.event_id);
       if (o.parent_event_id) ids.add(o.parent_event_id);
     });
     return Array.from(ids);
@@ -115,23 +116,26 @@ export default function AddOrder() {
 
     setSubmitting(true);
     try {
-      // Generate event ID
-      let eventId = "";
+      const isEventBased = orderType === "Party" || orderType === "Facial" || orderType === "Appointment";
+
+      // Generate event ID only for event-based orders
+      let eventId: string | null = null;
       let parentId: string | null = null;
 
-      if (useExistingParty && partyEventId) {
-        // Adding to existing party
-        eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
-        parentId = partyEventId;
-      } else {
-        eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
+      if (isEventBased) {
+        if (useExistingParty && partyEventId) {
+          eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
+          parentId = partyEventId;
+        } else {
+          eventId = generateEventId(orderType, orderDate, customerName, existingEventIds);
+        }
       }
 
       await createOrder({
         customer_id: customerId,
         customer_name: customerName,
         order_date: orderDate,
-        event_id: eventId,
+        event_id: eventId || undefined,
         order_type: orderType,
         face_type: faceType,
         hostess,
@@ -315,16 +319,16 @@ export default function AddOrder() {
             </div>
           </div>
 
-          {/* Party Mode: Use existing event */}
-          {orderType === "Party" && (
+          {/* Event linking: for Party, Facial, Appointment only */}
+          {(orderType === "Party" || orderType === "Facial" || orderType === "Appointment") && (
             <div className="rounded-lg border border-pink-200 bg-pink-50/50 p-3 space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-pink-700 cursor-pointer">
                 <Checkbox checked={useExistingParty} onCheckedChange={(v) => setUseExistingParty(!!v)} />
-                Add to existing party event
+                Add to existing event
               </label>
               {useExistingParty && (
                 <Select value={partyEventId} onValueChange={setPartyEventId}>
-                  <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Select party event..." /></SelectTrigger>
+                  <SelectTrigger className="h-9 bg-background"><SelectValue placeholder="Select event..." /></SelectTrigger>
                   <SelectContent>
                     {existingPartyEvents.map((eid) => (
                       <SelectItem key={eid} value={eid}>{eid}</SelectItem>
