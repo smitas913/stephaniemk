@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -215,28 +215,21 @@ export default function CustomerList() {
                 <TableRow>
                   <TableHead className="min-w-[160px]">Name</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                   <TableHead>Relationship</TableHead>
-                   <TableHead>Activity</TableHead>
+                  <TableHead>Relationship</TableHead>
                   <TableHead>VIP</TableHead>
+                  <TableHead>Activity</TableHead>
                   <TableHead>Last Order</TableHead>
-                  <TableHead className="text-right">Days</TableHead>
-                  <TableHead className="text-right">Orders YTD</TableHead>
-                  <TableHead className="text-right">Retail YTD</TableHead>
-                   <TableHead>Next Follow-Up</TableHead>
-                   <TableHead>FU Status</TableHead>
-                   <TableHead>Last Contact</TableHead>
-                   <TableHead className="w-20">Actions</TableHead>
+                  <TableHead>Follow-Up</TableHead>
+                  <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
                     <TableCell className="text-sm">{c.phone || "—"}</TableCell>
-                    <TableCell className="text-sm">{c.email || "—"}</TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={c.relationship_status || "Customer"}
@@ -250,28 +243,17 @@ export default function CustomerList() {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
                     <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
-                    <TableCell className="text-sm">{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell className="text-right text-sm">{c.days_since_last_order !== null ? c.days_since_last_order : "—"}</TableCell>
-                    <TableCell className="text-right text-sm">{c.orders_this_year}</TableCell>
-                    <TableCell className="text-right text-sm font-medium">${c.retail_this_year.toFixed(2)}</TableCell>
-                    <TableCell className="text-sm">{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</TableCell>
-                    <TableCell>{statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}</TableCell>
-                    <TableCell>
-                      {c.latest_note ? (
-                        <div className="max-w-[180px]">
-                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <MessageSquare className="w-3 h-3 shrink-0" />
-                            <span>{c.latest_note.note_type}</span>
-                            <span>·</span>
-                            <span>{new Date(c.latest_note.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-xs text-foreground truncate">{c.latest_note.note_text}</p>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
+                    <TableCell>{statusBadge(c.activity_status, c.activity_status === "Active" ? "bg-green-100 text-green-700" : c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" : c.activity_status === "Dormant" ? "bg-red-100 text-red-700" : c.activity_status === "New" ? "bg-blue-100 text-blue-700" : "")}</TableCell>
+                    <TableCell className="text-sm">
+                      <div>{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</div>
+                      {c.days_since_last_order !== null && (
+                        <div className="text-[11px] text-muted-foreground">{c.days_since_last_order}d ago</div>
                       )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <div>{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</div>
+                      {c.follow_up_status && statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
