@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -342,7 +342,16 @@ export default function CustomerList() {
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
-                    <TableCell className="text-sm whitespace-nowrap">{formatPhone(c.phone)}</TableCell>
+                    <TableCell className="text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {c.phone ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <a href={`tel:${c.phone}`} className="text-primary hover:underline" title="Call">{formatPhone(c.phone)}</a>
+                          <a href={`sms:${c.phone}`} className="text-muted-foreground hover:text-primary transition-colors" title="Text">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </a>
+                        </span>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={c.relationship_status || "Customer"}
