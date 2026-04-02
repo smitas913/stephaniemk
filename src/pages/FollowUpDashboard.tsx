@@ -1,38 +1,69 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, OrderWithCustomer } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { DollarSign, ShoppingBag, TrendingUp, AlertCircle } from "lucide-react";
-import { startOfMonth, endOfMonth, parseISO, isWithinInterval } from "date-fns";
+import { parseISO, isWithinInterval, startOfYear } from "date-fns";
 
 type Enriched = Customer & CustomerComputed;
 
-function useMetrics(customers: Customer[], orders: OrderWithCustomer[]) {
-  return useMemo(() => {
-    const today = new Date();
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
-    const monthOrders = orders.filter((o) => {
+function getDateRange(period: string): { start: Date; end: Date } {
+  const now = new Date();
+  const year = now.getFullYear();
+
+  if (period === "this-month") {
+    return { start: new Date(year, now.getMonth(), 1), end: new Date(year, now.getMonth() + 1, 0, 23, 59, 59) };
+  }
+  if (period === "ytd") {
+    return { start: startOfYear(now), end: now };
+  }
+  // Specific month index
+  const monthIdx = parseInt(period, 10);
+  return { start: new Date(year, monthIdx, 1), end: new Date(year, monthIdx + 1, 0, 23, 59, 59) };
+}
+
+function getPeriodLabel(period: string): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  if (period === "this-month") {
+    return `${MONTHS[now.getMonth()]} ${year} overview`;
+  }
+  if (period === "ytd") {
+    return `${year} year-to-date overview`;
+  }
+  const monthIdx = parseInt(period, 10);
+  return `${MONTHS[monthIdx]} ${year} overview`;
+}
+
+function useMetrics(customers: Customer[], orders: OrderWithCustomer[], period: string) {
+  return useMemo(() => {
+    const { start, end } = getDateRange(period);
+
+    const periodOrders = orders.filter((o) => {
       const d = parseISO(o.order_date);
-      return isWithinInterval(d, { start: monthStart, end: monthEnd });
+      return isWithinInterval(d, { start, end });
     });
 
-    const monthRevenue = monthOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    const monthCount = monthOrders.length;
-    const avgOrder = monthCount > 0 ? monthRevenue / monthCount : 0;
+    const periodRevenue = periodOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+    const periodCount = periodOrders.length;
+    const avgOrder = periodCount > 0 ? periodRevenue / periodCount : 0;
 
-    const unpaidOrders = orders.filter((o) => !o.payment_type);
+    const unpaidOrders = periodOrders.filter((o) => !o.payment_type);
     const outstandingTotal = unpaidOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
-    // Orders by order_type
     const typeMap: Record<string, number> = {};
-    for (const o of monthOrders) {
+    for (const o of periodOrders) {
       const t = o.order_type || "Other";
       typeMap[t] = (typeMap[t] || 0) + 1;
     }
@@ -41,20 +72,22 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[]) {
       count: typeMap[s] || 0,
     }));
 
-    // Revenue by payment method
     const payMap: Record<string, number> = {};
-    for (const o of monthOrders) {
+    for (const o of periodOrders) {
       const pt = o.payment_type || "None";
       payMap[pt] = (payMap[pt] || 0) + Number(o.retail_amount || 0);
     }
-    const revenueByPayment = ["Cash", "Check", "Venmo", "Zelle", "Card", "Other", "None"]
+    const revenueByPayment = ["Cash", "Check", "Venmo", "Zelle", "Credit Card", "CashApp", "Paypal", "Other", "None"]
       .map((p) => ({ label: p, amount: payMap[p] || 0 }))
       .filter((p) => p.amount > 0);
 
     const enriched: Enriched[] = customers.map((c) => {
-      const custOrders = orders.filter((o) => o.customer_id === c.id);
-      return { ...c, ...computeCustomerFields(c, custOrders) };
+      const custOrders = periodOrders.filter((o) => o.customer_id === c.id);
+      const custRetail = custOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+      const computed = computeCustomerFields(c, orders.filter((o) => o.customer_id === c.id));
+      return { ...c, ...computed, retail_this_year: custRetail, orders_this_year: custOrders.length };
     });
+
     const topCustomers = [...enriched]
       .sort((a, b) => b.retail_this_year - a.retail_this_year)
       .slice(0, 5)
@@ -65,20 +98,25 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[]) {
       .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
       .slice(0, 10);
 
-    return { monthRevenue, monthCount, avgOrder, outstandingTotal, ordersBySource, revenueByPayment, topCustomers, needsFollowUp, enriched };
-  }, [customers, orders]);
+    return { periodRevenue, periodCount, avgOrder, outstandingTotal, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+  }, [customers, orders, period]);
 }
 
 export default function FollowUpDashboard() {
   const navigate = useNavigate();
+  const now = new Date();
+  const [period, setPeriod] = useState("this-month");
+
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
-  const m = useMetrics(customers, allOrders);
+  const m = useMetrics(customers, allOrders, period);
   const isLoading = cLoading || oLoading;
 
+  const periodLabel = period === "this-month" ? "This Period" : period === "ytd" ? "YTD" : MONTHS[parseInt(period, 10)];
+
   const kpiCards = [
-    { label: "Revenue This Month", value: `$${m.monthRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
-    { label: "Orders This Month", value: String(m.monthCount), icon: ShoppingBag, accent: "text-blue-600" },
+    { label: `Revenue ${periodLabel}`, value: `$${m.periodRevenue.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
+    { label: `Orders ${periodLabel}`, value: String(m.periodCount), icon: ShoppingBag, accent: "text-blue-600" },
     { label: "Avg Order Value", value: `$${m.avgOrder.toFixed(2)}`, icon: TrendingUp, accent: "text-purple-600" },
     { label: "Outstanding", value: `$${m.outstandingTotal.toFixed(2)}`, icon: AlertCircle, accent: m.outstandingTotal > 0 ? "text-red-600" : "text-green-600" },
   ];
@@ -86,9 +124,23 @@ export default function FollowUpDashboard() {
   return (
     <Layout>
       <div className="space-y-8">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })} overview</p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">{getPeriodLabel(period)}</p>
+          </div>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this-month">This Month</SelectItem>
+              {MONTHS.map((m, i) => (
+                <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+              ))}
+              <SelectItem value="ytd">YTD</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
@@ -130,7 +182,7 @@ export default function FollowUpDashboard() {
                     );
                   })}
                   {m.ordersBySource.every((s) => s.count === 0) && (
-                    <p className="text-sm text-muted-foreground py-2">No orders this month</p>
+                    <p className="text-sm text-muted-foreground py-2">No orders this period</p>
                   )}
                 </CardContent>
               </Card>
@@ -141,7 +193,7 @@ export default function FollowUpDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-2.5">
                   {m.revenueByPayment.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">No revenue this month</p>
+                    <p className="text-sm text-muted-foreground py-2">No revenue this period</p>
                   ) : (
                     m.revenueByPayment.map((p) => {
                       const max = Math.max(...m.revenueByPayment.map((x) => x.amount), 1);
@@ -163,11 +215,11 @@ export default function FollowUpDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-border/50 shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers (YTD)</CardTitle>
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Top Customers ({periodLabel})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {m.topCustomers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-2">No orders yet this year</p>
+                    <p className="text-sm text-muted-foreground py-2">No orders this period</p>
                   ) : (
                     <div className="space-y-1">
                       {m.topCustomers.map((c, i) => (
@@ -179,10 +231,7 @@ export default function FollowUpDashboard() {
                               <p className="text-xs text-muted-foreground">{c.orders_this_year} orders</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
-                            {c.vip && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
-                          </div>
+                          <p className="text-sm font-bold text-foreground">${c.retail_this_year.toFixed(2)}</p>
                         </div>
                       ))}
                     </div>
