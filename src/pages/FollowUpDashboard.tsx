@@ -197,6 +197,7 @@ export default function FollowUpDashboard() {
   const { data: allExpenses = [] } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
   const { data: allEvents = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const m = useMetrics(customers, allOrders, allExpenses, allEvents, period);
+  const scoreboard = useScoreboard(allEvents);
   const isLoading = cLoading || oLoading;
 
   const periodLabel = getShortLabel(period);
