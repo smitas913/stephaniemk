@@ -97,7 +97,9 @@ export type Database = {
           created_at: string
           event_date: string | null
           event_id: string
+          event_type: string | null
           guest_count: number | null
+          hostess_name: string | null
           id: string
           notes: string | null
           owner_user_id: string | null
@@ -107,7 +109,9 @@ export type Database = {
           created_at?: string
           event_date?: string | null
           event_id: string
+          event_type?: string | null
           guest_count?: number | null
+          hostess_name?: string | null
           id?: string
           notes?: string | null
           owner_user_id?: string | null
@@ -117,7 +121,9 @@ export type Database = {
           created_at?: string
           event_date?: string | null
           event_id?: string
+          event_type?: string | null
           guest_count?: number | null
+          hostess_name?: string | null
           id?: string
           notes?: string | null
           owner_user_id?: string | null

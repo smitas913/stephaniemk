@@ -75,12 +75,11 @@ export default function Orders() {
     },
   });
 
-  const guestCountMutation = useMutation({
-    mutationFn: ({ eventId, guest_count }: { eventId: string; guest_count: number }) =>
-      upsertEvent({ event_id: eventId, guest_count }),
+  const eventMutation = useMutation({
+    mutationFn: (params: { event_id: string; guest_count?: number; hostess_name?: string }) =>
+      upsertEvent(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Guest count updated");
     },
   });
 
@@ -485,36 +484,54 @@ export default function Orders() {
                 {Array.from(grouped.entries()).map(([eventId, group]) => {
                   const isExpanded = expandedEvents.has(eventId);
                   const groupTotal = group.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-                  const eventRecord = eventsMap.get(eventId);
-                  const guestCount = eventRecord?.guest_count || 0;
+                  const ev = eventsMap.get(eventId);
+                  const guestCount = ev?.guest_count || 0;
+                  const hostessName = ev?.hostess_name || "";
                   const conversionRate = guestCount > 0 ? ((group.length / guestCount) * 100).toFixed(0) : null;
                   return [
                     <TableRow key={`group-${eventId}`} className="bg-pink-50/50 hover:bg-pink-50 cursor-pointer" onClick={() => toggleEvent(eventId)}>
-                      <TableCell colSpan={3} className="text-xs font-medium">
+                      <TableCell colSpan={2} className="text-xs font-medium">
                         <div className="flex items-center gap-2">
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                           <Users className="w-3.5 h-3.5 text-pink-600" />
                           <span className="font-mono">{eventId}</span>
-                          <span className="text-muted-foreground">({group.length} orders · ${groupTotal.toFixed(2)})</span>
                         </div>
                       </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {group.length} orders · ${groupTotal.toFixed(2)}
+                      </TableCell>
                       <TableCell className="text-sm font-bold text-right">${groupTotal.toFixed(2)}</TableCell>
-                      <TableCell colSpan={4} className="text-xs">
-                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <span className="text-muted-foreground whitespace-nowrap">Guests:</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            className="h-6 w-16 text-xs px-1.5"
-                            defaultValue={guestCount || ""}
-                            placeholder="0"
-                            onBlur={(e) => {
-                              const val = parseInt(e.target.value) || 0;
-                              if (val !== guestCount) {
-                                guestCountMutation.mutate({ eventId, guest_count: val });
-                              }
-                            }}
-                          />
+                      <TableCell colSpan={9} className="text-xs">
+                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">Hostess:</span>
+                            <Input
+                              className="h-6 w-24 text-xs px-1.5"
+                              defaultValue={hostessName}
+                              placeholder="Name"
+                              onBlur={(e) => {
+                                if (e.target.value !== hostessName) {
+                                  eventMutation.mutate({ event_id: eventId, hostess_name: e.target.value });
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">Guests:</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-6 w-14 text-xs px-1.5"
+                              defaultValue={guestCount || ""}
+                              placeholder="0"
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                if (val !== guestCount) {
+                                  eventMutation.mutate({ event_id: eventId, guest_count: val });
+                                }
+                              }}
+                            />
+                          </div>
                           {conversionRate && (
                             <span className="text-muted-foreground whitespace-nowrap">
                               Conv: <span className="font-semibold text-foreground">{conversionRate}%</span>
@@ -522,7 +539,6 @@ export default function Orders() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell colSpan={5}></TableCell>
                     </TableRow>,
                     ...(isExpanded ? group.map((o) => renderOrderRow(o, true)) : []),
                   ];

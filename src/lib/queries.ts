@@ -156,7 +156,7 @@ export const fetchEvents = async (): Promise<EventRecord[]> => {
   return data as unknown as EventRecord[];
 };
 
-export const upsertEvent = async (event: { event_id: string; guest_count?: number; event_date?: string | null; notes?: string | null }) => {
+export const upsertEvent = async (event: { event_id: string; guest_count?: number; event_date?: string | null; event_type?: string | null; hostess_name?: string; notes?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("events")
