@@ -10,21 +10,77 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, Trash2, Search, Copy, ChevronDown, ChevronRight, ShoppingBag,
   DollarSign, RotateCcw, Users, Sparkles, ArrowUpDown, ArrowUp, ArrowDown,
-  X, Download,
+  X, Download, CalendarIcon, ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { startOfYear, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO } from "date-fns";
 
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+type PeriodValue =
+  | { type: "ytd" }
+  | { type: "mtd" }
+  | { type: "last-month" }
+  | { type: "month"; year: number; month: number };
+
+function getDateRange(period: PeriodValue): { start: Date; end: Date } {
+  const now = new Date();
+  switch (period.type) {
+    case "ytd": return { start: startOfYear(now), end: now };
+    case "mtd": return { start: startOfMonth(now), end: now };
+    case "last-month": { const prev = subMonths(now, 1); return { start: startOfMonth(prev), end: endOfMonth(prev) }; }
+    case "month": return { start: new Date(period.year, period.month, 1), end: endOfMonth(new Date(period.year, period.month, 1)) };
+  }
+}
+
+function getShortLabel(period: PeriodValue): string {
+  const now = new Date();
+  switch (period.type) {
+    case "ytd": return "YTD";
+    case "mtd": return "MTD";
+    case "last-month": { const prev = subMonths(now, 1); return MONTHS[prev.getMonth()]; }
+    case "month": return `${MONTHS[period.month].slice(0, 3)} ${period.year}`;
+  }
+}
+
+function MonthYearPicker({ onSelect }: { onSelect: (year: number, month: number) => void }) {
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  return (
+    <div className="p-3 w-[260px]">
+      <div className="flex items-center justify-between mb-3">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear - 1)}>
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <span className="text-sm font-semibold text-foreground">{viewYear}</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setViewYear(viewYear + 1)}>
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        {MONTHS.map((m, i) => {
+          const isFuture = viewYear > now.getFullYear() || (viewYear === now.getFullYear() && i > now.getMonth());
+          return (
+            <Button key={m} variant="ghost" size="sm" disabled={isFuture}
+              className={cn("text-xs h-8", viewYear === now.getFullYear() && i === now.getMonth() && "border border-primary/50")}
+              onClick={() => onSelect(viewYear, i)}
+            >{m.slice(0, 3)}</Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "event_id";
 type SortDir = "asc" | "desc";
@@ -37,8 +93,8 @@ export default function Orders() {
   // Filters
   const [search, setSearch] = useState("");
   const [filterCustomer, setFilterCustomer] = useState("all");
-  const [filterMonth, setFilterMonth] = useState("this-month");
-  const [filterYear, setFilterYear] = useState(String(now.getFullYear()));
+  const [period, setPeriod] = useState<PeriodValue>({ type: "mtd" });
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [filterFaceType, setFilterFaceType] = useState("all");
@@ -94,23 +150,16 @@ export default function Orders() {
     return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
   }, [orders]);
 
-  // Available years
-  const yearOptions = useMemo(() => {
-    const years = new Set<string>();
-    for (const o of orders) years.add(o.order_date.slice(0, 4));
-    const arr = Array.from(years).sort().reverse();
-    if (!arr.includes(String(now.getFullYear()))) arr.unshift(String(now.getFullYear()));
-    return arr;
-  }, [orders]);
+  const periodLabel = getShortLabel(period);
 
-  const hasActiveFilters = search || filterCustomer !== "all" || filterMonth !== "this-month" ||
-    filterYear !== String(now.getFullYear()) ||
+  // Remove year options (no longer needed)
+
+  const hasActiveFilters = search || filterCustomer !== "all" || period.type !== "mtd" ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
     filterHostess || filterBirthday || filterReferral;
 
   const clearFilters = useCallback(() => {
-    setSearch(""); setFilterCustomer("all"); setFilterMonth("this-month");
-    setFilterYear(String(now.getFullYear()));
+    setSearch(""); setFilterCustomer("all"); setPeriod({ type: "mtd" });
     setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
     setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
   }, []);
@@ -137,30 +186,12 @@ export default function Orders() {
       result = result.filter((o) => o.customer_id === filterCustomer);
     }
 
-    // Month/Year filter
-    const yr = parseInt(filterYear);
-    if (filterMonth === "this-month") {
-      const m = now.getMonth();
-      const y = now.getFullYear();
-      result = result.filter((o) => {
-        const d = new Date(o.order_date);
-        return d.getMonth() === m && d.getFullYear() === y;
-      });
-    } else if (filterMonth === "ytd") {
-      const yearStart = new Date(now.getFullYear(), 0, 1);
-      result = result.filter((o) => {
-        const d = new Date(o.order_date);
-        return d >= yearStart && d <= now;
-      });
-    } else if (filterMonth !== "all") {
-      const mi = parseInt(filterMonth);
-      result = result.filter((o) => {
-        const d = new Date(o.order_date);
-        return d.getMonth() === mi && d.getFullYear() === yr;
-      });
-    } else {
-      result = result.filter((o) => o.order_date.startsWith(filterYear));
-    }
+    // Period filter
+    const { start, end } = getDateRange(period);
+    result = result.filter((o) => {
+      const d = parseISO(o.order_date);
+      return isWithinInterval(d, { start, end });
+    });
 
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
     if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
@@ -184,7 +215,7 @@ export default function Orders() {
     });
 
     return sorted;
-  }, [orders, search, filterCustomer, filterMonth, filterYear, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
+  }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
 
   // Summary
   const summary = useMemo(() => {
@@ -330,7 +361,7 @@ export default function Orders() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Orders</h2>
-            <p className="text-sm text-muted-foreground">{orders.length} total · {filtered.length} shown</p>
+            <p className="text-sm text-muted-foreground">{orders.length} total · {filtered.length} shown ({periodLabel})</p>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={exportCSV}>
@@ -373,21 +404,22 @@ export default function Orders() {
               {customerOptions.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this-month">MTD</SelectItem>
-              <SelectItem value="ytd">Year-to-Date</SelectItem>
-              {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
-              <SelectItem value="all">All Dates</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterYear} onValueChange={setFilterYear}>
-            <SelectTrigger className="h-9 w-[90px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-1.5">
+            <Button variant={period.type === "ytd" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "ytd" })}>YTD</Button>
+            <Button variant={period.type === "mtd" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "mtd" })}>MTD</Button>
+            <Button variant={period.type === "last-month" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "last-month" })}>Last Month</Button>
+            <Popover open={monthPickerOpen} onOpenChange={setMonthPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant={period.type === "month" ? "default" : "outline"} size="sm" className="h-9 text-xs">
+                  <CalendarIcon className="w-3.5 h-3.5 mr-1" />
+                  {period.type === "month" ? `${MONTHS[period.month].slice(0, 3)} ${period.year}` : "Select Month..."}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <MonthYearPicker onSelect={(year, month) => { setPeriod({ type: "month", year, month }); setMonthPickerOpen(false); }} />
+              </PopoverContent>
+            </Popover>
+          </div>
           <Select value={`${sortField}-${sortDir}`} onValueChange={(v) => { const [f, d] = v.split("-") as [SortField, SortDir]; setSortField(f); setSortDir(d); }}>
             <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
