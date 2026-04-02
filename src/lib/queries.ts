@@ -34,7 +34,32 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>) => 
 };
 
 export const deleteCustomer = async (id: string) => {
+  // Check for order history first
+  const { count, error: countError } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", id);
+  if (countError) throw countError;
+  if (count && count > 0) {
+    throw new Error("Customer cannot be deleted because they have order history. Use Archive instead.");
+  }
   const { error } = await supabase.from("customers").delete().eq("id", id);
+  if (error) throw error;
+};
+
+export const archiveCustomer = async (id: string) => {
+  const { error } = await supabase
+    .from("customers")
+    .update({ is_active: false, archived_at: new Date().toISOString() } as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const unarchiveCustomer = async (id: string) => {
+  const { error } = await supabase
+    .from("customers")
+    .update({ is_active: true, archived_at: null } as any)
+    .eq("id", id);
   if (error) throw error;
 };
 

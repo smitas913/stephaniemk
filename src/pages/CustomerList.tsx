@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed } from "@/lib/types";
 import { CUSTOMER_STATUSES } from "@/lib/types";
@@ -8,9 +8,10 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export default function CustomerList() {
   const [filterVip, setFilterVip] = useState("all");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterNew, setFilterNew] = useState("all");
+  const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -47,7 +49,26 @@ export default function CustomerList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Customer deleted");
+      toast.success("Customer deleted permanently");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: archiveCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Customer archived");
+    },
+  });
+
+  const unarchiveMutation = useMutation({
+    mutationFn: unarchiveCustomer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Customer restored");
     },
   });
 
@@ -70,6 +91,10 @@ export default function CustomerList() {
 
   const filtered = useMemo(() => {
     return enriched.filter((c) => {
+      const isActive = c.is_active !== false;
+      const matchArchive = filterArchive === "active" ? isActive : !isActive;
+      if (!matchArchive) return false;
+
       const q = search.toLowerCase();
       const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
       const matchStatus = filterStatus === "all" || c.current_status === filterStatus;
@@ -79,9 +104,11 @@ export default function CustomerList() {
       const matchNew = filterNew === "all" || (filterNew === "New" ? c.new_first_90_days === "New" : c.new_first_90_days !== "New");
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchNew;
     });
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterNew, filterArchive]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
+
+  const customerHasOrders = (customerId: string) => allOrders.some((o) => o.customer_id === customerId);
 
   return (
     <Layout>
@@ -89,7 +116,7 @@ export default function CustomerList() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Customers</h2>
-            <p className="text-sm text-muted-foreground">{enriched.length} total · {filtered.length} shown</p>
+            <p className="text-sm text-muted-foreground">{enriched.filter(c => filterArchive === "active" ? c.is_active !== false : c.is_active === false).length} total · {filtered.length} shown</p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -115,6 +142,13 @@ export default function CustomerList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search name, phone, email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
+          <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
+            <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
@@ -179,7 +213,7 @@ export default function CustomerList() {
                   <TableHead className="text-right">Retail YTD</TableHead>
                   <TableHead>Next Follow-Up</TableHead>
                   <TableHead>FU Status</TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,10 +245,58 @@ export default function CustomerList() {
                     <TableCell className="text-right text-sm font-medium">${c.retail_this_year.toFixed(2)}</TableCell>
                     <TableCell className="text-sm">{c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : "—"}</TableCell>
                     <TableCell>{statusBadge(c.follow_up_status, c.follow_up_status === "OVERDUE" ? "bg-red-100 text-red-700" : c.follow_up_status === "TODAY" ? "bg-blue-100 text-blue-700" : c.follow_up_status === "UPCOMING" ? "bg-green-100 text-green-700" : "")}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(c.id); }}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-1">
+                        {c.is_active !== false ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Archive"
+                            onClick={() => archiveMutation.mutate(c.id)}
+                          >
+                            <Archive className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Restore"
+                            onClick={() => unarchiveMutation.mutate(c.id)}
+                          >
+                            <ArchiveRestore className="w-3.5 h-3.5 text-muted-foreground" />
+                          </Button>
+                        )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" title="Delete permanently">
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete {c.full_name}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {customerHasOrders(c.id)
+                                  ? "This customer cannot be deleted because they have order history. Use Archive instead to hide them from the active list."
+                                  : "This will permanently delete this customer and all their data. This action cannot be undone."}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              {!customerHasOrders(c.id) && (
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => deleteMutation.mutate(c.id)}
+                                >
+                                  Delete Permanently
+                                </AlertDialogAction>
+                              )}
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

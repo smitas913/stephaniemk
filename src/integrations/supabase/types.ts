@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
+          archived_at: string | null
           birthday_mmdd: string | null
           city: string | null
           created_at: string
@@ -26,6 +27,7 @@ export type Database = {
           follow_up_reason: string | null
           full_name: string
           id: string
+          is_active: boolean
           last_contacted: string | null
           last_order_date_order_log: string | null
           last_order_mk: string | null
@@ -41,6 +43,7 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
+          archived_at?: string | null
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
@@ -49,6 +52,7 @@ export type Database = {
           follow_up_reason?: string | null
           full_name: string
           id?: string
+          is_active?: boolean
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
@@ -64,6 +68,7 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
+          archived_at?: string | null
           birthday_mmdd?: string | null
           city?: string | null
           created_at?: string
@@ -72,6 +77,7 @@ export type Database = {
           follow_up_reason?: string | null
           full_name?: string
           id?: string
+          is_active?: boolean
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
