@@ -53,6 +53,7 @@ export default function AddOrder() {
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
   const isEventBased = orderType === "Party" || orderType === "Facial";
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
