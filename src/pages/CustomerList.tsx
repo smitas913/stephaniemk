@@ -18,6 +18,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+function formatPhone(phone: string | null): string {
+  if (!phone) return "—";
+  const digits = phone.replace(/\D/g, "");
+  const d = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+  return phone;
+}
+
 type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
 };
@@ -180,8 +188,8 @@ export default function CustomerList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[160px]">Name</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead className="min-w-[140px]">Name</TableHead>
+                  <TableHead className="whitespace-nowrap min-w-[140px]">Phone</TableHead>
                   <TableHead>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -334,13 +342,13 @@ export default function CustomerList() {
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
-                    <TableCell className="text-sm">{c.phone || "—"}</TableCell>
+                    <TableCell className="text-sm whitespace-nowrap">{formatPhone(c.phone)}</TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <Select
                         value={c.relationship_status || "Customer"}
                         onValueChange={(v) => statusMutation.mutate({ id: c.id, relationship_status: v })}
                       >
-                        <SelectTrigger className="h-7 text-[11px] border-0 bg-transparent shadow-none px-1.5 w-[130px] focus:ring-1">
+                        <SelectTrigger className="h-7 text-[11px] border-0 bg-transparent shadow-none px-1 w-[110px] focus:ring-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
