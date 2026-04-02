@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
