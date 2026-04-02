@@ -162,6 +162,7 @@ export default function Scoreboard() {
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
+          <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* This Week */}
             <Card className="border-border/50 shadow-sm">
