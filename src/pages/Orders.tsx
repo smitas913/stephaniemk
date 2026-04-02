@@ -106,7 +106,8 @@ export default function Orders() {
     });
 
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
-    if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
+    if (filterPayment === "__unpaid__") result = result.filter((o) => !o.payment_type);
+    else if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
     if (filterFaceType !== "all") result = result.filter((o) => o.face_type === filterFaceType);
     if (filterHostess) result = result.filter((o) => o.hostess);
     if (filterBirthday) result = result.filter((o) => o.birthday);
