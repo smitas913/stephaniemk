@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchOrders, deleteOrder, updateOrder } from "@/lib/queries";
-import { ORDER_TYPES, PAYMENT_TYPES } from "@/lib/types";
+import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,25 +9,44 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Search, Copy, ChevronDown, ChevronRight, ShoppingBag, DollarSign, RotateCcw, Users, Sparkles } from "lucide-react";
+import {
+  Plus, Trash2, Search, Copy, ChevronDown, ChevronRight, ShoppingBag,
+  DollarSign, RotateCcw, Users, Sparkles, ArrowUpDown, ArrowUp, ArrowDown,
+  X, Download,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { OrderWithCustomer } from "@/lib/types";
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "event_id";
+type SortDir = "asc" | "desc";
+
 export default function Orders() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const now = new Date();
 
   // Filters
   const [search, setSearch] = useState("");
+  const [filterCustomer, setFilterCustomer] = useState("all");
+  const [filterMonth, setFilterMonth] = useState("this-month");
+  const [filterYear, setFilterYear] = useState(String(now.getFullYear()));
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
+  const [filterFaceType, setFilterFaceType] = useState("all");
   const [filterHostess, setFilterHostess] = useState(false);
   const [filterBirthday, setFilterBirthday] = useState(false);
   const [filterReferral, setFilterReferral] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("order_date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
@@ -50,26 +69,110 @@ export default function Orders() {
     },
   });
 
+  // Unique customers for filter
+  const customerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const o of orders) {
+      const name = o.customer_name || o.customers?.full_name || "";
+      if (name && o.customer_id) map.set(o.customer_id, name);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [orders]);
+
+  // Available years
+  const yearOptions = useMemo(() => {
+    const years = new Set<string>();
+    for (const o of orders) years.add(o.order_date.slice(0, 4));
+    const arr = Array.from(years).sort().reverse();
+    if (!arr.includes(String(now.getFullYear()))) arr.unshift(String(now.getFullYear()));
+    return arr;
+  }, [orders]);
+
+  const hasActiveFilters = search || filterCustomer !== "all" || filterMonth !== "this-month" ||
+    filterYear !== String(now.getFullYear()) || dateFrom || dateTo ||
+    filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
+    filterHostess || filterBirthday || filterReferral;
+
+  const clearFilters = useCallback(() => {
+    setSearch(""); setFilterCustomer("all"); setFilterMonth("this-month");
+    setFilterYear(String(now.getFullYear())); setDateFrom(""); setDateTo("");
+    setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
+    setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
+  }, []);
+
+  // Filter + Sort
   const filtered = useMemo(() => {
     let result = orders;
+
+    // Global search
     if (search) {
       const q = search.toLowerCase();
       result = result.filter((o) =>
         (o.customer_name || o.customers?.full_name || "").toLowerCase().includes(q) ||
-        (o.event_id || "").toLowerCase().includes(q)
+        (o.event_id || "").toLowerCase().includes(q) ||
+        (o.notes || "").toLowerCase().includes(q) ||
+        (o.payment_type || "").toLowerCase().includes(q) ||
+        (o.order_type || "").toLowerCase().includes(q) ||
+        (o.face_type || "").toLowerCase().includes(q)
       );
     }
-    if (dateFrom) result = result.filter((o) => o.order_date >= dateFrom);
-    if (dateTo) result = result.filter((o) => o.order_date <= dateTo);
+
+    // Customer filter
+    if (filterCustomer !== "all") {
+      result = result.filter((o) => o.customer_id === filterCustomer);
+    }
+
+    // Month/Year quick filter (only if no custom dates)
+    if (!dateFrom && !dateTo) {
+      const yr = parseInt(filterYear);
+      if (filterMonth === "this-month") {
+        const m = now.getMonth();
+        const y = now.getFullYear();
+        result = result.filter((o) => {
+          const d = new Date(o.order_date);
+          return d.getMonth() === m && d.getFullYear() === y;
+        });
+      } else if (filterMonth !== "all") {
+        const mi = parseInt(filterMonth);
+        result = result.filter((o) => {
+          const d = new Date(o.order_date);
+          return d.getMonth() === mi && d.getFullYear() === yr;
+        });
+      } else {
+        // All dates but filter by year
+        result = result.filter((o) => o.order_date.startsWith(filterYear));
+      }
+    } else {
+      // Custom date range
+      if (dateFrom) result = result.filter((o) => o.order_date >= dateFrom);
+      if (dateTo) result = result.filter((o) => o.order_date <= dateTo);
+    }
+
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
     if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
+    if (filterFaceType !== "all") result = result.filter((o) => o.face_type === filterFaceType);
     if (filterHostess) result = result.filter((o) => o.hostess);
     if (filterBirthday) result = result.filter((o) => o.birthday);
     if (filterReferral) result = result.filter((o) => o.referral);
-    return result;
-  }, [orders, search, dateFrom, dateTo, filterOrderType, filterPayment, filterHostess, filterBirthday, filterReferral]);
 
-  // Summary metrics
+    // Sort
+    const sorted = [...result].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case "order_date": cmp = a.order_date.localeCompare(b.order_date); break;
+        case "customer_name": cmp = (a.customer_name || "").localeCompare(b.customer_name || ""); break;
+        case "retail_amount": cmp = Number(a.retail_amount) - Number(b.retail_amount); break;
+        case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
+        case "payment_type": cmp = (a.payment_type || "").localeCompare(b.payment_type || ""); break;
+        case "event_id": cmp = (a.event_id || "").localeCompare(b.event_id || ""); break;
+      }
+      return sortDir === "desc" ? -cmp : cmp;
+    });
+
+    return sorted;
+  }, [orders, search, filterCustomer, filterMonth, filterYear, dateFrom, dateTo, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
+
+  // Summary
   const summary = useMemo(() => {
     const totalOrders = filtered.length;
     const totalRetail = filtered.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
@@ -79,18 +182,16 @@ export default function Orders() {
     return { totalOrders, totalRetail, reorderTotal, partyTotal, facialTotal };
   }, [filtered]);
 
-  // Group orders by event_id for party display
+  // Grouping
   const { grouped, standalone } = useMemo(() => {
     const eventMap = new Map<string, OrderWithCustomer[]>();
     const standaloneOrders: OrderWithCustomer[] = [];
-
     for (const o of filtered) {
       if (o.parent_event_id) {
         const group = eventMap.get(o.parent_event_id) || [];
         group.push(o);
         eventMap.set(o.parent_event_id, group);
       } else if (o.event_id && filtered.some((x) => x.parent_event_id === o.event_id)) {
-        // This is a party parent
         const group = eventMap.get(o.event_id) || [];
         group.unshift(o);
         eventMap.set(o.event_id, group);
@@ -104,10 +205,35 @@ export default function Orders() {
   const toggleEvent = (eventId: string) => {
     setExpandedEvents((prev) => {
       const next = new Set(prev);
-      if (next.has(eventId)) next.delete(eventId);
-      else next.add(eventId);
+      if (next.has(eventId)) next.delete(eventId); else next.add(eventId);
       return next;
     });
+  };
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("desc"); }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground/50" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const exportCSV = () => {
+    const headers = ["Date", "Event ID", "Customer", "Amount", "Type", "Face", "Hostess", "Half Price", "Birthday", "Referral", "Payment", "Notes"];
+    const rows = filtered.map((o) => [
+      o.order_date, o.event_id || "", o.customer_name || o.customers?.full_name || "",
+      Number(o.retail_amount).toFixed(2), o.order_type || "", o.face_type || "",
+      o.hostess ? "Yes" : "", o.half_price_deal ? "Yes" : "", o.birthday ? "Yes" : "",
+      o.referral ? "Yes" : "", o.payment_type || "", (o.notes || "").replace(/"/g, '""'),
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "orders.csv"; a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exported");
   };
 
   const summaryCards = [
@@ -178,14 +304,17 @@ export default function Orders() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Orders</h2>
-            <p className="text-sm text-muted-foreground">{orders.length} total</p>
+            <p className="text-sm text-muted-foreground">{orders.length} total · {filtered.length} shown</p>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={exportCSV}>
+              <Download className="w-4 h-4 mr-1" />CSV
+            </Button>
             <Button size="sm" variant="outline" onClick={() => navigate("/orders/new?mode=party")}>
-              <Users className="w-4 h-4 mr-1" />Party Event
+              <Users className="w-4 h-4 mr-1" />Party
             </Button>
             <Button size="sm" onClick={() => navigate("/orders/new")}>
-              <Plus className="w-4 h-4 mr-1" />New Order
+              <Plus className="w-4 h-4 mr-1" />New
             </Button>
           </div>
         </div>
@@ -205,14 +334,50 @@ export default function Orders() {
           ))}
         </div>
 
-        {/* Filters */}
+        {/* Row 1: Search + Quick Filters */}
         <div className="flex flex-wrap gap-2 items-end">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search customer or event ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            <Input placeholder="Search name, event, notes, type..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 w-[140px]" placeholder="From" />
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-[140px]" placeholder="To" />
+          <Select value={filterCustomer} onValueChange={setFilterCustomer}>
+            <SelectTrigger className="h-9 w-[160px]"><SelectValue placeholder="Customer" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Customers</SelectItem>
+              {customerOptions.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="this-month">This Month</SelectItem>
+              {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+              <SelectItem value="all">All Dates</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterYear} onValueChange={setFilterYear}>
+            <SelectTrigger className="h-9 w-[90px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={`${sortField}-${sortDir}`} onValueChange={(v) => { const [f, d] = v.split("-") as [SortField, SortDir]; setSortField(f); setSortDir(d); }}>
+            <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="order_date-desc">Newest First</SelectItem>
+              <SelectItem value="order_date-asc">Oldest First</SelectItem>
+              <SelectItem value="retail_amount-desc">Highest Amount</SelectItem>
+              <SelectItem value="retail_amount-asc">Lowest Amount</SelectItem>
+              <SelectItem value="customer_name-asc">Customer A-Z</SelectItem>
+              <SelectItem value="customer_name-desc">Customer Z-A</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Row 2: Additional Filters */}
+        <div className="flex flex-wrap gap-2 items-end">
+          <Input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); if (e.target.value) setFilterMonth("all"); }} className="h-9 w-[140px]" placeholder="From" />
+          <Input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); if (e.target.value) setFilterMonth("all"); }} className="h-9 w-[140px]" placeholder="To" />
           <Select value={filterOrderType} onValueChange={setFilterOrderType}>
             <SelectTrigger className="h-9 w-[120px]"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
@@ -227,6 +392,13 @@ export default function Orders() {
               {PAYMENT_TYPES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={filterFaceType} onValueChange={setFilterFaceType}>
+            <SelectTrigger className="h-9 w-[110px]"><SelectValue placeholder="Face" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Faces</SelectItem>
+              {FACE_TYPES.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
               <Checkbox checked={filterHostess} onCheckedChange={(v) => setFilterHostess(!!v)} /> Hostess
@@ -238,6 +410,11 @@ export default function Orders() {
               <Checkbox checked={filterReferral} onCheckedChange={(v) => setFilterReferral(!!v)} /> Referral
             </label>
           </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" className="h-9 text-xs text-muted-foreground" onClick={clearFilters}>
+              <X className="w-3 h-3 mr-1" />Clear
+            </Button>
+          )}
         </div>
 
         {/* Table */}
@@ -252,23 +429,34 @@ export default function Orders() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
-                  <TableHead className="text-xs w-[90px]">Date</TableHead>
-                  <TableHead className="text-xs w-[140px]">Event ID</TableHead>
-                  <TableHead className="text-xs">Customer</TableHead>
-                  <TableHead className="text-xs text-right w-[90px]">Amount</TableHead>
-                  <TableHead className="text-xs w-[80px]">Type</TableHead>
+                  <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("order_date")}>
+                    <span className="flex items-center">Date<SortIcon field="order_date" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs w-[140px] cursor-pointer select-none" onClick={() => toggleSort("event_id")}>
+                    <span className="flex items-center">Event ID<SortIcon field="event_id" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs cursor-pointer select-none" onClick={() => toggleSort("customer_name")}>
+                    <span className="flex items-center">Customer<SortIcon field="customer_name" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs text-right w-[90px] cursor-pointer select-none" onClick={() => toggleSort("retail_amount")}>
+                    <span className="flex items-center justify-end">Amount<SortIcon field="retail_amount" /></span>
+                  </TableHead>
+                  <TableHead className="text-xs w-[80px] cursor-pointer select-none" onClick={() => toggleSort("order_type")}>
+                    <span className="flex items-center">Type<SortIcon field="order_type" /></span>
+                  </TableHead>
                   <TableHead className="text-xs w-[80px]">Face</TableHead>
                   <TableHead className="text-xs text-center w-[50px]">H</TableHead>
                   <TableHead className="text-xs text-center w-[50px]">½</TableHead>
                   <TableHead className="text-xs text-center w-[50px]">BD</TableHead>
                   <TableHead className="text-xs text-center w-[50px]">Ref</TableHead>
-                  <TableHead className="text-xs w-[70px]">Pay</TableHead>
+                  <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_type")}>
+                    <span className="flex items-center">Pay<SortIcon field="payment_type" /></span>
+                  </TableHead>
                   <TableHead className="text-xs">Notes</TableHead>
                   <TableHead className="text-xs w-[70px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {/* Grouped party events */}
                 {Array.from(grouped.entries()).map(([eventId, group]) => {
                   const isExpanded = expandedEvents.has(eventId);
                   const parentOrder = group[0];
@@ -290,7 +478,6 @@ export default function Orders() {
                     ...(isExpanded ? [renderOrderRow(parentOrder, false), ...childOrders.map((o) => renderOrderRow(o, true))] : []),
                   ];
                 })}
-                {/* Standalone orders */}
                 {standalone.map((o) => renderOrderRow(o))}
               </TableBody>
             </Table>
