@@ -74,6 +74,7 @@ export type Database = {
           last_contacted: string | null
           last_order_date_order_log: string | null
           last_order_mk: string | null
+          new_customer_flag: boolean
           new_follow_up_stage: string | null
           next_follow_up_date: string | null
           notes: string | null
@@ -102,6 +103,7 @@ export type Database = {
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
+          new_customer_flag?: boolean
           new_follow_up_stage?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
@@ -130,6 +132,7 @@ export type Database = {
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
+          new_customer_flag?: boolean
           new_follow_up_stage?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
