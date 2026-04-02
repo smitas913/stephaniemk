@@ -177,3 +177,22 @@ export interface Income {
   created_at: string;
   updated_at: string | null;
 }
+
+export const BOOKING_LEAD_STATUSES = ["New", "Contacted", "Booked", "Not Interested"] as const;
+export const BOOKING_LEAD_SOURCES = ["Bridal", "Facial Box", "Chatter", "Referral", "Social Media", "Event", "Other"] as const;
+
+export interface BookingLead {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  lead_source: string | null;
+  status: string;
+  last_contact_date: string | null;
+  next_follow_up_date: string | null;
+  notes: string | null;
+  converted_customer_id: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string | null;
+}
