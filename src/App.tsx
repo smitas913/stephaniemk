@@ -29,6 +29,7 @@ import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import Scoreboard from "./pages/Scoreboard";
+import BookingLeads from "./pages/BookingLeads";
 import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
 
@@ -125,6 +126,7 @@ const AppRoutes = () => (
     
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
     <Route path="/prospects" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Prospects /></ProtectedRoute>} />
+    <Route path="/booking-leads" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><BookingLeads /></ProtectedRoute>} />
     <Route path="/prospects/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ProspectDetail /></ProtectedRoute>} />
     <Route path="/expenses" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Expenses /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminTools /></ProtectedRoute>} />

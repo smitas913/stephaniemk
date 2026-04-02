@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_leads: {
+        Row: {
+          converted_customer_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_contact_date: string | null
+          lead_source: string | null
+          name: string
+          next_follow_up_date: string | null
+          notes: string | null
+          owner_user_id: string | null
+          phone: string | null
+          status: Database["public"]["Enums"]["booking_lead_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          converted_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          lead_source?: string | null
+          name: string
+          next_follow_up_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["booking_lead_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          converted_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_contact_date?: string | null
+          lead_source?: string | null
+          name?: string
+          next_follow_up_date?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          status?: Database["public"]["Enums"]["booking_lead_status"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customer_notes: {
         Row: {
           created_at: string
@@ -867,6 +915,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
+      booking_lead_status: "New" | "Contacted" | "Booked" | "Not Interested"
       consultant_status: "none" | "pending" | "approved" | "rejected"
       expense_category:
         | "Inventory"
@@ -1016,6 +1065,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
+      booking_lead_status: ["New", "Contacted", "Booked", "Not Interested"],
       consultant_status: ["none", "pending", "approved", "rejected"],
       expense_category: [
         "Inventory",

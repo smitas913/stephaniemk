@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes, fetchProspects, updateProspect, createProspectNote, fetchProspectNotes, bulkUpdateCustomerFollowUps } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes, fetchProspects, updateProspect, createProspectNote, fetchProspectNotes, bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
-import type { Customer, CustomerComputed, CustomerNote, ProspectNote } from "@/lib/types";
+import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw, ChevronRight } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, RefreshCw, ChevronRight, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 
@@ -97,6 +97,7 @@ export default function FollowUps() {
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const isLoading = cLoading || oLoading;
 
   const [showUpcoming7, setShowUpcoming7] = useState(false);
@@ -324,6 +325,27 @@ export default function FollowUps() {
 
     return { callsForToday, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, notesByCustomer]);
+
+  // Booking leads due today/overdue
+  const bookingLeadsDue = useMemo(() => {
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    return bookingLeads
+      .filter((l) => l.status !== "Booked" && l.status !== "Not Interested" && l.next_follow_up_date && l.next_follow_up_date <= todayStr)
+      .sort((a, b) => (a.next_follow_up_date || "").localeCompare(b.next_follow_up_date || ""));
+  }, [bookingLeads]);
+
+  const bookingLeadContactMut = useMutation({
+    mutationFn: async (lead: BookingLead) => {
+      await updateBookingLead(lead.id, {
+        last_contact_date: format(new Date(), "yyyy-MM-dd"),
+        status: lead.status === "New" ? "Contacted" : lead.status,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      toast.success("Lead marked as contacted");
+    },
+  });
 
   // --- Mutations ---
 
@@ -657,7 +679,68 @@ export default function FollowUps() {
               </CardContent>
             </Card>
 
-            {/* 3. DELIVERIES & EVENTS (optional secondary) */}
+            {/* 3. BOOKING LEADS DUE */}
+            {bookingLeadsDue.length > 0 && (
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30">
+                        <CalendarCheck className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <CardTitle className="text-sm font-semibold text-foreground">Booking Leads</CardTitle>
+                      <Badge variant="secondary" className="text-xs">{bookingLeadsDue.length}</Badge>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate("/booking-leads")}>
+                      View All
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="divide-y divide-border/40">
+                    {bookingLeadsDue.map((lead) => (
+                      <div key={lead.id} className="py-2.5 flex items-center gap-3 group">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate("/booking-leads")}>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
+                            {lead.lead_source && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-x-3 text-xs text-muted-foreground mt-0.5">
+                            {lead.phone && <span>{lead.phone}</span>}
+                            <span>FU: {lead.next_follow_up_date && new Date(lead.next_follow_up_date + "T00:00:00").toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {lead.phone && (
+                            <>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                <a href={`tel:${lead.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                <a href={`sms:${lead.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => bookingLeadContactMut.mutate(lead)}
+                            title="Mark Contacted"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 4. DELIVERIES & EVENTS (optional secondary) */}
           </div>
         )}
 

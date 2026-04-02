@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note } from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead } from "./types";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
@@ -488,4 +488,66 @@ export const fetchCustomerSummary = async () => {
     .select("*");
   if (error) throw error;
   return data;
+};
+
+// Booking Leads
+
+export const fetchBookingLeads = async (): Promise<BookingLead[]> => {
+  const { data, error } = await supabase
+    .from("booking_leads" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as BookingLead[];
+};
+
+export const createBookingLead = async (lead: Partial<BookingLead> & { name: string }) => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("booking_leads" as any)
+    .insert({ ...lead, owner_user_id: userId } as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as BookingLead;
+};
+
+export const updateBookingLead = async (id: string, updates: Partial<BookingLead>) => {
+  const { error } = await supabase
+    .from("booking_leads" as any)
+    .update(updates as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const deleteBookingLead = async (id: string) => {
+  const { error } = await supabase
+    .from("booking_leads" as any)
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const convertBookingLeadToCustomer = async (lead: BookingLead) => {
+  const userId = await getCurrentUserId();
+  const { data: customer, error: cErr } = await supabase
+    .from("customers")
+    .insert({
+      full_name: lead.name,
+      phone: lead.phone,
+      email: lead.email,
+      notes: lead.notes,
+      relationship_status: "Customer",
+      owner_user_id: userId,
+    } as any)
+    .select()
+    .single();
+  if (cErr) throw cErr;
+  // Link lead to customer
+  const { error: uErr } = await supabase
+    .from("booking_leads" as any)
+    .update({ converted_customer_id: customer.id, status: "Booked" } as any)
+    .eq("id", lead.id);
+  if (uErr) throw uErr;
+  return customer;
 };
