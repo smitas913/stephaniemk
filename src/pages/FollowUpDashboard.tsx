@@ -148,10 +148,12 @@ function useScoreboard(events: EventRecord[]) {
     const weekEvents = events.filter((e) => inRange(e.event_date, weekStart, weekEnd));
     const monthEvents = events.filter((e) => inRange(e.event_date, monthStart, monthEnd));
 
-    const weekFaces = weekEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+    const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
-    const monthFaces = monthEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+    const monthFaces = monthPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
 
     const dayOfWeek = differenceInDays(now, weekStart) + 1;
     const weekPace = dayOfWeek / 7;
