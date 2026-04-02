@@ -93,12 +93,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((c) => c.retail_this_year > 0);
 
-    const needsFollowUp = enriched
-      .filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY" || (c.days_since_last_order !== null && c.days_since_last_order >= 45))
-      .sort((a, b) => (b.days_since_last_order ?? 0) - (a.days_since_last_order ?? 0))
-      .slice(0, 10);
-
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers, needsFollowUp };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, totalExpenses, netProfit, conversionRate, reorderRate, ordersBySource, revenueByPayment, topCustomers };
   }, [customers, orders, expenses, events, period]);
 }
 
