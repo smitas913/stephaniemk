@@ -611,6 +611,7 @@ export default function FollowUps() {
                   <Input
                     type="date"
                     value={detailFollowUpDate}
+                    min={format(new Date(), "yyyy-MM-dd")}
                     onChange={(e) => setDetailFollowUpDate(e.target.value)}
                     className="h-9 flex-1"
                   />
