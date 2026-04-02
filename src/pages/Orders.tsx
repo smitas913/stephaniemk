@@ -129,6 +129,12 @@ export default function Orders() {
         const d = new Date(o.order_date);
         return d.getMonth() === m && d.getFullYear() === y;
       });
+    } else if (filterMonth === "ytd") {
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      result = result.filter((o) => {
+        const d = new Date(o.order_date);
+        return d >= yearStart && d <= now;
+      });
     } else if (filterMonth !== "all") {
       const mi = parseInt(filterMonth);
       result = result.filter((o) => {
@@ -342,6 +348,7 @@ export default function Orders() {
             <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="this-month">This Month</SelectItem>
+              <SelectItem value="ytd">Year-to-Date</SelectItem>
               {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
               <SelectItem value="all">All Dates</SelectItem>
             </SelectContent>
