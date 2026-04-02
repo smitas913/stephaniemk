@@ -177,7 +177,7 @@ function useScoreboard(events: EventRecord[]) {
     ];
 
     const monthly: ScoreItem[] = [
-      { label: "Parties", current: monthParties, goalLabel: "6–10", goalMin: 6, pct: Math.min((monthParties / 6) * 100, 100), status: getStatus(monthParties, 6, monthPace) },
+      { label: "Parties", current: monthParties, goalLabel: "8", goalMin: 8, pct: Math.min((monthParties / 8) * 100, 100), status: getStatus(monthParties, 8, monthPace) },
       { label: "Faces", current: monthFaces, goalLabel: "40", goalMin: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
     ];
 
