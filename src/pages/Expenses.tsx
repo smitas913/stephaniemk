@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchExpenses, createExpense, deleteExpense } from "@/lib/queries";
+import { fetchExpenses, createExpense, deleteExpense, uploadReceiptImage } from "@/lib/queries";
 import { EXPENSE_CATEGORIES } from "@/lib/types";
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, DollarSign } from "lucide-react";
+import { Plus, Trash2, DollarSign, Upload, Image, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -34,6 +34,11 @@ export default function Expenses() {
   const [formAmount, setFormAmount] = useState("");
   const [formCategory, setFormCategory] = useState<string>("Other");
   const [formNotes, setFormNotes] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     if (filterCat === "all") return expenses;
@@ -42,21 +47,51 @@ export default function Expenses() {
 
   const totalFiltered = useMemo(() => filtered.reduce((s, e) => s + Number(e.amount), 0), [filtered]);
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
+  };
+
+  const clearReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const resetForm = () => {
+    setFormAmount("");
+    setFormNotes("");
+    setFormCategory("Other");
+    clearReceipt();
+  };
+
   const createMut = useMutation({
-    mutationFn: () => createExpense({
-      expense_date: formDate,
-      amount: parseFloat(formAmount) || 0,
-      category: formCategory,
-      notes: formNotes || null,
-    }),
+    mutationFn: async () => {
+      setUploading(true);
+      let receipt_url: string | null = null;
+      if (receiptFile) {
+        receipt_url = await uploadReceiptImage(receiptFile);
+      }
+      await createExpense({
+        expense_date: formDate,
+        amount: parseFloat(formAmount) || 0,
+        category: formCategory,
+        notes: formNotes || null,
+        receipt_url,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setShowAdd(false);
-      setFormAmount("");
-      setFormNotes("");
-      setFormCategory("Other");
+      resetForm();
       toast.success("Expense added!");
     },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+    onSettled: () => setUploading(false),
   });
 
   const deleteMut = useMutation({
@@ -106,6 +141,15 @@ export default function Expenses() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-foreground">${Number(e.amount).toFixed(2)}</p>
                       <Badge variant="secondary" className={cn("text-[10px]", CATEGORY_COLORS[e.category] || "")}>{e.category}</Badge>
+                      {e.receipt_url && (
+                        <button
+                          onClick={() => setViewingReceipt(e.receipt_url)}
+                          className="text-primary hover:text-primary/80 transition-colors"
+                          title="View receipt"
+                        >
+                          <Image className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {new Date(e.expense_date).toLocaleDateString()}
@@ -122,7 +166,7 @@ export default function Expenses() {
         )}
 
         {/* Add Dialog */}
-        <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetForm(); }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-base">Add Expense</DialogTitle>
@@ -137,10 +181,63 @@ export default function Expenses() {
                 </SelectContent>
               </Select>
               <Textarea placeholder="Notes (optional)" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="min-h-[60px]" />
-              <Button className="w-full" onClick={() => createMut.mutate()} disabled={!formAmount || createMut.isPending}>
-                {createMut.isPending ? "Adding..." : "Add Expense"}
+
+              {/* Receipt upload */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                {receiptPreview ? (
+                  <div className="relative rounded-md border border-border overflow-hidden">
+                    <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-32 object-cover" />
+                    <button
+                      onClick={clearReceipt}
+                      className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 hover:bg-background transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1.5" />
+                    Attach Receipt (optional)
+                  </Button>
+                )}
+              </div>
+
+              <Button className="w-full" onClick={() => createMut.mutate()} disabled={!formAmount || createMut.isPending || uploading}>
+                {uploading ? "Uploading..." : createMut.isPending ? "Adding..." : "Add Expense"}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Receipt viewer */}
+        <Dialog open={!!viewingReceipt} onOpenChange={() => setViewingReceipt(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">Receipt</DialogTitle>
+            </DialogHeader>
+            {viewingReceipt && (
+              <div className="space-y-3">
+                <img src={viewingReceipt} alt="Receipt" className="w-full rounded-md" />
+                <a href={viewingReceipt} target="_blank" rel="noopener noreferrer" download>
+                  <Button variant="outline" size="sm" className="w-full text-xs">
+                    Download Receipt
+                  </Button>
+                </a>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

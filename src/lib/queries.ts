@@ -351,12 +351,26 @@ export const fetchExpenses = async (): Promise<Expense[]> => {
   return data as unknown as Expense[];
 };
 
-export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null }) => {
+export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null }) => {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("expenses")
     .insert({ ...expense, owner_user_id: userId } as any);
   if (error) throw error;
+};
+
+export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null }>) => {
+  const { error } = await supabase.from("expenses").update(updates as any).eq("id", id);
+  if (error) throw error;
+};
+
+export const uploadReceiptImage = async (file: File): Promise<string> => {
+  const ext = file.name.split(".").pop();
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("expense-receipts").upload(path, file);
+  if (error) throw error;
+  const { data } = supabase.storage.from("expense-receipts").getPublicUrl(path);
+  return data.publicUrl;
 };
 
 export const deleteExpense = async (id: string) => {

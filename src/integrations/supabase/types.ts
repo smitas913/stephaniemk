@@ -211,6 +211,7 @@ export type Database = {
           id: string
           notes: string | null
           owner_user_id: string | null
+          receipt_url: string | null
           updated_at: string | null
         }
         Insert: {
@@ -221,6 +222,7 @@ export type Database = {
           id?: string
           notes?: string | null
           owner_user_id?: string | null
+          receipt_url?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -231,6 +233,7 @@ export type Database = {
           id?: string
           notes?: string | null
           owner_user_id?: string | null
+          receipt_url?: string | null
           updated_at?: string | null
         }
         Relationships: []
