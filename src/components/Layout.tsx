@@ -55,7 +55,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1 className="text-lg font-bold tracking-tight text-primary shrink-0">✨ MK CRM</h1>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex gap-0.5 flex-1">
+          <nav className="hidden md:flex flex-wrap gap-0.5 flex-1 min-w-0">
             {navItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
