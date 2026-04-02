@@ -161,12 +161,22 @@ export default function ImportCustomers() {
         }
 
         // Insert legacy notes as a customer note if available
+        // IMPORTANT: Only use customer_notes table (not notes table) to avoid
+        // the update_entity_on_note_insert trigger that would overwrite last_contacted
         if (customerId && legacyNotes) {
           await supabase.from("customer_notes").insert({
             customer_id: customerId,
             note_text: legacyNotes,
             note_type: "Other",
           });
+        }
+
+        // Safeguard: Re-apply the correct last_contacted from CSV after any note
+        // insertions, in case a trigger or side-effect overwrote it
+        if (customerId && record.last_contacted) {
+          await supabase.from("customers")
+            .update({ last_contacted: record.last_contacted })
+            .eq("id", customerId);
         }
       } catch (err: any) {
         errored++;
