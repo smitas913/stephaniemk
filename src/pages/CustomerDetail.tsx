@@ -172,7 +172,7 @@ export default function CustomerDetail() {
                 <InfoRow label="Email" value={customer.email} />
                 <InfoRow label="Birthday" value={customer.birthday_mmdd} />
                 <InfoRow label="Address" value={[customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
-                <InfoRow label="Status" value={customer.current_status} />
+                <InfoRow label="Relationship" value={customer.relationship_status} />
                 <InfoRow label="First Order Date" value={customer.profile_date_first_order_date} />
                 <InfoRow label="Last Order (MK)" value={customer.last_order_mk} />
                 <InfoRow label="Last Contacted" value={customer.last_contacted} />
