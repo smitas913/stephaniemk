@@ -121,6 +121,7 @@ const AppRoutes = () => (
     <Route path="/events" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Events /></ProtectedRoute>} />
     <Route path="/events/:eventId" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EventDetail /></ProtectedRoute>} />
     <Route path="/import-customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ImportCustomers /></ProtectedRoute>} />
+    <Route path="/restore-contact-dates" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><RestoreContactDates /></ProtectedRoute>} />
     
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
     <Route path="/prospects" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Prospects /></ProtectedRoute>} />
