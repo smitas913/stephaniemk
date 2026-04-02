@@ -340,11 +340,11 @@ export default function FollowUps() {
     });
 
     const prospectItems: FollowUpItem[] = prospects
-      .filter((p) => p.next_follow_up_date && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
+      .filter((p) => normalizeFollowUpDate(p.next_follow_up_date) && p.opportunity_status !== "Not Interested" && p.opportunity_status !== "Joined")
       .map((p) => {
-        const effectiveFollowUp = normalizeDateOnly(p.next_follow_up_date);
+        const effectiveFollowUp = normalizeFollowUpDate(p.next_follow_up_date);
         const status = getFollowUpStatus(effectiveFollowUp, todayKey) || "UPCOMING";
-        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(p.next_follow_up_date, todayDate) : null;
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
         return {
           id: p.id,
           itemType: "prospect" as const,
