@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchEvents } from "@/lib/queries";
-import type { EventRecord } from "@/lib/types";
+import { fetchEvents, fetchProspects } from "@/lib/queries";
+import type { EventRecord, Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -17,7 +17,14 @@ type ScoreItem = {
   status: "green" | "yellow" | "red";
 };
 
-function useScoreboard(events: EventRecord[]) {
+type ConversionItem = {
+  label: string;
+  numerator: number;
+  denominator: number;
+  pct: number;
+};
+
+function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
   return useMemo(() => {
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -36,6 +43,17 @@ function useScoreboard(events: EventRecord[]) {
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
+
+    // Sharing Conversion: prospects who joined this week / total sharing appointments this week
+    const weekJoined = prospects.filter((p) =>
+      p.opportunity_status === "Joined" && inRange(p.updated_at, weekStart, weekEnd)
+    ).length;
+    const sharingConversion: ConversionItem = {
+      label: "Sharing Conversion Rate",
+      numerator: weekJoined,
+      denominator: weekSharing,
+      pct: weekSharing > 0 ? Math.round((weekJoined / weekSharing) * 1000) / 10 : 0,
+    };
 
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
     const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
@@ -65,8 +83,8 @@ function useScoreboard(events: EventRecord[]) {
       { label: "Faces", current: monthFaces, goal: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
     ];
 
-    return { weekly, monthly };
-  }, [events]);
+    return { weekly, monthly, sharingConversion };
+  }, [events, prospects]);
 }
 
 const STATUS_COLORS = {
