@@ -4,17 +4,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { fetchEvents, fetchOrders, upsertEvent } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
+import { COACHING_STATUSES } from "@/lib/types";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -60,9 +63,19 @@ export default function EventDetail() {
     }
   };
 
+  const updateField = (field: string, value: any) => {
+    if (!event) return;
+    eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
+  };
+
+  const toggleChecklist = (field: string) => {
+    if (!event) return;
+    eventMutation.mutate({ event_id: event.event_id, [field]: !(event as any)[field] } as any);
+  };
+
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/events")}>
@@ -81,7 +94,7 @@ export default function EventDetail() {
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center gap-2 mb-1">
-                <CalendarDays className="w-4 h-4 text-blue-600" />
+                <CalendarDays className="w-4 h-4 text-primary" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Date</span>
               </div>
               <Popover>
@@ -112,28 +125,28 @@ export default function EventDetail() {
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="w-4 h-4 text-green-600" />
+                <DollarSign className="w-4 h-4 text-primary" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Sales</span>
               </div>
-              <p className="text-lg font-bold text-green-600">${totalSales.toFixed(2)}</p>
+              <p className="text-lg font-bold text-foreground">${totalSales.toFixed(2)}</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center gap-2 mb-1">
-                <ShoppingBag className="w-4 h-4 text-purple-600" />
+                <ShoppingBag className="w-4 h-4 text-primary" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Orders</span>
               </div>
-              <p className="text-lg font-bold text-purple-600">{orderCount}</p>
+              <p className="text-lg font-bold text-foreground">{orderCount}</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3">
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-amber-600" />
+                <TrendingUp className="w-4 h-4 text-primary" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Conversion</span>
               </div>
-              <p className="text-lg font-bold text-amber-600">
+              <p className="text-lg font-bold text-foreground">
                 {convRate ? `${convRate}%` : "—"}
               </p>
               <p className="text-[10px] text-muted-foreground">{guestCount} guests</p>
@@ -214,19 +227,6 @@ export default function EventDetail() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Hostess</label>
-                  <Input
-                    className="h-8 text-sm"
-                    defaultValue={event.hostess_name || ""}
-                    key={event.hostess_name}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.hostess_name || "")) {
-                        eventMutation.mutate({ event_id: event.event_id, hostess_name: e.target.value });
-                      }
-                    }}
-                  />
-                </div>
-                <div>
                   <label className="text-xs text-muted-foreground">Guest Count</label>
                   <Input
                     type="number" min={0} className="h-8 text-sm"
@@ -284,6 +284,194 @@ export default function EventDetail() {
           </Card>
         )}
 
+        {/* Hostess Coaching */}
+        {event && (
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-primary" />
+                Hostess Coaching
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Hostess Name</label>
+                  <Input
+                    className="h-8 text-sm"
+                    defaultValue={event.hostess_name || ""}
+                    key={`hn-${event.hostess_name}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.hostess_name || "")) {
+                        updateField("hostess_name", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Phone</label>
+                  <Input
+                    className="h-8 text-sm"
+                    defaultValue={event.hostess_phone || ""}
+                    key={`hp-${event.hostess_phone}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.hostess_phone || "")) {
+                        updateField("hostess_phone", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Email</label>
+                  <Input
+                    className="h-8 text-sm"
+                    defaultValue={event.hostess_email || ""}
+                    key={`he-${event.hostess_email}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.hostess_email || "")) {
+                        updateField("hostess_email", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Coaching Status</label>
+                  <Select
+                    value={event.coaching_status || "Booked"}
+                    onValueChange={(v) => updateField("coaching_status", v)}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COACHING_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Coaching Call Date</label>
+                  <Input
+                    type="date"
+                    className="h-8 text-sm"
+                    defaultValue={event.coaching_call_date || ""}
+                    key={`ccd-${event.coaching_call_date}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.coaching_call_date || "")) {
+                        updateField("coaching_call_date", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-3">
+                  <label className="text-xs text-muted-foreground">Coaching Notes</label>
+                  <Input
+                    className="h-8 text-sm"
+                    placeholder="Notes about coaching..."
+                    defaultValue={event.coaching_notes || ""}
+                    key={`cn-${event.coaching_notes}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.coaching_notes || "")) {
+                        updateField("coaching_notes", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              {/* Quick contact buttons */}
+              {(event.hostess_phone || event.hostess_email) && (
+                <div className="flex gap-1.5">
+                  {event.hostess_phone && (
+                    <>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                        <a href={`tel:${event.hostess_phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                        <a href={`sms:${event.hostess_phone}`}>Text</a>
+                      </Button>
+                    </>
+                  )}
+                  {event.hostess_email && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                      <a href={`mailto:${event.hostess_email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pre-Party Checklist */}
+        {event && (
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ClipboardCheck className="w-4 h-4 text-primary" />
+                Pre-Party Checklist
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { field: "checklist_invitations_sent", label: "Invitations Sent" },
+                  { field: "checklist_guest_list_received", label: "Guest List Received" },
+                  { field: "checklist_google_form_completed", label: "Google Form Completed" },
+                  { field: "checklist_samples_sent", label: "Samples Sent" },
+                  { field: "checklist_reminders_sent", label: "Reminder Messages Sent" },
+                ].map(({ field, label }) => (
+                  <label key={field} className="flex items-center gap-2 cursor-pointer py-1">
+                    <Checkbox
+                      checked={(event as any)[field] || false}
+                      onCheckedChange={() => toggleChecklist(field)}
+                    />
+                    <span className={cn("text-sm", (event as any)[field] ? "text-foreground" : "text-muted-foreground")}>
+                      {label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground">Google Form Link</label>
+                  <Input
+                    className="h-8 text-sm"
+                    placeholder="https://forms.google.com/..."
+                    defaultValue={event.google_form_link || ""}
+                    key={`gfl-${event.google_form_link}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== (event.google_form_link || "")) {
+                        updateField("google_form_link", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+                {event.google_form_link && (
+                  <Button size="sm" variant="outline" className="h-8" asChild>
+                    <a href={event.google_form_link} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-3 h-3 mr-1" />Open
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Guest Tracking */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              Guest Tracking
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EventGuestPanel eventId={eventId} />
+          </CardContent>
+        </Card>
+
         {/* Linked Orders */}
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-2">Linked Orders ({orderCount})</h3>
@@ -311,9 +499,9 @@ export default function EventDetail() {
                       <TableCell>
                         {o.order_type && (
                           <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
-                            o.order_type === "Reorder" ? "bg-purple-100 text-purple-700" :
-                            o.order_type === "Party" ? "bg-pink-100 text-pink-700" :
-                            "bg-amber-100 text-amber-700"
+                            o.order_type === "Reorder" ? "bg-accent text-accent-foreground" :
+                            o.order_type === "Party" ? "bg-primary/10 text-primary" :
+                            "bg-muted text-muted-foreground"
                           )}>{o.order_type}</span>
                         )}
                       </TableCell>
@@ -325,12 +513,6 @@ export default function EventDetail() {
               </Table>
             </div>
           )}
-        </div>
-
-        {/* Guest List */}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Guest List</h3>
-          <EventGuestPanel eventId={eventId} />
         </div>
       </div>
     </Layout>
