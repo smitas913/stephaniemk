@@ -298,6 +298,15 @@ export function buildCustomerRecord(row: ParsedRow): Record<string, string | nul
   } as any;
 }
 
+/** Month name lookup for text date parsing */
+const MONTH_NAMES: Record<string, string> = {
+  january: "01", february: "02", march: "03", april: "04",
+  may: "05", june: "06", july: "07", august: "08",
+  september: "09", october: "10", november: "11", december: "12",
+  jan: "01", feb: "02", mar: "03", apr: "04",
+  jun: "06", jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+};
+
 /** Parse a generic date string into ISO YYYY-MM-DD or null */
 export function parseGenericDate(val: string): string | null {
   const trimmed = val.trim();
@@ -325,11 +334,41 @@ export function parseGenericDate(val: string): string | null {
     return `${year}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
 
+  // Text month formats: "March 31, 2024", "March 31 2024", "Mar 31, 2024", "31 March 2024"
+  const textMonthDayYear = trimmed.match(/^([a-zA-Z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+  if (textMonthDayYear) {
+    const monthNum = MONTH_NAMES[textMonthDayYear[1].toLowerCase()];
+    if (monthNum) {
+      return `${textMonthDayYear[3]}-${monthNum}-${textMonthDayYear[2].padStart(2, "0")}`;
+    }
+  }
+
+  // "31 March 2024" format
+  const dayTextMonthYear = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]+),?\s+(\d{4})$/);
+  if (dayTextMonthYear) {
+    const monthNum = MONTH_NAMES[dayTextMonthYear[2].toLowerCase()];
+    if (monthNum) {
+      return `${dayTextMonthYear[3]}-${monthNum}-${dayTextMonthYear[1].padStart(2, "0")}`;
+    }
+  }
+
+  // Text month without year: "March 31" or "Mar 31" — use current year
+  const textMonthDay = trimmed.match(/^([a-zA-Z]+)\s+(\d{1,2})$/);
+  if (textMonthDay) {
+    const monthNum = MONTH_NAMES[textMonthDay[1].toLowerCase()];
+    if (monthNum) {
+      const year = new Date().getFullYear();
+      return `${year}-${monthNum}-${textMonthDay[2].padStart(2, "0")}`;
+    }
+  }
+
   // Try native Date.parse as fallback
   const parsed = Date.parse(trimmed);
   if (!isNaN(parsed)) {
     const d = new Date(parsed);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (d.getFullYear() > 1900 && d.getFullYear() < 2100) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
   }
 
   return null;
