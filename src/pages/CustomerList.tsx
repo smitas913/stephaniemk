@@ -189,7 +189,19 @@ export default function CustomerList() {
                     <TableCell className="font-medium">{c.full_name}</TableCell>
                     <TableCell className="text-sm">{c.phone || "—"}</TableCell>
                     <TableCell className="text-sm">{c.email || "—"}</TableCell>
-                    <TableCell>{statusBadge(c.current_status || "", "bg-accent text-accent-foreground")}</TableCell>
+                    <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={c.current_status || "Customer"}
+                        onValueChange={(v) => statusMutation.mutate({ id: c.id, current_status: v })}
+                      >
+                        <SelectTrigger className="h-7 text-[11px] border-0 bg-transparent shadow-none px-1.5 w-[130px] focus:ring-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUSTOMER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>{statusBadge(c.category, c.category === "Active" ? "bg-green-100 text-green-700" : c.category === "Warm" ? "bg-yellow-100 text-yellow-700" : c.category === "Dormant" ? "bg-red-100 text-red-700" : "")}</TableCell>
                     <TableCell>{c.vip && statusBadge("VIP", "bg-purple-100 text-purple-700")}</TableCell>
                     <TableCell className="text-sm">{c.last_order_effective ? new Date(c.last_order_effective).toLocaleDateString() : "—"}</TableCell>
