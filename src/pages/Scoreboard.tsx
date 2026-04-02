@@ -51,17 +51,8 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
 
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
-
-    const weekJoined = prospects.filter((p) =>
-      p.opportunity_status === "Joined" && inRange(p.updated_at, weekStart, weekEnd)
-    ).length;
-    const sharingConversion: ConversionItem = {
-      label: "Sharing Conversion Rate",
-      numerator: weekJoined,
-      denominator: weekSharing,
-      pct: weekSharing > 0 ? Math.round((weekJoined / weekSharing) * 1000) / 10 : 0,
-    };
 
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
     const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
@@ -70,6 +61,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const monthNewTeam = prospects.filter((p) =>
       p.opportunity_status === "Joined" && inRange(p.updated_at, monthStart, monthEnd)
     ).length;
+    const monthSharingConvPct = monthSharing > 0 ? Math.round((monthNewTeam / monthSharing) * 1000) / 10 : 0;
 
     const dayOfWeek = differenceInDays(now, weekStart) + 1;
     const weekPace = dayOfWeek / 7;
@@ -87,7 +79,8 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
 
     const weekly: ScoreItem[] = [
       { label: "Faces", current: weekFaces, goal: 10, pct: Math.min((weekFaces / 10) * 100, 100), status: getStatus(weekFaces, 10, weekPace) },
-      { label: "Sharing Appointments", current: weekSharing, goal: 5, pct: Math.min((weekSharing / 5) * 100, 100), status: getStatus(weekSharing, 5, weekPace) },
+      { label: "Parties", current: weekParties, goal: 2, pct: Math.min((weekParties / 2) * 100, 100), status: getStatus(weekParties, 2, weekPace) },
+      { label: "Sharings", current: weekSharing, goal: 5, pct: Math.min((weekSharing / 5) * 100, 100), status: getStatus(weekSharing, 5, weekPace) },
     ];
 
     const monthly: ScoreItem[] = [
@@ -96,6 +89,13 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       { label: "Sharings", current: monthSharing, goal: 20, pct: Math.min((monthSharing / 20) * 100, 100), status: getStatus(monthSharing, 20, monthPace) },
       { label: "New Team Members", current: monthNewTeam, goal: 3, pct: Math.min((monthNewTeam / 3) * 100, 100), status: getStatus(monthNewTeam, 3, monthPace) },
     ];
+
+    const monthlySharingConversion: ConversionItem = {
+      label: "Sharing Conversion",
+      numerator: monthNewTeam,
+      denominator: monthSharing,
+      pct: monthSharingConvPct,
+    };
 
     // Trends: last 6 months (including current)
     const trendMonths: MonthRow[] = [];
