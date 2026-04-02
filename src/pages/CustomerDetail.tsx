@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect, useMemo } from "react";
@@ -294,16 +294,31 @@ export default function CustomerDetail() {
                       <div className="flex flex-col gap-0.5 py-1.5 sm:col-span-1">
                         <span className="text-muted-foreground text-xs">Address</span>
                         <span className="text-foreground">{fullAddress || "—"}</span>
-                        {mapsUrl && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5 w-fit">
-                                <MapPin className="w-3.5 h-3.5" />
-                                Open in Maps
-                              </a>
-                            </TooltipTrigger>
-                            <TooltipContent>Open in Google Maps</TooltipContent>
-                          </Tooltip>
+                        {fullAddress && (
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <a href={mapsUrl!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit">
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  Open in Maps
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>Open in Google Maps</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline w-fit"
+                                  onClick={() => { navigator.clipboard.writeText(fullAddress); toast.success("Address copied"); }}
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  Copy
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Copy address to clipboard</TooltipContent>
+                            </Tooltip>
+                          </div>
                         )}
                       </div>
                     );
