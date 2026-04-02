@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchCustomers, fetchOrders, fetchEvents, createOrder } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer } from "@/lib/queries";
 import { PAYMENT_TYPES } from "@/lib/types";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { generateEventId } from "@/lib/eventId";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, ShoppingBag, PartyPopper, Sparkles, RotateCcw, Users, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Plus, ShoppingBag, PartyPopper, Sparkles, RotateCcw, Users, CheckCircle2, AlertTriangle, UserPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
