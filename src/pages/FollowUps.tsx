@@ -332,7 +332,7 @@ export default function FollowUps() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {overdue.length} overdue · {todayList.length} today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
+              {callsForToday.length} calls for today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={openDistributeDialog}>
