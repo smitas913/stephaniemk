@@ -17,6 +17,9 @@ export const DESTINATION_FIELDS = [
   { key: "birthday", label: "Birthday", required: false },
   { key: "birthday_mmdd", label: "Birthday (MM/DD)", required: false },
   { key: "source", label: "Source", required: false },
+  { key: "last_contacted", label: "Last Contacted", required: false },
+  { key: "next_follow_up_date", label: "Next Follow-Up Date", required: false },
+  { key: "legacy_notes", label: "Legacy Notes / History", required: false },
 ] as const;
 
 export type DestField = (typeof DESTINATION_FIELDS)[number]["key"];
