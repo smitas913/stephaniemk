@@ -1,5 +1,11 @@
-import { differenceInDays, addDays, addMonths, isWeekend, nextMonday, startOfYear, parseISO, format, isBefore, isEqual } from "date-fns";
+import { differenceInDays, addDays, addMonths, isWeekend, nextMonday, startOfYear, format, isBefore, isEqual } from "date-fns";
 import type { Customer, Order, CustomerComputed } from "./types";
+
+/** Parse a YYYY-MM-DD string as a LOCAL midnight date (not UTC). */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 
 function toBusinessDay(d: Date): Date {
   return isWeekend(d) ? nextMonday(d) : d;
