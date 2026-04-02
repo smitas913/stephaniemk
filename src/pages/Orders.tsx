@@ -10,15 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, Trash2, Search, Copy, ChevronDown, ChevronRight, ShoppingBag,
   DollarSign, RotateCcw, Users, Sparkles, ArrowUpDown, ArrowUp, ArrowDown,
-  X, Download,
+  X, Download, CalendarIcon, ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { startOfYear, startOfMonth, endOfMonth, subMonths, isWithinInterval, parseISO } from "date-fns";
 
 
 const MONTHS = [
