@@ -54,11 +54,15 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
       queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
       queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
       setNoteText("");
       setNoteType("Call");
       setNextFollowUp("");
       setShowForm(false);
-      toast.success("Contact logged — Last Contacted updated");
+      toast.success("Note saved — Last Contacted updated");
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to save note: ${err.message || "Unknown error"}`);
     },
   });
 
