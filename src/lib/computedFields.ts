@@ -19,13 +19,8 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   const daysSinceContact = lastContacted ? differenceInDays(today, lastContacted) : null;
   const recentlyContacted = daysSinceContact !== null && daysSinceContact <= RECENT_CONTACT_DAYS;
 
-  // --- New customer flag ---
-  let newFirst90 = "";
-  if (customer.profile_date_first_order_date) {
-    const pd = parseISO(customer.profile_date_first_order_date);
-    if (differenceInDays(today, pd) <= 30) newFirst90 = "New";
-  }
-  const isNew = newFirst90 === "New";
+  // --- Manual new customer flag (read from DB field) ---
+  const isNew = !!(customer as any).new_customer_flag;
 
   // --- Activity status (skip for Consultants) ---
   let category = "";
@@ -36,7 +31,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
       else if (days <= 179) category = "Warm";
       else category = "Dormant";
     } else {
-      category = "New";
+      category = "No Orders";
     }
   }
 
