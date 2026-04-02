@@ -213,3 +213,70 @@ export const deleteCustomerNote = async (id: string) => {
   const { error } = await supabase.from("customer_notes").delete().eq("id", id);
   if (error) throw error;
 };
+
+// Prospects
+
+export const fetchProspects = async (): Promise<Prospect[]> => {
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as Prospect[];
+};
+
+export const fetchProspect = async (id: string): Promise<Prospect> => {
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as unknown as Prospect;
+};
+
+export const createProspect = async (prospect: Partial<Prospect> & { name: string }) => {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("prospects")
+    .insert({ ...prospect, owner_user_id: userId } as any);
+  if (error) throw error;
+};
+
+export const updateProspect = async (id: string, updates: Partial<Prospect>) => {
+  const { error } = await supabase
+    .from("prospects")
+    .update(updates as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const deleteProspect = async (id: string) => {
+  const { error } = await supabase.from("prospects").delete().eq("id", id);
+  if (error) throw error;
+};
+
+// Prospect Notes
+
+export const fetchProspectNotes = async (prospectId: string): Promise<ProspectNote[]> => {
+  const { data, error } = await supabase
+    .from("prospect_notes")
+    .select("*")
+    .eq("prospect_id", prospectId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as unknown as ProspectNote[];
+};
+
+export const createProspectNote = async (note: { prospect_id: string; note_text: string }) => {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("prospect_notes")
+    .insert({ ...note, owner_user_id: userId } as any);
+  if (error) throw error;
+};
+
+export const deleteProspectNote = async (id: string) => {
+  const { error } = await supabase.from("prospect_notes").delete().eq("id", id);
+  if (error) throw error;
+};
