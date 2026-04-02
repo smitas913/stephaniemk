@@ -296,11 +296,16 @@ export default function FollowUps() {
   return (
     <Layout>
       <div className="space-y-6 pb-8">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {overdue.length} overdue · {todayList.length} today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Follow-Ups</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {overdue.length} overdue · {todayList.length} today · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={openDistributeDialog}>
+            <CalendarRange className="w-4 h-4 mr-1" />Distribute
+          </Button>
         </div>
 
         {isLoading ? (
