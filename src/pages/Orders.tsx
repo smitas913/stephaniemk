@@ -143,13 +143,19 @@ export default function Orders() {
   }, [filtered]);
 
   const toggleSort = (field: SortField) => {
-    if (sortField === field) setSortDir((d) => d === "asc" ? "desc" : "asc");
-    else { setSortField(field); setSortDir("desc"); }
+    if (sortField === field) {
+      if (sortDir === "asc") setSortDir("desc");
+      else if (sortDir === "desc") { setSortField("order_date"); setSortDir("desc"); }
+      else setSortDir("asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground/50" />;
-    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+    if (sortField !== field || sortDir === null) return <ArrowUpDown className="w-3 h-3 ml-1 text-muted-foreground/50" />;
+    return sortDir === "asc" ? <ArrowUp className="w-3 h-3 ml-1 text-primary" /> : <ArrowDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
   const exportCSV = () => {
