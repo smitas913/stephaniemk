@@ -347,7 +347,7 @@ export default function CustomerList() {
                   </TableHead>
                   <TableHead>
                     <div className="flex items-center gap-1">
-                      <Popover>
+                      <Popover open={fuOpen} onOpenChange={setFuOpen}>
                         <PopoverTrigger asChild>
                           <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                             Follow-Up
