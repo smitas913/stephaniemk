@@ -20,8 +20,8 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   const yearStart = startOfYear(today);
 
   const lastOrderEffective = customer.last_order_date_order_log || customer.last_order_mk || null;
-  const lastOrderDate = lastOrderEffective ? parseISO(lastOrderEffective) : null;
-  const lastContacted = customer.last_contacted ? parseISO(customer.last_contacted) : null;
+  const lastOrderDate = lastOrderEffective ? parseLocalDate(lastOrderEffective) : null;
+  const lastContacted = customer.last_contacted ? parseLocalDate(customer.last_contacted) : null;
   const daysSinceContact = lastContacted ? differenceInDays(today, lastContacted) : null;
   const recentlyContacted = daysSinceContact !== null && daysSinceContact <= RECENT_CONTACT_DAYS;
 
@@ -43,7 +43,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   // --- Year stats ---
   const thisYearOrders = orders.filter((o) => {
-    const d = parseISO(o.order_date);
+    const d = parseLocalDate(o.order_date);
     return d >= yearStart && d <= today;
   });
   const ordersThisYear = thisYearOrders.length;
@@ -51,7 +51,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   // --- VIP ---
   const last365 = addDays(today, -365);
-  const recentOrders = orders.filter((o) => parseISO(o.order_date) >= last365);
+  const recentOrders = orders.filter((o) => parseLocalDate(o.order_date) >= last365);
   const recentTotal = recentOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
   const vip = recentOrders.length >= 3 && recentTotal >= 300 ? "VIP" : "";
 
@@ -62,7 +62,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   const hasManualDate = !isConsultant && !!customer.next_follow_up_date;
 
   if (!isConsultant && hasManualDate) {
-    nextFollowUp = parseISO(customer.next_follow_up_date!);
+    nextFollowUp = parseLocalDate(customer.next_follow_up_date!);
   } else if (!isConsultant && lastOrderDate) {
     const stage = customer.new_follow_up_stage;
     const base = lastContacted || lastOrderDate;
