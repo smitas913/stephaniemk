@@ -126,11 +126,12 @@ export default function BookingLeads() {
     });
   };
 
+  const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
     const c: Record<string, number> = { New: 0, Contacted: 0, Booked: 0, "Not Interested": 0 };
-    leads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
+    activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
-  }, [leads]);
+  }, [activeLeads]);
 
   return (
     <Layout>
