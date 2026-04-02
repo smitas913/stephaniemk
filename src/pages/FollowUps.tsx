@@ -388,7 +388,8 @@ export default function FollowUps() {
   const bookingLeadsDue = useMemo(() => {
     const todayKey = toLocalDateKey();
     return bookingLeads
-      .filter((l) => l.status !== "Booked" && l.status !== "Not Interested" && l.next_follow_up_date && isDueTodayOrEarlier(l.next_follow_up_date, todayKey))
+      .map((lead) => ({ ...lead, next_follow_up_date: normalizeFollowUpDate(lead.next_follow_up_date) }))
+      .filter((lead) => lead.status !== "Booked" && lead.status !== "Not Interested" && lead.next_follow_up_date && isDueTodayOrEarlier(lead.next_follow_up_date, todayKey))
       .sort((a, b) => (getDateOnlyTime(a.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER) - (getDateOnlyTime(b.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER));
   }, [bookingLeads]);
 
