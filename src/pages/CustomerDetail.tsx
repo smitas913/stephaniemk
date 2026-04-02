@@ -37,7 +37,7 @@ export default function CustomerDetail() {
         city: customer.city || "",
         state_territory: customer.state_territory || "",
         postal_code: customer.postal_code || "",
-        current_status: customer.current_status || "Customer",
+        relationship_status: customer.relationship_status || "Customer",
         profile_date_first_order_date: customer.profile_date_first_order_date || "",
         last_order_mk: customer.last_order_mk || "",
         last_contacted: customer.last_contacted || "",
