@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchOrders, deleteOrder, updateOrder, fetchEvents, upsertEvent } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
 import type { OrderWithCustomer, EventRecord } from "@/lib/types";
+import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
