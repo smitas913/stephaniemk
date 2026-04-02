@@ -32,6 +32,7 @@ export default function CustomerDetail() {
         full_name: customer.full_name || "",
         phone: customer.phone || "",
         email: customer.email || "",
+        birthday: (customer as any).birthday || "",
         birthday_mmdd: customer.birthday_mmdd || "",
         address_line_1: customer.address_line_1 || "",
         address_line_2: customer.address_line_2 || "",
