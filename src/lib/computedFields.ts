@@ -68,13 +68,21 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
       }
     } else {
       if (lastContacted) {
+        // Only schedule follow-up based on actual contact history
         nextFollowUp = addDays(lastContacted, 90);
       } else {
-        nextFollowUp = lastOrderDate >= yearStart ? addDays(lastOrderDate, 90) : today;
+        // No contact history recorded — only flag if they ordered this year
+        // Don't flag customers as overdue just because contact history is missing
+        if (lastOrderDate >= yearStart) {
+          nextFollowUp = addDays(lastOrderDate, 90);
+        }
+        // If last order was before this year and no contact history, don't auto-flag
       }
     }
     if (nextFollowUp) nextFollowUp = toBusinessDay(nextFollowUp);
   }
+  // If no orders and no manual follow-up date, don't create a follow-up
+  // This prevents flagging customers with missing imported contact history
 
   let followUpStatus = "";
   if (nextFollowUp) {
