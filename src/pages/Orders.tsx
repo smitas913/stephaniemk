@@ -228,7 +228,7 @@ export default function Orders() {
               {customerOptions.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             <Button variant={period.type === "ytd" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "ytd" })}>YTD</Button>
             <Button variant={period.type === "mtd" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "mtd" })}>MTD</Button>
             <Button variant={period.type === "last-month" ? "default" : "outline"} size="sm" className="h-9 text-xs" onClick={() => setPeriod({ type: "last-month" })}>Last Month</Button>
