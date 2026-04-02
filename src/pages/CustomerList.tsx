@@ -84,13 +84,22 @@ export default function CustomerList() {
     },
   });
 
+  const notesByCustomer = useMemo(() => {
+    const map = new Map<string, CustomerNote>();
+    for (const n of allNotes) {
+      if (!map.has(n.customer_id)) map.set(n.customer_id, n);
+    }
+    return map;
+  }, [allNotes]);
+
   const enriched: EnrichedCustomer[] = useMemo(() => {
     return customers.map((c) => {
       const custOrders = allOrders.filter((o) => o.customer_id === c.id);
       const computed = computeCustomerFields(c, custOrders);
-      return { ...c, ...computed };
+      const latest_note = notesByCustomer.get(c.id);
+      return { ...c, ...computed, latest_note };
     });
-  }, [customers, allOrders]);
+  }, [customers, allOrders, notesByCustomer]);
 
   const filtered = useMemo(() => {
     return enriched.filter((c) => {
