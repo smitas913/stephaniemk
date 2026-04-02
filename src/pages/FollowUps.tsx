@@ -5,6 +5,7 @@ import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
+import TodaysFocus from "@/components/TodaysFocus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
