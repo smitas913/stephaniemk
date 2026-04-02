@@ -541,7 +541,14 @@ export default function Orders() {
                         </div>
                       </TableCell>
                     </TableRow>,
-                    ...(isExpanded ? group.map((o) => renderOrderRow(o, true)) : []),
+                    ...(isExpanded ? [
+                      ...group.map((o) => renderOrderRow(o, true)),
+                      <TableRow key={`guests-${eventId}`}>
+                        <TableCell colSpan={13} className="p-0">
+                          <EventGuestPanel eventId={eventId} />
+                        </TableCell>
+                      </TableRow>,
+                    ] : []),
                   ];
                 })}
                 {standalone.map((o) => renderOrderRow(o))}
