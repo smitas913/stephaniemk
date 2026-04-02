@@ -95,12 +95,16 @@ export default function BookingLeads() {
   });
 
   const convertMut = useMutation({
-    mutationFn: () => convertBookingLeadToCustomer(convertLead!),
-    onSuccess: () => {
+    mutationFn: () => convertBookingLeadToCustomer(convertLead!, events.map(e => e.event_id)),
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setConvertLead(null);
-      toast.success("Lead converted to customer!");
+      toast.success("Lead converted! Event created.");
+      if (result.eventId) {
+        navigate(`/events/${result.eventId}`);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
