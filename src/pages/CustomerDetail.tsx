@@ -227,6 +227,15 @@ export default function CustomerDetail() {
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
                   </FormField>
+                  <FormField label="New Customer">
+                    <div className="flex items-center gap-2 h-9">
+                      <Checkbox
+                        checked={(form as any).new_customer_flag === "true"}
+                        onCheckedChange={(checked) => setForm({ ...form, new_customer_flag: checked ? "true" : "false" } as any)}
+                      />
+                      <span className="text-sm text-muted-foreground">Mark as new customer</span>
+                    </div>
+                  </FormField>
                 </div>
 
                 {/* Section: Follow-Up & Activity */}
