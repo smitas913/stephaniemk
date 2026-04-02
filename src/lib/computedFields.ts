@@ -56,9 +56,9 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
 
   const daysSinceLastOrder = lastOrderDate ? differenceInDays(today, lastOrderDate) : null;
 
-  // --- Follow-up date calculation ---
+  // --- Follow-up date calculation (skip for Consultants) ---
   let nextFollowUp: Date | null = null;
-  const hasManualDate = !!customer.next_follow_up_date;
+  const hasManualDate = !isConsultant && !!customer.next_follow_up_date;
 
   if (hasManualDate) {
     nextFollowUp = parseISO(customer.next_follow_up_date!);
