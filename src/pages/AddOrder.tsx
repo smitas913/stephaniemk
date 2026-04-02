@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchCustomers, fetchOrders, fetchEvents, createOrder } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer } from "@/lib/queries";
 import { PAYMENT_TYPES } from "@/lib/types";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { generateEventId } from "@/lib/eventId";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, ShoppingBag, PartyPopper, Sparkles, RotateCcw, Users, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Plus, ShoppingBag, PartyPopper, Sparkles, RotateCcw, Users, CheckCircle2, AlertTriangle, UserPlus, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
@@ -55,6 +56,19 @@ export default function AddOrder() {
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+
+  // New customer inline form
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [newCustName, setNewCustName] = useState("");
+  const [newCustPhone, setNewCustPhone] = useState("");
+  const [newCustEmail, setNewCustEmail] = useState("");
+  const [newCustAddress, setNewCustAddress] = useState("");
+  const [newCustCity, setNewCustCity] = useState("");
+  const [newCustState, setNewCustState] = useState("");
+  const [newCustPostal, setNewCustPostal] = useState("");
+  const [newCustBirthday, setNewCustBirthday] = useState("");
+  const [showAdditional, setShowAdditional] = useState(false);
+  const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
 
   const isEventBased = orderType === "Party" || orderType === "Facial";
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
@@ -101,16 +115,24 @@ export default function AddOrder() {
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedEvent = events.find(e => e.event_id === selectedEventId);
 
+  // Duplicate detection for new customer
+  useEffect(() => {
+    if (!isNewCustomer || !newCustName.trim()) { setDuplicateMatch(null); return; }
+    const q = newCustName.trim().toLowerCase();
+    const match = customers.find(c => c.full_name.toLowerCase() === q);
+    setDuplicateMatch(match || null);
+  }, [newCustName, isNewCustomer, customers]);
+
   // --- Validation ---
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
     if (!orderType) errors.push("Select an order type");
-    if (!customerId) errors.push("Select a customer");
+    if (!customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
     if (!paymentType) errors.push("Select a payment type");
     if (isEventBased && !selectedEventId) errors.push("Select an event");
     return errors;
-  }, [orderType, customerId, retailAmount, paymentType, isEventBased, selectedEventId]);
+  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentType, isEventBased, selectedEventId]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
@@ -123,16 +145,40 @@ export default function AddOrder() {
 
     setSubmitting(true);
     try {
+      let resolvedCustomerId = customerId;
+      let resolvedCustomerName = customerName;
+
+      // Create new customer if needed
+      if (isNewCustomer && newCustName.trim() && !customerId) {
+        const birthdayMMDD = newCustBirthday ? (() => {
+          const parts = newCustBirthday.split("-");
+          return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
+        })() : null;
+
+        const newCust = await createCustomer({
+          full_name: newCustName.trim(),
+          phone: newCustPhone.trim() || null,
+          email: newCustEmail.trim() || null,
+          address_line_1: newCustAddress.trim() || null,
+          city: newCustCity.trim() || null,
+          state_territory: newCustState.trim() || null,
+          postal_code: newCustPostal.trim() || null,
+          birthday: newCustBirthday || null,
+          birthday_mmdd: birthdayMMDD,
+        } as any);
+        resolvedCustomerId = newCust.id;
+        resolvedCustomerName = newCust.full_name;
+      }
+
       let eventId: string | null = null;
 
       if (isEventBased && selectedEventId) {
-        // Use the selected event's event_id as parent, generate unique order event_id
         eventId = selectedEventId;
       }
 
       await createOrder({
-        customer_id: customerId,
-        customer_name: customerName,
+        customer_id: resolvedCustomerId,
+        customer_name: resolvedCustomerName,
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
@@ -145,16 +191,23 @@ export default function AddOrder() {
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-orders", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
 
       setSavedCount(prev => prev + 1);
-      toast.success(`Order saved for ${customerName}`);
+      toast.success(`Order saved for ${resolvedCustomerName}`);
 
       if (addAnother || bulkMode) {
-        // Reset per-order fields, keep event + type + date
         setCustomerId("");
         setCustomerName("");
         setCustomerSearch("");
+        setIsNewCustomer(false);
+        setNewCustName(""); setNewCustPhone(""); setNewCustEmail("");
+        setNewCustAddress(""); setNewCustCity(""); setNewCustState(""); setNewCustPostal("");
+        setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
+        setRetailAmount("");
+        setWholesaleAmount("");
+        setNotes("");
+        setPaymentType("");
         setRetailAmount("");
         setWholesaleAmount("");
         setNotes("");
@@ -167,7 +220,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -327,7 +380,68 @@ export default function AddOrder() {
                 <span className="font-medium text-sm">{selectedCustomer.full_name}</span>
                 {selectedCustomer.phone && <span className="text-xs text-muted-foreground ml-2">{selectedCustomer.phone}</span>}
               </div>
-              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomerId(""); setCustomerName(""); setCustomerSearch(""); }}>Change</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomerId(""); setCustomerName(""); setCustomerSearch(""); setIsNewCustomer(false); }}>Change</Button>
+            </div>
+          ) : isNewCustomer ? (
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-primary" /> New Customer
+                </span>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNewCustomer(false); setNewCustName(""); setNewCustPhone(""); setNewCustEmail(""); setDuplicateMatch(null); }}>
+                  Cancel
+                </Button>
+              </div>
+
+              {/* Duplicate match warning */}
+              {duplicateMatch && (
+                <div className="flex items-center justify-between p-2.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Existing customer found</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">{duplicateMatch.full_name}{duplicateMatch.phone ? ` · ${duplicateMatch.phone}` : ""}</p>
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => {
+                    setCustomerId(duplicateMatch.id);
+                    setCustomerName(duplicateMatch.full_name);
+                    setIsNewCustomer(false);
+                    setDuplicateMatch(null);
+                  }}>
+                    Use this one
+                  </Button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="sm:col-span-2">
+                  <Input placeholder="Name *" value={newCustName} onChange={e => setNewCustName(e.target.value)} className="h-9" autoFocus />
+                </div>
+                <Input placeholder="Phone" value={newCustPhone} onChange={e => setNewCustPhone(e.target.value)} className="h-9" />
+                <Input placeholder="Email" value={newCustEmail} onChange={e => setNewCustEmail(e.target.value)} className="h-9" />
+              </div>
+
+              <Collapsible open={showAdditional} onOpenChange={setShowAdditional}>
+                <CollapsibleTrigger asChild>
+                  <button type="button" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showAdditional && "rotate-180")} />
+                    Additional Details (optional)
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2 space-y-2">
+                  <Input placeholder="Address" value={newCustAddress} onChange={e => setNewCustAddress(e.target.value)} className="h-9" />
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input placeholder="City" value={newCustCity} onChange={e => setNewCustCity(e.target.value)} className="h-9" />
+                    <Input placeholder="State" value={newCustState} onChange={e => setNewCustState(e.target.value)} className="h-9" />
+                    <Input placeholder="Zip" value={newCustPostal} onChange={e => setNewCustPostal(e.target.value)} className="h-9" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-muted-foreground mb-0.5 block">Birthday</label>
+                    <Input type="date" value={newCustBirthday} onChange={e => setNewCustBirthday(e.target.value)} className="h-9" />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           ) : (
             <div className="space-y-1">
@@ -344,6 +458,9 @@ export default function AddOrder() {
                   {filteredCustomers.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>}
                 </div>
               )}
+              <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => { setIsNewCustomer(true); setCustomerSearch(""); }}>
+                <UserPlus className="w-3.5 h-3.5" /> Add New Customer
+              </Button>
             </div>
           )}
         </div>
