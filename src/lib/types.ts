@@ -24,11 +24,19 @@ export interface Customer {
 export interface Order {
   id: string;
   customer_id: string;
+  customer_name: string | null;
   order_date: string;
-  source: string | null;
+  event_id: string | null;
+  order_type: string | null;
+  face_type: string | null;
+  hostess: boolean;
+  half_price_deal: boolean;
+  birthday: boolean;
+  referral: boolean;
   payment_type: string | null;
-  retail_total: number;
+  retail_amount: number;
   notes: string | null;
+  parent_event_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +58,8 @@ export interface CustomerComputed {
 }
 
 export const CUSTOMER_STATUSES = ["Customer", "Consultant", "Former Consultant"] as const;
-export const ORDER_SOURCES = ["Text", "Phone", "Online", "In Person"] as const;
+export const ORDER_TYPES = ["Reorder", "Party", "Facial"] as const;
+export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Card", "Other"] as const;
 export const FOLLOW_UP_STAGES = ["2 Day", "2 Week", "2 Month", "Complete"] as const;
+export const ORDER_SOURCES = ["Text", "Phone", "Online", "In Person"] as const;
