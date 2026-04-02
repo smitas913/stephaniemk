@@ -28,7 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Closed": "bg-muted text-muted-foreground",
 };
 
-export default function Prospects() {
+export default function Prospects({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: prospects = [], isLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
@@ -112,8 +112,7 @@ export default function Prospects() {
     return compareDateOnly(date) <= 0;
   };
 
-  return (
-    <Layout>
+  const content = (
       <div className="space-y-5 pb-8">
         <div className="flex items-center justify-between">
           <div>
@@ -296,6 +295,8 @@ export default function Prospects() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }
