@@ -85,7 +85,7 @@ export default function AddOrder() {
       .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || ""));
   }, [events, orderType, isEventBased]);
 
-  const existingEventIds = useMemo(() => allOrders.map(o => o.event_id).filter(Boolean) as string[], [allOrders]);
+  const existingEventIds = useMemo(() => events.map(e => e.event_id), [events]);
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch) return customers.slice(0, 8);
