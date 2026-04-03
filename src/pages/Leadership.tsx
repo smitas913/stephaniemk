@@ -204,7 +204,6 @@ function ConsultantsTab() {
                     {c.join_date && <p className="text-[10px] text-muted-foreground mt-0.5">Joined {formatDateOnly(c.join_date)}</p>}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="secondary" className={cn("text-[10px]", CONSULTANT_STATUS_COLORS[c.status] || "")}>{c.status}</Badge>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(c)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
                   </div>
