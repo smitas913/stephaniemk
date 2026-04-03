@@ -17,6 +17,7 @@ import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
+import type { FocusDetailItem } from "@/components/TodaysFocus";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -208,36 +209,78 @@ export default function FollowUps() {
   const isLoading = cLoading || oLoading;
 
   // ─── Compute Today's Focus metrics from completed actions ───
-  const { reachOutsToday, bookingsToday, sharingToday } = useMemo(() => {
+  const { reachOutsToday, bookingsToday, sharingToday, reachOutDetails, bookingDetails, sharingDetails } = useMemo(() => {
     const todayKey = toLocalDateKey();
     const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
 
-    // Reach-outs: customer_notes + unified notes logged today with contact types
-    const customerNoteReachOuts = allNotes.filter(
-      (n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type)
-    ).length;
-    const unifiedNoteReachOuts = unifiedNotes.filter(
-      (n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type)
-    ).length;
-    // Deduplicate: unified notes cover customers & prospects; customer_notes is legacy
-    // Use the higher count to avoid double-counting
-    const reachOuts = Math.max(customerNoteReachOuts, unifiedNoteReachOuts);
+    // Reach-out details from unified notes (covers customers & prospects)
+    const reachOutItems: FocusDetailItem[] = unifiedNotes
+      .filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
+      .map((n) => {
+        let name = "Unknown";
+        let type = n.entity_type || "Customer";
+        let id = n.customer_id || n.prospect_id || n.id;
+        if (n.entity_type === "Customer" && n.customer_id) {
+          const c = customers.find((c) => c.id === n.customer_id);
+          name = c?.full_name || "Customer";
+          id = n.customer_id;
+          type = "Customer";
+        } else if (n.entity_type === "Prospect" && n.prospect_id) {
+          const p = prospects.find((p) => p.id === n.prospect_id);
+          name = p?.name || "Prospect";
+          id = n.prospect_id;
+          type = "Prospect";
+        }
+        return { id, name, type, method: n.note_type, detail: undefined };
+      });
+    // Fallback to legacy customer notes if unified is empty
+    const legacyReachOutItems: FocusDetailItem[] = reachOutItems.length === 0
+      ? allNotes.filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
+        .map((n) => {
+          const c = customers.find((c) => c.id === n.customer_id);
+          return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
+        })
+      : [];
+    const finalReachOutItems = reachOutItems.length > 0 ? reachOutItems : legacyReachOutItems;
 
     // Bookings: events created today
-    const bookings = events.filter((e) => e.created_at.startsWith(todayKey)).length;
+    const bookingItems: FocusDetailItem[] = events
+      .filter((e) => e.created_at.startsWith(todayKey))
+      .map((e) => ({
+        id: e.event_id,
+        name: e.hostess_name || e.event_id,
+        type: "Event",
+        detail: e.event_type || undefined,
+      }));
 
-    // Sharing: prospect notes or unified notes with sharing-related content logged today
-    // Count prospects that moved to "Shared" status today, or sharing_appointments on events today
-    const sharingFromProspects = prospects.filter(
-      (p) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)
-    ).length;
+    // Sharing
+    const sharingItems: FocusDetailItem[] = [
+      ...prospects
+        .filter((p) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey))
+        .map((p) => ({ id: p.id, name: p.name, type: "Prospect" as const, detail: "Shared Opportunity" })),
+      ...events
+        .filter((e) => e.event_date === todayKey && (e.sharing_appointments_count || 0) > 0)
+        .map((e) => ({
+          id: e.event_id,
+          name: e.hostess_name || e.event_id,
+          type: "Event" as const,
+          detail: `${e.sharing_appointments_count} sharing appt${(e.sharing_appointments_count || 0) > 1 ? "s" : ""}`,
+        })),
+    ];
+
     const sharingFromEvents = events
       .filter((e) => e.event_date === todayKey)
       .reduce((sum, e) => sum + (e.sharing_appointments_count || 0), 0);
-    const sharing = sharingFromProspects + sharingFromEvents;
 
-    return { reachOutsToday: reachOuts, bookingsToday: bookings, sharingToday: sharing };
-  }, [allNotes, unifiedNotes, events, prospects]);
+    return {
+      reachOutsToday: finalReachOutItems.length,
+      bookingsToday: bookingItems.length,
+      sharingToday: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
+      reachOutDetails: finalReachOutItems,
+      bookingDetails: bookingItems,
+      sharingDetails: sharingItems,
+    };
+  }, [allNotes, unifiedNotes, events, prospects, customers]);
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
@@ -826,7 +869,19 @@ export default function FollowUps() {
 
                   {/* Right Column (1/3) */}
                   <div className="space-y-4">
-                    <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
+                    <TodaysFocus
+                      reachOutsToday={reachOutsToday}
+                      bookingsToday={bookingsToday}
+                      sharingToday={sharingToday}
+                      reachOutDetails={reachOutDetails}
+                      bookingDetails={bookingDetails}
+                      sharingDetails={sharingDetails}
+                      onDetailNavigate={(type, id) => {
+                        if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                        else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                        else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                      }}
+                    />
                     
 
                     {/* Today's Schedule — Events + Deliveries + Birthdays */}
