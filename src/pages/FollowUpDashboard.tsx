@@ -64,9 +64,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion Rate: count distinct customers with orders linked to Party/Facial events / total guest_count
+    // Conversion Rate: Party events ONLY (exclude facials — 1:1 appointments)
     const qualifyingEvents = periodEvents.filter(
-      (e) => (e.event_type === "Party" || e.event_type === "Facial") && Number(e.guest_count || 0) > 0
+      (e) => e.event_type === "Party" && Number(e.guest_count || 0) > 0
     );
     const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     // Calculate ordering guests from actual orders linked to these events
@@ -113,8 +113,10 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .filter((c) => c.retail_this_year > 0);
 
     const todayStr = new Date().toISOString().slice(0, 10);
+    // Hostess metrics: Party events ONLY (exclude facials — 1:1 appointments)
+    const partyEvents = events.filter((e) => e.event_type === "Party");
     const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
-    for (const evt of events) {
+    for (const evt of partyEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessAllEventsMap.get(name) || { totalEvents: 0, hasFuture: false };
@@ -123,8 +125,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       hostessAllEventsMap.set(name, entry);
     }
 
+    const periodPartyEvents = periodEvents.filter((e) => e.event_type === "Party");
     const hostessMap = new Map<string, { events: number; sales: number }>();
-    for (const evt of periodEvents) {
+    for (const evt of periodPartyEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessMap.get(name) || { events: 0, sales: 0 };
@@ -186,7 +189,7 @@ export default function FollowUpDashboard() {
     ];
 
     const row4Cards = [
-      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests} (${m.convEventCount} events)`, icon: TrendingUp, accent: "text-primary" },
+      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests} guests (${m.convEventCount} parties)`, icon: TrendingUp, accent: "text-primary" },
       { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, subtitle: `${m.repeatCustomers} / ${m.totalOrderingCustomers} customers`, icon: Users, accent: "text-primary" },
     ];
 
