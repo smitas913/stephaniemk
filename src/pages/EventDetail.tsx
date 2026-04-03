@@ -307,6 +307,37 @@ export default function EventDetail() {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
+                  <label className="text-xs text-muted-foreground">Event Time</label>
+                  <Input
+                    type="time"
+                    className="h-8 text-sm"
+                    defaultValue={(event as any).event_time || ""}
+                    key={`et-${(event as any).event_time}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== ((event as any).event_time || "")) {
+                        updateField("event_time", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+                <div className={cn("col-span-1 sm:col-span-3")}>
+                  <label className="text-xs text-muted-foreground">
+                    {(event.event_format || "In-Person") === "Zoom" ? "Virtual Link" : "Location"}
+                  </label>
+                  <Input
+                    className="h-8 text-sm"
+                    placeholder={(event.event_format || "In-Person") === "Zoom" ? "https://zoom.us/..." : "Address or venue"}
+                    defaultValue={(event as any).event_location || ""}
+                    key={`el-${(event as any).event_location}`}
+                    onBlur={(e) => {
+                      if (e.target.value !== ((event as any).event_location || "")) {
+                        updateField("event_location", e.target.value || null);
+                      }
+                    }}
+                  />
+                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
                   <label className="text-xs text-muted-foreground">Bookings</label>
                   <Input
                     type="number" min={0} className="h-8 text-sm"
