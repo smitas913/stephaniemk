@@ -20,7 +20,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload } from "lucide-react";
+import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
 const CONSULTANT_STATUS_COLORS: Record<string, string> = {
