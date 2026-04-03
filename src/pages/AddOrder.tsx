@@ -577,12 +577,13 @@ export default function AddOrder() {
           )}
         </div>
 
-        {/* Validation hints */}
-        {validationErrors.length > 0 && (retailAmount || customerId || isNewCustomer) && (
-          <div className="text-xs text-destructive/80 space-y-0.5 pt-1">
+        {/* Validation hints — always visible when errors exist and user has started filling the form */}
+        {validationErrors.length > 0 && (attempted || retailAmount || customerId || isNewCustomer) && (
+          <div className="text-xs text-destructive space-y-0.5 pt-1 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <p className="font-medium text-destructive mb-1">Please fix the following to save:</p>
             {validationErrors.map((e, i) => (
-              <p key={i} className="flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-destructive inline-block" /> {e}
+              <p key={i} className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3 shrink-0" /> {e}
               </p>
             ))}
           </div>
