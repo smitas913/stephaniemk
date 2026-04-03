@@ -91,6 +91,8 @@ export default function EventGuestPanel({ eventId }: Props) {
               <span>Attended: {attendingCount}</span>
               <span>·</span>
               <span>Ordered: {orderedCount}</span>
+              <span>·</span>
+              <span>Booked: {bookedCount}</span>
             </div>
           )}
         </div>
