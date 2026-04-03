@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
+import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
