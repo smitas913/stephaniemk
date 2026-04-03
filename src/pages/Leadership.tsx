@@ -302,6 +302,8 @@ function ConsultantsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
     </div>
   );
 }
