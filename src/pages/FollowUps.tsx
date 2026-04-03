@@ -538,12 +538,14 @@ export default function FollowUps() {
       else if (detailItem.itemType === "prospect") await updateProspect(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       else if (detailItem.itemType === "consultant") await updateTeamConsultant(detailItem.id, { next_coaching_date: normalizedDate } as any);
       else if (detailItem.itemType === "hostess") await updateEvent(detailItem.id, { hostess_next_action_date: normalizedDate } as any);
+      else if (detailItem.itemType === "lead") await updateBookingLead(detailItem.id, { next_follow_up_date: normalizedDate } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       setDetailFollowUpDate(""); toast.success("Date updated");
     },
   });
