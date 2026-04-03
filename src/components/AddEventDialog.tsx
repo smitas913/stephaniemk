@@ -40,8 +40,14 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
       });
       return eventId;
     },
-    onSuccess: (eventId) => {
+    onSuccess: async (eventId) => {
+      try {
+        await generateEventWorkflowTasks(eventId, eventDate || null);
+      } catch (e) {
+        console.error("Failed to generate workflow tasks", e);
+      }
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       toast.success("Event created");
       resetForm();
       onOpenChange(false);
