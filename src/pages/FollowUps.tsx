@@ -304,16 +304,21 @@ export default function FollowUps() {
       const notePreview = lastNote
         ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
         : undefined;
+      const fullAddress = [c.address_line_1, c.address_line_2, [c.city, c.state_territory, c.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
       return {
         id: c.id, itemType: "customer" as const, name: c.full_name,
         phone: c.phone, email: c.email, vip: c.vip,
         next_follow_up: effectiveFollowUp, follow_up_status: followUpStatus,
         activity_status: c.activity_status, days_since_last_order: c.days_since_last_order,
-        new_follow_up_stage: c.new_follow_up_stage, birthday_mmdd: c.birthday_mmdd,
+        new_follow_up_stage: c.new_follow_up_stage,
+        dormant_follow_up_stage: (c as any).dormant_follow_up_stage || null,
+        birthday_mmdd: c.birthday_mmdd,
         birthday: c.birthday, daysOverdue,
         followUpReason: c.follow_up_reason || "Customer Follow-Up",
         lastNotePreview: notePreview, lastContacted: c.last_contacted,
         actionLabel: "Follow-up",
+        _address: fullAddress || null,
+        _relationship_status: c.relationship_status,
       };
     });
 
