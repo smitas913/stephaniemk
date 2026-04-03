@@ -114,13 +114,17 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
     }
   }, []);
 
-  const hasName = useMemo(() => Object.values(mapping).includes("name"), [mapping]);
+  const hasName = useMemo(() => Object.values(mapping).includes("name") || (Object.values(mapping).includes("first_name") || Object.values(mapping).includes("last_name")), [mapping]);
 
   const mappedRows = useMemo(() => {
     return csvRows.map((raw, i) => {
       const mapped: Partial<Record<DestField, string>> = {};
       for (const [col, dest] of Object.entries(mapping)) {
         if (dest && raw[col]) mapped[dest] = raw[col].trim();
+      }
+      // Auto-generate full name from first + last if no full name mapped
+      if (!mapped.name && (mapped.first_name || mapped.last_name)) {
+        mapped.name = [mapped.first_name, mapped.last_name].filter(Boolean).join(" ").trim();
       }
       return { rowIdx: i + 1, mapped, hasError: !mapped.name?.trim() };
     });
