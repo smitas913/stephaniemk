@@ -166,7 +166,7 @@ export default function BookingLeads() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {["all", ...BOOKING_LEAD_STATUSES].map((s) => (
               <Button
                 key={s}
@@ -180,6 +180,15 @@ export default function BookingLeads() {
               </Button>
             ))}
           </div>
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger className="h-9 w-[180px] text-xs">
+              <SelectValue placeholder="All Activities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Activities</SelectItem>
+              {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Leads list */}
