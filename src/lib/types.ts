@@ -200,10 +200,14 @@ export interface Expense {
   category: string;
   notes: string | null;
   receipt_url: string | null;
+  event_type: string | null;
+  event_year: number | null;
   owner_user_id: string | null;
   created_at: string;
   updated_at: string | null;
 }
+
+export const EXPENSE_EVENT_TYPES = ["Seminar", "Career Conference", "Leadership Conference", "Fall Retreat", "Director Meeting", "Other Event"] as const;
 
 export const INCOME_CATEGORIES = ["Commission", "Bonus", "Referral", "Other"] as const;
 

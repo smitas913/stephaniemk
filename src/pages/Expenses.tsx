@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchExpenses, createExpense, deleteExpense, uploadReceiptImage } from "@/lib/queries";
-import { EXPENSE_CATEGORIES } from "@/lib/types";
+import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,11 +39,18 @@ export default function Expenses() {
   const [formAmount, setFormAmount] = useState("");
   const [formCategory, setFormCategory] = useState<string>("Inventory");
   const [formNotes, setFormNotes] = useState("");
+  const [formEventType, setFormEventType] = useState<string>("");
+  const [formEventYear, setFormEventYear] = useState<string>("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const SHOW_EVENT_FIELDS_FOR = ["Events", "Travel", "Meals"];
+  const showEventFields = SHOW_EVENT_FIELDS_FOR.includes(formCategory);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   const filtered = useMemo(() => {
     if (filterCat === "all") return expenses;
@@ -69,6 +76,8 @@ export default function Expenses() {
     setFormAmount("");
     setFormNotes("");
     setFormCategory("Inventory");
+    setFormEventType("");
+    setFormEventYear("");
     clearReceipt();
   };
 
@@ -85,6 +94,8 @@ export default function Expenses() {
         category: formCategory,
         notes: formNotes || null,
         receipt_url,
+        event_type: showEventFields && formEventType ? formEventType : null,
+        event_year: showEventFields && formEventYear ? parseInt(formEventYear) : null,
       });
     },
     onSuccess: () => {
@@ -158,6 +169,7 @@ export default function Expenses() {
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {formatDateOnly(e.expense_date)}
+                      {e.event_type && e.event_year && ` · ${e.event_type} ${e.event_year}`}
                       {e.notes && ` — ${e.notes}`}
                     </p>
                   </div>
@@ -186,6 +198,24 @@ export default function Expenses() {
                 </SelectContent>
               </Select>
               <Textarea placeholder="Notes (optional)" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="min-h-[60px]" />
+
+              {showEventFields && (
+                <div className="space-y-3 rounded-md border border-border p-3 bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground">Link to Event (optional)</p>
+                  <Select value={formEventType} onValueChange={setFormEventType}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Event Type" /></SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={formEventYear} onValueChange={setFormEventYear}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Event Year" /></SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Receipt upload */}
               <div>
