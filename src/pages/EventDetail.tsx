@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks } from "@/lib/queries";
+import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { COACHING_STATUSES } from "@/lib/types";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
