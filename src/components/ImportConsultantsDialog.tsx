@@ -11,13 +11,19 @@ import { parseGenericDate } from "@/lib/csvImport";
 import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
 import { toast } from "sonner";
 
-type DestField = "name" | "phone" | "email" | "join_date" | "notes";
+type DestField = "name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code";
 
 const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
   { key: "name", label: "Name", required: true },
   { key: "phone", label: "Phone", required: false },
   { key: "email", label: "Email", required: false },
-  { key: "join_date", label: "Join Date", required: false },
+  { key: "consultant_id", label: "Consultant ID", required: false },
+  { key: "join_date", label: "Start Date", required: false },
+  { key: "birthday", label: "Birthday", required: false },
+  { key: "address_line_1", label: "Address", required: false },
+  { key: "city", label: "City", required: false },
+  { key: "state_territory", label: "State", required: false },
+  { key: "postal_code", label: "Zip", required: false },
   { key: "notes", label: "Notes", required: false },
 ];
 
@@ -25,7 +31,13 @@ const HEADER_HINTS: Record<DestField, string[]> = {
   name: ["name", "full_name", "fullname", "full name", "consultant name", "consultant"],
   phone: ["phone", "telephone", "tel", "mobile", "cell", "phone number"],
   email: ["email", "e-mail", "email address"],
+  consultant_id: ["consultant_id", "consultant id", "id", "member id", "rep id"],
   join_date: ["join_date", "join date", "joined", "start date", "start_date", "date joined"],
+  birthday: ["birthday", "birth_date", "birthdate", "dob", "date of birth"],
+  address_line_1: ["address", "address_line_1", "street", "mailing address"],
+  city: ["city", "town"],
+  state_territory: ["state", "state_territory", "province", "st"],
+  postal_code: ["zip", "postal_code", "zipcode", "zip code", "postal"],
   notes: ["notes", "note", "comments", "comment"],
 };
 
