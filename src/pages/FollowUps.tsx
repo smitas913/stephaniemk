@@ -674,68 +674,93 @@ export default function FollowUps() {
                   <div className="space-y-4">
                     <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
 
-                    {/* Today's Events */}
-                    <Card className="border-border/50 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                            <Calendar className="w-4 h-4 text-emerald-600" />
-                          </div>
-                          <CardTitle className="text-sm font-semibold text-foreground">Today's Events</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayEvents.length}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {todayEvents.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-3 text-center">No events today</p>
-                        ) : (
-                          <div className="divide-y divide-border/40">
-                            {todayEvents.map((evt) => (
-                              <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                onClick={() => navigate(`/events/${evt.event_id}`)}>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    {evt.event_type && <span>{evt.event_type}</span>}
-                                    {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                  </div>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-
+                    {/* Today's Schedule — Events + Deliveries + Birthdays */}
                     <Card className="border-border/50 shadow-sm">
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
-                              <Cake className="w-4 h-4 text-pink-600" />
+                            <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
+                              <Calendar className="w-4 h-4 text-emerald-600" />
                             </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Birthdays</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{birthdaysToday.length}</Badge>
+                            <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
+                            <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.length}</Badge>
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">7 days</label>
+                            <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
                             <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        {birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
-                          <p className="text-sm text-muted-foreground py-3 text-center">No birthdays {showUpcoming7 ? "this week" : "today"} 🎂</p>
+                        {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                          <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                         ) : (
-                          <div className="space-y-0.5">
-                            {birthdaysToday.map((c) => (
-                              <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                            ))}
-                            {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                              <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                            ))}
+                          <div className="space-y-3">
+                            {/* Events */}
+                            {todayEvents.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
+                                </p>
+                                <div className="divide-y divide-border/40">
+                                  {todayEvents.map((evt) => (
+                                    <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                      onClick={() => navigate(`/events/${evt.event_id}`)}>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                          {evt.event_type && <span>{evt.event_type}</span>}
+                                          {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
+                                        </div>
+                                      </div>
+                                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Deliveries */}
+                            {todayDeliveries.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
+                                </p>
+                                <div className="divide-y divide-border/40">
+                                  {todayDeliveries.map((del: any) => (
+                                    <div key={del.id} className="py-2 flex items-center gap-3 px-1">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
+                                        {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
+                                        {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
+                                      </div>
+                                      {del.phone && (
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                                          <a href={`tel:${del.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Birthdays */}
+                            {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.length})
+                                </p>
+                                <div className="space-y-0.5">
+                                  {birthdaysToday.map((c) => (
+                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                  ))}
+                                  {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                                    <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </CardContent>
