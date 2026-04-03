@@ -41,6 +41,32 @@ export default function Events() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const createMutation = useRQMutation({
+    mutationFn: async () => {
+      const today = toLocalDateKey();
+      const existingIds = events.map(e => e.event_id);
+      const eventId = generateEventId("Party", today, "Event", existingIds);
+      await upsertEvent({
+        event_id: eventId,
+        event_type: "Party",
+        event_date: today,
+        guest_count: 0,
+      });
+      try {
+        await generateEventWorkflowTasks(eventId, today);
+      } catch (e) {
+        console.error("Failed to generate workflow tasks", e);
+      }
+      return eventId;
+    },
+    onSuccess: (eventId) => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      navigate(`/events/${eventId}`);
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to create event"),
+  });
+
   // Calculate totals per event from orders
   const eventSales = useMemo(() => {
     const map = new Map<string, { total: number; orderCount: number }>();
