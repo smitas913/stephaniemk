@@ -245,21 +245,28 @@ export default function FollowUps() {
         detail: l.lead_activity || undefined,
       }));
 
-    // Consultants coached/contacted today
-    const consultantReachOutItems: FocusDetailItem[] = consultants
-      .filter((c) => {
-        // Coached today: updated_at starts with today and has a coaching date of today or earlier
-        const updatedToday = c.updated_at?.startsWith(todayKey);
-        const coachedToday = c.next_coaching_date === todayKey;
-        return updatedToday || coachedToday;
-      })
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        type: "Consultant",
-        method: "Coaching",
-        detail: c.coaching_focus || undefined,
-      }));
+    // Consultants actually contacted/coached today (only if last_order_date or updated_at changed with a coaching interaction)
+    // We only count consultants where a coaching action was explicitly completed today
+    // by checking if their next_coaching_date was advanced past today (meaning coaching was done)
+    // or if there's a note logged for them today
+    const consultantReachOutItems: FocusDetailItem[] = [];
+    // Note: Consultant coaching reach-outs are tracked via the "Mark Complete" action
+    // which updates next_coaching_date. If next_coaching_date is now AFTER today and 
+    // the record was updated today, that means coaching was completed.
+    for (const c of consultants) {
+      const updatedToday = c.updated_at?.startsWith(todayKey);
+      const coachingAdvanced = c.next_coaching_date && c.next_coaching_date > todayKey;
+      // Only count if updated today AND coaching date was advanced (meaning completed)
+      if (updatedToday && coachingAdvanced) {
+        consultantReachOutItems.push({
+          id: c.id,
+          name: c.name,
+          type: "Consultant",
+          method: "Coaching",
+          detail: c.coaching_focus || undefined,
+        });
+      }
+    }
 
     // Deduplicate by id (a person might appear from notes AND from lead/consultant records)
     const seenIds = new Set<string>();
