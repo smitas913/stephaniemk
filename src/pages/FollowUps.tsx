@@ -477,6 +477,11 @@ export default function FollowUps() {
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`);
     else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`);
+    else if (item.itemType === "hostess") {
+      const evt = events.find(e => e.id === item.id);
+      if (evt) navigate(`/events/${evt.event_id}`);
+      else navigate("/events");
+    }
     else navigate("/leadership");
   };
 
