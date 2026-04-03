@@ -245,21 +245,28 @@ export default function FollowUps() {
         detail: l.lead_activity || undefined,
       }));
 
-    // Consultants coached/contacted today
-    const consultantReachOutItems: FocusDetailItem[] = consultants
-      .filter((c) => {
-        // Coached today: updated_at starts with today and has a coaching date of today or earlier
-        const updatedToday = c.updated_at?.startsWith(todayKey);
-        const coachedToday = c.next_coaching_date === todayKey;
-        return updatedToday || coachedToday;
-      })
-      .map((c) => ({
-        id: c.id,
-        name: c.name,
-        type: "Consultant",
-        method: "Coaching",
-        detail: c.coaching_focus || undefined,
-      }));
+    // Consultants actually contacted/coached today (only if last_order_date or updated_at changed with a coaching interaction)
+    // We only count consultants where a coaching action was explicitly completed today
+    // by checking if their next_coaching_date was advanced past today (meaning coaching was done)
+    // or if there's a note logged for them today
+    const consultantReachOutItems: FocusDetailItem[] = [];
+    // Note: Consultant coaching reach-outs are tracked via the "Mark Complete" action
+    // which updates next_coaching_date. If next_coaching_date is now AFTER today and 
+    // the record was updated today, that means coaching was completed.
+    for (const c of consultants) {
+      const updatedToday = c.updated_at?.startsWith(todayKey);
+      const coachingAdvanced = c.next_coaching_date && c.next_coaching_date > todayKey;
+      // Only count if updated today AND coaching date was advanced (meaning completed)
+      if (updatedToday && coachingAdvanced) {
+        consultantReachOutItems.push({
+          id: c.id,
+          name: c.name,
+          type: "Consultant",
+          method: "Coaching",
+          detail: c.coaching_focus || undefined,
+        });
+      }
+    }
 
     // Deduplicate by id (a person might appear from notes AND from lead/consultant records)
     const seenIds = new Set<string>();
@@ -501,13 +508,23 @@ export default function FollowUps() {
         const effectiveDate = normalizeFollowUpDate(t.due_date);
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
         const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        // Build a clear display name: "Hostess Name — Task (Event Type M/D)"
+        const hostessName = matchedEvent?.hostess_name || "Hostess";
+        const eventDateFormatted = matchedEvent?.event_date
+          ? (() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ""; })()
+          : "";
+        const eventTypeLabel = matchedEvent?.event_type || "Event";
+        const displayName = `${hostessName}`;
+        const taskDetail = eventDateFormatted
+          ? `${t.task_name} (${eventTypeLabel} ${eventDateFormatted})`
+          : t.task_name;
         return {
           id: t.id, itemType: "event_task" as const,
-          name: matchedEvent?.hostess_name || t.event_id,
+          name: displayName,
           phone: matchedEvent?.hostess_phone || null, email: matchedEvent?.hostess_email || null,
           next_follow_up: effectiveDate, follow_up_status: status,
           daysOverdue,
-          followUpReason: t.task_name,
+          followUpReason: taskDetail,
           lastContacted: null,
           actionLabel: "Hostess Coaching",
           _eventTaskId: t.id,
@@ -1819,6 +1836,9 @@ function ActionRow({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
               <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium text-[10px]">{item.actionLabel}</span>
+              {item.followUpReason && item.followUpReason !== item.actionLabel && (
+                <span className="text-[10px] text-muted-foreground">{item.followUpReason}</span>
+              )}
               {item.lastContacted && <span>Last: {formatLastContacted(item.lastContacted)}</span>}
               {item.days_since_last_order != null && <span>{item.days_since_last_order}d since order</span>}
             </div>
