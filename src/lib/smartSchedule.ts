@@ -1,9 +1,30 @@
-import { addDays, getYear, getMonth, getDate } from "date-fns";
-import { toLocalDateKey, parseLocalDate, getLocalToday } from "@/lib/dateOnly";
+import { addDays } from "date-fns";
+import { toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 
 /**
- * US federal holidays (fixed + computed).
- * Returns YYYY-MM-DD strings for a given year.
+ * Compute Easter Sunday using the Anonymous Gregorian algorithm.
+ * Returns { month (1-based), day } for the given year.
+ */
+function computeEaster(year: number): { month: number; day: number } {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return { month, day };
+}
+
+/**
+ * US holidays (fixed + computed) for a given year.
  */
 function getHolidaysForYear(year: number): Set<string> {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -15,6 +36,10 @@ function getHolidaysForYear(year: number): Set<string> {
   holidays.add(key(1, 1));   // New Year's Day
   holidays.add(key(7, 4));   // Independence Day
   holidays.add(key(12, 25)); // Christmas
+
+  // Easter Sunday
+  const easter = computeEaster(year);
+  holidays.add(key(easter.month, easter.day));
 
   // Memorial Day — last Monday of May
   for (let d = 31; d >= 25; d--) {
@@ -60,16 +85,24 @@ function isInOOO(dateKey: string, ooo: OOOPeriod | null): boolean {
   return dateKey >= ooo.ooo_start_date && dateKey <= ooo.ooo_end_date;
 }
 
+function isCustomBlackout(dateKey: string, blackoutDates: Set<string>): boolean {
+  return blackoutDates.has(dateKey);
+}
+
 /**
  * Given a candidate date, advance it forward until it lands on a valid working day
- * (not Sunday, not a holiday, not in OOO).
+ * (not Sunday, not a holiday, not in OOO, not a custom blackout day).
  */
-export function nextAvailableDay(candidate: Date, ooo: OOOPeriod | null = null): Date {
+export function nextAvailableDay(
+  candidate: Date,
+  ooo: OOOPeriod | null = null,
+  blackoutDates: Set<string> = new Set(),
+): Date {
   let current = candidate;
   let safety = 0;
-  while (safety < 60) {
+  while (safety < 90) {
     const key = toLocalDateKey(current);
-    if (!isSunday(current) && !isHoliday(key) && !isInOOO(key, ooo)) {
+    if (!isSunday(current) && !isHoliday(key) && !isInOOO(key, ooo) && !isCustomBlackout(key, blackoutDates)) {
       return current;
     }
     current = addDays(current, 1);
@@ -81,13 +114,17 @@ export function nextAvailableDay(candidate: Date, ooo: OOOPeriod | null = null):
 /**
  * Same as nextAvailableDay but also skips Saturdays (weekday-only scheduling).
  */
-export function nextAvailableWeekday(candidate: Date, ooo: OOOPeriod | null = null): Date {
+export function nextAvailableWeekday(
+  candidate: Date,
+  ooo: OOOPeriod | null = null,
+  blackoutDates: Set<string> = new Set(),
+): Date {
   let current = candidate;
   let safety = 0;
-  while (safety < 60) {
+  while (safety < 90) {
     const key = toLocalDateKey(current);
     const day = current.getDay();
-    if (day !== 0 && day !== 6 && !isHoliday(key) && !isInOOO(key, ooo)) {
+    if (day !== 0 && day !== 6 && !isHoliday(key) && !isInOOO(key, ooo) && !isCustomBlackout(key, blackoutDates)) {
       return current;
     }
     current = addDays(current, 1);
@@ -98,23 +135,23 @@ export function nextAvailableWeekday(candidate: Date, ooo: OOOPeriod | null = nu
 
 /**
  * Spread multiple dates forward so no single day gets more than `maxPerDay` tasks.
- * Takes an array of candidate date strings, returns adjusted date strings.
  */
 export function spreadTasks(
   dates: string[],
   maxPerDay: number,
   ooo: OOOPeriod | null = null,
+  blackoutDates: Set<string> = new Set(),
 ): string[] {
   const dayCount = new Map<string, number>();
   return dates.map((d) => {
     let candidate = parseLocalDate(d);
-    candidate = nextAvailableWeekday(candidate, ooo);
+    candidate = nextAvailableWeekday(candidate, ooo, blackoutDates);
     let key = toLocalDateKey(candidate);
 
     let safety = 0;
     while ((dayCount.get(key) ?? 0) >= maxPerDay && safety < 60) {
       candidate = addDays(candidate, 1);
-      candidate = nextAvailableWeekday(candidate, ooo);
+      candidate = nextAvailableWeekday(candidate, ooo, blackoutDates);
       key = toLocalDateKey(candidate);
       safety++;
     }
@@ -124,10 +161,14 @@ export function spreadTasks(
   });
 }
 
-/** Check if a date string falls on Sunday, holiday, or OOO */
-export function isBlockedDay(dateStr: string, ooo: OOOPeriod | null = null): boolean {
+/** Check if a date string falls on Sunday, holiday, OOO, or blackout */
+export function isBlockedDay(
+  dateStr: string,
+  ooo: OOOPeriod | null = null,
+  blackoutDates: Set<string> = new Set(),
+): boolean {
   const d = parseLocalDate(dateStr);
-  return isSunday(d) || isHoliday(dateStr) || isInOOO(dateStr, ooo);
+  return isSunday(d) || isHoliday(dateStr) || isInOOO(dateStr, ooo) || isCustomBlackout(dateStr, blackoutDates);
 }
 
 /** Holiday list for display purposes */
@@ -137,6 +178,10 @@ export function getHolidayList(year: number): { date: string; name: string }[] {
   const list: { date: string; name: string }[] = [];
 
   list.push({ date: key(1, 1), name: "New Year's Day" });
+
+  // Easter
+  const easter = computeEaster(year);
+  list.push({ date: key(easter.month, easter.day), name: "Easter" });
 
   // Memorial Day
   for (let d = 31; d >= 25; d--) {
@@ -160,5 +205,8 @@ export function getHolidayList(year: number): { date: string; name: string }[] {
   }
 
   list.push({ date: key(12, 25), name: "Christmas" });
+
+  // Sort by date
+  list.sort((a, b) => a.date.localeCompare(b.date));
   return list;
 }
