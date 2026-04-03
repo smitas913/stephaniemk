@@ -157,11 +157,18 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
       if (isDup && dupAction === "skip") { skipped++; continue; }
 
       const joinDate = row.mapped.join_date ? parseGenericDate(row.mapped.join_date) : null;
+      const birthdayDate = row.mapped.birthday ? parseGenericDate(row.mapped.birthday) : null;
       const payload: Record<string, any> = {
         name: row.mapped.name!.trim(),
         phone: row.mapped.phone || null,
         email: row.mapped.email || null,
+        consultant_id: row.mapped.consultant_id || null,
         join_date: joinDate || null,
+        birthday: birthdayDate || null,
+        address_line_1: row.mapped.address_line_1 || null,
+        city: row.mapped.city || null,
+        state_territory: row.mapped.state_territory || null,
+        postal_code: row.mapped.postal_code || null,
         notes: row.mapped.notes || null,
         status: "Active",
         focus_group: "General",
