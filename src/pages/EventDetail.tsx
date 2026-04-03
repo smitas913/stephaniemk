@@ -74,9 +74,32 @@ export default function EventDetail() {
     eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
   };
 
-  const toggleChecklist = (field: string) => {
+  const toggleChecklist = async (field: string) => {
     if (!event) return;
-    eventMutation.mutate({ event_id: event.event_id, [field]: !(event as any)[field] } as any);
+    const newValue = !(event as any)[field];
+    eventMutation.mutate({ event_id: event.event_id, [field]: newValue } as any);
+
+    // Trigger guest invite task when hostess form (google form) is completed
+    if (field === "checklist_google_form_completed" && newValue) {
+      try {
+        await generateGuestInviteTask(event.event_id);
+        queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+        toast.success("Task created: Send Guest Invite + Guest Form");
+      } catch (e) {
+        console.error("Failed to create guest invite task", e);
+      }
+    }
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      await completeEventTask(taskId);
+      queryClient.invalidateQueries({ queryKey: ["event-tasks", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      toast.success("Task completed");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to complete task");
+    }
   };
 
   return (
