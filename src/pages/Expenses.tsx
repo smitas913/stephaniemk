@@ -94,6 +94,8 @@ export default function Expenses() {
         category: formCategory,
         notes: formNotes || null,
         receipt_url,
+        event_type: showEventFields && formEventType ? formEventType : null,
+        event_year: showEventFields && formEventYear ? parseInt(formEventYear) : null,
       });
     },
     onSuccess: () => {
