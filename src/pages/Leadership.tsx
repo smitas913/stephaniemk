@@ -134,7 +134,7 @@ function ConsultantsTab() {
       state_territory: c.state_territory || "", postal_code: c.postal_code || "",
       focus_group: c.focus_group || "General", onboarding_stage: c.onboarding_stage || "New",
       coaching_focus: c.coaching_focus || "", next_coaching_date: c.next_coaching_date || "",
-      notes: c.notes || "", status: c.status,
+      notes: c.notes || "",
     });
     setEditId(c.id);
   };
