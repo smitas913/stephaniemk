@@ -742,6 +742,7 @@ export default function FollowUps() {
                   {/* Right Column (1/3) */}
                   <div className="space-y-4">
                     <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
+                    <ScheduleSettings />
 
                     {/* Today's Schedule — Events + Deliveries + Birthdays */}
                     <Card className="border-border/50 shadow-sm">
