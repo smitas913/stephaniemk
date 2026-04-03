@@ -62,6 +62,30 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_blackout_days: {
+        Row: {
+          blackout_date: string
+          created_at: string
+          id: string
+          label: string | null
+          user_id: string
+        }
+        Insert: {
+          blackout_date: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          user_id: string
+        }
+        Update: {
+          blackout_date?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       customer_notes: {
         Row: {
           created_at: string
