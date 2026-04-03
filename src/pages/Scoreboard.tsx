@@ -193,6 +193,33 @@ export default function Scoreboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Event Conversion Card */}
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-foreground">Event Pipeline — This Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{scoreboard.monthBooked}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Booked</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary tabular-nums">{scoreboard.monthHeld}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Held</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-destructive tabular-nums">{scoreboard.monthCancelled}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Cancelled</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary tabular-nums">{scoreboard.monthHoldRate}%</p>
+                  <p className="text-xs text-muted-foreground font-medium">Hold Rate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           </div>
         )}
       </div>
