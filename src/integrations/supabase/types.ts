@@ -1152,6 +1152,9 @@ export type Database = {
         | "Other"
         | "Admin / Office Help"
         | "Accounting"
+        | "Meals"
+        | "Travel"
+        | "Networking"
       income_category: "Commission" | "Bonus" | "Referral" | "Other"
       opportunity_status:
         | "New"
@@ -1305,6 +1308,9 @@ export const Constants = {
         "Other",
         "Admin / Office Help",
         "Accounting",
+        "Meals",
+        "Travel",
+        "Networking",
       ],
       income_category: ["Commission", "Bonus", "Referral", "Other"],
       opportunity_status: [

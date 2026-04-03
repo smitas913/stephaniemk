@@ -191,7 +191,7 @@ export interface ProspectNote {
   owner_user_id: string | null;
 }
 
-export const EXPENSE_CATEGORIES = ["Inventory", "Supplies", "Marketing", "Events", "Tools", "Admin / Office Help", "Accounting"] as const;
+export const EXPENSE_CATEGORIES = ["Inventory", "Supplies", "Marketing", "Events", "Tools", "Admin / Office Help", "Accounting", "Meals", "Travel", "Networking"] as const;
 
 export interface Expense {
   id: string;
