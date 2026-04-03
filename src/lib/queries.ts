@@ -404,7 +404,7 @@ export const fetchExpenses = async (): Promise<Expense[]> => {
   return data as unknown as Expense[];
 };
 
-export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null }) => {
+export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null; event_type?: string | null; event_year?: number | null }) => {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("expenses")
