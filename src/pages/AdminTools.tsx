@@ -4,10 +4,11 @@ import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCog, ClipboardList, Upload, RefreshCw, Truck } from "lucide-react";
+import { UserCog, ClipboardList, Upload, RefreshCw, Truck, CalendarCog } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import ConsultantRequests from "@/pages/ConsultantRequests";
 import DeliveryTracking from "@/components/DeliveryTracking";
+import ScheduleSettings from "@/components/ScheduleSettings";
 
 export default function AdminTools() {
   const { profile } = useAuth();
@@ -44,6 +45,10 @@ export default function AdminTools() {
             <TabsTrigger value="deliveries" className="gap-1.5">
               <Truck className="w-4 h-4" />
               Deliveries
+            </TabsTrigger>
+            <TabsTrigger value="scheduling" className="gap-1.5">
+              <CalendarCog className="w-4 h-4" />
+              Scheduling
             </TabsTrigger>
           </TabsList>
 
@@ -86,6 +91,10 @@ export default function AdminTools() {
 
           <TabsContent value="deliveries">
             <DeliveryTracking />
+          </TabsContent>
+
+          <TabsContent value="scheduling">
+            <ScheduleSettings />
           </TabsContent>
         </Tabs>
       </div>
