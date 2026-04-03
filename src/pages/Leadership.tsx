@@ -25,9 +25,6 @@ import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
 const CONSULTANT_STATUS_COLORS: Record<string, string> = {
-  "Active": "bg-green-100 text-green-700",
-  "Inactive": "bg-muted text-muted-foreground",
-  "At Risk": "bg-orange-100 text-orange-700",
 };
 
 const ONBOARDING_STAGE_COLORS: Record<string, string> = {
