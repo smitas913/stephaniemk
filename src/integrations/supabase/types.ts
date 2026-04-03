@@ -928,12 +928,14 @@ export type Database = {
           consultant_id: string | null
           created_at: string
           email: string | null
+          first_name: string | null
           first_order_date: string | null
           first_party_date: string | null
           first_team_member_date: string | null
           focus_group: string | null
           id: string
           join_date: string | null
+          last_name: string | null
           last_order_date: string | null
           name: string
           next_coaching_date: string | null
@@ -955,12 +957,14 @@ export type Database = {
           consultant_id?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           first_order_date?: string | null
           first_party_date?: string | null
           first_team_member_date?: string | null
           focus_group?: string | null
           id?: string
           join_date?: string | null
+          last_name?: string | null
           last_order_date?: string | null
           name: string
           next_coaching_date?: string | null
@@ -982,12 +986,14 @@ export type Database = {
           consultant_id?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           first_order_date?: string | null
           first_party_date?: string | null
           first_team_member_date?: string | null
           focus_group?: string | null
           id?: string
           join_date?: string | null
+          last_name?: string | null
           last_order_date?: string | null
           name?: string
           next_coaching_date?: string | null
