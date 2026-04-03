@@ -92,11 +92,10 @@ export default function Events() {
             <p className="text-sm text-muted-foreground">{totalEvents} events</p>
           </div>
           <Button
-            disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate()}
+            onClick={() => navigate("/events/new")}
             className="gap-1.5"
           >
-            <Plus className="w-4 h-4" /> {createMutation.isPending ? "Creating..." : "New Event"}
+            <Plus className="w-4 h-4" /> New Event
           </Button>
         </div>
 
