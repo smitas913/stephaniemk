@@ -74,13 +74,9 @@ export function getNextCoachingDate(
  * Auto-populate the initial coaching date for a new consultant.
  * Sets to tomorrow (or next weekday).
  */
-export function getInitialCoachingDate(today = getLocalToday()): string {
+export function getInitialCoachingDate(today = getLocalToday(), ooo: OOOPeriod | null = null): string {
   const candidate = addDays(today, 1);
-  const day = candidate.getDay();
-  let adjusted = candidate;
-  if (day === 0) adjusted = addDays(candidate, 1);
-  if (day === 6) adjusted = addDays(candidate, 2);
-  return toLocalDateKey(adjusted);
+  return toLocalDateKey(nextAvailableWeekday(candidate, ooo));
 }
 
 /**
