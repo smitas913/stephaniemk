@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents } from "@/lib/queries";
-import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES } from "@/lib/types";
+import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import type { BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -36,25 +36,26 @@ export default function BookingLeads() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activityFilter, setActivityFilter] = useState<string>("all");
   const [showAdd, setShowAdd] = useState(false);
   const [editLead, setEditLead] = useState<BookingLead | null>(null);
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
   const [convertLead, setConvertLead] = useState<BookingLead | null>(null);
 
   // Add/edit form state
-  const [form, setForm] = useState({ name: "", phone: "", email: "", lead_source: "Networking", notes: "", next_follow_up_date: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", lead_source: "Networking", lead_activity: "No Activity Yet", notes: "", next_follow_up_date: "" });
 
-  const resetForm = () => setForm({ name: "", phone: "", email: "", lead_source: "Networking", notes: "", next_follow_up_date: "" });
+  const resetForm = () => setForm({ name: "", phone: "", email: "", lead_source: "Networking", lead_activity: "No Activity Yet", notes: "", next_follow_up_date: "" });
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      // Hide converted leads from default "all" view
       if (statusFilter === "all" && l.converted_customer_id) return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (activityFilter !== "all" && (l.lead_activity || "No Activity Yet") !== activityFilter) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [leads, search, statusFilter]);
+  }, [leads, search, statusFilter, activityFilter]);
 
   const createMut = useMutation({
     mutationFn: () => createBookingLead({
@@ -62,6 +63,7 @@ export default function BookingLeads() {
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       lead_source: form.lead_source || null,
+      lead_activity: form.lead_activity || "No Activity Yet",
       notes: form.notes.trim() || null,
       next_follow_up_date: form.next_follow_up_date || null,
     }),
@@ -116,6 +118,7 @@ export default function BookingLeads() {
       phone: lead.phone || "",
       email: lead.email || "",
       lead_source: lead.lead_source || "",
+      lead_activity: lead.lead_activity || "No Activity Yet",
       notes: lead.notes || "",
       next_follow_up_date: lead.next_follow_up_date || "",
     });
@@ -128,6 +131,7 @@ export default function BookingLeads() {
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       lead_source: form.lead_source || null,
+      lead_activity: form.lead_activity || "No Activity Yet",
       notes: form.notes.trim() || null,
       next_follow_up_date: form.next_follow_up_date || null,
     });
@@ -162,7 +166,7 @@ export default function BookingLeads() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {["all", ...BOOKING_LEAD_STATUSES].map((s) => (
               <Button
                 key={s}
@@ -176,6 +180,15 @@ export default function BookingLeads() {
               </Button>
             ))}
           </div>
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger className="h-9 w-[180px] text-xs">
+              <SelectValue placeholder="All Activities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Activities</SelectItem>
+              {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Leads list */}
@@ -197,12 +210,15 @@ export default function BookingLeads() {
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[lead.status] || "bg-muted text-muted-foreground")}>
                           {lead.status}
                         </span>
-                        {lead.lead_source && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
-                        )}
-                        {lead.converted_customer_id && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-medium">Converted</span>
-                        )}
+                         {lead.lead_source && (
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
+                         )}
+                         {lead.lead_activity && lead.lead_activity !== "No Activity Yet" && (
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{lead.lead_activity}</span>
+                         )}
+                         {lead.converted_customer_id && (
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-medium">Converted</span>
+                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         {lead.phone && <span>{lead.phone}</span>}
@@ -260,6 +276,12 @@ export default function BookingLeads() {
                   {BOOKING_LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={form.lead_activity} onValueChange={(v) => setForm({ ...form, lead_activity: v })}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Lead Activity" /></SelectTrigger>
+                <SelectContent>
+                  {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
                 <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
@@ -282,6 +304,9 @@ export default function BookingLeads() {
                   <span className={cn("text-[11px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[editLead.status])}>
                     {editLead.status}
                   </span>
+                  {editLead.lead_activity && editLead.lead_activity !== "No Activity Yet" && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{editLead.lead_activity}</span>
+                  )}
                   {editLead.lead_source && (
                     <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{editLead.lead_source}</span>
                   )}
@@ -322,6 +347,17 @@ export default function BookingLeads() {
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {BOOKING_LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Lead Activity */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Lead Activity</label>
+                  <Select value={form.lead_activity} onValueChange={(v) => setForm({ ...form, lead_activity: v })}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

@@ -234,6 +234,7 @@ export interface Income {
 
 export const BOOKING_LEAD_STATUSES = ["New", "Contacted", "Booked", "Not Interested"] as const;
 export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Facial Box", "Bridal", "Vendor Table", "Social Media", "Other"] as const;
+export const LEAD_ACTIVITIES = ["No Activity Yet", "Facial Booked", "1:1 Appointment Booked", "Party Booked", "Samples Given", "Follow-Up Needed"] as const;
 export const DEFAULT_LEAD_SOURCE = "Networking";
 
 export interface BookingLead {
@@ -242,6 +243,7 @@ export interface BookingLead {
   phone: string | null;
   email: string | null;
   lead_source: string | null;
+  lead_activity: string | null;
   status: string;
   last_contact_date: string | null;
   next_follow_up_date: string | null;
