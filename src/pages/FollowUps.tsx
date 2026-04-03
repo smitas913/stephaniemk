@@ -918,6 +918,8 @@ export default function FollowUps() {
                         if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
                         else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
                         else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                        else if (type === "Lead") navigate("/booking-leads");
+                        else if (type === "Consultant") navigate("/leadership");
                       }}
                     />
                     
