@@ -4,7 +4,7 @@ import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
 } from "@/lib/queries";
-import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
+import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
 import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
@@ -24,11 +24,6 @@ import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload } fr
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
-const CONSULTANT_STATUS_COLORS: Record<string, string> = {
-  "Active": "bg-green-100 text-green-700",
-  "Inactive": "bg-muted text-muted-foreground",
-  "At Risk": "bg-orange-100 text-orange-700",
-};
 
 const ONBOARDING_STAGE_COLORS: Record<string, string> = {
   "New": "bg-blue-100 text-blue-700",
@@ -97,7 +92,7 @@ function ConsultantsTab() {
     consultant_id: "", join_date: toLocalDateKey(), birthday: "",
     address_line_1: "", city: "", state_territory: "", postal_code: "",
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
-    next_coaching_date: "", notes: "", status: "Active",
+    next_coaching_date: "", notes: "",
   };
   const [form, setForm] = useState(emptyForm);
   const resetForm = () => setForm(emptyForm);
@@ -111,6 +106,7 @@ function ConsultantsTab() {
     const cleaned: Record<string, any> = {};
     for (const [k, v] of Object.entries(form)) cleaned[k] = v === "" ? null : v;
     if (!cleaned.name) cleaned.name = "Unnamed";
+    if (!cleaned.status) cleaned.status = "Active";
     return cleaned;
   };
 
@@ -137,7 +133,7 @@ function ConsultantsTab() {
       state_territory: c.state_territory || "", postal_code: c.postal_code || "",
       focus_group: c.focus_group || "General", onboarding_stage: c.onboarding_stage || "New",
       coaching_focus: c.coaching_focus || "", next_coaching_date: c.next_coaching_date || "",
-      notes: c.notes || "", status: c.status,
+      notes: c.notes || "",
     });
     setEditId(c.id);
   };
@@ -207,7 +203,6 @@ function ConsultantsTab() {
                     {c.join_date && <p className="text-[10px] text-muted-foreground mt-0.5">Joined {formatDateOnly(c.join_date)}</p>}
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="secondary" className={cn("text-[10px]", CONSULTANT_STATUS_COLORS[c.status] || "")}>{c.status}</Badge>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(c)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
                   </div>
@@ -249,10 +244,6 @@ function ConsultantsTab() {
                   <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
                 </div>
               </div>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>{CONSULTANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
             </div>
 
             {/* Address */}
