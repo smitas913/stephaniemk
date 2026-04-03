@@ -595,7 +595,62 @@ export default function FollowUps() {
     },
   });
 
-  const distributeMutation = useMutation({
+  // Mark Follow-Up Complete (handles dormant cadence automatically)
+  const markFollowUpCompleteMutation = useMutation({
+    mutationFn: async ({ item, noteText: note, noteType: nType }: { item: ActionItem; noteText: string; noteType: string }) => {
+      const today = toLocalDateKey();
+      if (item.itemType === "customer") {
+        const isDormant = item.activity_status === "Dormant";
+        const currentStage = (item.dormant_follow_up_stage || null) as DormantStage;
+
+        let nextDate: string;
+        let nextStage: DormantStage = currentStage;
+
+        if (isDormant) {
+          // Use dormant cadence
+          const effectiveStage = currentStage || "Stage 1";
+          nextStage = getNextDormantStage(effectiveStage as DormantStage);
+          nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
+        } else {
+          // Default: next follow-up in 90 days
+          nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+        }
+
+        const updates: Record<string, any> = {
+          last_contacted: today,
+          next_follow_up_date: nextDate,
+        };
+        if (isDormant) {
+          updates.dormant_follow_up_stage = nextStage;
+        }
+        await updateCustomer(item.id, updates as any);
+        if (note.trim()) {
+          await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: nType });
+        }
+      } else if (item.itemType === "prospect") {
+        const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
+        await updateProspect(item.id, { last_contact_date: today, next_follow_up_date: nextDate } as any);
+        if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
+      } else if (item.itemType === "lead") {
+        const nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Contacted" } as any);
+      } else if (item.itemType === "event_task") {
+        await completeEventTask(item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      setDetailItem(null);
+      toast.success("Follow-up complete! Next date auto-scheduled.");
+    },
+  });
+
+
     mutationFn: () => bulkUpdateCustomerFollowUps(distributePreview.map((p) => ({ id: p.id, next_follow_up_date: p.date }))),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
