@@ -556,8 +556,37 @@ export default function FollowUps() {
   });
 
   const openContactDialog = (item: ActionItem, defaultType = "Call") => { setActionItem(item); setNoteText(""); setNoteType(defaultType); setFollowUpDate(""); };
-  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); };
+  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
   const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
+
+  const deliveryCreateMut = useMutation({
+    mutationFn: async () => {
+      if (!detailItem) return;
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id || null;
+      const customer = detailItem.itemType === "customer" ? customers.find((c) => c.id === detailItem.id) : null;
+      const { error } = await supabase.from("daily_plan_items" as any).insert({
+        plan_date: deliveryDate,
+        item_type: "delivery",
+        customer_name: detailItem.name,
+        customer_id: detailItem.itemType === "customer" ? detailItem.id : null,
+        address: customer ? [customer.address_line_1, customer.city, customer.state_territory].filter(Boolean).join(", ") : null,
+        phone: detailItem.phone,
+        notes: deliveryNotes || null,
+        sort_order: 0,
+        owner_user_id: uid,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["delivery-counts"] });
+      setScheduleDelivery(false);
+      setDeliveryNotes("");
+      toast.success(`Delivery scheduled for ${formatDateOnly(deliveryDate)}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`);
