@@ -107,7 +107,10 @@ export default function ProspectDetail() {
   const convertMut = useMutation({
     mutationFn: async () => {
       if (!prospect) throw new Error("No prospect");
-      await convertProspectToConsultant(prospect);
+      await convertProspectToConsultant(prospect, {
+        next_coaching_date: convertCoachingDate || null,
+        coaching_focus: convertCoachingFocus || null,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospect", id] });
@@ -115,6 +118,8 @@ export default function ProspectDetail() {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       setShowConvert(false);
+      setConvertCoachingDate("");
+      setConvertCoachingFocus("");
       toast.success("Prospect converted! A new consultant record has been created.");
     },
   });
