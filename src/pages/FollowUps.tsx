@@ -904,7 +904,7 @@ export default function FollowUps() {
                             {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.length})
+                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).length})
                                 </p>
                                 <div className="space-y-0.5">
                                   {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
