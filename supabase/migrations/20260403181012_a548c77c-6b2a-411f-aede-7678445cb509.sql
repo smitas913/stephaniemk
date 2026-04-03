@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN event_status text NOT NULL DEFAULT 'Booked';

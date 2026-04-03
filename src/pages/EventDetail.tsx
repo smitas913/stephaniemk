@@ -1,12 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
-import { COACHING_STATUSES } from "@/lib/types";
+import { COACHING_STATUSES, EVENT_STATUSES } from "@/lib/types";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -59,6 +61,14 @@ export default function EventDetail() {
     },
   });
 
+  // Post-event prompt state
+  const [showPostEventPrompt, setShowPostEventPrompt] = useState(false);
+  const isPastEvent = event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
+
+  useEffect(() => {
+    if (isPastEvent) setShowPostEventPrompt(true);
+  }, [isPastEvent]);
+
   if (!eventId) return null;
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -110,12 +120,17 @@ export default function EventDetail() {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/events")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
               {event?.hostess_name ? `${event.hostess_name}'s Event` : "Event Detail"}
             </h2>
             <p className="text-sm text-muted-foreground font-mono">{eventId}</p>
           </div>
+          {event && (
+            <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
+              {event.event_status || "Booked"}
+            </Badge>
+          )}
         </div>
 
         {/* KPI cards */}
@@ -188,7 +203,7 @@ export default function EventDetail() {
           <Card className="border-border/50">
             <CardContent className="p-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Event Details</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Event Date</label>
                   <Popover>
@@ -251,6 +266,26 @@ export default function EventDetail() {
                     <SelectContent>
                       {EVENT_FORMATS.map((f) => (
                         <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Status</label>
+                  <Select
+                    value={event.event_status || "Booked"}
+                    onValueChange={(val) => {
+                      if (val !== (event.event_status || "Booked")) {
+                        eventMutation.mutate({ event_id: event.event_id, event_status: val } as any);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVENT_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -578,6 +613,39 @@ export default function EventDetail() {
             </div>
           )}
         </div>
+
+        {/* Post-Event Prompt */}
+        <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-base">Was this event held?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This event's date has passed. Please confirm if it was held or cancelled.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Held" } as any);
+                  setShowPostEventPrompt(false);
+                }}
+              >
+                ✅ Held
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => {
+                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Cancelled" } as any);
+                  setShowPostEventPrompt(false);
+                }}
+              >
+                ❌ Cancelled
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
