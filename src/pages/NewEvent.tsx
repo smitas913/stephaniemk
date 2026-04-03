@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, upsertEvent } from "@/lib/queries";
+import { fetchEvents, upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { EVENT_FORMATS } from "@/lib/types";
