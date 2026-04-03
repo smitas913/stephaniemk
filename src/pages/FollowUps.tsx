@@ -318,7 +318,7 @@ export default function FollowUps() {
       bookingDetails: bookingItems,
       sharingDetails: sharingItems,
     };
-  }, [allNotes, unifiedNotes, events, prospects, customers]);
+  }, [allNotes, unifiedNotes, events, prospects, customers, bookingLeads, consultants]);
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
