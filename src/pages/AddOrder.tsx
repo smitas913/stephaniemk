@@ -57,6 +57,7 @@ export default function AddOrder() {
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   // New customer inline form
   const [isNewCustomer, setIsNewCustomer] = useState(false);
@@ -139,6 +140,7 @@ export default function AddOrder() {
 
   // --- Submit ---
   const handleSubmit = useCallback(async (addAnother = false) => {
+    setAttempted(true);
     if (!canSubmit) {
       toast.error(validationErrors[0]);
       return;
@@ -211,6 +213,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
+        setAttempted(false);
       } else {
         navigate("/orders");
       }
@@ -575,12 +578,13 @@ export default function AddOrder() {
           )}
         </div>
 
-        {/* Validation hints */}
-        {validationErrors.length > 0 && (retailAmount || customerId || isNewCustomer) && (
-          <div className="text-xs text-destructive/80 space-y-0.5 pt-1">
+        {/* Validation hints — always visible when errors exist and user has started filling the form */}
+        {validationErrors.length > 0 && (attempted || retailAmount || customerId || isNewCustomer) && (
+          <div className="text-xs text-destructive space-y-0.5 pt-1 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <p className="font-medium text-destructive mb-1">Please fix the following to save:</p>
             {validationErrors.map((e, i) => (
-              <p key={i} className="flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-destructive inline-block" /> {e}
+              <p key={i} className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3 shrink-0" /> {e}
               </p>
             ))}
           </div>
