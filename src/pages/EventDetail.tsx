@@ -445,22 +445,8 @@ export default function EventDetail() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Coaching Call Date</label>
-                  <Input
-                    type="date"
-                    className="h-8 text-sm"
-                    defaultValue={event.coaching_call_date || ""}
-                    key={`ccd-${event.coaching_call_date}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.coaching_call_date || "")) {
-                        updateField("coaching_call_date", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="col-span-1 sm:col-span-3">
                   <label className="text-xs text-muted-foreground">Coaching Notes</label>
                   <Input
                     className="h-8 text-sm"

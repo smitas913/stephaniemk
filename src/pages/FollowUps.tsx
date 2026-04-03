@@ -845,7 +845,7 @@ export default function FollowUps() {
 
                     {/* Grouped Actions for Today */}
                     {(() => {
-                      const consultantActions = todayActions.filter((i) => i.itemType === "consultant" || i.itemType === "hostess");
+                      const consultantActions = todayActions.filter((i) => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
                       const customerActions = todayActions.filter((i) => i.itemType === "customer");
                       const leadProspectActions = todayActions.filter((i) => i.itemType === "lead" || i.itemType === "prospect");
 

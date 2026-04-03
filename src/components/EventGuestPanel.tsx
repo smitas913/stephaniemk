@@ -75,6 +75,7 @@ export default function EventGuestPanel({ eventId }: Props) {
   const rsvpYes = guests.filter((g) => g.rsvp === "Yes").length;
   const attendingCount = guests.filter((g) => g.attending).length;
   const orderedCount = guests.filter((g) => g.ordered).length;
+  const bookedCount = guests.filter((g) => (g as any).booked).length;
 
   return (
     <div className="space-y-3">
@@ -90,6 +91,8 @@ export default function EventGuestPanel({ eventId }: Props) {
               <span>Attended: {attendingCount}</span>
               <span>·</span>
               <span>Ordered: {orderedCount}</span>
+              <span>·</span>
+              <span>Booked: {bookedCount}</span>
             </div>
           )}
         </div>
@@ -133,6 +136,7 @@ export default function EventGuestPanel({ eventId }: Props) {
                 <TableHead className="text-[10px] w-20">RSVP</TableHead>
                 <TableHead className="text-[10px] text-center w-16">Attended</TableHead>
                 <TableHead className="text-[10px] text-center w-16">Ordered</TableHead>
+                <TableHead className="text-[10px] text-center w-16">Booked</TableHead>
                 <TableHead className="text-[10px] text-center w-16">Interested</TableHead>
                 <TableHead className="text-[10px] w-16"></TableHead>
               </TableRow>
@@ -172,6 +176,12 @@ export default function EventGuestPanel({ eventId }: Props) {
                     <Checkbox
                       checked={g.ordered}
                       onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { ordered: !!v } })}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center py-1.5">
+                    <Checkbox
+                      checked={(g as any).booked || false}
+                      onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { booked: !!v } as any })}
                     />
                   </TableCell>
                   <TableCell className="text-center py-1.5">

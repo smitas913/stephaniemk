@@ -1,0 +1,1 @@
+ALTER TABLE public.event_guests ADD COLUMN booked boolean DEFAULT false;
