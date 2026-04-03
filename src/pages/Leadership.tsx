@@ -94,7 +94,7 @@ function ConsultantsTab() {
     consultant_id: "", join_date: toLocalDateKey(), birthday: "",
     address_line_1: "", city: "", state_territory: "", postal_code: "",
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
-    next_coaching_date: "", notes: "", status: "Active",
+    next_coaching_date: "", notes: "",
   };
   const [form, setForm] = useState(emptyForm);
   const resetForm = () => setForm(emptyForm);
