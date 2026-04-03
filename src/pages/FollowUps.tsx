@@ -1073,8 +1073,11 @@ export default function FollowUps() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
                   {detailItem.phone && <span>📱 {detailItem.phone}</span>}
                   {detailItem.email && <span>✉️ {detailItem.email}</span>}
+                  {detailItem._address && <span>📍 {detailItem._address}</span>}
+                  {detailItem._relationship_status && <span>🏷️ {detailItem._relationship_status}</span>}
                   {detailItem.lastContacted && <span>Last contact: {formatLastContacted(detailItem.lastContacted)}</span>}
                   {detailItem.days_since_last_order != null && <span>{detailItem.days_since_last_order}d since last order</span>}
+                  {detailItem.next_follow_up && <span>Next FU: {formatDateOnly(detailItem.next_follow_up, "MMM d")}</span>}
                 </div>
               )}
               {detailItem && (
@@ -1088,6 +1091,15 @@ export default function FollowUps() {
                   {detailItem.email && (
                     <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`mailto:${detailItem.email}`}><Mail className="w-3 h-3 mr-1" />Email</a></Button>
                   )}
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
+                    disabled={markFollowUpCompleteMutation.isPending}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {markFollowUpCompleteMutation.isPending ? "Saving..." : "Mark Complete"}
+                  </Button>
                 </div>
               )}
             </SheetHeader>
