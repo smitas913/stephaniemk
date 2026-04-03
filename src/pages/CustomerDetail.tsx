@@ -155,7 +155,7 @@ export default function CustomerDetail() {
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate("/customers")}><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(backPath)}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
             <div className="flex gap-2 mt-0.5">
