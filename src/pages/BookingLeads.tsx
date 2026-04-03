@@ -210,12 +210,15 @@ export default function BookingLeads() {
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[lead.status] || "bg-muted text-muted-foreground")}>
                           {lead.status}
                         </span>
-                        {lead.lead_source && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
-                        )}
-                        {lead.converted_customer_id && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-medium">Converted</span>
-                        )}
+                         {lead.lead_source && (
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
+                         )}
+                         {lead.lead_activity && lead.lead_activity !== "No Activity Yet" && (
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{lead.lead_activity}</span>
+                         )}
+                         {lead.converted_customer_id && (
+                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-medium">Converted</span>
+                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         {lead.phone && <span>{lead.phone}</span>}
