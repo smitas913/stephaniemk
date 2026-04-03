@@ -79,6 +79,7 @@ type ActionItem = {
   days_since_last_order?: number | null;
   opportunity_status?: string;
   new_follow_up_stage?: string | null;
+  dormant_follow_up_stage?: string | null;
   birthday_mmdd?: string | null;
   birthday?: string | null;
   daysOverdue?: number | null;
@@ -86,6 +87,9 @@ type ActionItem = {
   lastNotePreview?: string;
   lastContacted?: string | null;
   actionLabel: string;
+  // Extra customer fields for enhanced panel
+  _address?: string | null;
+  _relationship_status?: string | null;
 };
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
