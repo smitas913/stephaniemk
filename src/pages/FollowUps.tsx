@@ -631,6 +631,8 @@ export default function FollowUps() {
     else if (item.itemType === "hostess") {
       const evt = events.find(e => e.id === item.id);
       if (evt) navigate(`/events/${evt.event_id}`);
+    } else if (item.itemType === "event_task" && item._eventId) {
+      navigate(`/events/${item._eventId}`);
       else navigate("/events");
     }
     else navigate("/leadership");
