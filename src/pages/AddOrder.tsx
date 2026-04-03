@@ -576,11 +576,11 @@ export default function AddOrder() {
         </div>
 
         {/* Validation hints */}
-        {validationErrors.length > 0 && (retailAmount || customerId) && (
-          <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
+        {validationErrors.length > 0 && (retailAmount || customerId || isNewCustomer) && (
+          <div className="text-xs text-destructive/80 space-y-0.5 pt-1">
             {validationErrors.map((e, i) => (
               <p key={i} className="flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-muted-foreground inline-block" /> {e}
+                <span className="w-1 h-1 rounded-full bg-destructive inline-block" /> {e}
               </p>
             ))}
           </div>
