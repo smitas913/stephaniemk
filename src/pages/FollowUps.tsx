@@ -233,15 +233,53 @@ export default function FollowUps() {
         }
         return { id, name, type, method: n.note_type, detail: undefined };
       });
-    // Fallback to legacy customer notes if unified is empty
-    const legacyReachOutItems: FocusDetailItem[] = reachOutItems.length === 0
+
+    // Booking Leads contacted today
+    const leadReachOutItems: FocusDetailItem[] = bookingLeads
+      .filter((l) => l.last_contact_date === todayKey && !l.converted_customer_id)
+      .map((l) => ({
+        id: l.id,
+        name: l.name,
+        type: "Lead",
+        method: "Call",
+        detail: l.lead_activity || undefined,
+      }));
+
+    // Consultants coached/contacted today
+    const consultantReachOutItems: FocusDetailItem[] = consultants
+      .filter((c) => {
+        // Coached today: updated_at starts with today and has a coaching date of today or earlier
+        const updatedToday = c.updated_at?.startsWith(todayKey);
+        const coachedToday = c.next_coaching_date === todayKey;
+        return updatedToday || coachedToday;
+      })
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        type: "Consultant",
+        method: "Coaching",
+        detail: c.coaching_focus || undefined,
+      }));
+
+    // Deduplicate by id (a person might appear from notes AND from lead/consultant records)
+    const seenIds = new Set<string>();
+    const allReachOutItems: FocusDetailItem[] = [];
+    for (const item of [...reachOutItems, ...leadReachOutItems, ...consultantReachOutItems]) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        allReachOutItems.push(item);
+      }
+    }
+
+    // Fallback to legacy customer notes if nothing found
+    const legacyReachOutItems: FocusDetailItem[] = allReachOutItems.length === 0
       ? allNotes.filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
         .map((n) => {
           const c = customers.find((c) => c.id === n.customer_id);
           return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
         })
       : [];
-    const finalReachOutItems = reachOutItems.length > 0 ? reachOutItems : legacyReachOutItems;
+    const finalReachOutItems = allReachOutItems.length > 0 ? allReachOutItems : legacyReachOutItems;
 
     // Bookings: events created today
     const bookingItems: FocusDetailItem[] = events
@@ -280,7 +318,7 @@ export default function FollowUps() {
       bookingDetails: bookingItems,
       sharingDetails: sharingItems,
     };
-  }, [allNotes, unifiedNotes, events, prospects, customers]);
+  }, [allNotes, unifiedNotes, events, prospects, customers, bookingLeads, consultants]);
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
@@ -880,6 +918,8 @@ export default function FollowUps() {
                         if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
                         else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
                         else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                        else if (type === "Lead") navigate("/booking-leads");
+                        else if (type === "Consultant") navigate("/leadership");
                       }}
                     />
                     
