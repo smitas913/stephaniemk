@@ -461,7 +461,6 @@ export default function EventDetail() {
                   />
                 </div>
               </div>
-              </div>
               {/* Quick contact buttons */}
               {(event.hostess_phone || event.hostess_email) && (
                 <div className="flex gap-1.5">
