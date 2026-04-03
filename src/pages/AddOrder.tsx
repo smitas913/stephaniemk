@@ -57,6 +57,7 @@ export default function AddOrder() {
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   // New customer inline form
   const [isNewCustomer, setIsNewCustomer] = useState(false);
