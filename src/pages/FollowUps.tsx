@@ -386,11 +386,19 @@ export default function FollowUps() {
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
 
-    // Birthdays
+    // Birthdays (customers + consultants)
     const birthdaysToday: (ActionItem & { _daysUntil?: number })[] = [];
     const birthdaysUpcoming: (ActionItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
       const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
+      if (days === null) continue;
+      if (days === 0) birthdaysToday.push(c);
+      else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+    }
+    for (const c of consultantItems) {
+      const consultant = consultants.find((tc) => tc.id === c.id);
+      if (!consultant?.birthday) continue;
+      const days = daysToBirthday({ birthday: consultant.birthday });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
       else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
