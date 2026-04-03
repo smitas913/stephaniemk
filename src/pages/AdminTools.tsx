@@ -46,6 +46,10 @@ export default function AdminTools() {
               <Truck className="w-4 h-4" />
               Deliveries
             </TabsTrigger>
+            <TabsTrigger value="scheduling" className="gap-1.5">
+              <CalendarCog className="w-4 h-4" />
+              Scheduling
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
