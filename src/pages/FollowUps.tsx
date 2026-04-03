@@ -241,6 +241,24 @@ export default function FollowUps() {
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
+
+  // Birthday completion tracking (daily, resets each day via localStorage key)
+  const bdayStorageKey = `bday-done-${toLocalDateKey()}`;
+  const [completedBirthdays, setCompletedBirthdays] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(bdayStorageKey);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+  const markBirthdayDone = (id: string) => {
+    setCompletedBirthdays((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem(bdayStorageKey, JSON.stringify([...next]));
+      return next;
+    });
+    toast.success("Birthday message marked complete!");
+  };
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState("Call");
