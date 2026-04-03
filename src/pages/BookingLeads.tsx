@@ -348,6 +348,17 @@ export default function BookingLeads() {
                   </Select>
                 </div>
 
+                {/* Lead Activity */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Lead Activity</label>
+                  <Select value={form.lead_activity} onValueChange={(v) => setForm({ ...form, lead_activity: v })}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Mark Contacted */}
                 <Button
                   variant="outline"
