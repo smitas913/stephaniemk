@@ -135,7 +135,7 @@ function ConsultantsTab() {
       next_coaching_date: c.next_coaching_date || "", notes: c.notes || "",
       onboarding_stage: c.onboarding_stage || "New", coaching_focus: c.coaching_focus || "",
       first_order_date: c.first_order_date || "", first_party_date: c.first_party_date || "",
-      first_team_member_date: c.first_team_member_date || "",
+      first_team_member_date: c.first_team_member_date || "", focus_group: c.focus_group || "General",
     });
     setEditId(c.id);
   };
