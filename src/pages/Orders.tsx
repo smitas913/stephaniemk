@@ -23,7 +23,7 @@ import { parseISO, isWithinInterval } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 
-type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_type" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_status" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
 type SortDir = "asc" | "desc" | null;
 
 export default function Orders() {
@@ -55,8 +55,8 @@ export default function Orders() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: ({ id, payment_type }: { id: string; payment_type: string | null }) =>
-      updateOrder(id, { payment_type }),
+    mutationFn: ({ id, payment_status, payment_type }: { id: string; payment_status: "Paid" | "Unpaid"; payment_type: string | null }) =>
+      updateOrder(id, { payment_status, payment_type }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Payment updated");
@@ -92,6 +92,7 @@ export default function Orders() {
       result = result.filter((o) =>
         (o.customer_name || o.customers?.full_name || "").toLowerCase().includes(q) ||
         (o.notes || "").toLowerCase().includes(q) ||
+          (o.payment_status || "").toLowerCase().includes(q) ||
         (o.payment_type || "").toLowerCase().includes(q) ||
         (o.order_type || "").toLowerCase().includes(q)
       );
@@ -106,7 +107,7 @@ export default function Orders() {
     });
 
     if (filterOrderType !== "all") result = result.filter((o) => o.order_type === filterOrderType);
-    if (filterPayment === "__unpaid__") result = result.filter((o) => !o.payment_type);
+    if (filterPayment === "__unpaid__") result = result.filter((o) => o.payment_status === "Unpaid" || (!o.payment_status && !o.payment_type));
     else if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
     if (filterFaceType !== "all") result = result.filter((o) => o.face_type === filterFaceType);
     if (filterHostess) result = result.filter((o) => o.hostess);
@@ -122,7 +123,7 @@ export default function Orders() {
         case "customer_name": cmp = (a.customer_name || "").localeCompare(b.customer_name || ""); break;
         case "retail_amount": cmp = Number(a.retail_amount) - Number(b.retail_amount); break;
         case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
-        case "payment_type": cmp = (a.payment_type || "").localeCompare(b.payment_type || ""); break;
+        case "payment_status": cmp = (a.payment_status || "").localeCompare(b.payment_status || ""); break;
         case "face_type": cmp = (a.face_type || "").localeCompare(b.face_type || ""); break;
         case "hostess": cmp = Number(!!a.hostess) - Number(!!b.hostess); break;
         case "half_price_deal": cmp = Number(!!a.half_price_deal) - Number(!!b.half_price_deal); break;
@@ -161,12 +162,12 @@ export default function Orders() {
   };
 
   const exportCSV = () => {
-    const headers = ["Date", "Customer", "Amount", "Type", "Face", "Hostess", "Half Price", "Birthday", "Referral", "Payment", "Notes"];
+    const headers = ["Date", "Customer", "Amount", "Type", "Face", "Hostess", "Half Price", "Birthday", "Referral", "Payment Status", "Payment Method", "Notes"];
     const rows = filtered.map((o) => [
       o.order_date, o.customer_name || o.customers?.full_name || "",
       Number(o.retail_amount).toFixed(2), o.order_type || "", o.face_type || "",
       o.hostess ? "Yes" : "", o.half_price_deal ? "Yes" : "", o.birthday ? "Yes" : "",
-      o.referral ? "Yes" : "", o.payment_type || "", (o.notes || "").replace(/"/g, '""'),
+      o.referral ? "Yes" : "", o.payment_status || "", o.payment_type || "", (o.notes || "").replace(/"/g, '""'),
     ]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -339,8 +340,8 @@ export default function Orders() {
                   <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("referral")}>
                     <span className="flex items-center justify-center">Ref<SortIcon field="referral" /></span>
                   </TableHead>
-                  <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_type")}>
-                    <span className="flex items-center">Pay<SortIcon field="payment_type" /></span>
+                  <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_status")}>
+                    <span className="flex items-center">Pay<SortIcon field="payment_status" /></span>
                   </TableHead>
                   <TableHead className="text-xs">Notes</TableHead>
                   <TableHead className="text-xs w-[70px]"></TableHead>
@@ -368,12 +369,16 @@ export default function Orders() {
                     <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
-                        {!o.payment_type && (
+                        {(o.payment_status === "Unpaid" || (!o.payment_status && !o.payment_type)) && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-destructive/10 text-destructive whitespace-nowrap">Unpaid</span>
                         )}
                         <Select
                           value={o.payment_type || "__blank__"}
-                          onValueChange={(v) => paymentMutation.mutate({ id: o.id, payment_type: v === "__blank__" ? null : v })}
+                          onValueChange={(v) => paymentMutation.mutate({
+                            id: o.id,
+                            payment_status: v === "__blank__" ? "Unpaid" : "Paid",
+                            payment_type: v === "__blank__" ? null : v,
+                          })}
                         >
                           <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-1.5 w-[80px] focus:ring-1">
                             <SelectValue placeholder="—" />

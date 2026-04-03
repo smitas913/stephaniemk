@@ -38,6 +38,7 @@ export interface Order {
   half_price_deal: boolean;
   birthday: boolean;
   referral: boolean;
+  payment_status: PaymentStatus;
   payment_type: string | null;
   retail_amount: number;
   wholesale_amount: number | null;
@@ -47,6 +48,8 @@ export interface Order {
   created_at: string;
   updated_at: string;
 }
+
+export type PaymentStatus = "Paid" | "Unpaid" | "Partial";
 
 export interface OrderWithCustomer extends Order {
   customers: { full_name: string } | null;

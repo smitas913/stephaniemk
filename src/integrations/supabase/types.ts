@@ -627,6 +627,7 @@ export type Database = {
           order_type: string | null
           owner_user_id: string | null
           parent_event_id: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
           payment_type: string | null
           payout_amount: number | null
           referral: boolean | null
@@ -649,6 +650,7 @@ export type Database = {
           order_type?: string | null
           owner_user_id?: string | null
           parent_event_id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_type?: string | null
           payout_amount?: number | null
           referral?: boolean | null
@@ -671,6 +673,7 @@ export type Database = {
           order_type?: string | null
           owner_user_id?: string | null
           parent_event_id?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_type?: string | null
           payout_amount?: number | null
           referral?: boolean | null

@@ -48,7 +48,7 @@ export default function EditOrder() {
       setOrderType(order.order_type || "");
       setFaceType(order.face_type || "");
       setPaymentType(order.payment_type || "");
-      setPaymentStatus(order.payment_type ? "Paid" : "Unpaid");
+      setPaymentStatus(order.payment_status === "Unpaid" || !order.payment_type ? "Unpaid" : "Paid");
       setNotes(order.notes || "");
       setHostess(!!order.hostess);
       setHalfPrice(!!order.half_price_deal);
@@ -85,12 +85,17 @@ export default function EditOrder() {
       toast.error("Retail amount must be greater than zero");
       return;
     }
+    if (paymentStatus === "Paid" && !paymentType) {
+      toast.error("Select a payment method or mark the order unpaid");
+      return;
+    }
     updateMutation.mutate({
       order_date: orderDate,
       retail_amount: retail,
       wholesale_amount: wholesaleAmount ? parseFloat(wholesaleAmount) : null,
       order_type: orderType || null,
       face_type: faceType || null,
+      payment_status: paymentStatus,
       payment_type: paymentStatus === "Unpaid" ? null : (paymentType || null),
       notes: notes || null,
       hostess,
@@ -221,6 +226,9 @@ export default function EditOrder() {
                     </SelectContent>
                   </Select>
                 </div>
+              )}
+              {paymentStatus === "Unpaid" && (
+                <p className="text-xs text-muted-foreground col-span-2">Payment method is optional for unpaid orders and will be cleared on save.</p>
               )}
             </div>
 
