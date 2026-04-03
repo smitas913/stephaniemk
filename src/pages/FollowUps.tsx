@@ -386,11 +386,19 @@ export default function FollowUps() {
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
 
-    // Birthdays
+    // Birthdays (customers + consultants)
     const birthdaysToday: (ActionItem & { _daysUntil?: number })[] = [];
     const birthdaysUpcoming: (ActionItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
       const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
+      if (days === null) continue;
+      if (days === 0) birthdaysToday.push(c);
+      else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+    }
+    for (const c of consultantItems) {
+      const consultant = consultants.find((tc) => tc.id === c.id);
+      if (!consultant?.birthday) continue;
+      const days = daysToBirthday({ birthday: consultant.birthday });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
       else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
@@ -629,9 +637,9 @@ export default function FollowUps() {
                       const hasAny = todayActions.length > 0;
                       return hasAny ? (
                         <>
+                          {renderSection("Leads / Prospects", CalendarCheck, leadProspectActions, "text-amber-600", "bg-amber-50 dark:bg-amber-950/30")}
                           {renderSection("Consultants (Coaching)", Crown, consultantActions, "text-violet-600", "bg-violet-50 dark:bg-violet-950/30")}
                           {renderSection("Customers (Follow-Ups)", Users, customerActions, "text-blue-600", "bg-blue-50 dark:bg-blue-950/30")}
-                          {renderSection("Leads / Prospects", CalendarCheck, leadProspectActions, "text-amber-600", "bg-amber-50 dark:bg-amber-950/30")}
                         </>
                       ) : (
                         <Card className="border-border/50 shadow-sm">
@@ -1154,10 +1162,13 @@ function BirthdayRow({ item, label, onNavigate, onAction }: { item: ActionItem; 
   return (
     <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <p className="text-sm font-medium text-foreground truncate">
-          {item.name}
-          {item.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE[item.itemType].className)}>
+            {TYPE_BADGE[item.itemType].label}
+          </span>
+          {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
+        </div>
         <p className="text-xs text-muted-foreground">
           🎂 {formatBirthday(item)} — <span className="font-medium text-pink-600">{label}</span>
         </p>
