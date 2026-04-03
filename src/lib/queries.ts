@@ -663,7 +663,10 @@ export const deleteLeadershipMember = async (id: string): Promise<void> => {
 };
 
 // Convert prospect to team consultant
-export const convertProspectToConsultant = async (prospect: Prospect): Promise<TeamConsultant> => {
+export const convertProspectToConsultant = async (
+  prospect: Prospect,
+  extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
+): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
   const { data: consultant, error: cErr } = await supabase.from("team_consultants").insert({
     name: prospect.name,
@@ -672,6 +675,10 @@ export const convertProspectToConsultant = async (prospect: Prospect): Promise<T
     prospect_id: prospect.id,
     join_date: new Date().toISOString().split("T")[0],
     status: "Active",
+    focus_group: "New Consultant",
+    onboarding_stage: "New",
+    coaching_focus: extras?.coaching_focus || null,
+    next_coaching_date: extras?.next_coaching_date || null,
     notes: prospect.notes ? `Converted from prospect. ${prospect.notes}` : "Converted from prospect.",
     owner_user_id: userId,
   } as any).select().single();

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, convertProspectToConsultant } from "@/lib/queries";
-import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES } from "@/lib/types";
+import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
 import type { ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,8 @@ export default function ProspectDetail() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [noteText, setNoteText] = useState("");
   const [showConvert, setShowConvert] = useState(false);
+  const [convertCoachingDate, setConvertCoachingDate] = useState("");
+  const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
 
   useEffect(() => {
     if (prospect) {
@@ -105,7 +107,10 @@ export default function ProspectDetail() {
   const convertMut = useMutation({
     mutationFn: async () => {
       if (!prospect) throw new Error("No prospect");
-      await convertProspectToConsultant(prospect);
+      await convertProspectToConsultant(prospect, {
+        next_coaching_date: convertCoachingDate || null,
+        coaching_focus: convertCoachingFocus || null,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospect", id] });
@@ -113,6 +118,8 @@ export default function ProspectDetail() {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       setShowConvert(false);
+      setConvertCoachingDate("");
+      setConvertCoachingFocus("");
       toast.success("Prospect converted! A new consultant record has been created.");
     },
   });
@@ -370,19 +377,35 @@ export default function ProspectDetail() {
         </div>
 
         {/* Convert Dialog */}
-        <Dialog open={showConvert} onOpenChange={setShowConvert}>
+        <Dialog open={showConvert} onOpenChange={(o) => { setShowConvert(o); if (!o) { setConvertCoachingDate(""); setConvertCoachingFocus(""); } }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-base">Convert to Consultant</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This will set {prospect.name}'s status to "Converted"
-              {prospect.customer_id && " and update their customer relationship status to Consultant"}.
+              This will create a new Consultant record for {prospect.name} with Focus Group = New Consultant
+              {prospect.customer_id && " and update their customer relationship status"}.
             </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Coaching Focus (optional)</label>
+                <Select value={convertCoachingFocus || "none"} onValueChange={(v) => setConvertCoachingFocus(v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select focus" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Next Coaching Date (optional)</label>
+                <Input type="date" value={convertCoachingDate} onChange={(e) => setConvertCoachingDate(e.target.value)} />
+              </div>
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowConvert(false)}>Cancel</Button>
               <Button onClick={() => convertMut.mutate()} disabled={convertMut.isPending}>
-                {convertMut.isPending ? "Converting..." : "Confirm"}
+                {convertMut.isPending ? "Converting..." : "Convert"}
               </Button>
             </div>
           </DialogContent>
