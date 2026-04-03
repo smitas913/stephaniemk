@@ -1079,6 +1079,108 @@ export default function FollowUps() {
   );
 }
 
+// ─── Consultant Edit Panel (inline in detail sheet) ───
+
+function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
+  item: ActionItem;
+  consultants: TeamConsultant[];
+  queryClient: ReturnType<typeof useQueryClient>;
+  onClose: () => void;
+}) {
+  const consultant = consultants.find((c) => c.id === item.id);
+  const [coachingFocus, setCoachingFocus] = useState(consultant?.coaching_focus || "");
+  const [nextCoachingDate, setNextCoachingDate] = useState(consultant?.next_coaching_date || "");
+  const [notes, setNotes] = useState(consultant?.notes || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateTeamConsultant(item.id, {
+        coaching_focus: coachingFocus || null,
+        next_coaching_date: nextCoachingDate || null,
+        notes: notes || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      toast.success("Consultant updated");
+    } catch { toast.error("Failed to save"); }
+    setSaving(false);
+  };
+
+  const handleMarkComplete = async () => {
+    setSaving(true);
+    try {
+      const nextDate = nextCoachingDate
+        ? format(addDays(parseLocalDate(nextCoachingDate), 7), "yyyy-MM-dd")
+        : format(addDays(new Date(), 7), "yyyy-MM-dd");
+      await updateTeamConsultant(item.id, {
+        coaching_focus: coachingFocus || null,
+        next_coaching_date: nextDate,
+        notes: notes || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      toast.success(`Coaching complete — next date set to ${formatDateOnly(nextDate)}`);
+      onClose();
+    } catch { toast.error("Failed to update"); }
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Coaching Focus */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Coaching Focus</label>
+        <Select value={coachingFocus || "none"} onValueChange={(v) => setCoachingFocus(v === "none" ? "" : v)}>
+          <SelectTrigger className="h-9"><SelectValue placeholder="Select focus..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— None —</SelectItem>
+            {COACHING_FOCUS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Next Coaching Date */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+          <CalendarRange className="w-3 h-3" /> Next Coaching Date
+        </label>
+        <Input type="date" value={nextCoachingDate} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setNextCoachingDate(e.target.value)} className="h-9" />
+      </div>
+
+      {/* Notes */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+          <FileText className="w-3 h-3" /> Notes
+        </label>
+        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Coaching notes..." className="min-h-[100px]" />
+      </div>
+
+      {/* Save button */}
+      <Button className="w-full" onClick={handleSave} disabled={saving}>
+        {saving ? "Saving..." : "Save Changes"}
+      </Button>
+
+      {/* Mark Complete button */}
+      <Button variant="outline" className="w-full gap-1.5" onClick={handleMarkComplete} disabled={saving}>
+        <CheckCircle2 className="w-4 h-4" />
+        Mark Coaching Complete (+7 days)
+      </Button>
+
+      {/* Info */}
+      {consultant && (
+        <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Details</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            {consultant.focus_group && <div><span className="text-muted-foreground text-xs">Focus Group:</span> <span className="font-medium">{consultant.focus_group}</span></div>}
+            {consultant.onboarding_stage && consultant.focus_group !== "General" && <div><span className="text-muted-foreground text-xs">Growth Stage:</span> <span className="font-medium">{consultant.onboarding_stage}</span></div>}
+            {consultant.join_date && <div><span className="text-muted-foreground text-xs">Start Date:</span> <span className="font-medium">{formatDateOnly(consultant.join_date)}</span></div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Action Row Component ───
 
 function ActionRow({
