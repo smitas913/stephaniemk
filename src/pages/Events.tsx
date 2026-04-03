@@ -90,8 +90,12 @@ export default function Events() {
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
             <p className="text-sm text-muted-foreground">{totalEvents} events</p>
           </div>
-          <Button onClick={() => navigate("/events/new")} className="gap-1.5">
-            <Plus className="w-4 h-4" /> New Event
+          <Button
+            disabled={createMutation.isPending}
+            onClick={() => createMutation.mutate()}
+            className="gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> {createMutation.isPending ? "Creating..." : "New Event"}
           </Button>
         </div>
 
