@@ -521,6 +521,7 @@ export default function EventDetail() {
               ))}
             </CardContent>
           </Card>
+        )}
 
         {/* Guest Tracking */}
         <Card className="border-border/50">
