@@ -158,11 +158,11 @@ function ConsultantsTab() {
 
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : consultants.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No consultants yet. Convert a prospect or add one manually.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-12">{consultants.length === 0 ? "No consultants yet. Convert a prospect or add one manually." : "No consultants match this filter."}</p>
       ) : (
         <div className="space-y-2">
-          {consultants.map((c) => {
+          {filtered.map((c) => {
             const overdue = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === -1;
             const today = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === 0;
             return (
