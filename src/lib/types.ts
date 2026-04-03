@@ -276,6 +276,12 @@ export interface TeamConsultant {
   first_party_date: string | null;
   first_team_member_date: string | null;
   focus_group: string | null;
+  consultant_id: string | null;
+  birthday: string | null;
+  address_line_1: string | null;
+  city: string | null;
+  state_territory: string | null;
+  postal_code: string | null;
 }
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;
