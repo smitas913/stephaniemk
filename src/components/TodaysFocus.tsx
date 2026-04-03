@@ -41,7 +41,7 @@ export default function TodaysFocus({ callsToday = 0 }: GoalProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <GoalItem icon={Phone} label="Follow-Up Contacts" current={callsToday} goal={8} color="text-primary" />
+          <GoalItem icon={Phone} label="Daily Reach Outs" current={callsToday} goal={10} color="text-primary" />
           <GoalItem icon={CalendarPlus} label="Bookings" current={0} goal={2} color="text-emerald-500" />
           <GoalItem icon={Share2} label="Sharing" current={0} goal={1} color="text-violet-500" />
         </CardContent>
