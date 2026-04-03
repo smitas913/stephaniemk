@@ -142,8 +142,17 @@ function ConsultantsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{consultants.length} team members</p>
+      <div className="flex justify-between items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Select value={focusFilter} onValueChange={setFocusFilter}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Focus Groups</SelectItem>
+              {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
+        </div>
         <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}><Plus className="w-4 h-4 mr-1" />Add Consultant</Button>
       </div>
 
