@@ -869,7 +869,19 @@ export default function FollowUps() {
 
                   {/* Right Column (1/3) */}
                   <div className="space-y-4">
-                    <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
+                    <TodaysFocus
+                      reachOutsToday={reachOutsToday}
+                      bookingsToday={bookingsToday}
+                      sharingToday={sharingToday}
+                      reachOutDetails={reachOutDetails}
+                      bookingDetails={bookingDetails}
+                      sharingDetails={sharingDetails}
+                      onDetailNavigate={(type, id) => {
+                        if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                        else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                        else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                      }}
+                    />
                     
 
                     {/* Today's Schedule — Events + Deliveries + Birthdays */}
