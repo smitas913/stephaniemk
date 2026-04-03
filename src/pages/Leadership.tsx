@@ -20,7 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown } from "lucide-react";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
@@ -85,7 +85,10 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
-  const [focusFilter, setFocusFilter] = useState<string>("all");
+  const [focusFilter, setFocusFilter] = useState<string>("New+Key");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("coaching");
+  const [coachingFilter, setCoachingFilter] = useState<string>("all");
 
   const emptyForm = {
     first_name: "", last_name: "", name: "", phone: "", email: "",
@@ -98,9 +101,54 @@ function ConsultantsTab() {
   const resetForm = () => setForm(emptyForm);
 
   const filtered = useMemo(() => {
-    if (focusFilter === "all") return consultants;
-    return consultants.filter((c) => (c.focus_group || "General") === focusFilter);
-  }, [consultants, focusFilter]);
+    const todayKey = toLocalDateKey();
+    let list = [...consultants];
+
+    // Focus group filter
+    if (focusFilter === "New+Key") {
+      list = list.filter((c) => {
+        const fg = c.focus_group || "General";
+        return fg === "New Consultant" || fg === "Key Consultant";
+      });
+    } else if (focusFilter !== "all") {
+      list = list.filter((c) => (c.focus_group || "General") === focusFilter);
+    }
+
+    // Coaching status filter
+    if (coachingFilter !== "all") {
+      list = list.filter((c) => {
+        if (!c.next_coaching_date) return false;
+        const cmp = compareDateOnly(c.next_coaching_date, todayKey);
+        if (coachingFilter === "today") return cmp === 0;
+        if (coachingFilter === "overdue") return cmp === -1;
+        if (coachingFilter === "upcoming") return cmp === 1;
+        return true;
+      });
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.first_name || "").toLowerCase().includes(q) ||
+        (c.last_name || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      if (sortBy === "name-az") return a.name.localeCompare(b.name);
+      if (sortBy === "name-za") return b.name.localeCompare(a.name);
+      if (sortBy === "newest") return (b.join_date || "").localeCompare(a.join_date || "");
+      if (sortBy === "oldest") return (a.join_date || "").localeCompare(b.join_date || "");
+      const aD = a.next_coaching_date || "9999";
+      const bD = b.next_coaching_date || "9999";
+      return aD.localeCompare(bD);
+    });
+
+    return list;
+  }, [consultants, focusFilter, coachingFilter, search, sortBy]);
 
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
@@ -146,13 +194,47 @@ function ConsultantsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search consultants..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 h-9"
+        />
+      </div>
+
+      {/* Filters Row */}
       <div className="flex justify-between items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select value={focusFilter} onValueChange={setFocusFilter}>
             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="New+Key">New + Key</SelectItem>
               <SelectItem value="all">All Focus Groups</SelectItem>
               {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={coachingFilter} onValueChange={setCoachingFilter}>
+            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Coaching</SelectItem>
+              <SelectItem value="today">Due Today</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <ArrowUpDown className="w-3 h-3 mr-1" /><SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="coaching">Coaching Date (Soonest)</SelectItem>
+              <SelectItem value="name-az">Name (A–Z)</SelectItem>
+              <SelectItem value="name-za">Name (Z–A)</SelectItem>
+              <SelectItem value="newest">Newest (Start Date)</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
