@@ -36,7 +36,9 @@ function SectionHeader({ title }: { title: string }) {
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const backPath = (location.state as any)?.from || "/customers";
 
   const { data: customer } = useQuery({ queryKey: ["customer", id], queryFn: () => fetchCustomer(id!) });
   const { data: orders = [] } = useQuery({ queryKey: ["customer-orders", id], queryFn: () => fetchCustomerOrders(id!) });
