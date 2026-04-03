@@ -213,6 +213,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
+        setAttempted(false);
       } else {
         navigate("/orders");
       }
