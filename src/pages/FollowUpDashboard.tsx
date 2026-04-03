@@ -64,9 +64,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion Rate: count distinct customers with orders linked to Party/Facial events / total guest_count
+    // Conversion Rate: Party events ONLY (exclude facials — 1:1 appointments)
     const qualifyingEvents = periodEvents.filter(
-      (e) => (e.event_type === "Party" || e.event_type === "Facial") && Number(e.guest_count || 0) > 0
+      (e) => e.event_type === "Party" && Number(e.guest_count || 0) > 0
     );
     const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     // Calculate ordering guests from actual orders linked to these events
