@@ -43,6 +43,13 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const weekEvents = heldEvents.filter((e) => inRange(e.event_date, weekStart, weekEnd));
     const monthEvents = heldEvents.filter((e) => inRange(e.event_date, monthStart, monthEnd));
 
+    // Event status counts for the month
+    const monthAllEvents = events.filter((e) => inRange(e.event_date, monthStart, monthEnd));
+    const monthBooked = monthAllEvents.length;
+    const monthHeld = monthAllEvents.filter((e) => e.event_status === "Held").length;
+    const monthCancelled = monthAllEvents.filter((e) => e.event_status === "Cancelled").length;
+    const monthHoldRate = monthBooked > 0 ? Math.round((monthHeld / monthBooked) * 1000) / 10 : 0;
+
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
