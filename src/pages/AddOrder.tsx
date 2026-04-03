@@ -140,6 +140,7 @@ export default function AddOrder() {
 
   // --- Submit ---
   const handleSubmit = useCallback(async (addAnother = false) => {
+    setAttempted(true);
     if (!canSubmit) {
       toast.error(validationErrors[0]);
       return;
