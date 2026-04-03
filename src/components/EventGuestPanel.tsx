@@ -180,6 +180,11 @@ export default function EventGuestPanel({ eventId }: Props) {
                   </TableCell>
                   <TableCell className="text-center py-1.5">
                     <Checkbox
+                      checked={(g as any).booked || false}
+                      onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { booked: !!v } as any })}
+                    />
+                  <TableCell className="text-center py-1.5">
+                    <Checkbox
                       checked={g.interested}
                       onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { interested: !!v } })}
                     />
