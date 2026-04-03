@@ -11,10 +11,12 @@ import { parseGenericDate } from "@/lib/csvImport";
 import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
 import { toast } from "sonner";
 
-type DestField = "name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code";
+type DestField = "name" | "first_name" | "last_name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code";
 
 const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
-  { key: "name", label: "Name", required: true },
+  { key: "name", label: "Full Name", required: false },
+  { key: "first_name", label: "First Name", required: false },
+  { key: "last_name", label: "Last Name", required: false },
   { key: "phone", label: "Phone", required: false },
   { key: "email", label: "Email", required: false },
   { key: "consultant_id", label: "Consultant ID", required: false },
@@ -29,6 +31,8 @@ const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
 
 const HEADER_HINTS: Record<DestField, string[]> = {
   name: ["name", "full_name", "fullname", "full name", "consultant name", "consultant"],
+  first_name: ["first_name", "firstname", "first name", "first"],
+  last_name: ["last_name", "lastname", "last name", "last", "surname"],
   phone: ["phone", "telephone", "tel", "mobile", "cell", "phone number"],
   email: ["email", "e-mail", "email address"],
   consultant_id: ["consultant_id", "consultant id", "id", "member id", "rep id"],
