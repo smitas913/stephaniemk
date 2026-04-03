@@ -80,12 +80,19 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
       } else {
         nextFollowUp = lastContacted ? addDays(base, 14) : addDays(base, 2);
       }
+    } else if (category === "Dormant" && customer.dormant_follow_up_stage) {
+      // Dormant cadence: the date is managed via dormant_follow_up_stage + next_follow_up_date
+      // If we got here, next_follow_up_date is null but stage is set — compute from last contact
+      const dormantBase = lastContacted || lastOrderDate;
+      if (customer.dormant_follow_up_stage === "Annual") {
+        nextFollowUp = addDays(dormantBase, 365);
+      } else {
+        nextFollowUp = addDays(dormantBase, 5);
+      }
     } else {
       if (lastContacted) {
         nextFollowUp = addDays(lastContacted, 90);
       } else {
-        // No contact history: use last order date to generate follow-up
-        // regardless of whether the order is from this year
         nextFollowUp = addDays(lastOrderDate, 90);
       }
     }
