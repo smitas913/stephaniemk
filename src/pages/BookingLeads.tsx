@@ -63,6 +63,7 @@ export default function BookingLeads() {
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       lead_source: form.lead_source || null,
+      lead_activity: form.lead_activity || "No Activity Yet",
       notes: form.notes.trim() || null,
       next_follow_up_date: form.next_follow_up_date || null,
     }),
