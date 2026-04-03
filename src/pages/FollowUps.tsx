@@ -1836,6 +1836,9 @@ function ActionRow({
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
               <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium text-[10px]">{item.actionLabel}</span>
+              {item.followUpReason && item.followUpReason !== item.actionLabel && (
+                <span className="text-[10px] text-muted-foreground">{item.followUpReason}</span>
+              )}
               {item.lastContacted && <span>Last: {formatLastContacted(item.lastContacted)}</span>}
               {item.days_since_last_order != null && <span>{item.days_since_last_order}d since order</span>}
             </div>
