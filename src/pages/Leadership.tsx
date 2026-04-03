@@ -260,15 +260,17 @@ function ConsultantsTab() {
             {/* Coaching */}
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Coaching</p>
-              <div className="grid grid-cols-3 gap-2">
-                <Select value={form.focus_group} onValueChange={(v) => setForm({ ...form, focus_group: v })}>
+              <div className={cn("grid gap-2", form.focus_group && form.focus_group !== "General" ? "grid-cols-3" : "grid-cols-2")}>
+                <Select value={form.focus_group} onValueChange={(v) => setForm({ ...form, focus_group: v, onboarding_stage: v === "General" ? "" : form.onboarding_stage })}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Focus Group" /></SelectTrigger>
                   <SelectContent>{FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                 </Select>
-                <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Onboarding" /></SelectTrigger>
-                  <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
+                {form.focus_group && form.focus_group !== "General" && (
+                  <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Growth Stage" /></SelectTrigger>
+                    <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                  </Select>
+                )}
                 <Select value={form.coaching_focus || "none"} onValueChange={(v) => setForm({ ...form, coaching_focus: v === "none" ? "" : v })}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Coaching Focus" /></SelectTrigger>
                   <SelectContent>
