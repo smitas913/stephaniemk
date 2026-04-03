@@ -88,17 +88,23 @@ function ConsultantsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
+  const [focusFilter, setFocusFilter] = useState<string>("all");
   const [form, setForm] = useState({
     name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
     next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
-    first_order_date: "", first_party_date: "", first_team_member_date: "",
+    first_order_date: "", first_party_date: "", first_team_member_date: "", focus_group: "General",
   });
 
   const resetForm = () => setForm({
     name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
     next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
-    first_order_date: "", first_party_date: "", first_team_member_date: "",
+    first_order_date: "", first_party_date: "", first_team_member_date: "", focus_group: "General",
   });
+
+  const filtered = useMemo(() => {
+    if (focusFilter === "all") return consultants;
+    return consultants.filter((c) => (c.focus_group || "General") === focusFilter);
+  }, [consultants, focusFilter]);
 
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
