@@ -11,6 +11,8 @@ import {
 import type { EventTask } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
+import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
+import type { DormantStage } from "@/lib/dormantCadence";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -77,6 +79,7 @@ type ActionItem = {
   days_since_last_order?: number | null;
   opportunity_status?: string;
   new_follow_up_stage?: string | null;
+  dormant_follow_up_stage?: string | null;
   birthday_mmdd?: string | null;
   birthday?: string | null;
   daysOverdue?: number | null;
@@ -84,6 +87,9 @@ type ActionItem = {
   lastNotePreview?: string;
   lastContacted?: string | null;
   actionLabel: string;
+  // Extra customer fields for enhanced panel
+  _address?: string | null;
+  _relationship_status?: string | null;
 };
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
@@ -298,16 +304,21 @@ export default function FollowUps() {
       const notePreview = lastNote
         ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
         : undefined;
+      const fullAddress = [c.address_line_1, c.address_line_2, [c.city, c.state_territory, c.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
       return {
         id: c.id, itemType: "customer" as const, name: c.full_name,
         phone: c.phone, email: c.email, vip: c.vip,
         next_follow_up: effectiveFollowUp, follow_up_status: followUpStatus,
         activity_status: c.activity_status, days_since_last_order: c.days_since_last_order,
-        new_follow_up_stage: c.new_follow_up_stage, birthday_mmdd: c.birthday_mmdd,
+        new_follow_up_stage: c.new_follow_up_stage,
+        dormant_follow_up_stage: (c as any).dormant_follow_up_stage || null,
+        birthday_mmdd: c.birthday_mmdd,
         birthday: c.birthday, daysOverdue,
         followUpReason: c.follow_up_reason || "Customer Follow-Up",
         lastNotePreview: notePreview, lastContacted: c.last_contacted,
         actionLabel: "Follow-up",
+        _address: fullAddress || null,
+        _relationship_status: c.relationship_status,
       };
     });
 
@@ -581,6 +592,61 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       setDetailFollowUpDate(""); toast.success("Date updated");
+    },
+  });
+
+  // Mark Follow-Up Complete (handles dormant cadence automatically)
+  const markFollowUpCompleteMutation = useMutation({
+    mutationFn: async ({ item, noteText: note, noteType: nType }: { item: ActionItem; noteText: string; noteType: string }) => {
+      const today = toLocalDateKey();
+      if (item.itemType === "customer") {
+        const isDormant = item.activity_status === "Dormant";
+        const currentStage = (item.dormant_follow_up_stage || null) as DormantStage;
+
+        let nextDate: string;
+        let nextStage: DormantStage = currentStage;
+
+        if (isDormant) {
+          // Use dormant cadence
+          const effectiveStage = currentStage || "Stage 1";
+          nextStage = getNextDormantStage(effectiveStage as DormantStage);
+          nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
+        } else {
+          // Default: next follow-up in 90 days
+          nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+        }
+
+        const updates: Record<string, any> = {
+          last_contacted: today,
+          next_follow_up_date: nextDate,
+        };
+        if (isDormant) {
+          updates.dormant_follow_up_stage = nextStage;
+        }
+        await updateCustomer(item.id, updates as any);
+        if (note.trim()) {
+          await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: nType });
+        }
+      } else if (item.itemType === "prospect") {
+        const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
+        await updateProspect(item.id, { last_contact_date: today, next_follow_up_date: nextDate } as any);
+        if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
+      } else if (item.itemType === "lead") {
+        const nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Contacted" } as any);
+      } else if (item.itemType === "event_task") {
+        await completeEventTask(item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      setDetailItem(null);
+      toast.success("Follow-up complete! Next date auto-scheduled.");
     },
   });
 
@@ -1007,8 +1073,11 @@ export default function FollowUps() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
                   {detailItem.phone && <span>📱 {detailItem.phone}</span>}
                   {detailItem.email && <span>✉️ {detailItem.email}</span>}
+                  {detailItem._address && <span>📍 {detailItem._address}</span>}
+                  {detailItem._relationship_status && <span>🏷️ {detailItem._relationship_status}</span>}
                   {detailItem.lastContacted && <span>Last contact: {formatLastContacted(detailItem.lastContacted)}</span>}
                   {detailItem.days_since_last_order != null && <span>{detailItem.days_since_last_order}d since last order</span>}
+                  {detailItem.next_follow_up && <span>Next FU: {formatDateOnly(detailItem.next_follow_up, "MMM d")}</span>}
                 </div>
               )}
               {detailItem && (
@@ -1022,6 +1091,15 @@ export default function FollowUps() {
                   {detailItem.email && (
                     <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`mailto:${detailItem.email}`}><Mail className="w-3 h-3 mr-1" />Email</a></Button>
                   )}
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
+                    disabled={markFollowUpCompleteMutation.isPending}
+                  >
+                    <CheckCircle2 className="w-3 h-3" />
+                    {markFollowUpCompleteMutation.isPending ? "Saving..." : "Mark Complete"}
+                  </Button>
                 </div>
               )}
             </SheetHeader>
@@ -1043,6 +1121,37 @@ export default function FollowUps() {
                 />
               ) : (
                 <>
+                  {/* Dormant Cadence Info */}
+                  {detailItem?.itemType === "customer" && detailItem.activity_status === "Dormant" && (
+                    <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-1">
+                        <CalendarCheck className="w-3 h-3" /> Dormant Follow-Up Cadence
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {getDormantStageLabel((detailItem.dormant_follow_up_stage || null) as DormantStage)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Completing will auto-schedule the next touch
+                        {detailItem.dormant_follow_up_stage === "Stage 3" ? " (1 year)" :
+                         detailItem.dormant_follow_up_stage === "Annual" ? " (1 year)" : " (5 days)"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mark Follow-Up Complete (prominent) */}
+                  {detailItem?.itemType === "customer" && (
+                    <div className="mb-4">
+                      <Button
+                        className="w-full gap-1.5"
+                        onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
+                        disabled={markFollowUpCompleteMutation.isPending}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        {markFollowUpCompleteMutation.isPending ? "Completing..." : "Mark Follow-Up Complete"}
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Update date */}
                   <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
