@@ -286,7 +286,25 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems];
+    // Hostess coaching items (from events with hostess_next_action_date)
+    const hostessItems: ActionItem[] = events
+      .filter((e) => !e.is_archived && e.hostess_name && (e as any).hostess_next_action_date)
+      .map((e) => {
+        const effectiveDate = normalizeFollowUpDate((e as any).hostess_next_action_date);
+        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        return {
+          id: e.id, itemType: "hostess" as const, name: e.hostess_name!,
+          phone: e.hostess_phone, email: e.hostess_email,
+          next_follow_up: effectiveDate, follow_up_status: status,
+          daysOverdue,
+          followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
+          lastContacted: null,
+          actionLabel: "Hostess Coaching",
+        };
+      });
+
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems];
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
       const aDate = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
       const bDate = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
