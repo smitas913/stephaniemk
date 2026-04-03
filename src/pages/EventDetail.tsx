@@ -271,6 +271,26 @@ export default function EventDetail() {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-xs text-muted-foreground">Status</label>
+                  <Select
+                    value={event.event_status || "Booked"}
+                    onValueChange={(val) => {
+                      if (val !== (event.event_status || "Booked")) {
+                        eventMutation.mutate({ event_id: event.event_id, event_status: val } as any);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVENT_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-xs text-muted-foreground">Guest Count</label>
                   <Input
                     type="number" min={0} className="h-8 text-sm"
