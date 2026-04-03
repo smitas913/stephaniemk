@@ -379,7 +379,29 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
+    // Event workflow tasks (incomplete, with due dates)
+    const eventTaskItems: ActionItem[] = (eventTasksRaw as EventTask[])
+      .filter((t) => !t.is_completed && t.due_date)
+      .map((t) => {
+        const matchedEvent = events.find((e) => e.event_id === t.event_id);
+        const effectiveDate = normalizeFollowUpDate(t.due_date);
+        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        return {
+          id: t.id, itemType: "event_task" as const,
+          name: matchedEvent?.hostess_name || t.event_id,
+          phone: matchedEvent?.hostess_phone || null, email: matchedEvent?.hostess_email || null,
+          next_follow_up: effectiveDate, follow_up_status: status,
+          daysOverdue,
+          followUpReason: t.task_name,
+          lastContacted: null,
+          actionLabel: "Hostess Coaching",
+          _eventTaskId: t.id,
+          _eventId: t.event_id,
+        };
+      });
+
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems, ...eventTaskItems];
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
       // Overdue first, then today
       const aOverdue = a.follow_up_status === "OVERDUE" ? 0 : 1;
