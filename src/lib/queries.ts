@@ -889,7 +889,7 @@ export const deleteBlackoutDay = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
-
+export const convertProspectToConsultant = async (
   prospect: Prospect,
   extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
 ): Promise<TeamConsultant> => {
