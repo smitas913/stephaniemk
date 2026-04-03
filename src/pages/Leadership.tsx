@@ -24,8 +24,6 @@ import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload } fr
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
-const CONSULTANT_STATUS_COLORS: Record<string, string> = {
-};
 
 const ONBOARDING_STAGE_COLORS: Record<string, string> = {
   "New": "bg-blue-100 text-blue-700",
