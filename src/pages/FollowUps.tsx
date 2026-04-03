@@ -1162,10 +1162,13 @@ function BirthdayRow({ item, label, onNavigate, onAction }: { item: ActionItem; 
   return (
     <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <p className="text-sm font-medium text-foreground truncate">
-          {item.name}
-          {item.vip === "VIP" && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium align-middle">VIP</span>}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE[item.itemType].className)}>
+            {TYPE_BADGE[item.itemType].label}
+          </span>
+          {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
+        </div>
         <p className="text-xs text-muted-foreground">
           🎂 {formatBirthday(item)} — <span className="font-medium text-pink-600">{label}</span>
         </p>
