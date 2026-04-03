@@ -36,6 +36,7 @@ export default function BookingLeads() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activityFilter, setActivityFilter] = useState<string>("all");
   const [showAdd, setShowAdd] = useState(false);
   const [editLead, setEditLead] = useState<BookingLead | null>(null);
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
