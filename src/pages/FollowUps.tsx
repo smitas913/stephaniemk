@@ -178,6 +178,20 @@ export default function FollowUps() {
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: todayDeliveries = [] } = useQuery({
+    queryKey: ["daily-plan", toLocalDateKey()],
+    queryFn: async () => {
+      const dateStr = toLocalDateKey();
+      const { data, error } = await supabase
+        .from("daily_plan_items" as any)
+        .select("*")
+        .eq("plan_date", dateStr)
+        .eq("item_type", "delivery")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
   const isLoading = cLoading || oLoading;
 
   // ─── Compute Today's Focus metrics from completed actions ───
