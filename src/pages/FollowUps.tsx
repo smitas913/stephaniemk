@@ -406,6 +406,10 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
+      } else if (item.itemType === "hostess") {
+        const updates: Record<string, string | null> = {};
+        if (nextDate) updates.hostess_next_action_date = nextDate;
+        await updateEvent(item.id, updates as any);
       }
     },
     onSuccess: () => {
