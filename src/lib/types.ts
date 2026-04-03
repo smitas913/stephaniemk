@@ -243,6 +243,8 @@ export const CONSULTANT_STATUSES = ["Active", "Inactive", "At Risk"] as const;
 
 export const ONBOARDING_STAGES = ["New", "Started", "First Order", "First Party", "First Team Member", "Active Builder"] as const;
 
+export const FOCUS_GROUPS = ["General", "New Consultant", "Key Consultant"] as const;
+
 export const COACHING_FOCUS_OPTIONS = [
   "Set Up Account",
   "Product Knowledge",
