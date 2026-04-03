@@ -488,6 +488,40 @@ export default function EventDetail() {
           </Card>
         )}
 
+        {/* Event Workflow Tasks */}
+        {event && eventTasks.length > 0 && (
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                Event Workflow Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {eventTasks.map((task: EventTask) => (
+                <label key={task.id} className="flex items-center gap-3 py-1.5 cursor-pointer">
+                  <Checkbox
+                    checked={task.is_completed}
+                    onCheckedChange={() => {
+                      if (!task.is_completed) handleCompleteTask(task.id);
+                    }}
+                    disabled={task.is_completed}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className={cn("text-sm", task.is_completed ? "line-through text-muted-foreground" : "text-foreground font-medium")}>
+                      {task.task_name}
+                    </span>
+                    {task.due_date && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        Due: {formatDateOnly(task.due_date)}
+                      </span>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </CardContent>
+          </Card>
+
         {/* Guest Tracking */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
