@@ -85,7 +85,10 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
-  const [focusFilter, setFocusFilter] = useState<string>("all");
+  const [focusFilter, setFocusFilter] = useState<string>("New+Key");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string>("coaching");
+  const [coachingFilter, setCoachingFilter] = useState<string>("all");
 
   const emptyForm = {
     first_name: "", last_name: "", name: "", phone: "", email: "",
@@ -98,9 +101,54 @@ function ConsultantsTab() {
   const resetForm = () => setForm(emptyForm);
 
   const filtered = useMemo(() => {
-    if (focusFilter === "all") return consultants;
-    return consultants.filter((c) => (c.focus_group || "General") === focusFilter);
-  }, [consultants, focusFilter]);
+    const todayKey = toLocalDateKey();
+    let list = [...consultants];
+
+    // Focus group filter
+    if (focusFilter === "New+Key") {
+      list = list.filter((c) => {
+        const fg = c.focus_group || "General";
+        return fg === "New Consultant" || fg === "Key Consultant";
+      });
+    } else if (focusFilter !== "all") {
+      list = list.filter((c) => (c.focus_group || "General") === focusFilter);
+    }
+
+    // Coaching status filter
+    if (coachingFilter !== "all") {
+      list = list.filter((c) => {
+        if (!c.next_coaching_date) return false;
+        const cmp = compareDateOnly(c.next_coaching_date, todayKey);
+        if (coachingFilter === "today") return cmp === 0;
+        if (coachingFilter === "overdue") return cmp === -1;
+        if (coachingFilter === "upcoming") return cmp === 1;
+        return true;
+      });
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.first_name || "").toLowerCase().includes(q) ||
+        (c.last_name || "").toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      if (sortBy === "name-az") return a.name.localeCompare(b.name);
+      if (sortBy === "name-za") return b.name.localeCompare(a.name);
+      if (sortBy === "newest") return (b.join_date || "").localeCompare(a.join_date || "");
+      if (sortBy === "oldest") return (a.join_date || "").localeCompare(b.join_date || "");
+      const aD = a.next_coaching_date || "9999";
+      const bD = b.next_coaching_date || "9999";
+      return aD.localeCompare(bD);
+    });
+
+    return list;
+  }, [consultants, focusFilter, coachingFilter, search, sortBy]);
 
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
