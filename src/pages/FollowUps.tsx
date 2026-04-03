@@ -60,7 +60,7 @@ type Enriched = Customer & CustomerComputed;
 
 type ActionItem = {
   id: string;
-  itemType: "customer" | "prospect" | "consultant" | "hostess";
+  itemType: "customer" | "prospect" | "consultant" | "hostess" | "lead";
   name: string;
   phone: string | null;
   email: string | null;
