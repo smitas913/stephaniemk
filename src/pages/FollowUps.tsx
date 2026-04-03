@@ -550,37 +550,6 @@ export default function FollowUps() {
                       </CardContent>
                     </Card>
 
-                    {/* Today's Events */}
-                    {todayEvents.length > 0 && (
-                      <Card className="border-border/50 shadow-sm">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                              <Calendar className="w-4 h-4 text-emerald-600" />
-                            </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Today's Events</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{todayEvents.length}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="divide-y divide-border/40">
-                            {todayEvents.map((evt) => (
-                              <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                onClick={() => navigate(`/events/${evt.event_id}`)}>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    {evt.event_type && <span>{evt.event_type}</span>}
-                                    {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                  </div>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
 
                     {/* Booking Leads */}
                     {bookingLeadsDue.length > 0 && (
