@@ -76,6 +76,8 @@ export default function Expenses() {
     setFormAmount("");
     setFormNotes("");
     setFormCategory("Inventory");
+    setFormEventType("");
+    setFormEventYear("");
     clearReceipt();
   };
 
