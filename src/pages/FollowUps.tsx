@@ -1088,6 +1088,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
   onClose: () => void;
 }) {
   const consultant = consultants.find((c) => c.id === item.id);
+  const [focusGroup, setFocusGroup] = useState(consultant?.focus_group || "General");
   const [coachingFocus, setCoachingFocus] = useState(consultant?.coaching_focus || "");
   const [nextCoachingDate, setNextCoachingDate] = useState(consultant?.next_coaching_date || "");
   const [notes, setNotes] = useState(consultant?.notes || "");
@@ -1097,6 +1098,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
     setSaving(true);
     try {
       await updateTeamConsultant(item.id, {
+        focus_group: focusGroup,
         coaching_focus: coachingFocus || null,
         next_coaching_date: nextCoachingDate || null,
         notes: notes || null,
