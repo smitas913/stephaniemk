@@ -194,13 +194,47 @@ function ConsultantsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search consultants..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 h-9"
+        />
+      </div>
+
+      {/* Filters Row */}
       <div className="flex justify-between items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select value={focusFilter} onValueChange={setFocusFilter}>
             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="New+Key">New + Key</SelectItem>
               <SelectItem value="all">All Focus Groups</SelectItem>
               {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={coachingFilter} onValueChange={setCoachingFilter}>
+            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Coaching</SelectItem>
+              <SelectItem value="today">Due Today</SelectItem>
+              <SelectItem value="overdue">Overdue</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <ArrowUpDown className="w-3 h-3 mr-1" /><SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="coaching">Coaching Date (Soonest)</SelectItem>
+              <SelectItem value="name-az">Name (A–Z)</SelectItem>
+              <SelectItem value="name-za">Name (Z–A)</SelectItem>
+              <SelectItem value="newest">Newest (Start Date)</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
