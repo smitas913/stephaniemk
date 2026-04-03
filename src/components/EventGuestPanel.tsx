@@ -136,6 +136,7 @@ export default function EventGuestPanel({ eventId }: Props) {
                 <TableHead className="text-[10px] w-20">RSVP</TableHead>
                 <TableHead className="text-[10px] text-center w-16">Attended</TableHead>
                 <TableHead className="text-[10px] text-center w-16">Ordered</TableHead>
+                <TableHead className="text-[10px] text-center w-16">Booked</TableHead>
                 <TableHead className="text-[10px] text-center w-16">Interested</TableHead>
                 <TableHead className="text-[10px] w-16"></TableHead>
               </TableRow>
