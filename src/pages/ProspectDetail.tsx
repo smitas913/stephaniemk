@@ -42,6 +42,8 @@ export default function ProspectDetail() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [noteText, setNoteText] = useState("");
   const [showConvert, setShowConvert] = useState(false);
+  const [convertCoachingDate, setConvertCoachingDate] = useState("");
+  const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
 
   useEffect(() => {
     if (prospect) {
