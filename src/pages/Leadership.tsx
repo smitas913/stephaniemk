@@ -132,6 +132,7 @@ function ConsultantsTab() {
 
   const openEdit = (c: TeamConsultant) => {
     setForm({
+      first_name: c.first_name || "", last_name: c.last_name || "",
       name: c.name, phone: c.phone || "", email: c.email || "",
       consultant_id: c.consultant_id || "", join_date: c.join_date || "", birthday: c.birthday || "",
       address_line_1: c.address_line_1 || "", city: c.city || "",
