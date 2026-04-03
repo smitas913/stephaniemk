@@ -86,6 +86,7 @@ export default function Analytics() {
       const mEnd = endOfMonth(refDate);
       const mLabel = format(mStart, "MMM yyyy");
       const mEvents = events.filter((e) => e.event_status === "Held" && inRange(e.event_date, mStart, mEnd));
+      const mAllEvents = events.filter((e) => inRange(e.event_date, mStart, mEnd));
       const mPF = mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
       const mOrders = orders.filter((o) => inRange(o.order_date, mStart, mEnd));
       const mSales = mOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
