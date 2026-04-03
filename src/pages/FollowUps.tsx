@@ -1091,15 +1091,6 @@ export default function FollowUps() {
                   {detailItem.email && (
                     <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`mailto:${detailItem.email}`}><Mail className="w-3 h-3 mr-1" />Email</a></Button>
                   )}
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
-                    disabled={markFollowUpCompleteMutation.isPending}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    {markFollowUpCompleteMutation.isPending ? "Saving..." : "Mark Complete"}
-                  </Button>
                 </div>
               )}
             </SheetHeader>
