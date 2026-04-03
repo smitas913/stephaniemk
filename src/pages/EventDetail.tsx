@@ -120,12 +120,17 @@ export default function EventDetail() {
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/events")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
               {event?.hostess_name ? `${event.hostess_name}'s Event` : "Event Detail"}
             </h2>
             <p className="text-sm text-muted-foreground font-mono">{eventId}</p>
           </div>
+          {event && (
+            <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
+              {event.event_status || "Booked"}
+            </Badge>
+          )}
         </div>
 
         {/* KPI cards */}
