@@ -111,6 +111,8 @@ export interface EventRecord {
   google_form_link: string | null;
   hostess_next_action: string | null;
   hostess_next_action_date: string | null;
+  event_time: string | null;
+  event_location: string | null;
 }
 
 export interface EventGuest {

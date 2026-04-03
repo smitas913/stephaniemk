@@ -364,7 +364,9 @@ export type Database = {
           event_date: string | null
           event_format: string
           event_id: string
+          event_location: string | null
           event_status: string
+          event_time: string | null
           event_type: string | null
           future_bookings_count: number | null
           google_form_link: string | null
@@ -395,7 +397,9 @@ export type Database = {
           event_date?: string | null
           event_format?: string
           event_id: string
+          event_location?: string | null
           event_status?: string
+          event_time?: string | null
           event_type?: string | null
           future_bookings_count?: number | null
           google_form_link?: string | null
@@ -426,7 +430,9 @@ export type Database = {
           event_date?: string | null
           event_format?: string
           event_id?: string
+          event_location?: string | null
           event_status?: string
+          event_time?: string | null
           event_type?: string | null
           future_bookings_count?: number | null
           google_form_link?: string | null

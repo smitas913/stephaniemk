@@ -10,8 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useMutation as useRQMutation } from "@tanstack/react-query";
+import { upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
+import { generateEventId } from "@/lib/eventId";
+import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
-import { formatDateOnly } from "@/lib/dateOnly";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
 
@@ -36,6 +39,32 @@ export default function Events() {
       toast.success("Event deleted");
     },
     onError: (err: Error) => toast.error(err.message),
+  });
+
+  const createMutation = useRQMutation({
+    mutationFn: async () => {
+      const today = toLocalDateKey();
+      const existingIds = events.map(e => e.event_id);
+      const eventId = generateEventId("Party", today, "Event", existingIds);
+      await upsertEvent({
+        event_id: eventId,
+        event_type: "Party",
+        event_date: today,
+        guest_count: 0,
+      });
+      try {
+        await generateEventWorkflowTasks(eventId, today);
+      } catch (e) {
+        console.error("Failed to generate workflow tasks", e);
+      }
+      return eventId;
+    },
+    onSuccess: (eventId) => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      navigate(`/events/${eventId}`);
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to create event"),
   });
 
   // Calculate totals per event from orders
@@ -87,8 +116,12 @@ export default function Events() {
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
             <p className="text-sm text-muted-foreground">{totalEvents} events</p>
           </div>
-          <Button onClick={() => navigate("/events/new")} className="gap-1.5">
-            <Plus className="w-4 h-4" /> New Event
+          <Button
+            disabled={createMutation.isPending}
+            onClick={() => createMutation.mutate()}
+            className="gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> {createMutation.isPending ? "Creating..." : "New Event"}
           </Button>
         </div>
 
