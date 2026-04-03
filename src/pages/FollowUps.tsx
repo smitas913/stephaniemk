@@ -1116,6 +1116,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
         ? format(addDays(parseLocalDate(nextCoachingDate), 7), "yyyy-MM-dd")
         : format(addDays(new Date(), 7), "yyyy-MM-dd");
       await updateTeamConsultant(item.id, {
+        focus_group: focusGroup,
         coaching_focus: coachingFocus || null,
         next_coaching_date: nextDate,
         notes: notes || null,
