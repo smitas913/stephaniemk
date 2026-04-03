@@ -176,6 +176,9 @@ function ConsultantsTab() {
                           {c.onboarding_stage}
                         </Badge>
                       )}
+                      {c.focus_group && c.focus_group !== "General" && (
+                        <Badge variant="outline" className="text-[10px]">{c.focus_group}</Badge>
+                      )}
                     </div>
                     {c.coaching_focus && (
                       <p className="text-xs text-muted-foreground mt-0.5">
