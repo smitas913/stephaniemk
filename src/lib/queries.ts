@@ -853,7 +853,43 @@ export const upsertScheduleSettings = async (settings: Partial<ScheduleSettings>
   }
 };
 
-export const convertProspectToConsultant = async (
+// ─── Custom Blackout Days ───
+
+export interface BlackoutDay {
+  id: string;
+  user_id: string;
+  blackout_date: string;
+  label: string | null;
+  created_at: string;
+}
+
+export const fetchBlackoutDays = async (): Promise<BlackoutDay[]> => {
+  const { data, error } = await supabase
+    .from("custom_blackout_days" as any)
+    .select("*")
+    .order("blackout_date", { ascending: true });
+  if (error) throw error;
+  return data as unknown as BlackoutDay[];
+};
+
+export const createBlackoutDay = async (blackout_date: string, label?: string): Promise<void> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  const { error } = await supabase
+    .from("custom_blackout_days" as any)
+    .insert({ user_id: userId, blackout_date, label: label || null } as any);
+  if (error) throw error;
+};
+
+export const deleteBlackoutDay = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from("custom_blackout_days" as any)
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+};
+
+
   prospect: Prospect,
   extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
 ): Promise<TeamConsultant> => {
