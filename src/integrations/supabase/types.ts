@@ -1059,6 +1059,36 @@ export type Database = {
           },
         ]
       }
+      user_schedule_settings: {
+        Row: {
+          created_at: string
+          id: string
+          light_schedule_mode: boolean
+          ooo_end_date: string | null
+          ooo_start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          light_schedule_mode?: boolean
+          ooo_end_date?: string | null
+          ooo_start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          light_schedule_mode?: boolean
+          ooo_end_date?: string | null
+          ooo_start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       customer_summary: {

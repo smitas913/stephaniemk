@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
+import { nextAvailableWeekday, nextAvailableDay, spreadTasks, type OOOPeriod } from "./smartSchedule";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
@@ -749,9 +750,14 @@ export const deleteEventTasksByEventId = async (eventId: string) => {
 /** Generate the standard workflow tasks for a new event */
 export const generateEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
   const userId = await getCurrentUserId();
-  const today = toLocalDateKeyImport();
+  const ooo = await fetchScheduleSettings();
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
 
-  // Task 1: Send Hostess Form — due immediately (today)
+  // Task 1: Send Hostess Form — due today (skip blocked days)
+  const todayAdjusted = nextAvailableDay(todayDate, ooo);
+  const today = toLocalDateKeyImport(todayAdjusted);
+
   const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
     { event_id: eventId, task_name: "Send Hostess Form", task_type: "hostess_form", due_date: today, owner_user_id: userId },
   ];
@@ -762,7 +768,9 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
     const fiveBefore = new Date(ed); fiveBefore.setDate(ed.getDate() - 5);
     const twoBefore = new Date(ed); twoBefore.setDate(ed.getDate() - 2);
     const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
-    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    // Smart-schedule each pre-event task
+    const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo));
 
     tasks.push(
       { event_id: eventId, task_name: "Hostess Pre-Profile + Guest Review", task_type: "pre_profile", due_date: fmt(fiveBefore), owner_user_id: userId },
@@ -780,19 +788,69 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
 /** Trigger task when hostess form is completed */
 export const generateGuestInviteTask = async (eventId: string) => {
   const userId = await getCurrentUserId();
-  const today = toLocalDateKeyImport();
+  const ooo = await fetchScheduleSettings();
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const adjusted = nextAvailableDay(todayDate, ooo);
+  const today = toLocalDateKeyImport(adjusted);
+
   // Check if already exists
   const { data: existing } = await supabase
     .from("event_tasks" as any)
     .select("id")
     .eq("event_id", eventId)
     .eq("task_type", "guest_invite");
-  if (existing && existing.length > 0) return; // already exists
+  if (existing && existing.length > 0) return;
 
   const { error } = await supabase
     .from("event_tasks" as any)
     .insert({ event_id: eventId, task_name: "Send Guest Invite + Guest Form", task_type: "guest_invite", due_date: today, owner_user_id: userId } as any);
   if (error) throw error;
+};
+
+// ─── Schedule Settings (OOO + Light Mode) ───
+
+export interface ScheduleSettings {
+  id?: string;
+  user_id?: string;
+  ooo_start_date: string | null;
+  ooo_end_date: string | null;
+  light_schedule_mode: boolean;
+}
+
+export const fetchScheduleSettings = async (): Promise<ScheduleSettings | null> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("user_schedule_settings" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as unknown as ScheduleSettings | null;
+};
+
+export const upsertScheduleSettings = async (settings: Partial<ScheduleSettings>): Promise<void> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  const { data: existing } = await supabase
+    .from("user_schedule_settings" as any)
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("user_schedule_settings" as any)
+      .update({ ...settings, updated_at: new Date().toISOString() } as any)
+      .eq("user_id", userId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("user_schedule_settings" as any)
+      .insert({ ...settings, user_id: userId } as any);
+    if (error) throw error;
+  }
 };
 
 export const convertProspectToConsultant = async (

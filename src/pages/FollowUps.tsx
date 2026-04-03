@@ -15,6 +15,7 @@ import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
+import ScheduleSettings from "@/components/ScheduleSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -742,6 +743,7 @@ export default function FollowUps() {
                   {/* Right Column (1/3) */}
                   <div className="space-y-4">
                     <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
+                    <ScheduleSettings />
 
                     {/* Today's Schedule — Events + Deliveries + Birthdays */}
                     <Card className="border-border/50 shadow-sm">

@@ -1,5 +1,6 @@
-import { addDays, differenceInCalendarDays, format } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 import { parseLocalDate, toLocalDateKey, getLocalToday } from "@/lib/dateOnly";
+import { nextAvailableWeekday, type OOOPeriod } from "@/lib/smartSchedule";
 
 export type CadencePhase = "intensive" | "building" | "steady" | "graduated";
 
@@ -55,6 +56,7 @@ export function getNextCoachingDate(
   joinDateStr: string | null | undefined,
   currentCoachingDateStr: string | null | undefined,
   today = getLocalToday(),
+  ooo: OOOPeriod | null = null,
 ): string | null {
   const cadence = getCadenceInfo(joinDateStr, today);
   if (!cadence || cadence.phase === "graduated") return null;
@@ -62,44 +64,29 @@ export function getNextCoachingDate(
   const baseDate = currentCoachingDateStr ? parseLocalDate(currentCoachingDateStr) : today;
   const candidateDate = addDays(baseDate, cadence.daysBetweenSessions);
 
-  // Ensure the date is at least tomorrow
   const tomorrow = addDays(today, 1);
   const finalDate = candidateDate >= tomorrow ? candidateDate : tomorrow;
 
-  // Skip weekends for more natural scheduling
-  const day = finalDate.getDay();
-  let adjusted = finalDate;
-  if (day === 0) adjusted = addDays(finalDate, 1); // Sunday → Monday
-  if (day === 6) adjusted = addDays(finalDate, 2); // Saturday → Monday
-
-  return toLocalDateKey(adjusted);
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
 }
 
 /**
  * Auto-populate the initial coaching date for a new consultant.
  * Sets to tomorrow (or next weekday).
  */
-export function getInitialCoachingDate(today = getLocalToday()): string {
+export function getInitialCoachingDate(today = getLocalToday(), ooo: OOOPeriod | null = null): string {
   const candidate = addDays(today, 1);
-  const day = candidate.getDay();
-  let adjusted = candidate;
-  if (day === 0) adjusted = addDays(candidate, 1);
-  if (day === 6) adjusted = addDays(candidate, 2);
-  return toLocalDateKey(adjusted);
+  return toLocalDateKey(nextAvailableWeekday(candidate, ooo));
 }
 
 /**
  * Snooze: push the next coaching date forward by the given number of days.
  */
-export function snoozeCoachingDate(currentDateStr: string | null | undefined, snoozeDays: number, today = getLocalToday()): string {
+export function snoozeCoachingDate(currentDateStr: string | null | undefined, snoozeDays: number, today = getLocalToday(), ooo: OOOPeriod | null = null): string {
   const baseDate = currentDateStr ? parseLocalDate(currentDateStr) : today;
   const candidate = addDays(baseDate, snoozeDays);
   const tomorrow = addDays(today, 1);
   const finalDate = candidate >= tomorrow ? candidate : tomorrow;
 
-  const day = finalDate.getDay();
-  let adjusted = finalDate;
-  if (day === 0) adjusted = addDays(finalDate, 1);
-  if (day === 6) adjusted = addDays(finalDate, 2);
-  return toLocalDateKey(adjusted);
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
 }
