@@ -9,7 +9,7 @@ import {
   fetchAllLatestNotes,
 } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
+import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
