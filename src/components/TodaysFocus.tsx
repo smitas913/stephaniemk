@@ -19,9 +19,11 @@ const GOALS: Record<DayType, { reachOuts: number; bookings: number; sharing: num
   light:   { reachOuts: 6,  bookings: 1, sharing: 0 },
 };
 
-type GoalProps = {
-  callsToday: number;
-};
+interface GoalProps {
+  reachOutsToday: number;
+  bookingsToday: number;
+  sharingToday: number;
+}
 
 function GoalItem({ icon: Icon, label, current, goal, color }: {
   icon: React.ElementType;
@@ -30,7 +32,7 @@ function GoalItem({ icon: Icon, label, current, goal, color }: {
   goal: number;
   color: string;
 }) {
-  const pct = Math.min(100, Math.round((current / goal) * 100));
+  const pct = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
@@ -45,7 +47,7 @@ function GoalItem({ icon: Icon, label, current, goal, color }: {
   );
 }
 
-export default function TodaysFocus({ callsToday = 0 }: GoalProps) {
+export default function TodaysFocus({ reachOutsToday = 0, bookingsToday = 0, sharingToday = 0 }: GoalProps) {
   const [dayType, setDayType] = useState<DayType>("booking");
   const goals = GOALS[dayType];
 
@@ -79,10 +81,10 @@ export default function TodaysFocus({ callsToday = 0 }: GoalProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <GoalItem icon={Phone} label="Daily Reach Outs" current={callsToday} goal={goals.reachOuts} color="text-primary" />
-          <GoalItem icon={CalendarPlus} label="Bookings" current={0} goal={goals.bookings} color="text-emerald-500" />
+          <GoalItem icon={Phone} label="Daily Reach Outs" current={reachOutsToday} goal={goals.reachOuts} color="text-primary" />
+          <GoalItem icon={CalendarPlus} label="Bookings" current={bookingsToday} goal={goals.bookings} color="text-emerald-500" />
           {goals.sharing > 0 && (
-            <GoalItem icon={Share2} label="Sharing" current={0} goal={goals.sharing} color="text-violet-500" />
+            <GoalItem icon={Share2} label="Sharing" current={sharingToday} goal={goals.sharing} color="text-violet-500" />
           )}
           <p className="text-[10px] text-muted-foreground pt-1">
             {dayType === "booking" && "Target: 8–12 reach outs · 4–5 days/week"}

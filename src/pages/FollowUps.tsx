@@ -5,6 +5,7 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
+  fetchAllLatestNotes,
 } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
@@ -174,7 +175,40 @@ export default function FollowUps() {
   const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
   const isLoading = cLoading || oLoading;
+
+  // ─── Compute Today's Focus metrics from completed actions ───
+  const { reachOutsToday, bookingsToday, sharingToday } = useMemo(() => {
+    const todayKey = toLocalDateKey();
+    const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
+
+    // Reach-outs: customer_notes + unified notes logged today with contact types
+    const customerNoteReachOuts = allNotes.filter(
+      (n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type)
+    ).length;
+    const unifiedNoteReachOuts = unifiedNotes.filter(
+      (n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type)
+    ).length;
+    // Deduplicate: unified notes cover customers & prospects; customer_notes is legacy
+    // Use the higher count to avoid double-counting
+    const reachOuts = Math.max(customerNoteReachOuts, unifiedNoteReachOuts);
+
+    // Bookings: events created today
+    const bookings = events.filter((e) => e.created_at.startsWith(todayKey)).length;
+
+    // Sharing: prospect notes or unified notes with sharing-related content logged today
+    // Count prospects that moved to "Shared" status today, or sharing_appointments on events today
+    const sharingFromProspects = prospects.filter(
+      (p) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)
+    ).length;
+    const sharingFromEvents = events
+      .filter((e) => e.event_date === todayKey)
+      .reduce((sum, e) => sum + (e.sharing_appointments_count || 0), 0);
+    const sharing = sharingFromProspects + sharingFromEvents;
+
+    return { reachOutsToday: reachOuts, bookingsToday: bookings, sharingToday: sharing };
+  }, [allNotes, unifiedNotes, events, prospects]);
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
@@ -613,7 +647,7 @@ export default function FollowUps() {
 
                   {/* Right Column (1/3) */}
                   <div className="space-y-4">
-                    <TodaysFocus callsToday={todayActions.length} />
+                    <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
 
                     {/* Today's Events */}
                     <Card className="border-border/50 shadow-sm">
