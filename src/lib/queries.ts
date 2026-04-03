@@ -213,6 +213,13 @@ export const deleteEvent = async (eventId: string) => {
     .eq("event_id", eventId);
   if (gErr) throw gErr;
 
+  // Delete event workflow tasks
+  const { error: tErr } = await supabase
+    .from("event_tasks" as any)
+    .delete()
+    .eq("event_id", eventId);
+  if (tErr) throw tErr;
+
   // Delete the event itself
   const { error } = await supabase
     .from("events")
