@@ -88,7 +88,7 @@ function ConsultantsTab() {
   const [focusFilter, setFocusFilter] = useState<string>("all");
 
   const emptyForm = {
-    name: "", phone: "", email: "",
+    first_name: "", last_name: "", name: "", phone: "", email: "",
     consultant_id: "", join_date: toLocalDateKey(), birthday: "",
     address_line_1: "", city: "", state_territory: "", postal_code: "",
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
