@@ -1136,7 +1136,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
         <Select value={focusGroup} onValueChange={setFocusGroup}>
           <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g === "New" ? "New Consultant" : g === "Key" ? "Key Consultant" : g}</SelectItem>)}
+            {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
