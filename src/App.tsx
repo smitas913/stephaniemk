@@ -42,9 +42,9 @@ function getRoleHome(role: string): string {
   switch (role) {
     case "owner":
     case "admin":
-      return "/dashboard";
+      return "/follow-ups";
     case "consultant":
-      return "/dashboard";
+      return "/follow-ups";
     case "customer":
       return "/my-account";
     default:
