@@ -20,7 +20,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload } from "lucide-react";
+import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
 const CONSULTANT_STATUS_COLORS: Record<string, string> = {
@@ -86,6 +87,7 @@ function ConsultantsTab() {
   const { data: consultants = [], isLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const [showAdd, setShowAdd] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
   const [focusFilter, setFocusFilter] = useState<string>("all");
@@ -153,7 +155,10 @@ function ConsultantsTab() {
           </Select>
           <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
         </div>
-        <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}><Plus className="w-4 h-4 mr-1" />Add Consultant</Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowImport(true)}><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
+          <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}><Plus className="w-4 h-4 mr-1" />Add Consultant</Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -297,6 +302,8 @@ function ConsultantsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
     </div>
   );
 }
