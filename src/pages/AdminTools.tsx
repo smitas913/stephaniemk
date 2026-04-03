@@ -92,6 +92,10 @@ export default function AdminTools() {
           <TabsContent value="deliveries">
             <DeliveryTracking />
           </TabsContent>
+
+          <TabsContent value="scheduling">
+            <ScheduleSettings />
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>
