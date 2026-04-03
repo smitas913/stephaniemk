@@ -49,13 +49,13 @@ export default function BookingLeads() {
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      // Hide converted leads from default "all" view
       if (statusFilter === "all" && l.converted_customer_id) return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (activityFilter !== "all" && (l.lead_activity || "No Activity Yet") !== activityFilter) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [leads, search, statusFilter]);
+  }, [leads, search, statusFilter, activityFilter]);
 
   const createMut = useMutation({
     mutationFn: () => createBookingLead({
