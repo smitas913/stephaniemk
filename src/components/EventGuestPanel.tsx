@@ -75,6 +75,7 @@ export default function EventGuestPanel({ eventId }: Props) {
   const rsvpYes = guests.filter((g) => g.rsvp === "Yes").length;
   const attendingCount = guests.filter((g) => g.attending).length;
   const orderedCount = guests.filter((g) => g.ordered).length;
+  const bookedCount = guests.filter((g) => (g as any).booked).length;
 
   return (
     <div className="space-y-3">
