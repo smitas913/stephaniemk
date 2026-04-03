@@ -20,7 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, ListPlus } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload } from "lucide-react";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
@@ -90,21 +90,17 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [quickAddText, setQuickAddText] = useState("");
-  const [quickAddLoading, setQuickAddLoading] = useState(false);
   const [focusFilter, setFocusFilter] = useState<string>("all");
-  const [form, setForm] = useState({
-    name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
-    next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
-    first_order_date: "", first_party_date: "", first_team_member_date: "", focus_group: "General",
-  });
 
-  const resetForm = () => setForm({
-    name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
-    next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
-    first_order_date: "", first_party_date: "", first_team_member_date: "", focus_group: "General",
-  });
+  const emptyForm = {
+    name: "", phone: "", email: "",
+    consultant_id: "", join_date: toLocalDateKey(), birthday: "",
+    address_line_1: "", city: "", state_territory: "", postal_code: "",
+    focus_group: "General", onboarding_stage: "New", coaching_focus: "",
+    next_coaching_date: "", notes: "", status: "Active",
+  };
+  const [form, setForm] = useState(emptyForm);
+  const resetForm = () => setForm(emptyForm);
 
   const filtered = useMemo(() => {
     if (focusFilter === "all") return consultants;
@@ -136,11 +132,12 @@ function ConsultantsTab() {
   const openEdit = (c: TeamConsultant) => {
     setForm({
       name: c.name, phone: c.phone || "", email: c.email || "",
-      status: c.status, join_date: c.join_date || "",
-      next_coaching_date: c.next_coaching_date || "", notes: c.notes || "",
-      onboarding_stage: c.onboarding_stage || "New", coaching_focus: c.coaching_focus || "",
-      first_order_date: c.first_order_date || "", first_party_date: c.first_party_date || "",
-      first_team_member_date: c.first_team_member_date || "", focus_group: c.focus_group || "General",
+      consultant_id: c.consultant_id || "", join_date: c.join_date || "", birthday: c.birthday || "",
+      address_line_1: c.address_line_1 || "", city: c.city || "",
+      state_territory: c.state_territory || "", postal_code: c.postal_code || "",
+      focus_group: c.focus_group || "General", onboarding_stage: c.onboarding_stage || "New",
+      coaching_focus: c.coaching_focus || "", next_coaching_date: c.next_coaching_date || "",
+      notes: c.notes || "", status: c.status,
     });
     setEditId(c.id);
   };
@@ -159,7 +156,6 @@ function ConsultantsTab() {
           <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowQuickAdd(true)}><ListPlus className="w-4 h-4 mr-1" />Quick Add</Button>
           <Button size="sm" variant="outline" onClick={() => setShowImport(true)}><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}><Plus className="w-4 h-4 mr-1" />Add Consultant</Button>
         </div>
@@ -180,6 +176,7 @@ function ConsultantsTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
+                      {c.consultant_id && <span className="text-[10px] text-muted-foreground">#{c.consultant_id}</span>}
                       {c.onboarding_stage && (
                         <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[c.onboarding_stage] || "")}>
                           {c.onboarding_stage}
@@ -223,69 +220,79 @@ function ConsultantsTab() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAdd || !!editId} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditId(null); resetForm(); } }}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base">{editId ? "Edit Consultant" : "Add Consultant"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <div className="space-y-4">
+            {/* Basic Info */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</p>
+              <Input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="Mobile" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+
+            {/* Consultant Details */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Consultant Details</p>
+              <div className="grid grid-cols-3 gap-2">
+                <Input placeholder="Consultant ID" value={form.consultant_id} onChange={(e) => setForm({ ...form, consultant_id: e.target.value })} />
+                <div>
+                  <label className="text-xs text-muted-foreground">Start Date</label>
+                  <Input type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Birthday</label>
+                  <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
+                </div>
+              </div>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>{CONSULTANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
-              <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Onboarding Stage" /></SelectTrigger>
-                <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={form.focus_group} onValueChange={(v) => setForm({ ...form, focus_group: v })}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Focus Group" /></SelectTrigger>
-                <SelectContent>{FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
-              </Select>
             </div>
 
-            <p className="text-xs font-medium text-muted-foreground pt-1">Coaching</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={form.coaching_focus || "none"} onValueChange={(v) => setForm({ ...form, coaching_focus: v === "none" ? "" : v })}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Coaching Focus" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— None —</SelectItem>
-                  {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            {/* Address */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mailing Address</p>
+              <Input placeholder="Address" value={form.address_line_1} onChange={(e) => setForm({ ...form, address_line_1: e.target.value })} />
+              <div className="grid grid-cols-3 gap-2">
+                <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                <Input placeholder="State" value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} />
+                <Input placeholder="Zip" value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
+              </div>
+            </div>
+
+            {/* Coaching */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Coaching</p>
+              <div className="grid grid-cols-3 gap-2">
+                <Select value={form.focus_group} onValueChange={(v) => setForm({ ...form, focus_group: v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Focus Group" /></SelectTrigger>
+                  <SelectContent>{FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Onboarding" /></SelectTrigger>
+                  <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={form.coaching_focus || "none"} onValueChange={(v) => setForm({ ...form, coaching_focus: v === "none" ? "" : v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Coaching Focus" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <label className="text-xs text-muted-foreground">Next Coaching Date</label>
-                <Input type="date" value={form.next_coaching_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_coaching_date: e.target.value })} />
+                <Input type="date" value={form.next_coaching_date} onChange={(e) => setForm({ ...form, next_coaching_date: e.target.value })} />
               </div>
+              <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
             </div>
 
-            <p className="text-xs font-medium text-muted-foreground pt-1">Milestone Dates</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground">Join Date</label>
-                <Input type="date" value={form.join_date} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">First Order Date</label>
-                <Input type="date" value={form.first_order_date} onChange={(e) => setForm({ ...form, first_order_date: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground">First Party Date</label>
-                <Input type="date" value={form.first_party_date} onChange={(e) => setForm({ ...form, first_party_date: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">First Team Member Date</label>
-                <Input type="date" value={form.first_team_member_date} onChange={(e) => setForm({ ...form, first_team_member_date: e.target.value })} />
-              </div>
-            </div>
-
-            <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
             <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={!form.name.trim() || createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) ? "Saving..." : editId ? "Save Changes" : "Add Consultant"}
             </Button>
@@ -308,46 +315,9 @@ function ConsultantsTab() {
       </AlertDialog>
 
       <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
-
-      {/* Quick Add Dialog */}
-      <Dialog open={showQuickAdd} onOpenChange={(o) => { if (!o) { setQuickAddText(""); } setShowQuickAdd(o); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base flex items-center gap-2"><ListPlus className="w-4 h-4" />Quick Add Consultants</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Paste one name per line to bulk-create consultant records.</p>
-            <Textarea placeholder={"Jane Smith\nMary Johnson\nSara Lee"} value={quickAddText} onChange={(e) => setQuickAddText(e.target.value)} className="min-h-[120px] font-mono text-sm" />
-            {(() => {
-              const names = quickAddText.split("\n").map((l) => l.trim()).filter(Boolean);
-              return names.length > 0 ? <p className="text-xs text-muted-foreground">{names.length} name{names.length !== 1 ? "s" : ""} detected</p> : null;
-            })()}
-            <Button className="w-full" disabled={!quickAddText.trim() || quickAddLoading} onClick={async () => {
-              const names = quickAddText.split("\n").map((l) => l.trim()).filter(Boolean);
-              if (!names.length) return;
-              setQuickAddLoading(true);
-              let created = 0;
-              for (const name of names) {
-                try {
-                  await createTeamConsultant({ name, status: "Active", focus_group: "General", onboarding_stage: "New" } as any);
-                  created++;
-                } catch { /* skip */ }
-              }
-              queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
-              toast.success(`Created ${created} consultant${created !== 1 ? "s" : ""}`);
-              setQuickAddText("");
-              setShowQuickAdd(false);
-              setQuickAddLoading(false);
-            }}>
-              {quickAddLoading ? "Creating..." : "Create All"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-
 /* ─── Leadership Tab ─── */
 function LeadershipTab() {
   const queryClient = useQueryClient();
