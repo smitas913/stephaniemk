@@ -489,8 +489,11 @@ export default function FollowUps() {
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
       } else if (item.itemType === "lead") {
-        const updates: Record<string, string | null> = { last_contact_date: today };
-        if (nextDate) updates.next_follow_up_date = nextDate;
+        const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        const updates: Record<string, string | null> = {
+          last_contact_date: today,
+          next_follow_up_date: nextDate || defaultNext,
+        };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
       }
