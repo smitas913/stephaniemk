@@ -39,8 +39,9 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       return isWithinInterval(parseISO(dateStr), { start: s, end: e });
     };
 
-    const weekEvents = events.filter((e) => inRange(e.event_date, weekStart, weekEnd));
-    const monthEvents = events.filter((e) => inRange(e.event_date, monthStart, monthEnd));
+    const heldEvents = events.filter((e) => e.event_status === "Held");
+    const weekEvents = heldEvents.filter((e) => inRange(e.event_date, weekStart, weekEnd));
+    const monthEvents = heldEvents.filter((e) => inRange(e.event_date, monthStart, monthEnd));
 
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
