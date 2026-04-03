@@ -377,19 +377,35 @@ export default function ProspectDetail() {
         </div>
 
         {/* Convert Dialog */}
-        <Dialog open={showConvert} onOpenChange={setShowConvert}>
+        <Dialog open={showConvert} onOpenChange={(o) => { setShowConvert(o); if (!o) { setConvertCoachingDate(""); setConvertCoachingFocus(""); } }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-base">Convert to Consultant</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This will set {prospect.name}'s status to "Converted"
-              {prospect.customer_id && " and update their customer relationship status to Consultant"}.
+              This will create a new Consultant record for {prospect.name} with Focus Group = New Consultant
+              {prospect.customer_id && " and update their customer relationship status"}.
             </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Coaching Focus (optional)</label>
+                <Select value={convertCoachingFocus || "none"} onValueChange={(v) => setConvertCoachingFocus(v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select focus" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Next Coaching Date (optional)</label>
+                <Input type="date" value={convertCoachingDate} onChange={(e) => setConvertCoachingDate(e.target.value)} />
+              </div>
+            </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowConvert(false)}>Cancel</Button>
               <Button onClick={() => convertMut.mutate()} disabled={convertMut.isPending}>
-                {convertMut.isPending ? "Converting..." : "Confirm"}
+                {convertMut.isPending ? "Converting..." : "Convert"}
               </Button>
             </div>
           </DialogContent>
