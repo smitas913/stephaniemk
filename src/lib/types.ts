@@ -243,6 +243,7 @@ export interface BookingLead {
   phone: string | null;
   email: string | null;
   lead_source: string | null;
+  lead_activity: string | null;
   status: string;
   last_contact_date: string | null;
   next_follow_up_date: string | null;
