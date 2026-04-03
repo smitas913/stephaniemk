@@ -997,6 +997,13 @@ export default function FollowUps() {
                   queryClient={queryClient}
                   onClose={() => setDetailItem(null)}
                 />
+              ) : detailItem?.itemType === "lead" ? (
+                <LeadEditPanel
+                  item={detailItem}
+                  bookingLeads={bookingLeads}
+                  queryClient={queryClient}
+                  onClose={() => setDetailItem(null)}
+                />
               ) : (
                 <>
                   {/* Update date */}
