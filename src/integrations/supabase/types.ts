@@ -307,6 +307,8 @@ export type Database = {
           guest_count: number | null
           hostess_email: string | null
           hostess_name: string | null
+          hostess_next_action: string | null
+          hostess_next_action_date: string | null
           hostess_phone: string | null
           id: string
           is_archived: boolean | null
@@ -335,6 +337,8 @@ export type Database = {
           guest_count?: number | null
           hostess_email?: string | null
           hostess_name?: string | null
+          hostess_next_action?: string | null
+          hostess_next_action_date?: string | null
           hostess_phone?: string | null
           id?: string
           is_archived?: boolean | null
@@ -363,6 +367,8 @@ export type Database = {
           guest_count?: number | null
           hostess_email?: string | null
           hostess_name?: string | null
+          hostess_next_action?: string | null
+          hostess_next_action_date?: string | null
           hostess_phone?: string | null
           id?: string
           is_archived?: boolean | null

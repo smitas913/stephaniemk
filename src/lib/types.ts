@@ -102,6 +102,8 @@ export interface EventRecord {
   checklist_samples_sent: boolean;
   checklist_reminders_sent: boolean;
   google_form_link: string | null;
+  hostess_next_action: string | null;
+  hostess_next_action_date: string | null;
 }
 
 export interface EventGuest {

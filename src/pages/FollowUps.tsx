@@ -4,7 +4,7 @@ import {
   fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes,
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
-  fetchTeamConsultants, updateTeamConsultant, fetchEvents,
+  fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
 } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
@@ -59,7 +59,7 @@ type Enriched = Customer & CustomerComputed;
 
 type ActionItem = {
   id: string;
-  itemType: "customer" | "prospect" | "consultant";
+  itemType: "customer" | "prospect" | "consultant" | "hostess";
   name: string;
   phone: string | null;
   email: string | null;
@@ -156,6 +156,7 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   customer: { label: "Customer", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", icon: Users },
   prospect: { label: "Prospect", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300", icon: Users },
   consultant: { label: "Consultant", className: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300", icon: Crown },
+  hostess: { label: "Hostess", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: Crown },
 };
 
 // ─── Main Component ───
@@ -285,7 +286,25 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems];
+    // Hostess coaching items (from events with hostess_next_action_date)
+    const hostessItems: ActionItem[] = events
+      .filter((e) => !e.is_archived && e.hostess_name && (e as any).hostess_next_action_date)
+      .map((e) => {
+        const effectiveDate = normalizeFollowUpDate((e as any).hostess_next_action_date);
+        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        return {
+          id: e.id, itemType: "hostess" as const, name: e.hostess_name!,
+          phone: e.hostess_phone, email: e.hostess_email,
+          next_follow_up: effectiveDate, follow_up_status: status,
+          daysOverdue,
+          followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
+          lastContacted: null,
+          actionLabel: "Hostess Coaching",
+        };
+      });
+
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems];
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
       const aDate = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
       const bDate = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
@@ -387,12 +406,17 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
+      } else if (item.itemType === "hostess") {
+        const updates: Record<string, string | null> = {};
+        if (nextDate) updates.hostess_next_action_date = nextDate;
+        await updateEvent(item.id, updates as any);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
@@ -427,11 +451,13 @@ export default function FollowUps() {
       if (detailItem.itemType === "customer") await updateCustomer(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       else if (detailItem.itemType === "prospect") await updateProspect(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       else if (detailItem.itemType === "consultant") await updateTeamConsultant(detailItem.id, { next_coaching_date: normalizedDate } as any);
+      else if (detailItem.itemType === "hostess") await updateEvent(detailItem.id, { hostess_next_action_date: normalizedDate } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setDetailFollowUpDate(""); toast.success("Date updated");
     },
   });
@@ -453,6 +479,11 @@ export default function FollowUps() {
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`);
     else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`);
+    else if (item.itemType === "hostess") {
+      const evt = events.find(e => e.id === item.id);
+      if (evt) navigate(`/events/${evt.event_id}`);
+      else navigate("/events");
+    }
     else navigate("/leadership");
   };
 
@@ -531,37 +562,6 @@ export default function FollowUps() {
                       </CardContent>
                     </Card>
 
-                    {/* Today's Events */}
-                    {todayEvents.length > 0 && (
-                      <Card className="border-border/50 shadow-sm">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                              <Calendar className="w-4 h-4 text-emerald-600" />
-                            </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Today's Events</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{todayEvents.length}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="divide-y divide-border/40">
-                            {todayEvents.map((evt) => (
-                              <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                onClick={() => navigate(`/events/${evt.event_id}`)}>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    {evt.event_type && <span>{evt.event_type}</span>}
-                                    {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                  </div>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
 
                     {/* Booking Leads */}
                     {bookingLeadsDue.length > 0 && (
@@ -615,7 +615,41 @@ export default function FollowUps() {
                   <div className="space-y-4">
                     <TodaysFocus callsToday={todayActions.length} />
 
-                    {/* Birthdays */}
+                    {/* Today's Events */}
+                    <Card className="border-border/50 shadow-sm">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
+                            <Calendar className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <CardTitle className="text-sm font-semibold text-foreground">Today's Events</CardTitle>
+                          <Badge variant="secondary" className="text-xs">{todayEvents.length}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {todayEvents.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-3 text-center">No events today</p>
+                        ) : (
+                          <div className="divide-y divide-border/40">
+                            {todayEvents.map((evt) => (
+                              <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                onClick={() => navigate(`/events/${evt.event_id}`)}>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                    {evt.event_type && <span>{evt.event_type}</span>}
+                                    {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
+                                  </div>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+
                     <Card className="border-border/50 shadow-sm">
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
