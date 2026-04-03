@@ -276,6 +276,12 @@ export default function BookingLeads() {
                   {BOOKING_LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Select value={form.lead_activity} onValueChange={(v) => setForm({ ...form, lead_activity: v })}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Lead Activity" /></SelectTrigger>
+                <SelectContent>
+                  {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Next Follow-Up Date</label>
                 <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
