@@ -4,7 +4,7 @@ import {
   fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes,
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
-  fetchTeamConsultants, updateTeamConsultant, fetchEvents,
+  fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
 } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { NOTE_TYPES } from "@/lib/types";
