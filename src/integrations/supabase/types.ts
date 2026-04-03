@@ -138,6 +138,7 @@ export type Database = {
           city: string | null
           created_at: string
           customer_source: string | null
+          dormant_follow_up_stage: string | null
           email: string | null
           follow_up_reason: string | null
           full_name: string
@@ -167,6 +168,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           customer_source?: string | null
+          dormant_follow_up_stage?: string | null
           email?: string | null
           follow_up_reason?: string | null
           full_name: string
@@ -196,6 +198,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           customer_source?: string | null
+          dormant_follow_up_stage?: string | null
           email?: string | null
           follow_up_reason?: string | null
           full_name?: string

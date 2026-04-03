@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS dormant_follow_up_stage text DEFAULT NULL;
