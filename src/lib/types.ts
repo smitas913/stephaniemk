@@ -22,9 +22,12 @@ export interface Customer {
   is_active: boolean;
   new_customer_flag: boolean;
   archived_at: string | null;
+  dormant_follow_up_stage: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export const DORMANT_FOLLOW_UP_STAGES = ["Stage 1", "Stage 2", "Stage 3", "Annual"] as const;
 
 export interface Order {
   id: string;
