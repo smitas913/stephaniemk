@@ -788,19 +788,69 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
 /** Trigger task when hostess form is completed */
 export const generateGuestInviteTask = async (eventId: string) => {
   const userId = await getCurrentUserId();
-  const today = toLocalDateKeyImport();
+  const ooo = await fetchScheduleSettings();
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const adjusted = nextAvailableDay(todayDate, ooo);
+  const today = toLocalDateKeyImport(adjusted);
+
   // Check if already exists
   const { data: existing } = await supabase
     .from("event_tasks" as any)
     .select("id")
     .eq("event_id", eventId)
     .eq("task_type", "guest_invite");
-  if (existing && existing.length > 0) return; // already exists
+  if (existing && existing.length > 0) return;
 
   const { error } = await supabase
     .from("event_tasks" as any)
     .insert({ event_id: eventId, task_name: "Send Guest Invite + Guest Form", task_type: "guest_invite", due_date: today, owner_user_id: userId } as any);
   if (error) throw error;
+};
+
+// ─── Schedule Settings (OOO + Light Mode) ───
+
+export interface ScheduleSettings {
+  id?: string;
+  user_id?: string;
+  ooo_start_date: string | null;
+  ooo_end_date: string | null;
+  light_schedule_mode: boolean;
+}
+
+export const fetchScheduleSettings = async (): Promise<ScheduleSettings | null> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("user_schedule_settings" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as unknown as ScheduleSettings | null;
+};
+
+export const upsertScheduleSettings = async (settings: Partial<ScheduleSettings>): Promise<void> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  const { data: existing } = await supabase
+    .from("user_schedule_settings" as any)
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("user_schedule_settings" as any)
+      .update({ ...settings, updated_at: new Date().toISOString() } as any)
+      .eq("user_id", userId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("user_schedule_settings" as any)
+      .insert({ ...settings, user_id: userId } as any);
+    if (error) throw error;
+  }
 };
 
 export const convertProspectToConsultant = async (
