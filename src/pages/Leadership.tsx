@@ -90,6 +90,9 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddText, setQuickAddText] = useState("");
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
   const [focusFilter, setFocusFilter] = useState<string>("all");
   const [form, setForm] = useState({
     name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
