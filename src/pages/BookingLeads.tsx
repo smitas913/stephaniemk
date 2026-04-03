@@ -304,6 +304,9 @@ export default function BookingLeads() {
                   <span className={cn("text-[11px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[editLead.status])}>
                     {editLead.status}
                   </span>
+                  {editLead.lead_activity && editLead.lead_activity !== "No Activity Yet" && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{editLead.lead_activity}</span>
+                  )}
                   {editLead.lead_source && (
                     <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{editLead.lead_source}</span>
                   )}
