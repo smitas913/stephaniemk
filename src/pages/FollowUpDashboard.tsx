@@ -34,6 +34,13 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       return isWithinInterval(d, { start, end });
     });
 
+    // Event status counts
+    const evBooked = periodEvents.length;
+    const evHeld = periodEvents.filter((e) => e.event_status === "Held").length;
+    const evCancelled = periodEvents.filter((e) => e.event_status === "Cancelled").length;
+    const holdRate = evBooked > 0 ? (evHeld / evBooked) * 100 : 0;
+    const cancelRate = evBooked > 0 ? (evCancelled / evBooked) * 100 : 0;
+
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
     const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
