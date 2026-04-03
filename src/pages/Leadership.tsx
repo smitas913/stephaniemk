@@ -245,10 +245,6 @@ function ConsultantsTab() {
                   <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
                 </div>
               </div>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>{CONSULTANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
             </div>
 
             {/* Address */}
