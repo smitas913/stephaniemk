@@ -61,6 +61,14 @@ export default function EventDetail() {
     },
   });
 
+  // Post-event prompt state
+  const [showPostEventPrompt, setShowPostEventPrompt] = useState(false);
+  const isPastEvent = event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
+
+  useEffect(() => {
+    if (isPastEvent) setShowPostEventPrompt(true);
+  }, [isPastEvent]);
+
   if (!eventId) return null;
 
   const handleDateSelect = (date: Date | undefined) => {
