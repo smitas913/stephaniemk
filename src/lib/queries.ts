@@ -663,6 +663,123 @@ export const deleteLeadershipMember = async (id: string): Promise<void> => {
 };
 
 // Convert prospect to team consultant
+// Event Tasks
+
+export interface EventTask {
+  id: string;
+  event_id: string;
+  task_name: string;
+  task_type: string;
+  due_date: string | null;
+  is_completed: boolean;
+  completed_at: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+}
+
+export const fetchEventTasks = async (): Promise<EventTask[]> => {
+  const { data, error } = await supabase
+    .from("event_tasks" as any)
+    .select("*")
+    .order("due_date", { ascending: true });
+  if (error) throw error;
+  return data as unknown as EventTask[];
+};
+
+export const fetchEventTasksByEventId = async (eventId: string): Promise<EventTask[]> => {
+  const { data, error } = await supabase
+    .from("event_tasks" as any)
+    .select("*")
+    .eq("event_id", eventId)
+    .order("due_date", { ascending: true });
+  if (error) throw error;
+  return data as unknown as EventTask[];
+};
+
+export const createEventTask = async (task: { event_id: string; task_name: string; task_type: string; due_date?: string | null }) => {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("event_tasks" as any)
+    .insert({ ...task, owner_user_id: userId } as any)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as EventTask;
+};
+
+export const updateEventTask = async (id: string, updates: Partial<EventTask>) => {
+  const { error } = await supabase
+    .from("event_tasks" as any)
+    .update(updates as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const completeEventTask = async (id: string) => {
+  const { error } = await supabase
+    .from("event_tasks" as any)
+    .update({ is_completed: true, completed_at: new Date().toISOString() } as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const deleteEventTasksByEventId = async (eventId: string) => {
+  const { error } = await supabase
+    .from("event_tasks" as any)
+    .delete()
+    .eq("event_id", eventId);
+  if (error) throw error;
+};
+
+/** Generate the standard workflow tasks for a new event */
+export const generateEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
+  const userId = await getCurrentUserId();
+  const today = toLocalDateKeyImport();
+
+  // Task 1: Send Hostess Form — due immediately (today)
+  const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
+    { event_id: eventId, task_name: "Send Hostess Form", task_type: "hostess_form", due_date: today, owner_user_id: userId },
+  ];
+
+  // Pre-event tasks (only if event_date is set)
+  if (eventDate) {
+    const ed = new Date(eventDate + "T12:00:00");
+    const fiveBefore = new Date(ed); fiveBefore.setDate(ed.getDate() - 5);
+    const twoBefore = new Date(ed); twoBefore.setDate(ed.getDate() - 2);
+    const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    tasks.push(
+      { event_id: eventId, task_name: "Hostess Pre-Profile + Guest Review", task_type: "pre_profile", due_date: fmt(fiveBefore), owner_user_id: userId },
+      { event_id: eventId, task_name: "Guest Hype Text (Goody Bag)", task_type: "guest_hype", due_date: fmt(twoBefore), owner_user_id: userId },
+      { event_id: eventId, task_name: "Final Guest Confirmation", task_type: "final_confirmation", due_date: fmt(oneBefore), owner_user_id: userId },
+    );
+  }
+
+  const { error } = await supabase
+    .from("event_tasks" as any)
+    .insert(tasks as any);
+  if (error) throw error;
+};
+
+/** Trigger task when hostess form is completed */
+export const generateGuestInviteTask = async (eventId: string) => {
+  const userId = await getCurrentUserId();
+  const today = toLocalDateKeyImport();
+  // Check if already exists
+  const { data: existing } = await supabase
+    .from("event_tasks" as any)
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("task_type", "guest_invite");
+  if (existing && existing.length > 0) return; // already exists
+
+  const { error } = await supabase
+    .from("event_tasks" as any)
+    .insert({ event_id: eventId, task_name: "Send Guest Invite + Guest Form", task_type: "guest_invite", due_date: today, owner_user_id: userId } as any);
+  if (error) throw error;
+};
+
 export const convertProspectToConsultant = async (
   prospect: Prospect,
   extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
