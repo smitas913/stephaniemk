@@ -1185,8 +1185,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
         <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Details</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            {consultant.focus_group && <div><span className="text-muted-foreground text-xs">Focus Group:</span> <span className="font-medium">{consultant.focus_group}</span></div>}
-            {consultant.onboarding_stage && consultant.focus_group !== "General" && <div><span className="text-muted-foreground text-xs">Growth Stage:</span> <span className="font-medium">{consultant.onboarding_stage}</span></div>}
+            {consultant.onboarding_stage && focusGroup !== "General" && <div><span className="text-muted-foreground text-xs">Growth Stage:</span> <span className="font-medium">{consultant.onboarding_stage}</span></div>}
             {consultant.join_date && <div><span className="text-muted-foreground text-xs">Start Date:</span> <span className="font-medium">{formatDateOnly(consultant.join_date)}</span></div>}
           </div>
         </div>
