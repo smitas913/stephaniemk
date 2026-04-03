@@ -1130,6 +1130,17 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
   return (
     <div className="space-y-5">
+      {/* Focus Group */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Focus Group</label>
+        <Select value={focusGroup} onValueChange={setFocusGroup}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g === "New" ? "New Consultant" : g === "Key" ? "Key Consultant" : g}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Coaching Focus */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Coaching Focus</label>
