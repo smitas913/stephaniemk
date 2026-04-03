@@ -694,8 +694,8 @@ export default function FollowUps() {
   });
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
-    if (item.itemType === "customer") navigate(`/customers/${item.id}`);
-    else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`);
+    if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
+    else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`, { state: { from: "/follow-ups" } });
     else if (item.itemType === "lead") navigate("/booking-leads");
     else if (item.itemType === "hostess") {
       const evt = events.find(e => e.id === item.id);
@@ -1091,15 +1091,6 @@ export default function FollowUps() {
                   {detailItem.email && (
                     <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`mailto:${detailItem.email}`}><Mail className="w-3 h-3 mr-1" />Email</a></Button>
                   )}
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
-                    disabled={markFollowUpCompleteMutation.isPending}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    {markFollowUpCompleteMutation.isPending ? "Saving..." : "Mark Complete"}
-                  </Button>
                 </div>
               )}
             </SheetHeader>

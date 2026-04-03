@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +36,9 @@ function SectionHeader({ title }: { title: string }) {
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const backPath = (location.state as any)?.from || "/customers";
 
   const { data: customer } = useQuery({ queryKey: ["customer", id], queryFn: () => fetchCustomer(id!) });
   const { data: orders = [] } = useQuery({ queryKey: ["customer-orders", id], queryFn: () => fetchCustomerOrders(id!) });
@@ -153,7 +155,7 @@ export default function CustomerDetail() {
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate("/customers")}><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(backPath)}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
             <div className="flex gap-2 mt-0.5">
