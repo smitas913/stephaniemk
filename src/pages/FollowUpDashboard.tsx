@@ -113,8 +113,10 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .filter((c) => c.retail_this_year > 0);
 
     const todayStr = new Date().toISOString().slice(0, 10);
+    // Hostess metrics: Party events ONLY (exclude facials — 1:1 appointments)
+    const partyEvents = events.filter((e) => e.event_type === "Party");
     const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
-    for (const evt of events) {
+    for (const evt of partyEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessAllEventsMap.get(name) || { totalEvents: 0, hasFuture: false };
@@ -123,8 +125,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       hostessAllEventsMap.set(name, entry);
     }
 
+    const periodPartyEvents = periodEvents.filter((e) => e.event_type === "Party");
     const hostessMap = new Map<string, { events: number; sales: number }>();
-    for (const evt of periodEvents) {
+    for (const evt of periodPartyEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessMap.get(name) || { events: 0, sales: 0 };
