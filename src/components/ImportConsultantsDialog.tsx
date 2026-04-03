@@ -168,6 +168,8 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
       const birthdayDate = row.mapped.birthday ? parseGenericDate(row.mapped.birthday) : null;
       const payload: Record<string, any> = {
         name: row.mapped.name!.trim(),
+        first_name: row.mapped.first_name?.trim() || null,
+        last_name: row.mapped.last_name?.trim() || null,
         phone: row.mapped.phone || null,
         email: row.mapped.email || null,
         consultant_id: row.mapped.consultant_id || null,
