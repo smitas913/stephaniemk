@@ -203,7 +203,7 @@ export default function EventDetail() {
           <Card className="border-border/50">
             <CardContent className="p-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Event Details</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Event Date</label>
                   <Popover>
