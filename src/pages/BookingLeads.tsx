@@ -118,6 +118,7 @@ export default function BookingLeads() {
       phone: lead.phone || "",
       email: lead.email || "",
       lead_source: lead.lead_source || "",
+      lead_activity: lead.lead_activity || "No Activity Yet",
       notes: lead.notes || "",
       next_follow_up_date: lead.next_follow_up_date || "",
     });
