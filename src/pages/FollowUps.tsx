@@ -246,6 +246,10 @@ export default function FollowUps() {
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
 
+  const [scheduleDelivery, setScheduleDelivery] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
     for (const n of allNotes) { if (!map.has(n.customer_id)) map.set(n.customer_id, n); }
