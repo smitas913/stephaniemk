@@ -994,6 +994,44 @@ export default function FollowUps() {
                     </Button>
                   </div>
 
+                  {/* Schedule Delivery */}
+                  {(detailItem?.itemType === "customer" || detailItem?.itemType === "lead") && (
+                    <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="schedule-delivery"
+                          checked={scheduleDelivery}
+                          onCheckedChange={(v) => setScheduleDelivery(!!v)}
+                        />
+                        <label htmlFor="schedule-delivery" className="text-xs font-medium text-muted-foreground flex items-center gap-1 cursor-pointer">
+                          <Truck className="w-3 h-3" /> Schedule Delivery
+                        </label>
+                      </div>
+                      {scheduleDelivery && (
+                        <div className="space-y-2 pt-1">
+                          <div>
+                            <label className="text-[10px] text-muted-foreground mb-0.5 block">Delivery Date</label>
+                            <Input type="date" value={deliveryDate} min={toLocalDateKey()} onChange={(e) => setDeliveryDate(e.target.value)} className="h-9" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground mb-0.5 block">Notes (optional)</label>
+                            <Input placeholder="Delivery notes..." value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} className="h-9" />
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full gap-1.5"
+                            disabled={!deliveryDate || deliveryCreateMut.isPending}
+                            onClick={() => deliveryCreateMut.mutate()}
+                          >
+                            <Truck className="w-3.5 h-3.5" />
+                            {deliveryCreateMut.isPending ? "Creating..." : "Create Delivery"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Notes Timeline */}
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
