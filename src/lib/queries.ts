@@ -619,6 +619,13 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
     } as any);
   if (evErr) throw evErr;
 
+  // Generate workflow tasks for the new event
+  try {
+    await generateEventWorkflowTasks(eventId, null);
+  } catch (e) {
+    console.error("Failed to generate workflow tasks for converted lead", e);
+  }
+
   return { customer, eventId };
 };
 
