@@ -501,13 +501,23 @@ export default function FollowUps() {
         const effectiveDate = normalizeFollowUpDate(t.due_date);
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
         const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        // Build a clear display name: "Hostess Name — Task (Event Type M/D)"
+        const hostessName = matchedEvent?.hostess_name || "Hostess";
+        const eventDateFormatted = matchedEvent?.event_date
+          ? (() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ""; })()
+          : "";
+        const eventTypeLabel = matchedEvent?.event_type || "Event";
+        const displayName = `${hostessName}`;
+        const taskDetail = eventDateFormatted
+          ? `${t.task_name} (${eventTypeLabel} ${eventDateFormatted})`
+          : t.task_name;
         return {
           id: t.id, itemType: "event_task" as const,
-          name: matchedEvent?.hostess_name || t.event_id,
+          name: displayName,
           phone: matchedEvent?.hostess_phone || null, email: matchedEvent?.hostess_email || null,
           next_follow_up: effectiveDate, follow_up_status: status,
           daysOverdue,
-          followUpReason: t.task_name,
+          followUpReason: taskDetail,
           lastContacted: null,
           actionLabel: "Hostess Coaching",
           _eventTaskId: t.id,
