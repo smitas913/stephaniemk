@@ -613,6 +613,39 @@ export default function EventDetail() {
             </div>
           )}
         </div>
+
+        {/* Post-Event Prompt */}
+        <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-base">Was this event held?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              This event's date has passed. Please confirm if it was held or cancelled.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Held" } as any);
+                  setShowPostEventPrompt(false);
+                }}
+              >
+                ✅ Held
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => {
+                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Cancelled" } as any);
+                  setShowPostEventPrompt(false);
+                }}
+              >
+                ❌ Cancelled
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
