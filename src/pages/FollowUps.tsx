@@ -523,6 +523,8 @@ export default function FollowUps() {
         };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
+      } else if (item.itemType === "event_task") {
+        await completeEventTask(item.id);
       }
     },
     onSuccess: () => {
