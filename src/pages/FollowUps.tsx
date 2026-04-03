@@ -8,7 +8,7 @@ import {
   fetchAllLatestNotes,
 } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
-import { NOTE_TYPES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
+import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
@@ -1088,6 +1088,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
   onClose: () => void;
 }) {
   const consultant = consultants.find((c) => c.id === item.id);
+  const [focusGroup, setFocusGroup] = useState(consultant?.focus_group || "General");
   const [coachingFocus, setCoachingFocus] = useState(consultant?.coaching_focus || "");
   const [nextCoachingDate, setNextCoachingDate] = useState(consultant?.next_coaching_date || "");
   const [notes, setNotes] = useState(consultant?.notes || "");
@@ -1097,6 +1098,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
     setSaving(true);
     try {
       await updateTeamConsultant(item.id, {
+        focus_group: focusGroup,
         coaching_focus: coachingFocus || null,
         next_coaching_date: nextCoachingDate || null,
         notes: notes || null,
@@ -1114,6 +1116,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
         ? format(addDays(parseLocalDate(nextCoachingDate), 7), "yyyy-MM-dd")
         : format(addDays(new Date(), 7), "yyyy-MM-dd");
       await updateTeamConsultant(item.id, {
+        focus_group: focusGroup,
         coaching_focus: coachingFocus || null,
         next_coaching_date: nextDate,
         notes: notes || null,
@@ -1127,6 +1130,17 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
   return (
     <div className="space-y-5">
+      {/* Focus Group */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Focus Group</label>
+        <Select value={focusGroup} onValueChange={setFocusGroup}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Coaching Focus */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Coaching Focus</label>
@@ -1171,8 +1185,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
         <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Details</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            {consultant.focus_group && <div><span className="text-muted-foreground text-xs">Focus Group:</span> <span className="font-medium">{consultant.focus_group}</span></div>}
-            {consultant.onboarding_stage && consultant.focus_group !== "General" && <div><span className="text-muted-foreground text-xs">Growth Stage:</span> <span className="font-medium">{consultant.onboarding_stage}</span></div>}
+            {consultant.onboarding_stage && focusGroup !== "General" && <div><span className="text-muted-foreground text-xs">Growth Stage:</span> <span className="font-medium">{consultant.onboarding_stage}</span></div>}
             {consultant.join_date && <div><span className="text-muted-foreground text-xs">Start Date:</span> <span className="font-medium">{formatDateOnly(consultant.join_date)}</span></div>}
           </div>
         </div>
