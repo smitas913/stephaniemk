@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchScheduleSettings, upsertScheduleSettings } from "@/lib/queries";
+import { fetchScheduleSettings, upsertScheduleSettings, fetchBlackoutDays, createBlackoutDay, deleteBlackoutDay } from "@/lib/queries";
 import { getHolidayList } from "@/lib/smartSchedule";
+import { formatDateOnly } from "@/lib/dateOnly";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarOff, Palmtree, Zap } from "lucide-react";
+import { CalendarOff, Palmtree, Zap, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ScheduleSettings() {
@@ -16,10 +17,16 @@ export default function ScheduleSettings() {
     queryKey: ["schedule-settings"],
     queryFn: fetchScheduleSettings,
   });
+  const { data: blackoutDays = [] } = useQuery({
+    queryKey: ["blackout-days"],
+    queryFn: fetchBlackoutDays,
+  });
 
   const [oooStart, setOooStart] = useState("");
   const [oooEnd, setOooEnd] = useState("");
   const [lightMode, setLightMode] = useState(false);
+  const [newBlackoutDate, setNewBlackoutDate] = useState("");
+  const [newBlackoutLabel, setNewBlackoutLabel] = useState("");
 
   useEffect(() => {
     if (settings) {
@@ -29,7 +36,7 @@ export default function ScheduleSettings() {
     }
   }, [settings]);
 
-  const mutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: () =>
       upsertScheduleSettings({
         ooo_start_date: oooStart || null,
@@ -45,10 +52,7 @@ export default function ScheduleSettings() {
 
   const clearOOO = useMutation({
     mutationFn: () =>
-      upsertScheduleSettings({
-        ooo_start_date: null,
-        ooo_end_date: null,
-      }),
+      upsertScheduleSettings({ ooo_start_date: null, ooo_end_date: null }),
     onSuccess: () => {
       setOooStart("");
       setOooEnd("");
@@ -57,9 +61,27 @@ export default function ScheduleSettings() {
     },
   });
 
+  const addBlackout = useMutation({
+    mutationFn: () => createBlackoutDay(newBlackoutDate, newBlackoutLabel),
+    onSuccess: () => {
+      setNewBlackoutDate("");
+      setNewBlackoutLabel("");
+      queryClient.invalidateQueries({ queryKey: ["blackout-days"] });
+      toast.success("Blackout day added");
+    },
+    onError: () => toast.error("Failed to add blackout day"),
+  });
+
+  const removeBlackout = useMutation({
+    mutationFn: (id: string) => deleteBlackoutDay(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blackout-days"] });
+      toast.success("Blackout day removed");
+    },
+  });
+
   const currentYear = new Date().getFullYear();
   const holidays = getHolidayList(currentYear);
-
   const isOOOActive = oooStart && oooEnd;
 
   return (
@@ -81,25 +103,15 @@ export default function ScheduleSettings() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-muted-foreground">Start</label>
-              <Input
-                type="date"
-                value={oooStart}
-                onChange={(e) => setOooStart(e.target.value)}
-                className="h-8 text-sm"
-              />
+              <Input type="date" value={oooStart} onChange={(e) => setOooStart(e.target.value)} className="h-8 text-sm" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">End</label>
-              <Input
-                type="date"
-                value={oooEnd}
-                onChange={(e) => setOooEnd(e.target.value)}
-                className="h-8 text-sm"
-              />
+              <Input type="date" value={oooEnd} onChange={(e) => setOooEnd(e.target.value)} className="h-8 text-sm" />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" className="h-7 text-xs" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            <Button size="sm" className="h-7 text-xs" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
               Save
             </Button>
             {isOOOActive && (
@@ -113,7 +125,7 @@ export default function ScheduleSettings() {
         {/* Light Schedule Mode */}
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-500" />
+            <Zap className="w-4 h-4 text-primary" />
             <div>
               <p className="text-sm font-medium">Light Schedule</p>
               <p className="text-xs text-muted-foreground">Reduce daily tasks during busy weeks</p>
@@ -131,10 +143,56 @@ export default function ScheduleSettings() {
           />
         </div>
 
+        {/* Custom Blackout Days */}
+        <div className="pt-2 border-t border-border/50 space-y-2">
+          <p className="text-sm font-medium">Custom Blackout Days</p>
+          <div className="flex gap-2">
+            <Input
+              type="date"
+              value={newBlackoutDate}
+              onChange={(e) => setNewBlackoutDate(e.target.value)}
+              className="h-8 text-sm flex-1"
+            />
+            <Input
+              placeholder="Label (optional)"
+              value={newBlackoutLabel}
+              onChange={(e) => setNewBlackoutLabel(e.target.value)}
+              className="h-8 text-sm flex-1"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 px-2"
+              disabled={!newBlackoutDate || addBlackout.isPending}
+              onClick={() => addBlackout.mutate()}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+          {blackoutDays.length > 0 && (
+            <div className="space-y-1">
+              {blackoutDays.map((bd) => (
+                <div key={bd.id} className="flex items-center justify-between bg-muted/50 rounded px-2 py-1">
+                  <span className="text-xs">
+                    {formatDateOnly(bd.blackout_date)}
+                    {bd.label && <span className="text-muted-foreground ml-1">— {bd.label}</span>}
+                  </span>
+                  <button
+                    onClick={() => removeBlackout.mutate(bd.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Holidays */}
         <div className="pt-2 border-t border-border/50">
           <p className="text-xs font-medium text-muted-foreground mb-1">
-            Holidays excluded ({currentYear})
+            Auto-calculated holidays ({currentYear})
           </p>
           <div className="flex flex-wrap gap-1">
             {holidays.map((h) => (
@@ -144,7 +202,7 @@ export default function ScheduleSettings() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Sundays are also excluded from scheduling
+            Sundays excluded · Holidays update automatically each year
           </p>
         </div>
       </CardContent>
