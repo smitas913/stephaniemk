@@ -86,6 +86,7 @@ export default function Analytics() {
       const mEnd = endOfMonth(refDate);
       const mLabel = format(mStart, "MMM yyyy");
       const mEvents = events.filter((e) => e.event_status === "Held" && inRange(e.event_date, mStart, mEnd));
+      const mAllEvents = events.filter((e) => inRange(e.event_date, mStart, mEnd));
       const mPF = mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
       const mOrders = orders.filter((o) => inRange(o.order_date, mStart, mEnd));
       const mSales = mOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
@@ -143,14 +144,20 @@ export default function Analytics() {
       rangeStart = new Date(2000, 0, 1);
     }
 
+    // Event conversion stats for period
+    const periodAllEvents = events.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
+    const evBooked = periodAllEvents.length;
+    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held").length;
+    const evCancelled = periodAllEvents.filter((e) => e.event_status === "Cancelled").length;
+    const holdRate = evBooked > 0 ? Math.round((evHeld / evBooked) * 1000) / 10 : 0;
+    const cancelRate = evBooked > 0 ? Math.round((evCancelled / evBooked) * 1000) / 10 : 0;
+
     const periodOrders = orders.filter((o) => inRange(o.order_date, rangeStart, rangeEnd) && Number(o.retail_amount || 0) > 0);
     const uniqueCustomerIds = [...new Set(periodOrders.map((o) => o.customer_id))];
-    // Filter out consultants
     const consultantIds = new Set(
       customers.filter((c) => c.relationship_status === "Consultant" || c.relationship_status === "Former Consultant").map((c) => c.id)
     );
     const eligibleIds = uniqueCustomerIds.filter((id) => !consultantIds.has(id));
-    // Count how many have 2+ lifetime orders
     const allOrdersByCustomer: Record<string, number> = {};
     orders.forEach((o) => {
       if (Number(o.retail_amount || 0) > 0) {
@@ -160,7 +167,7 @@ export default function Analytics() {
     const repeatCustomers = eligibleIds.filter((id) => (allOrdersByCustomer[id] || 0) >= 2).length;
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
-    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length };
+    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate };
   }, [events, orders, prospects, customers, timeView]);
 
   const formatCurrency = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
@@ -225,6 +232,40 @@ export default function Analytics() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Event Pipeline */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">Event Pipeline</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-foreground tabular-nums">{analytics.evBooked}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Booked</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-primary tabular-nums">{analytics.evHeld}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Held</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-destructive tabular-nums">{analytics.evCancelled}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Cancelled</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-primary tabular-nums">{analytics.holdRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Hold Rate</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-destructive tabular-nums">{analytics.cancelRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Cancel Rate</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Monthly Trends Table */}
             <Card className="border-border/50 shadow-sm">

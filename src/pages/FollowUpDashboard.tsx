@@ -34,6 +34,13 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       return isWithinInterval(d, { start, end });
     });
 
+    // Event status counts
+    const evBooked = periodEvents.length;
+    const evHeld = periodEvents.filter((e) => e.event_status === "Held").length;
+    const evCancelled = periodEvents.filter((e) => e.event_status === "Cancelled").length;
+    const holdRate = evBooked > 0 ? (evHeld / evBooked) * 100 : 0;
+    const cancelRate = evBooked > 0 ? (evCancelled / evBooked) * 100 : 0;
+
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
     const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
@@ -149,7 +156,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -191,6 +198,7 @@ export default function FollowUpDashboard() {
     const row4Cards = [
       { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests} guests (${m.convEventCount} parties)`, icon: TrendingUp, accent: "text-primary" },
       { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, subtitle: `${m.repeatCustomers} / ${m.totalOrderingCustomers} customers`, icon: Users, accent: "text-primary" },
+      { label: "Hold Rate", value: `${m.holdRate.toFixed(1)}%`, subtitle: `${m.evHeld} held / ${m.evBooked} booked · ${m.evCancelled} cancelled`, icon: CalendarIcon, accent: "text-primary" },
     ];
 
     return (
@@ -273,7 +281,7 @@ export default function FollowUpDashboard() {
               </div>
 
               {/* Row 4: Efficiency - lighter */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 {row4Cards.map((k) => (
                   <Card key={k.label} className="border-border/30 shadow-none bg-muted/30">
                     <CardContent className="p-3 flex items-center gap-3">

@@ -43,6 +43,13 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const weekEvents = heldEvents.filter((e) => inRange(e.event_date, weekStart, weekEnd));
     const monthEvents = heldEvents.filter((e) => inRange(e.event_date, monthStart, monthEnd));
 
+    // Event status counts for the month
+    const monthAllEvents = events.filter((e) => inRange(e.event_date, monthStart, monthEnd));
+    const monthBooked = monthAllEvents.length;
+    const monthHeld = monthAllEvents.filter((e) => e.event_status === "Held").length;
+    const monthCancelled = monthAllEvents.filter((e) => e.event_status === "Cancelled").length;
+    const monthHoldRate = monthBooked > 0 ? Math.round((monthHeld / monthBooked) * 1000) / 10 : 0;
+
     const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
@@ -91,7 +98,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       pct: monthSharingConvPct,
     };
 
-    return { weekly, monthly, monthlySharingConversion };
+    return { weekly, monthly, monthlySharingConversion, monthBooked, monthHeld, monthCancelled, monthHoldRate };
   }, [events, prospects]);
 }
 
@@ -186,6 +193,33 @@ export default function Scoreboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Event Conversion Card */}
+          <Card className="border-border/50 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-foreground">Event Pipeline — This Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-foreground tabular-nums">{scoreboard.monthBooked}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Booked</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary tabular-nums">{scoreboard.monthHeld}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Held</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-destructive tabular-nums">{scoreboard.monthCancelled}</p>
+                  <p className="text-xs text-muted-foreground font-medium">Cancelled</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-primary tabular-nums">{scoreboard.monthHoldRate}%</p>
+                  <p className="text-xs text-muted-foreground font-medium">Hold Rate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           </div>
         )}
       </div>
