@@ -105,7 +105,12 @@ function ConsultantsTab() {
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
     for (const [k, v] of Object.entries(form)) cleaned[k] = v === "" ? null : v;
-    if (!cleaned.name) cleaned.name = "Unnamed";
+    // Auto-generate full name from first + last
+    const first = (form.first_name || "").trim();
+    const last = (form.last_name || "").trim();
+    cleaned.name = [first, last].filter(Boolean).join(" ") || "Unnamed";
+    cleaned.first_name = first || null;
+    cleaned.last_name = last || null;
     if (!cleaned.status) cleaned.status = "Active";
     return cleaned;
   };
