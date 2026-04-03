@@ -11,10 +11,12 @@ import { parseGenericDate } from "@/lib/csvImport";
 import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
 import { toast } from "sonner";
 
-type DestField = "name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code";
+type DestField = "name" | "first_name" | "last_name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code";
 
 const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
-  { key: "name", label: "Name", required: true },
+  { key: "name", label: "Full Name", required: false },
+  { key: "first_name", label: "First Name", required: false },
+  { key: "last_name", label: "Last Name", required: false },
   { key: "phone", label: "Phone", required: false },
   { key: "email", label: "Email", required: false },
   { key: "consultant_id", label: "Consultant ID", required: false },
@@ -29,6 +31,8 @@ const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
 
 const HEADER_HINTS: Record<DestField, string[]> = {
   name: ["name", "full_name", "fullname", "full name", "consultant name", "consultant"],
+  first_name: ["first_name", "firstname", "first name", "first"],
+  last_name: ["last_name", "lastname", "last name", "last", "surname"],
   phone: ["phone", "telephone", "tel", "mobile", "cell", "phone number"],
   email: ["email", "e-mail", "email address"],
   consultant_id: ["consultant_id", "consultant id", "id", "member id", "rep id"],
@@ -110,13 +114,17 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
     }
   }, []);
 
-  const hasName = useMemo(() => Object.values(mapping).includes("name"), [mapping]);
+  const hasName = useMemo(() => Object.values(mapping).includes("name") || (Object.values(mapping).includes("first_name") || Object.values(mapping).includes("last_name")), [mapping]);
 
   const mappedRows = useMemo(() => {
     return csvRows.map((raw, i) => {
       const mapped: Partial<Record<DestField, string>> = {};
       for (const [col, dest] of Object.entries(mapping)) {
         if (dest && raw[col]) mapped[dest] = raw[col].trim();
+      }
+      // Auto-generate full name from first + last if no full name mapped
+      if (!mapped.name && (mapped.first_name || mapped.last_name)) {
+        mapped.name = [mapped.first_name, mapped.last_name].filter(Boolean).join(" ").trim();
       }
       return { rowIdx: i + 1, mapped, hasError: !mapped.name?.trim() };
     });
@@ -160,6 +168,8 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
       const birthdayDate = row.mapped.birthday ? parseGenericDate(row.mapped.birthday) : null;
       const payload: Record<string, any> = {
         name: row.mapped.name!.trim(),
+        first_name: row.mapped.first_name?.trim() || null,
+        last_name: row.mapped.last_name?.trim() || null,
         phone: row.mapped.phone || null,
         email: row.mapped.email || null,
         consultant_id: row.mapped.consultant_id || null,

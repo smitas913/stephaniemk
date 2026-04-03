@@ -259,6 +259,8 @@ export const COACHING_FOCUS_OPTIONS = [
 export interface TeamConsultant {
   id: string;
   name: string;
+  first_name: string | null;
+  last_name: string | null;
   phone: string | null;
   email: string | null;
   join_date: string | null;

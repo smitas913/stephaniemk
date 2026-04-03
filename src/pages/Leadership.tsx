@@ -88,7 +88,7 @@ function ConsultantsTab() {
   const [focusFilter, setFocusFilter] = useState<string>("all");
 
   const emptyForm = {
-    name: "", phone: "", email: "",
+    first_name: "", last_name: "", name: "", phone: "", email: "",
     consultant_id: "", join_date: toLocalDateKey(), birthday: "",
     address_line_1: "", city: "", state_territory: "", postal_code: "",
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
@@ -105,7 +105,12 @@ function ConsultantsTab() {
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
     for (const [k, v] of Object.entries(form)) cleaned[k] = v === "" ? null : v;
-    if (!cleaned.name) cleaned.name = "Unnamed";
+    // Auto-generate full name from first + last
+    const first = (form.first_name || "").trim();
+    const last = (form.last_name || "").trim();
+    cleaned.name = [first, last].filter(Boolean).join(" ") || "Unnamed";
+    cleaned.first_name = first || null;
+    cleaned.last_name = last || null;
     if (!cleaned.status) cleaned.status = "Active";
     return cleaned;
   };
@@ -127,6 +132,7 @@ function ConsultantsTab() {
 
   const openEdit = (c: TeamConsultant) => {
     setForm({
+      first_name: c.first_name || "", last_name: c.last_name || "",
       name: c.name, phone: c.phone || "", email: c.email || "",
       consultant_id: c.consultant_id || "", join_date: c.join_date || "", birthday: c.birthday || "",
       address_line_1: c.address_line_1 || "", city: c.city || "",
@@ -223,7 +229,10 @@ function ConsultantsTab() {
             {/* Basic Info */}
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Basic Info</p>
-              <Input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="First Name *" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+                <Input placeholder="Last Name *" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <Input placeholder="Mobile" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
@@ -286,7 +295,7 @@ function ConsultantsTab() {
               <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
             </div>
 
-            <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={!form.name.trim() || createMut.isPending || updateMut.isPending}>
+            <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={(!form.first_name.trim() && !form.last_name.trim()) || createMut.isPending || updateMut.isPending}>
               {(createMut.isPending || updateMut.isPending) ? "Saving..." : editId ? "Save Changes" : "Add Consultant"}
             </Button>
           </div>
