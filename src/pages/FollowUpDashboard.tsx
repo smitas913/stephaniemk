@@ -281,7 +281,7 @@ export default function FollowUpDashboard() {
               </div>
 
               {/* Row 4: Efficiency - lighter */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 {row4Cards.map((k) => (
                   <Card key={k.label} className="border-border/30 shadow-none bg-muted/30">
                     <CardContent className="p-3 flex items-center gap-3">
