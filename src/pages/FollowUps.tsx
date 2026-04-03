@@ -647,7 +647,7 @@ export default function FollowUps() {
 
                   {/* Right Column (1/3) */}
                   <div className="space-y-4">
-                    <TodaysFocus callsToday={todayActions.length} />
+                    <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
 
                     {/* Today's Events */}
                     <Card className="border-border/50 shadow-sm">
