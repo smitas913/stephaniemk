@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes,
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
@@ -26,7 +27,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import {
@@ -177,6 +178,20 @@ export default function FollowUps() {
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: todayDeliveries = [] } = useQuery({
+    queryKey: ["daily-plan", toLocalDateKey()],
+    queryFn: async () => {
+      const dateStr = toLocalDateKey();
+      const { data, error } = await supabase
+        .from("daily_plan_items" as any)
+        .select("*")
+        .eq("plan_date", dateStr)
+        .eq("item_type", "delivery")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
   const isLoading = cLoading || oLoading;
 
   // ─── Compute Today's Focus metrics from completed actions ───
@@ -230,6 +245,10 @@ export default function FollowUps() {
   const [distributeFilter, setDistributeFilter] = useState<"overdue-today" | "no-date" | "dormant-warm">("overdue-today");
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
+
+  const [scheduleDelivery, setScheduleDelivery] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
+  const [deliveryNotes, setDeliveryNotes] = useState("");
 
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
@@ -537,8 +556,37 @@ export default function FollowUps() {
   });
 
   const openContactDialog = (item: ActionItem, defaultType = "Call") => { setActionItem(item); setNoteText(""); setNoteType(defaultType); setFollowUpDate(""); };
-  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); };
+  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
   const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
+
+  const deliveryCreateMut = useMutation({
+    mutationFn: async () => {
+      if (!detailItem) return;
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id || null;
+      const customer = detailItem.itemType === "customer" ? customers.find((c) => c.id === detailItem.id) : null;
+      const { error } = await supabase.from("daily_plan_items" as any).insert({
+        plan_date: deliveryDate,
+        item_type: "delivery",
+        customer_name: detailItem.name,
+        customer_id: detailItem.itemType === "customer" ? detailItem.id : null,
+        address: customer ? [customer.address_line_1, customer.city, customer.state_territory].filter(Boolean).join(", ") : null,
+        phone: detailItem.phone,
+        notes: deliveryNotes || null,
+        sort_order: 0,
+        owner_user_id: uid,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["daily-plan"] });
+      queryClient.invalidateQueries({ queryKey: ["delivery-counts"] });
+      setScheduleDelivery(false);
+      setDeliveryNotes("");
+      toast.success(`Delivery scheduled for ${formatDateOnly(deliveryDate)}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`);
@@ -655,68 +703,93 @@ export default function FollowUps() {
                   <div className="space-y-4">
                     <TodaysFocus reachOutsToday={reachOutsToday} bookingsToday={bookingsToday} sharingToday={sharingToday} />
 
-                    {/* Today's Events */}
-                    <Card className="border-border/50 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                            <Calendar className="w-4 h-4 text-emerald-600" />
-                          </div>
-                          <CardTitle className="text-sm font-semibold text-foreground">Today's Events</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayEvents.length}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {todayEvents.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-3 text-center">No events today</p>
-                        ) : (
-                          <div className="divide-y divide-border/40">
-                            {todayEvents.map((evt) => (
-                              <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                onClick={() => navigate(`/events/${evt.event_id}`)}>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                    {evt.event_type && <span>{evt.event_type}</span>}
-                                    {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                  </div>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-
-
+                    {/* Today's Schedule — Events + Deliveries + Birthdays */}
                     <Card className="border-border/50 shadow-sm">
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
-                              <Cake className="w-4 h-4 text-pink-600" />
+                            <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
+                              <Calendar className="w-4 h-4 text-emerald-600" />
                             </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Birthdays</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{birthdaysToday.length}</Badge>
+                            <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
+                            <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.length}</Badge>
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">7 days</label>
+                            <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
                             <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        {birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
-                          <p className="text-sm text-muted-foreground py-3 text-center">No birthdays {showUpcoming7 ? "this week" : "today"} 🎂</p>
+                        {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                          <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                         ) : (
-                          <div className="space-y-0.5">
-                            {birthdaysToday.map((c) => (
-                              <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                            ))}
-                            {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                              <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                            ))}
+                          <div className="space-y-3">
+                            {/* Events */}
+                            {todayEvents.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
+                                </p>
+                                <div className="divide-y divide-border/40">
+                                  {todayEvents.map((evt) => (
+                                    <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                      onClick={() => navigate(`/events/${evt.event_id}`)}>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                          {evt.event_type && <span>{evt.event_type}</span>}
+                                          {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
+                                        </div>
+                                      </div>
+                                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Deliveries */}
+                            {todayDeliveries.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
+                                </p>
+                                <div className="divide-y divide-border/40">
+                                  {todayDeliveries.map((del: any) => (
+                                    <div key={del.id} className="py-2 flex items-center gap-3 px-1">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
+                                        {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
+                                        {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
+                                      </div>
+                                      {del.phone && (
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                                          <a href={`tel:${del.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Birthdays */}
+                            {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.length})
+                                </p>
+                                <div className="space-y-0.5">
+                                  {birthdaysToday.map((c) => (
+                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                  ))}
+                                  {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                                    <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </CardContent>
@@ -949,6 +1022,44 @@ export default function FollowUps() {
                       {detailNoteMutation.isPending ? "Saving..." : "Save Note"}
                     </Button>
                   </div>
+
+                  {/* Schedule Delivery */}
+                  {(detailItem?.itemType === "customer" || detailItem?.itemType === "lead") && (
+                    <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="schedule-delivery"
+                          checked={scheduleDelivery}
+                          onCheckedChange={(v) => setScheduleDelivery(!!v)}
+                        />
+                        <label htmlFor="schedule-delivery" className="text-xs font-medium text-muted-foreground flex items-center gap-1 cursor-pointer">
+                          <Truck className="w-3 h-3" /> Schedule Delivery
+                        </label>
+                      </div>
+                      {scheduleDelivery && (
+                        <div className="space-y-2 pt-1">
+                          <div>
+                            <label className="text-[10px] text-muted-foreground mb-0.5 block">Delivery Date</label>
+                            <Input type="date" value={deliveryDate} min={toLocalDateKey()} onChange={(e) => setDeliveryDate(e.target.value)} className="h-9" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground mb-0.5 block">Notes (optional)</label>
+                            <Input placeholder="Delivery notes..." value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} className="h-9" />
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full gap-1.5"
+                            disabled={!deliveryDate || deliveryCreateMut.isPending}
+                            onClick={() => deliveryCreateMut.mutate()}
+                          >
+                            <Truck className="w-3.5 h-3.5" />
+                            {deliveryCreateMut.isPending ? "Creating..." : "Create Delivery"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Notes Timeline */}
                   <div>
