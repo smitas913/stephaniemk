@@ -39,11 +39,18 @@ export default function Expenses() {
   const [formAmount, setFormAmount] = useState("");
   const [formCategory, setFormCategory] = useState<string>("Inventory");
   const [formNotes, setFormNotes] = useState("");
+  const [formEventType, setFormEventType] = useState<string>("");
+  const [formEventYear, setFormEventYear] = useState<string>("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const SHOW_EVENT_FIELDS_FOR = ["Events", "Travel", "Meals"];
+  const showEventFields = SHOW_EVENT_FIELDS_FOR.includes(formCategory);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   const filtered = useMemo(() => {
     if (filterCat === "all") return expenses;
