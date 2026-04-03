@@ -258,7 +258,7 @@ function ConsultantsTab() {
             const overdue = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === -1;
             const today = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === 0;
             return (
-              <Card key={c.id} className={cn("border-border/50 shadow-sm", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")}>
+              <Card key={c.id} className={cn("border-border/50 shadow-sm cursor-pointer hover:shadow-md transition-shadow", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")} onClick={() => setViewConsultant(c)}>
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -292,10 +292,6 @@ function ConsultantsTab() {
                       </div>
                     )}
                     {c.join_date && <p className="text-[10px] text-muted-foreground mt-0.5">Joined {formatDateOnly(c.join_date)}</p>}
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(c)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
                   </div>
                 </CardContent>
               </Card>
