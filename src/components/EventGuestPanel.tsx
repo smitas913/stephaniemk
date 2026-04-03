@@ -183,6 +183,7 @@ export default function EventGuestPanel({ eventId }: Props) {
                       checked={(g as any).booked || false}
                       onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { booked: !!v } as any })}
                     />
+                  </TableCell>
                   <TableCell className="text-center py-1.5">
                     <Checkbox
                       checked={g.interested}
