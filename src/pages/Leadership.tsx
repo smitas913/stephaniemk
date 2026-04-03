@@ -221,7 +221,7 @@ function ConsultantsTab() {
               <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>{CONSULTANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -229,6 +229,10 @@ function ConsultantsTab() {
               <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Onboarding Stage" /></SelectTrigger>
                 <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={form.focus_group} onValueChange={(v) => setForm({ ...form, focus_group: v })}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Focus Group" /></SelectTrigger>
+                <SelectContent>{FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
             </div>
 
