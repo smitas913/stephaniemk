@@ -144,14 +144,20 @@ export default function Analytics() {
       rangeStart = new Date(2000, 0, 1);
     }
 
+    // Event conversion stats for period
+    const periodAllEvents = events.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
+    const evBooked = periodAllEvents.length;
+    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held").length;
+    const evCancelled = periodAllEvents.filter((e) => e.event_status === "Cancelled").length;
+    const holdRate = evBooked > 0 ? Math.round((evHeld / evBooked) * 1000) / 10 : 0;
+    const cancelRate = evBooked > 0 ? Math.round((evCancelled / evBooked) * 1000) / 10 : 0;
+
     const periodOrders = orders.filter((o) => inRange(o.order_date, rangeStart, rangeEnd) && Number(o.retail_amount || 0) > 0);
     const uniqueCustomerIds = [...new Set(periodOrders.map((o) => o.customer_id))];
-    // Filter out consultants
     const consultantIds = new Set(
       customers.filter((c) => c.relationship_status === "Consultant" || c.relationship_status === "Former Consultant").map((c) => c.id)
     );
     const eligibleIds = uniqueCustomerIds.filter((id) => !consultantIds.has(id));
-    // Count how many have 2+ lifetime orders
     const allOrdersByCustomer: Record<string, number> = {};
     orders.forEach((o) => {
       if (Number(o.retail_amount || 0) > 0) {
@@ -161,7 +167,7 @@ export default function Analytics() {
     const repeatCustomers = eligibleIds.filter((id) => (allOrdersByCustomer[id] || 0) >= 2).length;
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
-    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length };
+    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate };
   }, [events, orders, prospects, customers, timeView]);
 
   const formatCurrency = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
