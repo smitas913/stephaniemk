@@ -106,6 +106,7 @@ function ConsultantsTab() {
     const cleaned: Record<string, any> = {};
     for (const [k, v] of Object.entries(form)) cleaned[k] = v === "" ? null : v;
     if (!cleaned.name) cleaned.name = "Unnamed";
+    if (!cleaned.status) cleaned.status = "Active";
     return cleaned;
   };
 
