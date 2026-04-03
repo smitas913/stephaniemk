@@ -460,20 +460,7 @@ export default function EventDetail() {
                     }}
                   />
                 </div>
-                <div className="col-span-2 sm:col-span-3">
-                  <label className="text-xs text-muted-foreground">Coaching Notes</label>
-                  <Input
-                    className="h-8 text-sm"
-                    placeholder="Notes about coaching..."
-                    defaultValue={event.coaching_notes || ""}
-                    key={`cn-${event.coaching_notes}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.coaching_notes || "")) {
-                        updateField("coaching_notes", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
+              </div>
               </div>
               {/* Quick contact buttons */}
               {(event.hostess_phone || event.hostess_email) && (
