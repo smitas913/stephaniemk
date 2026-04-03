@@ -198,6 +198,24 @@ export default function Expenses() {
               </Select>
               <Textarea placeholder="Notes (optional)" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="min-h-[60px]" />
 
+              {showEventFields && (
+                <div className="space-y-3 rounded-md border border-border p-3 bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground">Link to Event (optional)</p>
+                  <Select value={formEventType} onValueChange={setFormEventType}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Event Type" /></SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={formEventYear} onValueChange={setFormEventYear}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Event Year" /></SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Receipt upload */}
               <div>
                 <input
