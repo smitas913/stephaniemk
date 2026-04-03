@@ -339,8 +339,30 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems];
+    // Booking lead items (converted to ActionItems)
+    const leadItems: ActionItem[] = bookingLeads
+      .filter((lead) => lead.status !== "Booked" && lead.status !== "Not Interested" && normalizeFollowUpDate(lead.next_follow_up_date))
+      .map((lead) => {
+        const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
+        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        return {
+          id: lead.id, itemType: "lead" as const, name: lead.name,
+          phone: lead.phone, email: lead.email,
+          next_follow_up: effectiveDate, follow_up_status: status,
+          daysOverdue,
+          followUpReason: lead.lead_source ? `Booking Lead - ${lead.lead_source}` : "Booking Follow-Up",
+          lastContacted: lead.last_contact_date,
+          actionLabel: "Booking Follow-Up",
+        };
+      });
+
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
+      // Overdue first, then today
+      const aOverdue = a.follow_up_status === "OVERDUE" ? 0 : 1;
+      const bOverdue = b.follow_up_status === "OVERDUE" ? 0 : 1;
+      if (aOverdue !== bOverdue) return aOverdue - bOverdue;
       const aDate = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
       const bDate = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
       if (aDate !== bDate) return aDate - bDate;
@@ -375,13 +397,7 @@ export default function FollowUps() {
     }
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    // Booking leads
-    const bookingLeadsDue = bookingLeads
-      .map((lead) => ({ ...lead, next_follow_up_date: normalizeFollowUpDate(lead.next_follow_up_date) }))
-      .filter((lead) => lead.status !== "Booked" && lead.status !== "Not Interested" && lead.next_follow_up_date && isDueTodayOrEarlier(lead.next_follow_up_date, todayKey))
-      .sort((a, b) => (getDateOnlyTime(a.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER) - (getDateOnlyTime(b.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER));
-
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming, bookingLeadsDue };
+    return { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads]);
 
   // Distribution candidates
