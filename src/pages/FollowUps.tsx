@@ -60,7 +60,7 @@ type Enriched = Customer & CustomerComputed;
 
 type ActionItem = {
   id: string;
-  itemType: "customer" | "prospect" | "consultant" | "hostess";
+  itemType: "customer" | "prospect" | "consultant" | "hostess" | "lead";
   name: string;
   phone: string | null;
   email: string | null;
@@ -156,6 +156,7 @@ function formatLastContacted(dateStr: string | null | undefined): string {
 const TYPE_BADGE: Record<string, { label: string; className: string; icon: React.ElementType }> = {
   customer: { label: "Customer", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300", icon: Users },
   prospect: { label: "Prospect", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300", icon: Users },
+  lead: { label: "Lead", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", icon: CalendarCheck },
   consultant: { label: "Consultant", className: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300", icon: Crown },
   hostess: { label: "Hostess", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: Crown },
 };
@@ -257,7 +258,7 @@ export default function FollowUps() {
   });
 
   // ─── Build unified action items ───
-  const { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming, bookingLeadsDue } = useMemo(() => {
+  const { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
     const todayDate = getLocalToday();
     const todayKey = toLocalDateKey(todayDate);
     const upcoming7Key = toLocalDateKey(addDays(todayDate, 7));
@@ -338,8 +339,30 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems];
+    // Booking lead items (converted to ActionItems)
+    const leadItems: ActionItem[] = bookingLeads
+      .filter((lead) => lead.status !== "Booked" && lead.status !== "Not Interested" && normalizeFollowUpDate(lead.next_follow_up_date))
+      .map((lead) => {
+        const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
+        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        return {
+          id: lead.id, itemType: "lead" as const, name: lead.name,
+          phone: lead.phone, email: lead.email,
+          next_follow_up: effectiveDate, follow_up_status: status,
+          daysOverdue,
+          followUpReason: lead.lead_source ? `Booking Lead - ${lead.lead_source}` : "Booking Follow-Up",
+          lastContacted: lead.last_contact_date,
+          actionLabel: "Booking Follow-Up",
+        };
+      });
+
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
+      // Overdue first, then today
+      const aOverdue = a.follow_up_status === "OVERDUE" ? 0 : 1;
+      const bOverdue = b.follow_up_status === "OVERDUE" ? 0 : 1;
+      if (aOverdue !== bOverdue) return aOverdue - bOverdue;
       const aDate = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
       const bDate = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
       if (aDate !== bDate) return aDate - bDate;
@@ -374,13 +397,7 @@ export default function FollowUps() {
     }
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    // Booking leads
-    const bookingLeadsDue = bookingLeads
-      .map((lead) => ({ ...lead, next_follow_up_date: normalizeFollowUpDate(lead.next_follow_up_date) }))
-      .filter((lead) => lead.status !== "Booked" && lead.status !== "Not Interested" && lead.next_follow_up_date && isDueTodayOrEarlier(lead.next_follow_up_date, todayKey))
-      .sort((a, b) => (getDateOnlyTime(a.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER) - (getDateOnlyTime(b.next_follow_up_date) ?? Number.MAX_SAFE_INTEGER));
-
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming, bookingLeadsDue };
+    return { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads]);
 
   // Distribution candidates
@@ -444,6 +461,11 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
+      } else if (item.itemType === "lead") {
+        const updates: Record<string, string | null> = { last_contact_date: today };
+        if (nextDate) updates.next_follow_up_date = nextDate;
+        if (!nextDate) updates.status = "Contacted";
+        await updateBookingLead(item.id, updates as any);
       }
     },
     onSuccess: () => {
@@ -513,6 +535,7 @@ export default function FollowUps() {
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`);
     else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`);
+    else if (item.itemType === "lead") navigate("/booking-leads");
     else if (item.itemType === "hostess") {
       const evt = events.find(e => e.id === item.id);
       if (evt) navigate(`/events/${evt.event_id}`);
@@ -558,91 +581,66 @@ export default function FollowUps() {
                   {/* Left Column (2/3) */}
                   <div className="lg:col-span-2 space-y-4">
 
-                    {/* Unified Action List */}
-                    <Card className="border-border/50 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
-                            <Phone className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <CardTitle className="text-sm font-semibold text-foreground">Actions for Today</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayActions.length}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {todayActions.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
-                        ) : (
-                          <div className="divide-y divide-border/40">
-                            {todayActions.map((item) => (
-                              <ActionRow
-                                key={`${item.itemType}-${item.id}`}
-                                item={item}
-                                inlineNoteId={inlineNoteId}
-                                inlineNoteText={inlineNoteText}
-                                inlineNoteType={inlineNoteType}
-                                inlineFollowUpDate={inlineFollowUpDate}
-                                setInlineNoteText={setInlineNoteText}
-                                setInlineNoteType={setInlineNoteType}
-                                setInlineFollowUpDate={setInlineFollowUpDate}
-                                onToggleInline={() => toggleInlineNote(item)}
-                                onInlineSave={() => handleInlineSave(item)}
-                                onOpenDetail={() => openDetailSheet(item)}
-                                isPending={contactMutation.isPending}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                    {/* Grouped Actions for Today */}
+                    {(() => {
+                      const consultantActions = todayActions.filter((i) => i.itemType === "consultant" || i.itemType === "hostess");
+                      const customerActions = todayActions.filter((i) => i.itemType === "customer");
+                      const leadProspectActions = todayActions.filter((i) => i.itemType === "lead" || i.itemType === "prospect");
 
+                      const renderSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string, bgColor: string) => {
+                        if (items.length === 0) return null;
+                        const Icon = icon;
+                        return (
+                          <Card key={title} className="border-border/50 shadow-sm">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-center gap-2">
+                                <div className={cn("p-1.5 rounded-md", bgColor)}>
+                                  <Icon className={cn("w-4 h-4", iconColor)} />
+                                </div>
+                                <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+                                <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="divide-y divide-border/40">
+                                {items.map((item) => (
+                                  <ActionRow
+                                    key={`${item.itemType}-${item.id}`}
+                                    item={item}
+                                    inlineNoteId={inlineNoteId}
+                                    inlineNoteText={inlineNoteText}
+                                    inlineNoteType={inlineNoteType}
+                                    inlineFollowUpDate={inlineFollowUpDate}
+                                    setInlineNoteText={setInlineNoteText}
+                                    setInlineNoteType={setInlineNoteType}
+                                    setInlineFollowUpDate={setInlineFollowUpDate}
+                                    onToggleInline={() => toggleInlineNote(item)}
+                                    onInlineSave={() => handleInlineSave(item)}
+                                    onOpenDetail={() => openDetailSheet(item)}
+                                    isPending={contactMutation.isPending}
+                                  />
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      };
 
-                    {/* Booking Leads */}
-                    {bookingLeadsDue.length > 0 && (
-                      <Card className="border-border/50 shadow-sm">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30">
-                                <CalendarCheck className="w-4 h-4 text-amber-600" />
-                              </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Booking Leads</CardTitle>
-                              <Badge variant="secondary" className="text-xs">{bookingLeadsDue.length}</Badge>
-                            </div>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate("/booking-leads")}>View All</Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="divide-y divide-border/40">
-                            {bookingLeadsDue.map((lead) => (
-                              <div key={lead.id} className="py-2.5 flex items-center gap-3 group">
-                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate("/booking-leads")}>
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
-                                    {lead.lead_source && <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>}
-                                  </div>
-                                  <div className="flex items-center gap-x-3 text-xs text-muted-foreground mt-0.5">
-                                    {lead.phone && <span>{lead.phone}</span>}
-                                    <span>FU: {formatDateOnly(lead.next_follow_up_date)}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  {lead.phone && (
-                                    <>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`tel:${lead.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`sms:${lead.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
-                                    </>
-                                  )}
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => bookingLeadContactMut.mutate(lead)} title="Mark Contacted">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                      const hasAny = todayActions.length > 0;
+                      return hasAny ? (
+                        <>
+                          {renderSection("Consultants (Coaching)", Crown, consultantActions, "text-violet-600", "bg-violet-50 dark:bg-violet-950/30")}
+                          {renderSection("Customers (Follow-Ups)", Users, customerActions, "text-blue-600", "bg-blue-50 dark:bg-blue-950/30")}
+                          {renderSection("Leads / Prospects", CalendarCheck, leadProspectActions, "text-amber-600", "bg-amber-50 dark:bg-amber-950/30")}
+                        </>
+                      ) : (
+                        <Card className="border-border/50 shadow-sm">
+                          <CardContent className="pt-6">
+                            <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })()}
                   </div>
 
                   {/* Right Column (1/3) */}
