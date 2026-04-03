@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember } from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
@@ -113,6 +113,7 @@ export const createOrder = async (order: {
   half_price_deal?: boolean;
   birthday?: boolean;
   referral?: boolean;
+  payment_status?: PaymentStatus;
   payment_type?: string | null;
   retail_amount?: number;
   wholesale_amount?: number | null;

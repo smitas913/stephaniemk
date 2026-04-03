@@ -133,7 +133,7 @@ export default function AddOrder() {
     if (paymentStatus === "Paid" && !paymentType) errors.push("Select a payment type");
     if (isEventBased && !selectedEventId) errors.push("Select an event");
     return errors;
-  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentType, isEventBased, selectedEventId]);
+  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
@@ -183,6 +183,7 @@ export default function AddOrder() {
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
+        payment_status: paymentStatus,
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
         wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
@@ -515,6 +516,10 @@ export default function AddOrder() {
               ))}
             </div>
           </div>
+        )}
+
+        {paymentStatus === "Unpaid" && (
+          <p className="text-xs text-muted-foreground">Payment method is optional for unpaid orders and will be saved blank.</p>
         )}
 
         {/* Notes */}
