@@ -385,6 +385,8 @@ export type Database = {
           amount: number
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string
+          event_type: string | null
+          event_year: number | null
           expense_date: string
           id: string
           notes: string | null
@@ -396,6 +398,8 @@ export type Database = {
           amount?: number
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string
+          event_type?: string | null
+          event_year?: number | null
           expense_date?: string
           id?: string
           notes?: string | null
@@ -407,6 +411,8 @@ export type Database = {
           amount?: number
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string
+          event_type?: string | null
+          event_year?: number | null
           expense_date?: string
           id?: string
           notes?: string | null
