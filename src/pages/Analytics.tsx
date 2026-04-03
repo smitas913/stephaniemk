@@ -233,6 +233,40 @@ export default function Analytics() {
               </Card>
             </div>
 
+            {/* Event Pipeline */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">Event Pipeline</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-foreground tabular-nums">{analytics.evBooked}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Booked</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-primary tabular-nums">{analytics.evHeld}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Held</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-destructive tabular-nums">{analytics.evCancelled}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Cancelled</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-primary tabular-nums">{analytics.holdRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Hold Rate</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-destructive tabular-nums">{analytics.cancelRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Cancel Rate</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Monthly Trends Table */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
