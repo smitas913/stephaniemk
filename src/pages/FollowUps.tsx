@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -9,6 +9,7 @@ import {
   fetchAllLatestNotes,
 } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
+import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -1218,6 +1219,20 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
   const [notes, setNotes] = useState(consultant?.notes || "");
   const [saving, setSaving] = useState(false);
 
+  // Cadence info for New Consultants
+  const cadence = useMemo(() => {
+    if (focusGroup !== "New Consultant") return null;
+    return getCadenceInfo(consultant?.join_date);
+  }, [focusGroup, consultant?.join_date]);
+
+  // Auto-populate coaching date for New Consultant if empty
+  useEffect(() => {
+    if (focusGroup === "New Consultant" && !nextCoachingDate && consultant?.join_date) {
+      const autoDate = getNextCoachingDate(consultant.join_date, null);
+      if (autoDate) setNextCoachingDate(autoDate);
+    }
+  }, [focusGroup, consultant?.join_date, nextCoachingDate]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -1236,9 +1251,16 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
   const handleMarkComplete = async () => {
     setSaving(true);
     try {
-      const nextDate = nextCoachingDate
-        ? format(addDays(parseLocalDate(nextCoachingDate), 7), "yyyy-MM-dd")
-        : format(addDays(new Date(), 7), "yyyy-MM-dd");
+      let nextDate: string | null;
+      if (focusGroup === "New Consultant" && consultant?.join_date) {
+        nextDate = getNextCoachingDate(consultant.join_date, nextCoachingDate || null);
+      } else {
+        nextDate = nextCoachingDate
+          ? format(addDays(parseLocalDate(nextCoachingDate), 7), "yyyy-MM-dd")
+          : format(addDays(new Date(), 7), "yyyy-MM-dd");
+      }
+
+      const cadenceLabel = cadence ? ` (${cadence.label})` : "";
       await updateTeamConsultant(item.id, {
         focus_group: focusGroup,
         coaching_focus: coachingFocus || null,
@@ -1246,14 +1268,47 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
         notes: notes || null,
       });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
-      toast.success(`Coaching complete — next date set to ${formatDateOnly(nextDate)}`);
+      toast.success(`Coaching complete — next: ${nextDate ? formatDateOnly(nextDate) : "none"}${cadenceLabel}`);
       onClose();
     } catch { toast.error("Failed to update"); }
     setSaving(false);
   };
 
+  const handleSnooze = async (days: number) => {
+    setSaving(true);
+    try {
+      const snoozed = snoozeCoachingDate(nextCoachingDate || null, days);
+      setNextCoachingDate(snoozed);
+      await updateTeamConsultant(item.id, { next_coaching_date: snoozed });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      toast.success(`Snoozed ${days} days → ${formatDateOnly(snoozed)}`);
+    } catch { toast.error("Failed to snooze"); }
+    setSaving(false);
+  };
+
+  const completeLabel = cadence && cadence.phase !== "graduated"
+    ? `Mark Complete (+${cadence.daysBetweenSessions}d)`
+    : "Mark Coaching Complete (+7 days)";
+
   return (
     <div className="space-y-5">
+      {/* Cadence Info Badge */}
+      {cadence && cadence.phase !== "graduated" && (
+        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
+          <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-1">
+            <CalendarCheck className="w-3 h-3" /> Auto Coaching Cadence
+          </p>
+          <p className="text-sm font-medium">{cadence.label}</p>
+          <p className="text-xs text-muted-foreground">Day {cadence.daysSinceStart} since start • {cadence.sessionsPerWeek}x/week</p>
+        </div>
+      )}
+      {cadence && cadence.phase === "graduated" && (
+        <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cadence Graduated</p>
+          <p className="text-xs text-muted-foreground">Day {cadence.daysSinceStart} — consider moving to Key or General.</p>
+        </div>
+      )}
+
       {/* Focus Group */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Focus Group</label>
@@ -1301,8 +1356,18 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
       {/* Mark Complete button */}
       <Button variant="outline" className="w-full gap-1.5" onClick={handleMarkComplete} disabled={saving}>
         <CheckCircle2 className="w-4 h-4" />
-        Mark Coaching Complete (+7 days)
+        {completeLabel}
       </Button>
+
+      {/* Snooze / Skip (for non-responsive consultants) */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Snooze / Skip</label>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => handleSnooze(3)} disabled={saving}>+3 days</Button>
+          <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => handleSnooze(7)} disabled={saving}>+1 week</Button>
+          <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => handleSnooze(14)} disabled={saving}>+2 weeks</Button>
+        </div>
+      </div>
 
       {/* Info */}
       {consultant && (
