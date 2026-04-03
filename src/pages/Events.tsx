@@ -10,8 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useMutation as useRQMutation } from "@tanstack/react-query";
+import { upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
+import { generateEventId } from "@/lib/eventId";
+import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
-import { formatDateOnly } from "@/lib/dateOnly";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
 
