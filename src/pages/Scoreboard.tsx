@@ -98,7 +98,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       pct: monthSharingConvPct,
     };
 
-    return { weekly, monthly, monthlySharingConversion };
+    return { weekly, monthly, monthlySharingConversion, monthBooked, monthHeld, monthCancelled, monthHoldRate };
   }, [events, prospects]);
 }
 
