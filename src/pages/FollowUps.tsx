@@ -907,9 +907,12 @@ export default function FollowUps() {
                                   <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.length})
                                 </p>
                                 <div className="space-y-0.5">
-                                  {birthdaysToday.map((c) => (
-                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                  {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
+                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c.id)} />
                                   ))}
+                                  {completedBirthdays.size > 0 && birthdaysToday.some((c) => completedBirthdays.has(c.id)) && (
+                                    <p className="text-[10px] text-muted-foreground italic px-2 py-1">✓ {birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length} birthday message{birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length > 1 ? "s" : ""} sent today</p>
+                                  )}
                                   {showUpcoming7 && birthdaysUpcoming.map((c) => (
                                     <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
                                   ))}
