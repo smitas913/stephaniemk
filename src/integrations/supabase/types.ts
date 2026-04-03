@@ -21,6 +21,7 @@ export type Database = {
           email: string | null
           id: string
           last_contact_date: string | null
+          lead_activity: string | null
           lead_source: string | null
           name: string
           next_follow_up_date: string | null
@@ -36,6 +37,7 @@ export type Database = {
           email?: string | null
           id?: string
           last_contact_date?: string | null
+          lead_activity?: string | null
           lead_source?: string | null
           name: string
           next_follow_up_date?: string | null
@@ -51,6 +53,7 @@ export type Database = {
           email?: string | null
           id?: string
           last_contact_date?: string | null
+          lead_activity?: string | null
           lead_source?: string | null
           name?: string
           next_follow_up_date?: string | null

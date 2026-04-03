@@ -1,0 +1,1 @@
+ALTER TABLE public.booking_leads ADD COLUMN lead_activity text DEFAULT 'No Activity Yet';
