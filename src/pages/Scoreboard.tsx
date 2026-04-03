@@ -57,7 +57,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const monthSharingConvPct = monthSharing > 0 ? Math.round((monthNewTeam / monthSharing) * 1000) / 10 : 0;
 
     const dayOfWeek = differenceInDays(now, weekStart) + 1;
-    const weekPace = dayOfWeek / 7;
+    const weekPace = dayOfWeek / 6;
     const dayOfMonth = now.getDate();
     const daysInMonth = differenceInDays(monthEnd, monthStart) + 1;
     const monthPace = dayOfMonth / daysInMonth;
