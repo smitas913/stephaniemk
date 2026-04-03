@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, convertProspectToConsultant } from "@/lib/queries";
-import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES } from "@/lib/types";
+import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
 import type { ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
