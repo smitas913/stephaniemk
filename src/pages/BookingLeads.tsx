@@ -43,9 +43,9 @@ export default function BookingLeads() {
   const [convertLead, setConvertLead] = useState<BookingLead | null>(null);
 
   // Add/edit form state
-  const [form, setForm] = useState({ name: "", phone: "", email: "", lead_source: "Networking", notes: "", next_follow_up_date: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", lead_source: "Networking", lead_activity: "No Activity Yet", notes: "", next_follow_up_date: "" });
 
-  const resetForm = () => setForm({ name: "", phone: "", email: "", lead_source: "Networking", notes: "", next_follow_up_date: "" });
+  const resetForm = () => setForm({ name: "", phone: "", email: "", lead_source: "Networking", lead_activity: "No Activity Yet", notes: "", next_follow_up_date: "" });
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
