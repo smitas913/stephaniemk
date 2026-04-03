@@ -1036,7 +1036,7 @@ export default function FollowUps() {
                   </div>
 
                   {/* Schedule Delivery */}
-                  {(detailItem?.itemType === "customer" || detailItem?.itemType === "lead") && (
+                  {detailItem?.itemType === "customer" && (
                     <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                       <div className="flex items-center gap-2">
                         <Checkbox
