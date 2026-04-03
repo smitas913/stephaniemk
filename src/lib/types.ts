@@ -243,6 +243,8 @@ export const CONSULTANT_STATUSES = ["Active", "Inactive", "At Risk"] as const;
 
 export const ONBOARDING_STAGES = ["New", "Started", "First Order", "First Party", "First Team Member", "Active Builder"] as const;
 
+export const FOCUS_GROUPS = ["General", "New Consultant", "Key Consultant"] as const;
+
 export const COACHING_FOCUS_OPTIONS = [
   "Set Up Account",
   "Product Knowledge",
@@ -273,6 +275,7 @@ export interface TeamConsultant {
   first_order_date: string | null;
   first_party_date: string | null;
   first_team_member_date: string | null;
+  focus_group: string | null;
 }
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;

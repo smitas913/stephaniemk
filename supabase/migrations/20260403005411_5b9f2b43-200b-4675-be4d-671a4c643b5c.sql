@@ -1,0 +1,1 @@
+ALTER TABLE public.team_consultants ADD COLUMN focus_group text DEFAULT 'General';

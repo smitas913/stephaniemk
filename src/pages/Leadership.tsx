@@ -4,7 +4,7 @@ import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
 } from "@/lib/queries";
-import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
+import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
 import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
@@ -88,17 +88,23 @@ function ConsultantsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
+  const [focusFilter, setFocusFilter] = useState<string>("all");
   const [form, setForm] = useState({
     name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
     next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
-    first_order_date: "", first_party_date: "", first_team_member_date: "",
+    first_order_date: "", first_party_date: "", first_team_member_date: "", focus_group: "General",
   });
 
   const resetForm = () => setForm({
     name: "", phone: "", email: "", status: "Active", join_date: toLocalDateKey(),
     next_coaching_date: "", notes: "", onboarding_stage: "New", coaching_focus: "",
-    first_order_date: "", first_party_date: "", first_team_member_date: "",
+    first_order_date: "", first_party_date: "", first_team_member_date: "", focus_group: "General",
   });
+
+  const filtered = useMemo(() => {
+    if (focusFilter === "all") return consultants;
+    return consultants.filter((c) => (c.focus_group || "General") === focusFilter);
+  }, [consultants, focusFilter]);
 
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
@@ -129,25 +135,34 @@ function ConsultantsTab() {
       next_coaching_date: c.next_coaching_date || "", notes: c.notes || "",
       onboarding_stage: c.onboarding_stage || "New", coaching_focus: c.coaching_focus || "",
       first_order_date: c.first_order_date || "", first_party_date: c.first_party_date || "",
-      first_team_member_date: c.first_team_member_date || "",
+      first_team_member_date: c.first_team_member_date || "", focus_group: c.focus_group || "General",
     });
     setEditId(c.id);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{consultants.length} team members</p>
+      <div className="flex justify-between items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Select value={focusFilter} onValueChange={setFocusFilter}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Focus Groups</SelectItem>
+              {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
+        </div>
         <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}><Plus className="w-4 h-4 mr-1" />Add Consultant</Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
-      ) : consultants.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No consultants yet. Convert a prospect or add one manually.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-muted-foreground py-12">{consultants.length === 0 ? "No consultants yet. Convert a prospect or add one manually." : "No consultants match this filter."}</p>
       ) : (
         <div className="space-y-2">
-          {consultants.map((c) => {
+          {filtered.map((c) => {
             const overdue = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === -1;
             const today = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === 0;
             return (
@@ -160,6 +175,9 @@ function ConsultantsTab() {
                         <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[c.onboarding_stage] || "")}>
                           {c.onboarding_stage}
                         </Badge>
+                      )}
+                      {c.focus_group && c.focus_group !== "General" && (
+                        <Badge variant="outline" className="text-[10px]">{c.focus_group}</Badge>
                       )}
                     </div>
                     {c.coaching_focus && (
@@ -206,7 +224,7 @@ function ConsultantsTab() {
               <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>{CONSULTANT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
@@ -214,6 +232,10 @@ function ConsultantsTab() {
               <Select value={form.onboarding_stage} onValueChange={(v) => setForm({ ...form, onboarding_stage: v })}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Onboarding Stage" /></SelectTrigger>
                 <SelectContent>{ONBOARDING_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+              <Select value={form.focus_group} onValueChange={(v) => setForm({ ...form, focus_group: v })}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Focus Group" /></SelectTrigger>
+                <SelectContent>{FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
             </div>
 
