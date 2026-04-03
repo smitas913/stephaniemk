@@ -169,6 +169,7 @@ export default function Expenses() {
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
                       {formatDateOnly(e.expense_date)}
+                      {e.event_type && e.event_year && ` · ${e.event_type} ${e.event_year}`}
                       {e.notes && ` — ${e.notes}`}
                     </p>
                   </div>
