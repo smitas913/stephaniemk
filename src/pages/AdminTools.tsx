@@ -4,10 +4,11 @@ import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCog, ClipboardList, Upload, RefreshCw, Truck } from "lucide-react";
+import { UserCog, ClipboardList, Upload, RefreshCw, Truck, CalendarCog } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import ConsultantRequests from "@/pages/ConsultantRequests";
 import DeliveryTracking from "@/components/DeliveryTracking";
+import ScheduleSettings from "@/components/ScheduleSettings";
 
 export default function AdminTools() {
   const { profile } = useAuth();
