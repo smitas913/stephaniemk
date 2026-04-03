@@ -308,6 +308,42 @@ function ConsultantsTab() {
       </AlertDialog>
 
       <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
+
+      {/* Quick Add Dialog */}
+      <Dialog open={showQuickAdd} onOpenChange={(o) => { if (!o) { setQuickAddText(""); } setShowQuickAdd(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base flex items-center gap-2"><ListPlus className="w-4 h-4" />Quick Add Consultants</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Paste one name per line to bulk-create consultant records.</p>
+            <Textarea placeholder={"Jane Smith\nMary Johnson\nSara Lee"} value={quickAddText} onChange={(e) => setQuickAddText(e.target.value)} className="min-h-[120px] font-mono text-sm" />
+            {(() => {
+              const names = quickAddText.split("\n").map((l) => l.trim()).filter(Boolean);
+              return names.length > 0 ? <p className="text-xs text-muted-foreground">{names.length} name{names.length !== 1 ? "s" : ""} detected</p> : null;
+            })()}
+            <Button className="w-full" disabled={!quickAddText.trim() || quickAddLoading} onClick={async () => {
+              const names = quickAddText.split("\n").map((l) => l.trim()).filter(Boolean);
+              if (!names.length) return;
+              setQuickAddLoading(true);
+              let created = 0;
+              for (const name of names) {
+                try {
+                  await createTeamConsultant({ name, status: "Active", focus_group: "General", onboarding_stage: "New" } as any);
+                  created++;
+                } catch { /* skip */ }
+              }
+              queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+              toast.success(`Created ${created} consultant${created !== 1 ? "s" : ""}`);
+              setQuickAddText("");
+              setShowQuickAdd(false);
+              setQuickAddLoading(false);
+            }}>
+              {quickAddLoading ? "Creating..." : "Create All"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
