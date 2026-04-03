@@ -629,9 +629,9 @@ export default function FollowUps() {
                       const hasAny = todayActions.length > 0;
                       return hasAny ? (
                         <>
+                          {renderSection("Leads / Prospects", CalendarCheck, leadProspectActions, "text-amber-600", "bg-amber-50 dark:bg-amber-950/30")}
                           {renderSection("Consultants (Coaching)", Crown, consultantActions, "text-violet-600", "bg-violet-50 dark:bg-violet-950/30")}
                           {renderSection("Customers (Follow-Ups)", Users, customerActions, "text-blue-600", "bg-blue-50 dark:bg-blue-950/30")}
-                          {renderSection("Leads / Prospects", CalendarCheck, leadProspectActions, "text-amber-600", "bg-amber-50 dark:bg-amber-950/30")}
                         </>
                       ) : (
                         <Card className="border-border/50 shadow-sm">
