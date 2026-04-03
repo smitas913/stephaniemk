@@ -56,6 +56,7 @@ export function getNextCoachingDate(
   joinDateStr: string | null | undefined,
   currentCoachingDateStr: string | null | undefined,
   today = getLocalToday(),
+  ooo: OOOPeriod | null = null,
 ): string | null {
   const cadence = getCadenceInfo(joinDateStr, today);
   if (!cadence || cadence.phase === "graduated") return null;
@@ -63,17 +64,10 @@ export function getNextCoachingDate(
   const baseDate = currentCoachingDateStr ? parseLocalDate(currentCoachingDateStr) : today;
   const candidateDate = addDays(baseDate, cadence.daysBetweenSessions);
 
-  // Ensure the date is at least tomorrow
   const tomorrow = addDays(today, 1);
   const finalDate = candidateDate >= tomorrow ? candidateDate : tomorrow;
 
-  // Skip weekends for more natural scheduling
-  const day = finalDate.getDay();
-  let adjusted = finalDate;
-  if (day === 0) adjusted = addDays(finalDate, 1); // Sunday → Monday
-  if (day === 6) adjusted = addDays(finalDate, 2); // Saturday → Monday
-
-  return toLocalDateKey(adjusted);
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
 }
 
 /**
