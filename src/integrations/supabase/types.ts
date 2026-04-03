@@ -287,6 +287,42 @@ export type Database = {
         }
         Relationships: []
       }
+      event_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          event_id: string
+          id: string
+          is_completed: boolean
+          owner_user_id: string | null
+          task_name: string
+          task_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          event_id: string
+          id?: string
+          is_completed?: boolean
+          owner_user_id?: string | null
+          task_name: string
+          task_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          event_id?: string
+          id?: string
+          is_completed?: boolean
+          owner_user_id?: string | null
+          task_name?: string
+          task_type?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           checklist_google_form_completed: boolean | null

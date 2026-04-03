@@ -6,8 +6,9 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes,
+  fetchAllLatestNotes, fetchEventTasks, completeEventTask,
 } from "@/lib/queries";
+import type { EventTask } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
@@ -62,7 +63,9 @@ type Enriched = Customer & CustomerComputed;
 
 type ActionItem = {
   id: string;
-  itemType: "customer" | "prospect" | "consultant" | "hostess" | "lead";
+  itemType: "customer" | "prospect" | "consultant" | "hostess" | "lead" | "event_task";
+  _eventTaskId?: string;
+  _eventId?: string;
   name: string;
   phone: string | null;
   email: string | null;
@@ -161,6 +164,7 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   lead: { label: "Lead", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300", icon: CalendarCheck },
   consultant: { label: "Consultant", className: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300", icon: Crown },
   hostess: { label: "Hostess", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: Crown },
+  event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: CalendarCheck },
 };
 
 // ─── Main Component ───
@@ -179,6 +183,7 @@ export default function FollowUps() {
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: eventTasksRaw = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
@@ -377,7 +382,29 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
+    // Event workflow tasks (incomplete, with due dates)
+    const eventTaskItems: ActionItem[] = (eventTasksRaw as EventTask[])
+      .filter((t) => !t.is_completed && t.due_date)
+      .map((t) => {
+        const matchedEvent = events.find((e) => e.event_id === t.event_id);
+        const effectiveDate = normalizeFollowUpDate(t.due_date);
+        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
+        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        return {
+          id: t.id, itemType: "event_task" as const,
+          name: matchedEvent?.hostess_name || t.event_id,
+          phone: matchedEvent?.hostess_phone || null, email: matchedEvent?.hostess_email || null,
+          next_follow_up: effectiveDate, follow_up_status: status,
+          daysOverdue,
+          followUpReason: t.task_name,
+          lastContacted: null,
+          actionLabel: "Hostess Coaching",
+          _eventTaskId: t.id,
+          _eventId: t.event_id,
+        };
+      });
+
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems, ...eventTaskItems];
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
       // Overdue first, then today
       const aOverdue = a.follow_up_status === "OVERDUE" ? 0 : 1;
@@ -497,6 +524,8 @@ export default function FollowUps() {
         };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
+      } else if (item.itemType === "event_task") {
+        await completeEventTask(item.id);
       }
     },
     onSuccess: () => {
@@ -505,6 +534,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
@@ -541,6 +571,7 @@ export default function FollowUps() {
       else if (detailItem.itemType === "consultant") await updateTeamConsultant(detailItem.id, { next_coaching_date: normalizedDate } as any);
       else if (detailItem.itemType === "hostess") await updateEvent(detailItem.id, { hostess_next_action_date: normalizedDate } as any);
       else if (detailItem.itemType === "lead") await updateBookingLead(detailItem.id, { next_follow_up_date: normalizedDate } as any);
+      // event_task items don't support rescheduling via this mechanism
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -603,6 +634,8 @@ export default function FollowUps() {
       const evt = events.find(e => e.id === item.id);
       if (evt) navigate(`/events/${evt.event_id}`);
       else navigate("/events");
+    } else if (item.itemType === "event_task" && item._eventId) {
+      navigate(`/events/${item._eventId}`);
     }
     else navigate("/leadership");
   };

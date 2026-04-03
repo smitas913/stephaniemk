@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, upsertEvent } from "@/lib/queries";
+import { fetchEvents, upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { EVENT_FORMATS } from "@/lib/types";
@@ -54,8 +54,14 @@ export default function NewEvent() {
       });
       return eventId;
     },
-    onSuccess: (eventId) => {
+    onSuccess: async (eventId) => {
+      try {
+        await generateEventWorkflowTasks(eventId, eventDate || null);
+      } catch (e) {
+        console.error("Failed to generate workflow tasks", e);
+      }
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       toast.success("Event created");
       navigate(`/events/${eventId}`);
     },

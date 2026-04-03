@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks } from "@/lib/queries";
+import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { COACHING_STATUSES } from "@/lib/types";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
@@ -31,6 +32,11 @@ export default function EventDetail() {
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: eventTasks = [] } = useQuery({
+    queryKey: ["event-tasks", eventId],
+    queryFn: () => fetchEventTasksByEventId(eventId!),
+    enabled: !!eventId,
+  });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
 
@@ -68,9 +74,32 @@ export default function EventDetail() {
     eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
   };
 
-  const toggleChecklist = (field: string) => {
+  const toggleChecklist = async (field: string) => {
     if (!event) return;
-    eventMutation.mutate({ event_id: event.event_id, [field]: !(event as any)[field] } as any);
+    const newValue = !(event as any)[field];
+    eventMutation.mutate({ event_id: event.event_id, [field]: newValue } as any);
+
+    // Trigger guest invite task when hostess form (google form) is completed
+    if (field === "checklist_google_form_completed" && newValue) {
+      try {
+        await generateGuestInviteTask(event.event_id);
+        queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+        toast.success("Task created: Send Guest Invite + Guest Form");
+      } catch (e) {
+        console.error("Failed to create guest invite task", e);
+      }
+    }
+  };
+
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      await completeEventTask(taskId);
+      queryClient.invalidateQueries({ queryKey: ["event-tasks", eventId] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      toast.success("Task completed");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to complete task");
+    }
   };
 
   return (
@@ -455,6 +484,41 @@ export default function EventDetail() {
                   </Button>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Event Workflow Tasks */}
+        {event && eventTasks.length > 0 && (
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                Event Workflow Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {eventTasks.map((task: EventTask) => (
+                <label key={task.id} className="flex items-center gap-3 py-1.5 cursor-pointer">
+                  <Checkbox
+                    checked={task.is_completed}
+                    onCheckedChange={() => {
+                      if (!task.is_completed) handleCompleteTask(task.id);
+                    }}
+                    disabled={task.is_completed}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className={cn("text-sm", task.is_completed ? "line-through text-muted-foreground" : "text-foreground font-medium")}>
+                      {task.task_name}
+                    </span>
+                    {task.due_date && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        Due: {formatDateOnly(task.due_date)}
+                      </span>
+                    )}
+                  </div>
+                </label>
+              ))}
             </CardContent>
           </Card>
         )}
