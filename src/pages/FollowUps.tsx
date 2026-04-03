@@ -241,6 +241,24 @@ export default function FollowUps() {
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
+
+  // Birthday completion tracking (daily, resets each day via localStorage key)
+  const bdayStorageKey = `bday-done-${toLocalDateKey()}`;
+  const [completedBirthdays, setCompletedBirthdays] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem(bdayStorageKey);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+  const markBirthdayDone = (id: string) => {
+    setCompletedBirthdays((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem(bdayStorageKey, JSON.stringify([...next]));
+      return next;
+    });
+    toast.success("Birthday message marked complete!");
+  };
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState("Call");
@@ -886,12 +904,15 @@ export default function FollowUps() {
                             {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.length})
+                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).length})
                                 </p>
                                 <div className="space-y-0.5">
-                                  {birthdaysToday.map((c) => (
-                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                  {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
+                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c.id)} />
                                   ))}
+                                  {completedBirthdays.size > 0 && birthdaysToday.some((c) => completedBirthdays.has(c.id)) && (
+                                    <p className="text-[10px] text-muted-foreground italic px-2 py-1">✓ {birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length} birthday message{birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length > 1 ? "s" : ""} sent today</p>
+                                  )}
                                   {showUpcoming7 && birthdaysUpcoming.map((c) => (
                                     <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
                                   ))}
@@ -1755,11 +1776,27 @@ function ActionRow({
 
 // ─── Birthday Row ───
 
-function BirthdayRow({ item, label, onNavigate, onAction }: { item: ActionItem; label: string; onNavigate: () => void; onAction: (type: string) => void }) {
+function getBirthdayAge(item: ActionItem): number | null {
+  const bd = item.birthday;
+  if (!bd) return null;
+  const parts = bd.slice(0, 10).split("-");
+  if (parts.length !== 3) return null;
+  const year = parseInt(parts[0], 10);
+  if (year < 1900 || year > 2020) return null;
+  const today = new Date();
+  const parsed = getBirthdayMonthDay(item);
+  if (!parsed) return null;
+  let age = today.getFullYear() - year;
+  if (today.getMonth() + 1 < parsed.month || (today.getMonth() + 1 === parsed.month && today.getDate() < parsed.day)) age--;
+  return age > 0 && age < 120 ? age : null;
+}
+
+function BirthdayRow({ item, label, onNavigate, onAction, onDone }: { item: ActionItem; label: string; onNavigate: () => void; onAction: (type: string) => void; onDone?: () => void }) {
+  const age = getBirthdayAge(item);
   return (
     <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE[item.itemType].className)}>
             {TYPE_BADGE[item.itemType].label}
@@ -1767,20 +1804,27 @@ function BirthdayRow({ item, label, onNavigate, onAction }: { item: ActionItem; 
           {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
         </div>
         <p className="text-xs text-muted-foreground">
-          🎂 {formatBirthday(item)} — <span className="font-medium text-pink-600">{label}</span>
+          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""} — <span className="font-medium text-pink-600">{label}</span>
         </p>
       </div>
-      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        {item.phone && (
-          <>
-            <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
-          </>
+      <div className="flex gap-0.5 items-center shrink-0">
+        {onDone && (
+          <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 opacity-100" onClick={onDone}>
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Done
+          </Button>
         )}
-        {item.email && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`mailto:${item.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a></Button>
-        )}
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}><FileText className="w-3.5 h-3.5 text-primary" /></Button>
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {item.phone && (
+            <>
+              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
+            </>
+          )}
+          {item.email && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`mailto:${item.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a></Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}><FileText className="w-3.5 h-3.5 text-primary" /></Button>
+        </div>
       </div>
     </div>
   );
