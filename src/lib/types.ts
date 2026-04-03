@@ -275,6 +275,7 @@ export interface TeamConsultant {
   first_order_date: string | null;
   first_party_date: string | null;
   first_team_member_date: string | null;
+  focus_group: string | null;
 }
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;
