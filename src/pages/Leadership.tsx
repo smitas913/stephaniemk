@@ -20,7 +20,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import { toast } from "sonner";
 
@@ -85,7 +87,8 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
-  const [focusFilter, setFocusFilter] = useState<string>("New+Key");
+  const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
+  const [focusFilter, setFocusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("coaching");
   const [coachingFilter, setCoachingFilter] = useState<string>("all");
@@ -211,8 +214,8 @@ function ConsultantsTab() {
           <Select value={focusFilter} onValueChange={setFocusFilter}>
             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Consultants</SelectItem>
               <SelectItem value="New+Key">New + Key</SelectItem>
-              <SelectItem value="all">All Focus Groups</SelectItem>
               {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -255,7 +258,7 @@ function ConsultantsTab() {
             const overdue = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === -1;
             const today = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === 0;
             return (
-              <Card key={c.id} className={cn("border-border/50 shadow-sm", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")}>
+              <Card key={c.id} className={cn("border-border/50 shadow-sm cursor-pointer hover:shadow-md transition-shadow", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")} onClick={() => setViewConsultant(c)}>
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -289,10 +292,6 @@ function ConsultantsTab() {
                       </div>
                     )}
                     {c.join_date && <p className="text-[10px] text-muted-foreground mt-0.5">Joined {formatDateOnly(c.join_date)}</p>}
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}><Pencil className="w-3.5 h-3.5 text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(c)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
                   </div>
                 </CardContent>
               </Card>
@@ -397,6 +396,138 @@ function ConsultantsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Consultant Sheet */}
+      <Sheet open={!!viewConsultant} onOpenChange={(open) => !open && setViewConsultant(null)}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          {viewConsultant && (() => {
+            const vc = viewConsultant;
+            const address = [vc.address_line_1, vc.city, vc.state_territory, vc.postal_code].filter(Boolean).join(", ");
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="text-lg">{vc.name}</SheetTitle>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {vc.consultant_id && <Badge variant="outline" className="text-[10px]">#{vc.consultant_id}</Badge>}
+                    {vc.focus_group && <Badge variant="secondary" className="text-[10px]">{vc.focus_group}</Badge>}
+                    {vc.onboarding_stage && vc.focus_group !== "General" && (
+                      <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[vc.onboarding_stage] || "")}>
+                        {vc.onboarding_stage}
+                      </Badge>
+                    )}
+                  </div>
+                </SheetHeader>
+
+                {/* Quick Actions */}
+                <div className="flex items-center gap-2 mt-4">
+                  {vc.phone && (
+                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                      <a href={`tel:${vc.phone}`}><Phone className="w-3.5 h-3.5" />Call</a>
+                    </Button>
+                  )}
+                  {vc.phone && (
+                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                      <a href={`sms:${vc.phone}`}><MessageSquare className="w-3.5 h-3.5" />Text</a>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setViewConsultant(null); openEdit(vc); }}>
+                    <Pencil className="w-3.5 h-3.5" />Edit
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => { setViewConsultant(null); setDeleteTarget(vc); }}>
+                    <Trash2 className="w-3.5 h-3.5" />Delete
+                  </Button>
+                </div>
+
+                <Separator className="my-4" />
+
+                {/* Contact Info */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact Info</p>
+                  <div className="space-y-2">
+                    {vc.phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                        <a href={`tel:${vc.phone}`} className="text-primary hover:underline">{vc.phone}</a>
+                      </div>
+                    )}
+                    {vc.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                        <a href={`mailto:${vc.email}`} className="text-primary hover:underline">{vc.email}</a>
+                      </div>
+                    )}
+                    {address && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <MapPin className="w-3.5 h-3.5 text-muted-foreground mt-0.5" />
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{address}</a>
+                      </div>
+                    )}
+                    {!vc.phone && !vc.email && !address && <p className="text-sm text-muted-foreground">No contact info on file.</p>}
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                {/* Details */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Start Date</p>
+                      <p className="font-medium">{vc.join_date ? formatDateOnly(vc.join_date) : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Birthday</p>
+                      <p className="font-medium">{vc.birthday ? formatDateOnly(vc.birthday) : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Focus Group</p>
+                      <p className="font-medium">{vc.focus_group || "General"}</p>
+                    </div>
+                    {vc.focus_group && vc.focus_group !== "General" && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Growth Stage</p>
+                        <p className="font-medium">{vc.onboarding_stage || "—"}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                {/* Coaching */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Coaching</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Coaching Focus</p>
+                      <p className="font-medium">{vc.coaching_focus || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Next Coaching Date</p>
+                      <p className={cn("font-medium", vc.next_coaching_date && compareDateOnly(vc.next_coaching_date) === -1 && "text-destructive", vc.next_coaching_date && compareDateOnly(vc.next_coaching_date) === 0 && "text-primary")}>
+                        {vc.next_coaching_date ? formatDateOnly(vc.next_coaching_date) : "—"}
+                        {vc.next_coaching_date && compareDateOnly(vc.next_coaching_date) === -1 && " · Overdue"}
+                        {vc.next_coaching_date && compareDateOnly(vc.next_coaching_date) === 0 && " · Today"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {vc.notes && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Notes</p>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{vc.notes}</p>
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
     </div>
