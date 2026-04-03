@@ -214,8 +214,8 @@ function ConsultantsTab() {
           <Select value={focusFilter} onValueChange={setFocusFilter}>
             <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Consultants</SelectItem>
               <SelectItem value="New+Key">New + Key</SelectItem>
-              <SelectItem value="all">All Focus Groups</SelectItem>
               {FOCUS_GROUPS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
             </SelectContent>
           </Select>
