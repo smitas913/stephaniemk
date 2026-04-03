@@ -4,7 +4,7 @@ import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
 } from "@/lib/queries";
-import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
+import { CONSULTANT_STATUSES, LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
 import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
