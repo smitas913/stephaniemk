@@ -1121,6 +1121,37 @@ export default function FollowUps() {
                 />
               ) : (
                 <>
+                  {/* Dormant Cadence Info */}
+                  {detailItem?.itemType === "customer" && detailItem.activity_status === "Dormant" && (
+                    <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
+                      <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-1">
+                        <CalendarCheck className="w-3 h-3" /> Dormant Follow-Up Cadence
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {getDormantStageLabel((detailItem.dormant_follow_up_stage || null) as DormantStage)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Completing will auto-schedule the next touch
+                        {detailItem.dormant_follow_up_stage === "Stage 3" ? " (1 year)" :
+                         detailItem.dormant_follow_up_stage === "Annual" ? " (1 year)" : " (5 days)"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mark Follow-Up Complete (prominent) */}
+                  {detailItem?.itemType === "customer" && (
+                    <div className="mb-4">
+                      <Button
+                        className="w-full gap-1.5"
+                        onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
+                        disabled={markFollowUpCompleteMutation.isPending}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        {markFollowUpCompleteMutation.isPending ? "Completing..." : "Mark Follow-Up Complete"}
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Update date */}
                   <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
