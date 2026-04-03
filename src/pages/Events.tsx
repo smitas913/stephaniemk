@@ -10,10 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useMutation as useRQMutation } from "@tanstack/react-query";
-import { upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
-import { generateEventId } from "@/lib/eventId";
-import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
@@ -41,31 +38,6 @@ export default function Events() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const createMutation = useRQMutation({
-    mutationFn: async () => {
-      const today = toLocalDateKey();
-      const existingIds = events.map(e => e.event_id);
-      const eventId = generateEventId("Party", today, "Event", existingIds);
-      await upsertEvent({
-        event_id: eventId,
-        event_type: "Party",
-        event_date: today,
-        guest_count: 0,
-      });
-      try {
-        await generateEventWorkflowTasks(eventId, today);
-      } catch (e) {
-        console.error("Failed to generate workflow tasks", e);
-      }
-      return eventId;
-    },
-    onSuccess: (eventId) => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
-      navigate(`/events/${eventId}`);
-    },
-    onError: (err: any) => toast.error(err.message || "Failed to create event"),
-  });
 
   // Calculate totals per event from orders
   const eventSales = useMemo(() => {
@@ -117,11 +89,10 @@ export default function Events() {
             <p className="text-sm text-muted-foreground">{totalEvents} events</p>
           </div>
           <Button
-            disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate()}
+            onClick={() => navigate("/events/new")}
             className="gap-1.5"
           >
-            <Plus className="w-4 h-4" /> {createMutation.isPending ? "Creating..." : "New Event"}
+            <Plus className="w-4 h-4" /> New Event
           </Button>
         </div>
 
