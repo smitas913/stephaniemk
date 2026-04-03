@@ -6,8 +6,9 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes,
+  fetchAllLatestNotes, fetchEventTasks, completeEventTask,
 } from "@/lib/queries";
+import type { EventTask } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
