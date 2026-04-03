@@ -32,6 +32,11 @@ export default function EventDetail() {
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: eventTasks = [] } = useQuery({
+    queryKey: ["event-tasks", eventId],
+    queryFn: () => fetchEventTasksByEventId(eventId!),
+    enabled: !!eventId,
+  });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
 
