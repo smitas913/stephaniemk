@@ -694,8 +694,8 @@ export default function FollowUps() {
   });
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
-    if (item.itemType === "customer") navigate(`/customers/${item.id}`);
-    else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`);
+    if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
+    else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`, { state: { from: "/follow-ups" } });
     else if (item.itemType === "lead") navigate("/booking-leads");
     else if (item.itemType === "hostess") {
       const evt = events.find(e => e.id === item.id);
