@@ -189,7 +189,7 @@ export default function FollowUpDashboard() {
     ];
 
     const row4Cards = [
-      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests} (${m.convEventCount} events)`, icon: TrendingUp, accent: "text-primary" },
+      { label: "Conversion Rate", value: `${m.conversionRate.toFixed(1)}%`, subtitle: `${m.convOrdering} / ${m.convGuests} guests (${m.convEventCount} parties)`, icon: TrendingUp, accent: "text-primary" },
       { label: "Reorder Rate", value: `${m.reorderRate.toFixed(1)}%`, subtitle: `${m.repeatCustomers} / ${m.totalOrderingCustomers} customers`, icon: Users, accent: "text-primary" },
     ];
 
