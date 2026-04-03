@@ -921,7 +921,11 @@ export type Database = {
       }
       team_consultants: {
         Row: {
+          address_line_1: string | null
+          birthday: string | null
+          city: string | null
           coaching_focus: string | null
+          consultant_id: string | null
           created_at: string
           email: string | null
           first_order_date: string | null
@@ -937,12 +941,18 @@ export type Database = {
           onboarding_stage: string | null
           owner_user_id: string | null
           phone: string | null
+          postal_code: string | null
           prospect_id: string | null
+          state_territory: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
+          address_line_1?: string | null
+          birthday?: string | null
+          city?: string | null
           coaching_focus?: string | null
+          consultant_id?: string | null
           created_at?: string
           email?: string | null
           first_order_date?: string | null
@@ -958,12 +968,18 @@ export type Database = {
           onboarding_stage?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           prospect_id?: string | null
+          state_territory?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
+          address_line_1?: string | null
+          birthday?: string | null
+          city?: string | null
           coaching_focus?: string | null
+          consultant_id?: string | null
           created_at?: string
           email?: string | null
           first_order_date?: string | null
@@ -979,7 +995,9 @@ export type Database = {
           onboarding_stage?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          postal_code?: string | null
           prospect_id?: string | null
+          state_territory?: string | null
           status?: string
           updated_at?: string | null
         }
