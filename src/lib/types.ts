@@ -75,6 +75,9 @@ export interface CustomerComputed {
 export const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
 export type EventFormat = typeof EVENT_FORMATS[number];
 
+export const EVENT_STATUSES = ["Booked", "Held", "Cancelled"] as const;
+export type EventStatus = typeof EVENT_STATUSES[number];
+
 export const COACHING_STATUSES = ["Booked", "Coaching Scheduled", "Invites Sent", "Confirmed", "Completed"] as const;
 export const RSVP_OPTIONS = ["Yes", "No", "Maybe"] as const;
 
