@@ -130,7 +130,7 @@ export interface EventGuest {
   interested: boolean;
 }
 
-export const RELATIONSHIP_STATUSES = ["Customer", "Consultant", "Former Consultant"] as const;
+export const RELATIONSHIP_STATUSES = ["Customer", "Former Consultant"] as const;
 export const ORDER_TYPES = ["Reorder", "Party", "Facial", "Appointment", "Other"] as const;
 export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Credit Card", "CashApp", "Paypal", "MyShop", "Other"] as const;
