@@ -1655,6 +1655,14 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
 // ─── Lead Edit Panel (inline in detail sheet) ───
 
+const LEAD_ACTIVITY_TYPES = ["Call", "Text", "Email", "Booking", "Sharing"] as const;
+
+function getAutoFollowUpDays(status: string): number {
+  if (status === "New") return 1;
+  if (status === "Contacted") return 2;
+  return 2;
+}
+
 function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   item: ActionItem;
   bookingLeads: BookingLead[];
@@ -1663,116 +1671,144 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 }) {
   const lead = bookingLeads.find((l) => l.id === item.id);
   const [status, setStatus] = useState(lead?.status || "New");
-  const [nextFollowUp, setNextFollowUp] = useState(lead?.next_follow_up_date || "");
-  const [notes, setNotes] = useState(lead?.notes || "");
+  const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
+  const [nextFollowUp, setNextFollowUp] = useState(() => {
+    if (lead?.next_follow_up_date) return lead.next_follow_up_date;
+    const days = getAutoFollowUpDays(lead?.status || "New");
+    return format(addDays(new Date(), days), "yyyy-MM-dd");
+  });
   const [saving, setSaving] = useState(false);
 
-  // Parse notes history from the notes field (format: "[date] note\n")
   const notesHistory = useMemo(() => {
     if (!lead?.notes) return [];
     const lines = lead.notes.split("\n").filter(Boolean);
     return lines.map((line, i) => ({ id: String(i), text: line })).reverse();
   }, [lead?.notes]);
 
-  const handleSave = async () => {
+  const handleLogActivity = async () => {
+    if (!newNote.trim()) {
+      toast.error("Please add a note about what happened");
+      return;
+    }
     setSaving(true);
     try {
-      let updatedNotes = notes;
-      if (newNote.trim()) {
-        const timestamp = format(new Date(), "MM/dd/yyyy h:mm a");
-        const entry = `[${timestamp}] ${newNote.trim()}`;
-        updatedNotes = updatedNotes ? `${updatedNotes}\n${entry}` : entry;
-      }
+      const today = toLocalDateKey();
+      const timestamp = format(new Date(), "MM/dd/yyyy h:mm a");
+      const entry = `[${timestamp}] (${activityType}) ${newNote.trim()}`;
+      const currentNotes = lead?.notes || "";
+      const updatedNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
+
+      const autoNextDate = nextFollowUp || format(addDays(new Date(), getAutoFollowUpDays(status)), "yyyy-MM-dd");
+
       await updateBookingLead(item.id, {
-        status: status as any,
-        next_follow_up_date: nextFollowUp || null,
-        notes: updatedNotes || null,
+        last_contact_date: today,
+        next_follow_up_date: autoNextDate,
+        status: status === "New" ? "Contacted" : status,
+        notes: updatedNotes,
+        lead_activity: activityType,
       } as any);
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      setNotes(updatedNotes);
-      setNewNote("");
-      toast.success("Lead updated");
+      toast.success(`Activity logged — next follow-up ${formatDateOnly(autoNextDate)}`);
+      onClose();
     } catch { toast.error("Failed to save"); }
     setSaving(false);
   };
 
-  const handleMarkContacted = async () => {
+  const handleSaveNextStep = async () => {
     setSaving(true);
     try {
-      const today = toLocalDateKey();
-      const nextDate = nextFollowUp || format(addDays(new Date(), 2), "yyyy-MM-dd");
-      let updatedNotes = notes;
-      if (newNote.trim()) {
-        const timestamp = format(new Date(), "MM/dd/yyyy h:mm a");
-        const entry = `[${timestamp}] ${newNote.trim()}`;
-        updatedNotes = updatedNotes ? `${updatedNotes}\n${entry}` : entry;
-      }
-      const contactEntry = `[${format(new Date(), "MM/dd/yyyy h:mm a")}] Marked contacted`;
-      updatedNotes = updatedNotes ? `${updatedNotes}\n${contactEntry}` : contactEntry;
-
       await updateBookingLead(item.id, {
-        last_contact_date: today,
-        next_follow_up_date: nextDate,
-        status: status === "New" ? "Contacted" : status,
-        notes: updatedNotes || null,
+        status: status as any,
+        next_follow_up_date: nextFollowUp || null,
       } as any);
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      toast.success(`Contacted — next follow-up ${formatDateOnly(nextDate)}`);
-      onClose();
-    } catch { toast.error("Failed to update"); }
+      toast.success("Next step updated");
+    } catch { toast.error("Failed to save"); }
     setSaving(false);
   };
 
-  return (
-    <div className="space-y-5">
-      {/* Status */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {BOOKING_LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+  const todayFormatted = format(new Date(), "MMMM d, yyyy");
 
-      {/* Lead Source */}
-      {lead?.lead_source && (
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lead Source</label>
-          <p className="text-sm font-medium text-foreground">{lead.lead_source}</p>
+  return (
+    <div className="space-y-6">
+      {/* Contact Info Bar */}
+      {lead && (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          {lead.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</span>}
+          {lead.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{lead.email}</span>}
+          {lead.lead_source && <Badge variant="secondary" className="text-[10px]">{lead.lead_source}</Badge>}
+          {lead.last_contact_date && <span className="text-xs">Last: {formatDateOnly(lead.last_contact_date)}</span>}
         </div>
       )}
 
-      {/* Next Follow-Up Date */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-          <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
-        </label>
-        <Input type="date" value={nextFollowUp} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setNextFollowUp(e.target.value)} className="h-9" />
+      {/* ── SECTION 1: Log Today's Activity ── */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">Log Today's Activity</h3>
+          <span className="text-xs text-muted-foreground">Today — {todayFormatted}</span>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity Type</label>
+          <Select value={activityType} onValueChange={setActivityType}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {LEAD_ACTIVITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
+          </label>
+          <Textarea
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            placeholder="What happened? What was discussed?"
+            className="min-h-[80px]"
+            autoFocus
+          />
+        </div>
+
+        <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
+          <CheckCircle2 className="w-4 h-4 mr-1.5" />
+          {saving ? "Saving..." : "Log Activity"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center">
+          Logging marks as contacted and auto-sets next follow-up
+        </p>
       </div>
 
-      {/* Add Note */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-          <FileText className="w-3 h-3" /> Add Note
-        </label>
-        <Textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder="New note..." className="min-h-[80px]" />
+      {/* ── SECTION 2: Next Step ── */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Next Step</h3>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {BOOKING_LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
+          </label>
+          <Input type="date" value={nextFollowUp} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setNextFollowUp(e.target.value)} className="h-9" />
+          <p className="text-[11px] text-muted-foreground">Auto-set when you log activity. Edit to override.</p>
+        </div>
+
+        <Button variant="outline" className="w-full" onClick={handleSaveNextStep} disabled={saving}>
+          {saving ? "Saving..." : "Update Next Step"}
+        </Button>
       </div>
 
-      {/* Save */}
-      <Button className="w-full" onClick={handleSave} disabled={saving}>
-        {saving ? "Saving..." : "Save Changes"}
-      </Button>
-
-      {/* Mark Contacted */}
-      <Button variant="outline" className="w-full gap-1.5" onClick={handleMarkContacted} disabled={saving}>
-        <CheckCircle2 className="w-4 h-4" />
-        Mark Contacted Today {!nextFollowUp && "(+2 days)"}
-      </Button>
-
-      {/* Notes History */}
+      {/* ── Notes History ── */}
       <div>
         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
         {notesHistory.length === 0 ? (
@@ -1787,18 +1823,6 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
           </div>
         )}
       </div>
-
-      {/* Details */}
-      {lead && (
-        <div className="p-3 rounded-lg bg-muted/30 border border-border/40 space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Contact Info</p>
-          <div className="grid grid-cols-1 gap-y-1 text-sm">
-            {lead.phone && <div><span className="text-muted-foreground text-xs">Phone:</span> <span className="font-medium">{lead.phone}</span></div>}
-            {lead.email && <div><span className="text-muted-foreground text-xs">Email:</span> <span className="font-medium">{lead.email}</span></div>}
-            {lead.last_contact_date && <div><span className="text-muted-foreground text-xs">Last Contact:</span> <span className="font-medium">{formatDateOnly(lead.last_contact_date)}</span></div>}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
