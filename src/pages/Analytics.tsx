@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchEvents, fetchProspects, fetchCustomers } from "@/lib/queries";
 import type { EventRecord, Prospect, Customer } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +22,7 @@ type MonthRow = {
   label: string;
   faces: number;
   parties: number;
+  facials: number;
   sharings: number;
   newTeam: number;
   sales: number;
@@ -85,16 +87,18 @@ export default function Analytics() {
       const mStart = startOfMonth(refDate);
       const mEnd = endOfMonth(refDate);
       const mLabel = format(mStart, "MMM yyyy");
-      const mEvents = events.filter((e) => e.event_status === "Held" && inRange(e.event_date, mStart, mEnd));
-      const mAllEvents = events.filter((e) => inRange(e.event_date, mStart, mEnd));
-      const mPF = mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+      // Count events as "held" if status is Held OR if date has passed and status is still Booked
+      const isEffectivelyHeld = (e: EventRecord) =>
+        e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey());
+      const mEvents = events.filter((e) => isEffectivelyHeld(e) && inRange(e.event_date, mStart, mEnd));
       const mOrders = orders.filter((o) => inRange(o.order_date, mStart, mEnd));
       const mSales = mOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
       months.push({
         label: mLabel,
-        faces: mPF.reduce((s, e) => s + Number(e.guest_count || 0), 0),
+        faces: mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial").reduce((s, e) => s + Number(e.guest_count || 0), 0),
         parties: mEvents.filter((e) => e.event_type === "Party").length,
+        facials: mEvents.filter((e) => e.event_type === "Facial").length,
         sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
         newTeam: prospects.filter((p) =>
           (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
@@ -110,6 +114,7 @@ export default function Analytics() {
         label: "",
         faces: Math.round(rows.reduce((s, r) => s + r.faces, 0) / n),
         parties: Math.round((rows.reduce((s, r) => s + r.parties, 0) / n) * 10) / 10,
+        facials: Math.round((rows.reduce((s, r) => s + r.facials, 0) / n) * 10) / 10,
         sharings: Math.round((rows.reduce((s, r) => s + r.sharings, 0) / n) * 10) / 10,
         newTeam: Math.round((rows.reduce((s, r) => s + r.newTeam, 0) / n) * 10) / 10,
         sales: Math.round(rows.reduce((s, r) => s + r.sales, 0) / n),
@@ -127,6 +132,7 @@ export default function Analytics() {
       label: "Total",
       faces: months.reduce((s, r) => s + r.faces, 0),
       parties: months.reduce((s, r) => s + r.parties, 0),
+      facials: months.reduce((s, r) => s + r.facials, 0),
       sharings: months.reduce((s, r) => s + r.sharings, 0),
       newTeam: months.reduce((s, r) => s + r.newTeam, 0),
       sales: months.reduce((s, r) => s + r.sales, 0),
@@ -145,9 +151,10 @@ export default function Analytics() {
     }
 
     // Event conversion stats for period
+    const todayStr = toLocalDateKey();
     const periodAllEvents = events.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
     const evBooked = periodAllEvents.length;
-    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held").length;
+    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < todayStr)).length;
     const evCancelled = periodAllEvents.filter((e) => e.event_status === "Cancelled").length;
     const holdRate = evBooked > 0 ? Math.round((evHeld / evBooked) * 1000) / 10 : 0;
     const cancelRate = evBooked > 0 ? Math.round((evCancelled / evBooked) * 1000) / 10 : 0;
@@ -205,7 +212,7 @@ export default function Analytics() {
         ) : (
           <div className="space-y-5">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Total Sales</p>
@@ -220,8 +227,14 @@ export default function Analytics() {
               </Card>
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xs text-muted-foreground font-medium">Total Parties</p>
+                  <p className="text-xs text-muted-foreground font-medium">Parties</p>
                   <p className="text-xl font-bold text-foreground mt-1">{analytics.totals.parties}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Facials</p>
+                  <p className="text-xl font-bold text-foreground mt-1">{analytics.totals.facials}</p>
                 </CardContent>
               </Card>
               <Card className="border-border/50 shadow-sm">
@@ -285,6 +298,7 @@ export default function Analytics() {
                         <TableHead className="text-xs">Month</TableHead>
                         <TableHead className="text-xs text-center">Faces</TableHead>
                         <TableHead className="text-xs text-center">Parties</TableHead>
+                        <TableHead className="text-xs text-center">Facials</TableHead>
                         <TableHead className="text-xs text-center">Sharings</TableHead>
                         <TableHead className="text-xs text-center">New Team</TableHead>
                         <TableHead className="text-xs text-right">Sales</TableHead>
@@ -296,6 +310,7 @@ export default function Analytics() {
                           <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{row.facials}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
                           <TableCell className="text-sm text-right tabular-nums">{formatCurrency(row.sales)}</TableCell>
@@ -306,6 +321,7 @@ export default function Analytics() {
                         <TableCell className="text-sm font-bold text-foreground">Total</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.faces}</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.parties}</TableCell>
+                        <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.facials}</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.sharings}</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.newTeam}</TableCell>
                         <TableCell className="text-sm text-right font-bold tabular-nums">{formatCurrency(analytics.totals.sales)}</TableCell>
@@ -332,6 +348,7 @@ export default function Analytics() {
                         <TableHead className="text-xs">Period</TableHead>
                         <TableHead className="text-xs text-center">Faces</TableHead>
                         <TableHead className="text-xs text-center">Parties</TableHead>
+                        <TableHead className="text-xs text-center">Facials</TableHead>
                         <TableHead className="text-xs text-center">Sharings</TableHead>
                         <TableHead className="text-xs text-center">New Team</TableHead>
                         <TableHead className="text-xs text-right">Sales</TableHead>
@@ -343,6 +360,7 @@ export default function Analytics() {
                           <TableCell className="text-sm font-semibold text-foreground whitespace-nowrap">{avg.label}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.faces}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.parties}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{avg.data.facials}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.sharings}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.newTeam}</TableCell>
                           <TableCell className="text-sm text-right tabular-nums">{formatCurrency(avg.data.sales)}</TableCell>
