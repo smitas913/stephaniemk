@@ -36,6 +36,7 @@ import BookingLeads from "./pages/BookingLeads";
 import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
 import Campaigns from "./pages/Campaigns";
+import MailingLists from "./pages/MailingLists";
 
 const queryClient = new QueryClient();
 
