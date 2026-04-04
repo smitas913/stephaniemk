@@ -238,7 +238,7 @@ export default function MailingLists() {
           {records[0]?.tag && <Badge variant="outline" className="text-xs">{records[0].tag}</Badge>}
           {addressOnly && (
             <Badge variant="outline" className="text-xs gap-1">
-              <MapPin className="w-3 h-3" />With address
+              <MapPin className="w-3 h-3" />Complete address
             </Badge>
           )}
         </div>
