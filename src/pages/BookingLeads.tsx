@@ -222,7 +222,7 @@ export default function BookingLeads() {
                          )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                        {lead.phone && <span>{lead.phone}</span>}
+                        {lead.phone && <span>{formatPhone(lead.phone)}</span>}
                         {lead.email && <span>{lead.email}</span>}
                         {lead.last_contact_date && <span>Last contact: {formatDateOnly(lead.last_contact_date)}</span>}
                         {lead.next_follow_up_date && (
