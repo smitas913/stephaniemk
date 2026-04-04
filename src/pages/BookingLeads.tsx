@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
