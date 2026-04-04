@@ -19,13 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
 
-function formatPhone(phone: string | null): string {
-  if (!phone) return "—";
-  const digits = phone.replace(/\D/g, "");
-  const d = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
-  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-  return phone;
-}
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 
 type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
