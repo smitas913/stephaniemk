@@ -78,6 +78,9 @@ export type EventFormat = typeof EVENT_FORMATS[number];
 export const EVENT_STATUSES = ["Booked", "Held", "Cancelled"] as const;
 export type EventStatus = typeof EVENT_STATUSES[number];
 
+export const RESCHEDULE_STATUSES = ["None", "Rescheduled", "In Process of Rescheduling"] as const;
+export type RescheduleStatus = typeof RESCHEDULE_STATUSES[number];
+
 export const COACHING_STATUSES = ["Booked", "Coaching Scheduled", "Invites Sent", "Confirmed", "Completed"] as const;
 export const RSVP_OPTIONS = ["Yes", "No", "Maybe"] as const;
 
