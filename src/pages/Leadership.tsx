@@ -437,12 +437,12 @@ function ConsultantsTab() {
                 <div className="flex items-center gap-2 mt-4">
                   {vc.phone && (
                     <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                      <a href={`tel:${vc.phone}`}><Phone className="w-3.5 h-3.5" />Call</a>
+                      <a href={`tel:${phoneForLink(vc.phone)}`}><Phone className="w-3.5 h-3.5" />Call</a>
                     </Button>
                   )}
                   {vc.phone && (
                     <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                      <a href={`sms:${vc.phone}`}><MessageSquare className="w-3.5 h-3.5" />Text</a>
+                      <a href={`sms:${phoneForLink(vc.phone)}`}><MessageSquare className="w-3.5 h-3.5" />Text</a>
                     </Button>
                   )}
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setViewConsultant(null); openEdit(vc); }}>
