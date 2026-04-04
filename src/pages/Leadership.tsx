@@ -183,6 +183,18 @@ function ConsultantsTab() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setDeleteTarget(null); toast.success("Deleted"); },
   });
 
+  const convertToCustomerMut = useMutation({
+    mutationFn: (consultant: TeamConsultant) => convertConsultantToCustomer(consultant),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setConvertTarget(null);
+      setViewConsultant(null);
+      toast.success("Converted to customer");
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to convert"),
+  });
+
   const openEdit = (c: TeamConsultant) => {
     setForm({
       first_name: c.first_name || "", last_name: c.last_name || "",
