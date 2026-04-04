@@ -764,6 +764,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       setDetailItem(null);
       toast.success("Follow-up complete! Next date auto-scheduled.");
     },
