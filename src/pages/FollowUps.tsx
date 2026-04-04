@@ -1964,6 +1964,34 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         )}
       </div>
 
+      {/* ── Did Not Connect / Skip ── */}
+      {!activityLogged && (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <PhoneMissed className="w-4 h-4 text-muted-foreground" />
+            Didn't Connect?
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            Use this if you attempted contact but couldn't reach them. This will NOT update the last contacted date or count as a reach out.
+          </p>
+          <Textarea
+            value={skipNote}
+            onChange={(e) => setSkipNote(e.target.value)}
+            placeholder="Optional: No answer, left voicemail, will try again later..."
+            className="min-h-[50px]"
+          />
+          <Button
+            variant="outline"
+            className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
+            onClick={handleDidNotConnect}
+            disabled={saving}
+          >
+            <PhoneMissed className="w-4 h-4 mr-1.5" />
+            {saving ? "Saving..." : "Did Not Connect — Skip to Next"}
+          </Button>
+        </div>
+      )}
+
       {/* ── SECTION 2: Next Step (highlighted after activity logged) ── */}
       <div className={cn(
         "rounded-lg border bg-card p-4 space-y-3",
