@@ -151,9 +151,10 @@ export default function Analytics() {
     }
 
     // Event conversion stats for period
+    const todayStr = toLocalDateKey();
     const periodAllEvents = events.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
     const evBooked = periodAllEvents.length;
-    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held").length;
+    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < todayStr)).length;
     const evCancelled = periodAllEvents.filter((e) => e.event_status === "Cancelled").length;
     const holdRate = evBooked > 0 ? Math.round((evHeld / evBooked) * 1000) / 10 : 0;
     const cancelRate = evBooked > 0 ? Math.round((evCancelled / evBooked) * 1000) / 10 : 0;
