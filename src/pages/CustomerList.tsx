@@ -12,12 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 
