@@ -132,6 +132,7 @@ export default function Analytics() {
       label: "Total",
       faces: months.reduce((s, r) => s + r.faces, 0),
       parties: months.reduce((s, r) => s + r.parties, 0),
+      facials: months.reduce((s, r) => s + r.facials, 0),
       sharings: months.reduce((s, r) => s + r.sharings, 0),
       newTeam: months.reduce((s, r) => s + r.newTeam, 0),
       sales: months.reduce((s, r) => s + r.sales, 0),
