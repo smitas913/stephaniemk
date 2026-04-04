@@ -387,6 +387,7 @@ export type Database = {
           notes: string | null
           ordering_guest_count: number | null
           owner_user_id: string | null
+          reschedule_status: string | null
           sharing_appointments_count: number | null
           updated_at: string | null
         }
@@ -420,6 +421,7 @@ export type Database = {
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          reschedule_status?: string | null
           sharing_appointments_count?: number | null
           updated_at?: string | null
         }
@@ -453,6 +455,7 @@ export type Database = {
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          reschedule_status?: string | null
           sharing_appointments_count?: number | null
           updated_at?: string | null
         }
