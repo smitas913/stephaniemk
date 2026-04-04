@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
+  convertConsultantToCustomer,
 } from "@/lib/queries";
 import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
@@ -20,7 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
@@ -87,6 +88,7 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
+  const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
   const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
   const [focusFilter, setFocusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -179,6 +181,18 @@ function ConsultantsTab() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteTeamConsultant(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setDeleteTarget(null); toast.success("Deleted"); },
+  });
+
+  const convertToCustomerMut = useMutation({
+    mutationFn: (consultant: TeamConsultant) => convertConsultantToCustomer(consultant),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setConvertTarget(null);
+      setViewConsultant(null);
+      toast.success("Converted to customer");
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to convert"),
   });
 
   const openEdit = (c: TeamConsultant) => {
@@ -436,6 +450,9 @@ function ConsultantsTab() {
                   <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => { setViewConsultant(null); setDeleteTarget(vc); }}>
                     <Trash2 className="w-3.5 h-3.5" />Delete
                   </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConvertTarget(vc)}>
+                    <ArrowRightLeft className="w-3.5 h-3.5" />To Customer
+                  </Button>
                 </div>
 
                 <Separator className="my-4" />
@@ -530,6 +547,24 @@ function ConsultantsTab() {
       </Sheet>
 
       <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
+
+      {/* Convert to Customer Confirmation */}
+      <AlertDialog open={!!convertTarget} onOpenChange={(open) => !open && setConvertTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert to Customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {convertTarget?.name} will be moved to the Customers list with a "Former Consultant" status. Their coaching data will be removed but all customer history will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => convertTarget && convertToCustomerMut.mutate(convertTarget)} disabled={convertToCustomerMut.isPending}>
+              {convertToCustomerMut.isPending ? "Converting..." : "Convert"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

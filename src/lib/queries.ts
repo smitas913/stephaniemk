@@ -918,3 +918,103 @@ export const convertProspectToConsultant = async (
 
   return consultant as unknown as TeamConsultant;
 };
+
+// Convert a customer to a consultant (creates team_consultants record, updates customer)
+export const convertCustomerToConsultant = async (
+  customer: Customer,
+  extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
+): Promise<TeamConsultant> => {
+  const userId = await getCurrentUserId();
+
+  // Check if already a consultant
+  const { data: existing } = await supabase
+    .from("team_consultants")
+    .select("id")
+    .or(`name.eq.${customer.full_name},phone.eq.${customer.phone || "NONE"}`)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    throw new Error("This person already exists as a consultant");
+  }
+
+  const nameParts = customer.full_name.trim().split(/\s+/);
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+
+  const { data: consultant, error: cErr } = await supabase.from("team_consultants").insert({
+    name: customer.full_name,
+    first_name: firstName,
+    last_name: lastName,
+    phone: customer.phone,
+    email: customer.email,
+    birthday: (customer as any).birthday || null,
+    address_line_1: customer.address_line_1,
+    city: customer.city,
+    state_territory: customer.state_territory,
+    postal_code: customer.postal_code,
+    join_date: new Date().toISOString().split("T")[0],
+    status: "Active",
+    focus_group: "New Consultant",
+    onboarding_stage: "New",
+    coaching_focus: extras?.coaching_focus || null,
+    next_coaching_date: extras?.next_coaching_date || null,
+    notes: customer.notes ? `Converted from customer. ${customer.notes}` : "Converted from customer.",
+    owner_user_id: userId,
+  } as any).select().single();
+  if (cErr) throw cErr;
+
+  // Update customer record to mark as Consultant
+  await supabase.from("customers").update({
+    relationship_status: "Consultant",
+    next_follow_up_date: null,
+    follow_up_reason: null,
+    new_follow_up_stage: null,
+  } as any).eq("id", customer.id);
+
+  return consultant as unknown as TeamConsultant;
+};
+
+// Convert a consultant back to a customer (updates customer record, removes from team_consultants)
+export const convertConsultantToCustomer = async (
+  consultant: TeamConsultant
+): Promise<void> => {
+  // Find matching customer record by name/phone/email
+  let customerId: string | null = null;
+
+  // Try to find existing customer record
+  const { data: matches } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("relationship_status", "Consultant")
+    .or(`full_name.eq.${consultant.name},phone.eq.${consultant.phone || "NONE"}`)
+    .limit(1);
+
+  if (matches && matches.length > 0) {
+    customerId = matches[0].id;
+  }
+
+  if (customerId) {
+    // Update existing customer record back to Former Consultant
+    await supabase.from("customers").update({
+      relationship_status: "Former Consultant",
+    } as any).eq("id", customerId);
+  } else {
+    // Create a customer record if none exists
+    const userId = await getCurrentUserId();
+    await supabase.from("customers").insert({
+      full_name: consultant.name,
+      phone: consultant.phone,
+      email: consultant.email,
+      birthday: consultant.birthday,
+      address_line_1: consultant.address_line_1,
+      city: consultant.city,
+      state_territory: consultant.state_territory,
+      postal_code: consultant.postal_code,
+      relationship_status: "Former Consultant",
+      notes: consultant.notes ? `Converted from consultant. ${consultant.notes}` : "Converted from consultant.",
+      owner_user_id: userId,
+    } as any);
+  }
+
+  // Remove from team_consultants
+  await supabase.from("team_consultants").delete().eq("id", consultant.id);
+};

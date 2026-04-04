@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder } from "@/lib/queries";
+import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, convertCustomerToConsultant } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck, ArrowRightLeft } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -119,6 +120,21 @@ export default function CustomerDetail() {
       toast.success("Order deleted");
     },
   });
+
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+
+  const convertToConsultantMut = useMutation({
+    mutationFn: () => convertCustomerToConsultant(customer!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      toast.success(`${customer!.full_name} converted to Consultant`);
+      navigate("/leadership");
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to convert"),
+  });
+
+  const isConsultant = customer?.relationship_status === "Consultant";
 
   if (!customer || !computed) return <Layout><p className="text-muted-foreground text-center py-12">Loading...</p></Layout>;
 
@@ -410,6 +426,38 @@ export default function CustomerDetail() {
 
         {/* Notes & Activity Timeline */}
         <CustomerNotesTimeline customerId={id!} />
+
+        {/* Convert to Consultant */}
+        {!isConsultant && customer.relationship_status !== "Former Consultant" && (
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Convert to Consultant</p>
+                <p className="text-xs text-muted-foreground">Move this person to the Leadership module. All history will be preserved.</p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowConvertConfirm(true)}>
+                <ArrowRightLeft className="w-3.5 h-3.5" />Convert
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        <AlertDialog open={showConvertConfirm} onOpenChange={setShowConvertConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Convert to Consultant?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {customer.full_name} will be moved to the Consultants list under Leadership. Their order history and notes will be preserved, but they will be removed from customer follow-ups.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => convertToConsultantMut.mutate()} disabled={convertToConsultantMut.isPending}>
+                {convertToConsultantMut.isPending ? "Converting..." : "Convert"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
