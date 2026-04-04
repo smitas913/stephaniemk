@@ -1674,6 +1674,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [activityLogged, setActivityLogged] = useState(false);
   const nextStepConfirmed = false; // panel closes on confirm, so always false while open
   const [loggedMessage, setLoggedMessage] = useState("");
+  const [skipNote, setSkipNote] = useState("");
+  const [didNotConnect, setDidNotConnect] = useState(false);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Fetch active catalog follow-ups for this customer
