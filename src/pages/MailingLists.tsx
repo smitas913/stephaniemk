@@ -219,7 +219,7 @@ export default function MailingLists() {
               )}
 
               <div className="flex items-center gap-2 ml-auto">
-                <label className="text-xs text-muted-foreground">Address only</label>
+                <label className="text-xs text-muted-foreground">Complete address</label>
                 <Switch checked={addressOnly} onCheckedChange={setAddressOnly} />
               </div>
               <div className="flex items-center gap-2">
