@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchCustomers } from "@/lib/queries";
 import { Input } from "@/components/ui/input";
 import { Search, Truck } from "lucide-react";
+import { formatPhone } from "@/lib/phoneUtils";
 
 type DeliveryCount = { customer_id: string; count: number };
 
