@@ -450,6 +450,9 @@ function ConsultantsTab() {
                   <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => { setViewConsultant(null); setDeleteTarget(vc); }}>
                     <Trash2 className="w-3.5 h-3.5" />Delete
                   </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setConvertTarget(vc)}>
+                    <ArrowRightLeft className="w-3.5 h-3.5" />To Customer
+                  </Button>
                 </div>
 
                 <Separator className="my-4" />
