@@ -116,13 +116,15 @@ export function autoMapHeaders(csvHeaders: string[]): Record<string, DestField |
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  }
+  // Strip leading "1" for 11-digit US numbers
   if (digits.length === 11 && digits[0] === "1") {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    return digits.slice(1);
   }
-  return phone; // return as-is if non-standard
+  // Store raw digits for valid 10-digit numbers
+  if (digits.length === 10) {
+    return digits;
+  }
+  return digits || phone; // return digits if any, otherwise raw input
 }
 
 function isValidEmail(email: string): boolean {

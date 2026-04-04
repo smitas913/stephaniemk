@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,7 +222,7 @@ export default function BookingLeads() {
                          )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                        {lead.phone && <span>{lead.phone}</span>}
+                        {lead.phone && <span>{formatPhone(lead.phone)}</span>}
                         {lead.email && <span>{lead.email}</span>}
                         {lead.last_contact_date && <span>Last contact: {formatDateOnly(lead.last_contact_date)}</span>}
                         {lead.next_follow_up_date && (
@@ -239,10 +240,10 @@ export default function BookingLeads() {
                       {lead.phone && (
                         <>
                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`tel:${lead.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                            <a href={`tel:${phoneForLink(lead.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`sms:${lead.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                            <a href={`sms:${phoneForLink(lead.phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
                           </Button>
                         </>
                       )}
@@ -317,10 +318,10 @@ export default function BookingLeads() {
                   {editLead.phone && (
                     <>
                       <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                        <a href={`tel:${editLead.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                        <a href={`tel:${phoneForLink(editLead.phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                       </Button>
                       <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                        <a href={`sms:${editLead.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                        <a href={`sms:${phoneForLink(editLead.phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
                       </Button>
                     </>
                   )}

@@ -170,7 +170,7 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
         name: row.mapped.name!.trim(),
         first_name: row.mapped.first_name?.trim() || null,
         last_name: row.mapped.last_name?.trim() || null,
-        phone: row.mapped.phone || null,
+        phone: row.mapped.phone ? row.mapped.phone.replace(/\D/g, "") : null,
         email: row.mapped.email || null,
         consultant_id: row.mapped.consultant_id || null,
         join_date: joinDate || null,

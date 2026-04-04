@@ -6,6 +6,7 @@ import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEv
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { COACHING_STATUSES, EVENT_STATUSES } from "@/lib/types";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -467,10 +468,10 @@ export default function EventDetail() {
                   {event.hostess_phone && (
                     <>
                       <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`tel:${event.hostess_phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                        <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`sms:${event.hostess_phone}`}>Text</a>
+                        <a href={`sms:${phoneForLink(event.hostess_phone)}`}>Text</a>
                       </Button>
                     </>
                   )}

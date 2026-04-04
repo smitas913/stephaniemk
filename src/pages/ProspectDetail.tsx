@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck, CalendarDays } from "lucide-react";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
@@ -156,8 +157,8 @@ export default function ProspectDetail() {
           <div className="flex gap-1">
             {prospect.phone && (
               <>
-                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${prospect.phone}`}><Phone className="w-4 h-4" /></a></Button>
-                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${prospect.phone}`}><MessageSquare className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(prospect.phone)}`}><Phone className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${phoneForLink(prospect.phone)}`}><MessageSquare className="w-4 h-4" /></a></Button>
               </>
             )}
             {prospect.email && (
@@ -304,7 +305,7 @@ export default function ProspectDetail() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                <InfoRow label="Phone" value={prospect.phone} />
+                <InfoRow label="Phone" value={formatPhone(prospect.phone)} />
                 <InfoRow label="Email" value={prospect.email} />
                 <InfoRow label="Date Shared" value={prospect.date_shared ? formatDateOnly(prospect.date_shared) : null} />
                 <InfoRow label="Last Contact" value={prospect.last_contact_date ? formatDateOnly(prospect.last_contact_date) : null} />

@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -436,12 +437,12 @@ function ConsultantsTab() {
                 <div className="flex items-center gap-2 mt-4">
                   {vc.phone && (
                     <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                      <a href={`tel:${vc.phone}`}><Phone className="w-3.5 h-3.5" />Call</a>
+                      <a href={`tel:${phoneForLink(vc.phone)}`}><Phone className="w-3.5 h-3.5" />Call</a>
                     </Button>
                   )}
                   {vc.phone && (
                     <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                      <a href={`sms:${vc.phone}`}><MessageSquare className="w-3.5 h-3.5" />Text</a>
+                      <a href={`sms:${phoneForLink(vc.phone)}`}><MessageSquare className="w-3.5 h-3.5" />Text</a>
                     </Button>
                   )}
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setViewConsultant(null); openEdit(vc); }}>
@@ -464,7 +465,7 @@ function ConsultantsTab() {
                     {vc.phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                        <a href={`tel:${vc.phone}`} className="text-primary hover:underline">{vc.phone}</a>
+                        <a href={`tel:${phoneForLink(vc.phone)}`} className="text-primary hover:underline">{formatPhone(vc.phone)}</a>
                       </div>
                     )}
                     {vc.email && (

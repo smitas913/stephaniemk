@@ -19,13 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
 
-function formatPhone(phone: string | null): string {
-  if (!phone) return "—";
-  const digits = phone.replace(/\D/g, "");
-  const d = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
-  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-  return phone;
-}
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 
 type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
@@ -394,8 +388,8 @@ export default function CustomerList() {
                     <TableCell className="text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       {c.phone ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <a href={`tel:${c.phone}`} className="text-primary hover:underline" title="Call">{formatPhone(c.phone)}</a>
-                          <a href={`sms:${c.phone}`} className="text-muted-foreground hover:text-primary transition-colors" title="Text">
+                          <a href={`tel:${phoneForLink(c.phone)}`} className="text-primary hover:underline" title="Call">{formatPhone(c.phone)}</a>
+                          <a href={`sms:${phoneForLink(c.phone)}`} className="text-muted-foreground hover:text-primary transition-colors" title="Text">
                             <MessageSquare className="w-3.5 h-3.5" />
                           </a>
                         </span>
