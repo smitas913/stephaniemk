@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
-import { COACHING_STATUSES, EVENT_STATUSES } from "@/lib/types";
+import { COACHING_STATUSES, EVENT_STATUSES, RESCHEDULE_STATUSES } from "@/lib/types";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -128,9 +128,16 @@ export default function EventDetail() {
             <p className="text-sm text-muted-foreground font-mono">{eventId}</p>
           </div>
           {event && (
-            <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
-              {event.event_status || "Booked"}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
+                {event.event_status || "Booked"}
+              </Badge>
+              {event.reschedule_status && event.reschedule_status !== "None" && (
+                <Badge variant="outline" className="text-xs">
+                  {event.reschedule_status}
+                </Badge>
+              )}
+            </div>
           )}
         </div>
 
@@ -204,7 +211,7 @@ export default function EventDetail() {
           <Card className="border-border/50">
             <CardContent className="p-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Event Details</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Event Date</label>
                   <Popover>
@@ -286,6 +293,26 @@ export default function EventDetail() {
                     </SelectTrigger>
                     <SelectContent>
                       {EVENT_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Reschedule</label>
+                  <Select
+                    value={(event as any).reschedule_status || "None"}
+                    onValueChange={(val) => {
+                      if (val !== ((event as any).reschedule_status || "None")) {
+                        eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESCHEDULE_STATUSES.map((s) => (
                         <SelectItem key={s} value={s}>{s}</SelectItem>
                       ))}
                     </SelectContent>
