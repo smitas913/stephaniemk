@@ -1640,15 +1640,20 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     try {
       const today = toLocalDateKey();
 
-      // Calculate next follow-up using cadence
+      // Calculate next follow-up using activity-status-aware cadence
       let autoNextDate: string;
       let nextStage = currentDormantStage;
+      let cadenceLabel: string;
+
       if (isDormant) {
         const effectiveStage = currentDormantStage || "Stage 1";
         nextStage = getNextDormantStage(effectiveStage);
         autoNextDate = getNextDormantFollowUpDate(effectiveStage);
+        cadenceLabel = getDormantStageLabel(nextStage);
       } else {
-        autoNextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+        const info = getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage);
+        autoNextDate = format(addDays(new Date(), info.days), "yyyy-MM-dd");
+        cadenceLabel = info.label;
       }
 
       const updates: Record<string, any> = {
@@ -1666,9 +1671,6 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       setNextFollowUp(autoNextDate);
       setNewNote("");
       setActivityLogged(true);
-      const cadenceLabel = isDormant
-        ? getDormantStageLabel(nextStage)
-        : "reorder cycle";
       setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)} (${cadenceLabel})`);
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });
