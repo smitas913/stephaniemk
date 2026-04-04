@@ -234,6 +234,14 @@ export default function FollowUps() {
         return { id, name, type, method: n.note_type, detail: undefined };
       });
 
+    // Also include customer_notes logged today (legacy table — ensures customer activities always count)
+    const customerNoteItems: FocusDetailItem[] = allNotes
+      .filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
+      .map((n) => {
+        const c = customers.find((c) => c.id === n.customer_id);
+        return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
+      });
+
     // Booking Leads contacted today
     const leadReachOutItems: FocusDetailItem[] = bookingLeads
       .filter((l) => l.last_contact_date === todayKey && !l.converted_customer_id)
@@ -245,18 +253,11 @@ export default function FollowUps() {
         detail: l.lead_activity || undefined,
       }));
 
-    // Consultants actually contacted/coached today (only if last_order_date or updated_at changed with a coaching interaction)
-    // We only count consultants where a coaching action was explicitly completed today
-    // by checking if their next_coaching_date was advanced past today (meaning coaching was done)
-    // or if there's a note logged for them today
+    // Consultants coached/contacted today
     const consultantReachOutItems: FocusDetailItem[] = [];
-    // Note: Consultant coaching reach-outs are tracked via the "Mark Complete" action
-    // which updates next_coaching_date. If next_coaching_date is now AFTER today and 
-    // the record was updated today, that means coaching was completed.
     for (const c of consultants) {
       const updatedToday = c.updated_at?.startsWith(todayKey);
       const coachingAdvanced = c.next_coaching_date && c.next_coaching_date > todayKey;
-      // Only count if updated today AND coaching date was advanced (meaning completed)
       if (updatedToday && coachingAdvanced) {
         consultantReachOutItems.push({
           id: c.id,
@@ -268,25 +269,16 @@ export default function FollowUps() {
       }
     }
 
-    // Deduplicate by id (a person might appear from notes AND from lead/consultant records)
+    // Deduplicate by id across all sources
     const seenIds = new Set<string>();
     const allReachOutItems: FocusDetailItem[] = [];
-    for (const item of [...reachOutItems, ...leadReachOutItems, ...consultantReachOutItems]) {
+    for (const item of [...reachOutItems, ...customerNoteItems, ...leadReachOutItems, ...consultantReachOutItems]) {
       if (!seenIds.has(item.id)) {
         seenIds.add(item.id);
         allReachOutItems.push(item);
       }
     }
-
-    // Fallback to legacy customer notes if nothing found
-    const legacyReachOutItems: FocusDetailItem[] = allReachOutItems.length === 0
-      ? allNotes.filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
-        .map((n) => {
-          const c = customers.find((c) => c.id === n.customer_id);
-          return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
-        })
-      : [];
-    const finalReachOutItems = allReachOutItems.length > 0 ? allReachOutItems : legacyReachOutItems;
+    const finalReachOutItems = allReachOutItems;
 
     // Bookings: events created today
     const bookingItems: FocusDetailItem[] = events
