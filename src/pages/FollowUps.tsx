@@ -1245,39 +1245,24 @@ export default function FollowUps() {
                   queryClient={queryClient}
                   onClose={() => setDetailItem(null)}
                 />
+              ) : detailItem?.itemType === "customer" ? (
+                <CustomerEditPanel
+                  item={detailItem}
+                  customers={customers}
+                  enrichedCustomers={enrichedCustomers}
+                  queryClient={queryClient}
+                  onClose={() => setDetailItem(null)}
+                  detailNotes={detailNotes}
+                  scheduleDelivery={scheduleDelivery}
+                  setScheduleDelivery={setScheduleDelivery}
+                  deliveryDate={deliveryDate}
+                  setDeliveryDate={setDeliveryDate}
+                  deliveryNotes={deliveryNotes}
+                  setDeliveryNotes={setDeliveryNotes}
+                  deliveryCreateMut={deliveryCreateMut}
+                />
               ) : (
                 <>
-                  {/* Dormant Cadence Info */}
-                  {detailItem?.itemType === "customer" && detailItem.activity_status === "Dormant" && (
-                    <div className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
-                      <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-1">
-                        <CalendarCheck className="w-3 h-3" /> Dormant Follow-Up Cadence
-                      </p>
-                      <p className="text-sm font-medium text-foreground">
-                        {getDormantStageLabel((detailItem.dormant_follow_up_stage || null) as DormantStage)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Completing will auto-schedule the next touch
-                        {detailItem.dormant_follow_up_stage === "Stage 3" ? " (1 year)" :
-                         detailItem.dormant_follow_up_stage === "Annual" ? " (1 year)" : " (5 days)"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Mark Follow-Up Complete (prominent) */}
-                  {detailItem?.itemType === "customer" && (
-                    <div className="mb-4">
-                      <Button
-                        className="w-full gap-1.5"
-                        onClick={() => markFollowUpCompleteMutation.mutate({ item: detailItem, noteText: detailNoteText, noteType: detailNoteType })}
-                        disabled={markFollowUpCompleteMutation.isPending}
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        {markFollowUpCompleteMutation.isPending ? "Completing..." : "Mark Follow-Up Complete"}
-                      </Button>
-                    </div>
-                  )}
-
                   {/* Update date */}
                   <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -1295,94 +1280,30 @@ export default function FollowUps() {
                   {/* Add note */}
                   <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Add Note</label>
-                    {detailItem?.itemType === "customer" && (
-                      <Select value={detailNoteType} onValueChange={setDetailNoteType}>
-                        <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>{NOTE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                      </Select>
-                    )}
                     <Textarea placeholder="Enter note..." value={detailNoteText} onChange={(e) => setDetailNoteText(e.target.value)} className="min-h-[60px]" />
                     <Button size="sm" onClick={() => detailNoteMutation.mutate()} disabled={detailNoteMutation.isPending || !detailNoteText.trim()}>
                       {detailNoteMutation.isPending ? "Saving..." : "Save Note"}
                     </Button>
                   </div>
 
-                  {/* Schedule Delivery */}
-                  {detailItem?.itemType === "customer" && (
-                    <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="schedule-delivery"
-                          checked={scheduleDelivery}
-                          onCheckedChange={(v) => setScheduleDelivery(!!v)}
-                        />
-                        <label htmlFor="schedule-delivery" className="text-xs font-medium text-muted-foreground flex items-center gap-1 cursor-pointer">
-                          <Truck className="w-3 h-3" /> Schedule Delivery
-                        </label>
-                      </div>
-                      {scheduleDelivery && (
-                        <div className="space-y-2 pt-1">
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-0.5 block">Delivery Date</label>
-                            <Input type="date" value={deliveryDate} min={toLocalDateKey()} onChange={(e) => setDeliveryDate(e.target.value)} className="h-9" />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-0.5 block">Notes (optional)</label>
-                            <Input placeholder="Delivery notes..." value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} className="h-9" />
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full gap-1.5"
-                            disabled={!deliveryDate || deliveryCreateMut.isPending}
-                            onClick={() => deliveryCreateMut.mutate()}
-                          >
-                            <Truck className="w-3.5 h-3.5" />
-                            {deliveryCreateMut.isPending ? "Creating..." : "Create Delivery"}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Notes Timeline */}
+                  {/* Notes Timeline (Prospects) */}
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
-                    {detailItem?.itemType === "customer" ? (
-                      detailNotes.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {detailNotes.map((note) => (
-                            <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{note.note_type}</span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              </div>
-                              <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )
+                    {detailProspectNotes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
                     ) : (
-                      detailProspectNotes.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {detailProspectNotes.map((note) => (
-                            <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[11px] text-muted-foreground">
-                                  {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              </div>
-                              <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
+                      <div className="space-y-2">
+                        {detailProspectNotes.map((note) => (
+                          <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[11px] text-muted-foreground">
+                                {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      )
+                            <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </>
@@ -1649,6 +1570,281 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Customer Edit Panel (unified activity + next step flow) ───
+
+const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation"] as const;
+
+function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+  if (activityStatus === "Dormant") {
+    const stage = (dormantStage || "Stage 1") as DormantStage;
+    if (stage === "Stage 3" || stage === "Annual") {
+      return { days: 365, label: "Annual check-in (1 year)" };
+    }
+    return { days: 5, label: `Dormant cadence (5 days)` };
+  }
+  // Default reorder cycle
+  return { days: 90, label: "Reorder cycle (90 days)" };
+}
+
+function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, onClose, detailNotes, scheduleDelivery, setScheduleDelivery, deliveryDate, setDeliveryDate, deliveryNotes, setDeliveryNotes, deliveryCreateMut }: {
+  item: ActionItem;
+  customers: Customer[];
+  enrichedCustomers: Enriched[];
+  queryClient: ReturnType<typeof useQueryClient>;
+  onClose: () => void;
+  detailNotes: CustomerNote[];
+  scheduleDelivery: boolean;
+  setScheduleDelivery: (v: boolean) => void;
+  deliveryDate: string;
+  setDeliveryDate: (v: string) => void;
+  deliveryNotes: string;
+  setDeliveryNotes: (v: string) => void;
+  deliveryCreateMut: ReturnType<typeof useMutation<void, Error, void>>;
+}) {
+  const customer = customers.find((c) => c.id === item.id);
+  const enriched = enrichedCustomers.find((c) => c.id === item.id);
+  const isDormant = item.activity_status === "Dormant";
+  const currentDormantStage = (item.dormant_follow_up_stage || null) as DormantStage;
+
+  const [activityType, setActivityType] = useState<string>("Call");
+  const [newNote, setNewNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [activityLogged, setActivityLogged] = useState(false);
+  const [loggedMessage, setLoggedMessage] = useState("");
+  const nextFollowUpRef = useRef<HTMLInputElement>(null);
+
+  const autoInfo = useMemo(() => getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage), [item.activity_status, currentDormantStage]);
+  const [nextFollowUp, setNextFollowUp] = useState(() => {
+    if (customer?.next_follow_up_date && compareDateOnly(customer.next_follow_up_date) === 1) {
+      return customer.next_follow_up_date;
+    }
+    return format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+  });
+
+  const handleLogActivity = async () => {
+    if (!newNote.trim()) {
+      toast.error("Please add a note about what happened");
+      return;
+    }
+    setSaving(true);
+    try {
+      const today = toLocalDateKey();
+
+      // Calculate next follow-up using cadence
+      let autoNextDate: string;
+      let nextStage = currentDormantStage;
+      if (isDormant) {
+        const effectiveStage = currentDormantStage || "Stage 1";
+        nextStage = getNextDormantStage(effectiveStage);
+        autoNextDate = getNextDormantFollowUpDate(effectiveStage);
+      } else {
+        autoNextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+      }
+
+      const updates: Record<string, any> = {
+        last_contacted: today,
+        next_follow_up_date: autoNextDate,
+      };
+      if (isDormant) {
+        updates.dormant_follow_up_stage = nextStage;
+      }
+
+      await updateCustomer(item.id, updates as any);
+      await createCustomerNote({ customer_id: item.id, note_text: newNote.trim(), note_type: activityType });
+
+      // Update local state
+      setNextFollowUp(autoNextDate);
+      setNewNote("");
+      setActivityLogged(true);
+      const cadenceLabel = isDormant
+        ? getDormantStageLabel(nextStage)
+        : "reorder cycle";
+      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)} (${cadenceLabel})`);
+
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes", item.id] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+
+      setTimeout(() => nextFollowUpRef.current?.focus(), 100);
+    } catch { toast.error("Failed to save"); }
+    setSaving(false);
+  };
+
+  const handleSaveNextStep = async () => {
+    setSaving(true);
+    try {
+      await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null } as any);
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Next step updated");
+    } catch { toast.error("Failed to save"); }
+    setSaving(false);
+  };
+
+  const todayFormatted = format(new Date(), "MMMM d, yyyy");
+  const autoFollowUpLabel = useMemo(() => {
+    if (!nextFollowUp) return null;
+    const autoDate = isDormant
+      ? getNextDormantFollowUpDate((currentDormantStage || "Stage 1") as DormantStage)
+      : format(addDays(new Date(), 90), "yyyy-MM-dd");
+    if (nextFollowUp === autoDate) {
+      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${autoInfo.label}`;
+    }
+    return `Manually set to ${formatDateOnly(nextFollowUp)}`;
+  }, [nextFollowUp, isDormant, currentDormantStage, autoInfo.label]);
+
+  return (
+    <div className="space-y-6">
+      {/* Dormant Cadence Info */}
+      {isDormant && (
+        <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 space-y-1">
+          <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-1">
+            <CalendarCheck className="w-3 h-3" /> Dormant Follow-Up Cadence
+          </p>
+          <p className="text-sm font-medium text-foreground">
+            {getDormantStageLabel(currentDormantStage)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Logging activity will auto-advance to next touch
+            {currentDormantStage === "Stage 3" || currentDormantStage === "Annual" ? " (1 year)" : " (5 days)"}
+          </p>
+        </div>
+      )}
+
+      {/* Success confirmation banner */}
+      {activityLogged && loggedMessage && (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {loggedMessage}
+        </div>
+      )}
+
+      {/* ── SECTION 1: Log Today's Activity ── */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">Log Today's Activity</h3>
+          <span className="text-xs text-muted-foreground">Today — {todayFormatted}</span>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity Type</label>
+          <Select value={activityType} onValueChange={setActivityType}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CUSTOMER_ACTIVITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
+          </label>
+          <Textarea
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            placeholder="What happened? What was discussed?"
+            className="min-h-[80px]"
+            autoFocus
+          />
+        </div>
+
+        <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
+          <CheckCircle2 className="w-4 h-4 mr-1.5" />
+          {saving ? "Saving..." : "Log Activity"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground text-center">
+          Logging updates last contacted and auto-sets next follow-up
+        </p>
+      </div>
+
+      {/* ── SECTION 2: Next Step ── */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Next Step</h3>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
+          </label>
+          <Input
+            ref={nextFollowUpRef}
+            type="date"
+            value={nextFollowUp}
+            min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
+            onChange={(e) => setNextFollowUp(e.target.value)}
+            className="h-9"
+          />
+          {autoFollowUpLabel && (
+            <p className="text-[11px] text-muted-foreground italic">{autoFollowUpLabel}</p>
+          )}
+        </div>
+
+        <Button variant="outline" className="w-full" onClick={handleSaveNextStep} disabled={saving}>
+          {saving ? "Saving..." : "Update Next Step"}
+        </Button>
+      </div>
+
+      {/* Schedule Delivery */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="schedule-delivery-cust"
+            checked={scheduleDelivery}
+            onCheckedChange={(v) => setScheduleDelivery(!!v)}
+          />
+          <label htmlFor="schedule-delivery-cust" className="text-xs font-medium text-muted-foreground flex items-center gap-1 cursor-pointer">
+            <Truck className="w-3 h-3" /> Schedule Delivery
+          </label>
+        </div>
+        {scheduleDelivery && (
+          <div className="space-y-2 pt-1">
+            <div>
+              <label className="text-[10px] text-muted-foreground mb-0.5 block">Delivery Date</label>
+              <Input type="date" value={deliveryDate} min={toLocalDateKey()} onChange={(e) => setDeliveryDate(e.target.value)} className="h-9" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground mb-0.5 block">Notes (optional)</label>
+              <Input placeholder="Delivery notes..." value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} className="h-9" />
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5"
+              disabled={!deliveryDate || deliveryCreateMut.isPending}
+              onClick={() => deliveryCreateMut.mutate()}
+            >
+              <Truck className="w-3.5 h-3.5" />
+              {deliveryCreateMut.isPending ? "Creating..." : "Create Delivery"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Notes History ── */}
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
+        {detailNotes.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
+        ) : (
+          <div className="space-y-2">
+            {detailNotes.map((note) => (
+              <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{note.note_type}</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(note.created_at).toLocaleDateString()} {new Date(note.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
