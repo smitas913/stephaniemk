@@ -1681,7 +1681,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
   const [loggedMessage, setLoggedMessage] = useState("");
-  const nextFollowUpRef = React.useRef<HTMLInputElement>(null);
+  const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Sync state when lead data refreshes (after mutation + invalidation)
   useEffect(() => {
