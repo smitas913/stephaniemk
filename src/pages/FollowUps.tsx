@@ -729,8 +729,11 @@ export default function FollowUps() {
           const effectiveStage = currentStage || "Stage 1";
           nextStage = getNextDormantStage(effectiveStage as DormantStage);
           nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
+        } else if (item.activity_status === "Warm") {
+          nextDate = format(addDays(new Date(), 45), "yyyy-MM-dd");
+        } else if (item.activity_status === "Active") {
+          nextDate = format(addDays(new Date(), 75), "yyyy-MM-dd");
         } else {
-          // Default: next follow-up in 90 days
           nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
         }
 
@@ -1584,9 +1587,15 @@ function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormant
     if (stage === "Stage 3" || stage === "Annual") {
       return { days: 365, label: "Annual check-in (1 year)" };
     }
-    return { days: 5, label: `Dormant cadence (5 days)` };
+    return { days: 5, label: "Dormant cadence (5 days)" };
   }
-  // Default reorder cycle
+  if (activityStatus === "Warm") {
+    return { days: 45, label: "Warm reorder cycle (45 days)" };
+  }
+  if (activityStatus === "Active") {
+    return { days: 75, label: "Active check-in (75 days)" };
+  }
+  // No Orders or unknown
   return { days: 90, label: "Reorder cycle (90 days)" };
 }
 
@@ -1634,15 +1643,20 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     try {
       const today = toLocalDateKey();
 
-      // Calculate next follow-up using cadence
+      // Calculate next follow-up using activity-status-aware cadence
       let autoNextDate: string;
       let nextStage = currentDormantStage;
+      let cadenceLabel: string;
+
       if (isDormant) {
         const effectiveStage = currentDormantStage || "Stage 1";
         nextStage = getNextDormantStage(effectiveStage);
         autoNextDate = getNextDormantFollowUpDate(effectiveStage);
+        cadenceLabel = getDormantStageLabel(nextStage);
       } else {
-        autoNextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+        const info = getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage);
+        autoNextDate = format(addDays(new Date(), info.days), "yyyy-MM-dd");
+        cadenceLabel = info.label;
       }
 
       const updates: Record<string, any> = {
@@ -1660,9 +1674,6 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       setNextFollowUp(autoNextDate);
       setNewNote("");
       setActivityLogged(true);
-      const cadenceLabel = isDormant
-        ? getDormantStageLabel(nextStage)
-        : "reorder cycle";
       setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)} (${cadenceLabel})`);
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });

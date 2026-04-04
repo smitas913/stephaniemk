@@ -82,13 +82,20 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
       }
     } else if (category === "Dormant" && customer.dormant_follow_up_stage) {
       // Dormant cadence: the date is managed via dormant_follow_up_stage + next_follow_up_date
-      // If we got here, next_follow_up_date is null but stage is set — compute from last contact
       const dormantBase = lastContacted || lastOrderDate;
       if (customer.dormant_follow_up_stage === "Annual") {
         nextFollowUp = addDays(dormantBase, 365);
       } else {
         nextFollowUp = addDays(dormantBase, 5);
       }
+    } else if (category === "Warm") {
+      // Warm customers: follow-up at ~45 days after last contact to encourage reorder
+      const warmBase = lastContacted || lastOrderDate;
+      nextFollowUp = addDays(warmBase, 45);
+    } else if (category === "Active") {
+      // Active customers: light maintenance at ~75 days
+      const activeBase = lastContacted || lastOrderDate;
+      nextFollowUp = addDays(activeBase, 75);
     } else {
       if (lastContacted) {
         nextFollowUp = addDays(lastContacted, 90);
@@ -125,10 +132,16 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
     } else if (category === "Dormant" && customer.dormant_follow_up_stage) {
       const stageLabel = customer.dormant_follow_up_stage === "Annual" ? "Annual Check-In" : `Dormant Touch ${customer.dormant_follow_up_stage.replace("Stage ", "")}`;
       followUpReason = stageLabel;
+    } else if (category === "Dormant") {
+      followUpReason = "Dormant Reactivation";
+    } else if (category === "Warm") {
+      followUpReason = "Warm — Reorder Reminder";
     } else if (daysSinceLastOrder !== null && daysSinceLastOrder >= 90) {
       followUpReason = "90+ Day Reorder";
     } else if (daysSinceLastOrder !== null && daysSinceLastOrder >= 75) {
       followUpReason = "90 Day Cycle";
+    } else if (category === "Active") {
+      followUpReason = "Active — Check-In";
     } else if (vip) {
       followUpReason = "VIP Check-In";
     } else {
