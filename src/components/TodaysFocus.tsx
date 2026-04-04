@@ -285,6 +285,23 @@ export default function TodaysFocus({
                 </SheetDescription>
               </SheetHeader>
 
+              {/* Date navigation inside the sheet */}
+              <div className="flex items-center justify-between mt-3 mb-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goBack}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-foreground hover:underline"
+                  onClick={() => setSelectedDate(todayKey)}
+                >
+                  {dateLabel}
+                </button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goForward} disabled={isToday}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+
               <div className="mt-4 space-y-2">
                 {panel.items.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
