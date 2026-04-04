@@ -88,6 +88,7 @@ function ConsultantsTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
+  const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
   const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
   const [focusFilter, setFocusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
