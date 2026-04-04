@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -1679,6 +1679,17 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
     return format(addDays(new Date(), days), "yyyy-MM-dd");
   });
   const [saving, setSaving] = useState(false);
+  const [activityLogged, setActivityLogged] = useState(false);
+  const [loggedMessage, setLoggedMessage] = useState("");
+  const nextFollowUpRef = useRef<HTMLInputElement>(null);
+
+  // Sync state when lead data refreshes (after mutation + invalidation)
+  useEffect(() => {
+    if (lead) {
+      setStatus(lead.status);
+      if (lead.next_follow_up_date) setNextFollowUp(lead.next_follow_up_date);
+    }
+  }, [lead?.status, lead?.next_follow_up_date]);
 
   const notesHistory = useMemo(() => {
     if (!lead?.notes) return [];
@@ -1699,18 +1710,30 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const currentNotes = lead?.notes || "";
       const updatedNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
 
-      const autoNextDate = nextFollowUp || format(addDays(new Date(), getAutoFollowUpDays(status)), "yyyy-MM-dd");
+      const newStatus = status === "New" ? "Contacted" : status;
+      const autoFollowUpDays = getAutoFollowUpDays(newStatus);
+      const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
 
       await updateBookingLead(item.id, {
         last_contact_date: today,
         next_follow_up_date: autoNextDate,
-        status: status === "New" ? "Contacted" : status,
+        status: newStatus,
         notes: updatedNotes,
         lead_activity: activityType,
       } as any);
+
+      // Update local state immediately
+      setNextFollowUp(autoNextDate);
+      setStatus(newStatus);
+      setNewNote("");
+      setActivityLogged(true);
+      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)}`);
+
+      // Refresh data but DON'T close
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      toast.success(`Activity logged — next follow-up ${formatDateOnly(autoNextDate)}`);
-      onClose();
+
+      // Focus the next follow-up date input
+      setTimeout(() => nextFollowUpRef.current?.focus(), 100);
     } catch { toast.error("Failed to save"); }
     setSaving(false);
   };
@@ -1729,6 +1752,15 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   };
 
   const todayFormatted = format(new Date(), "MMMM d, yyyy");
+  const autoFollowUpLabel = useMemo(() => {
+    if (!nextFollowUp) return null;
+    const days = getAutoFollowUpDays(status === "New" ? "Contacted" : status);
+    const autoDate = format(addDays(new Date(), days), "yyyy-MM-dd");
+    if (nextFollowUp === autoDate) {
+      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${status === "New" ? "Contacted" : status} lead cadence`;
+    }
+    return `Manually set to ${formatDateOnly(nextFollowUp)}`;
+  }, [nextFollowUp, status]);
 
   return (
     <div className="space-y-6">
@@ -1739,6 +1771,14 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
           {lead.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{lead.email}</span>}
           {lead.lead_source && <Badge variant="secondary" className="text-[10px]">{lead.lead_source}</Badge>}
           {lead.last_contact_date && <span className="text-xs">Last: {formatDateOnly(lead.last_contact_date)}</span>}
+        </div>
+      )}
+
+      {/* Success confirmation banner */}
+      {activityLogged && loggedMessage && (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {loggedMessage}
         </div>
       )}
 
@@ -1799,8 +1839,17 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
           </label>
-          <Input type="date" value={nextFollowUp} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setNextFollowUp(e.target.value)} className="h-9" />
-          <p className="text-[11px] text-muted-foreground">Auto-set when you log activity. Edit to override.</p>
+          <Input
+            ref={nextFollowUpRef}
+            type="date"
+            value={nextFollowUp}
+            min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
+            onChange={(e) => setNextFollowUp(e.target.value)}
+            className="h-9"
+          />
+          {autoFollowUpLabel && (
+            <p className="text-[11px] text-muted-foreground italic">{autoFollowUpLabel}</p>
+          )}
         </div>
 
         <Button variant="outline" className="w-full" onClick={handleSaveNextStep} disabled={saving}>
