@@ -744,6 +744,7 @@ export default function FollowUps() {
         await updateCustomer(item.id, updates as any);
         if (note.trim()) {
           await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: nType });
+          await createNote({ entity_type: "Customer", customer_id: item.id, note_body: note.trim(), note_type: nType });
         }
       } else if (item.itemType === "prospect") {
         const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
