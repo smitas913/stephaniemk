@@ -4,11 +4,12 @@ import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { UserCog, ClipboardList, Upload, RefreshCw, Truck, CalendarCog } from "lucide-react";
+import { UserCog, ClipboardList, Upload, RefreshCw, Truck, CalendarCog, GitMerge } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import ConsultantRequests from "@/pages/ConsultantRequests";
 import DeliveryTracking from "@/components/DeliveryTracking";
 import ScheduleSettings from "@/components/ScheduleSettings";
+import MergeDuplicates from "@/components/MergeDuplicates";
 
 export default function AdminTools() {
   const { profile } = useAuth();
@@ -86,6 +87,18 @@ export default function AdminTools() {
                   </Button>
                 </CardContent>
               </Card>
+              <Card className="border-border/50">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <GitMerge className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm text-foreground">Merge Duplicates</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Find and merge duplicate Customer/Consultant records</p>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-4">
+              <MergeDuplicates />
             </div>
           </TabsContent>
 

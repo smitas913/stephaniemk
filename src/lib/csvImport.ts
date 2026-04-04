@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import type { Customer } from "./types";
+import type { Customer, TeamConsultant } from "./types";
 
 // Destination fields the admin can map CSV columns to
 export const DESTINATION_FIELDS = [
@@ -274,6 +274,34 @@ export function findDuplicate(
   // Try exact name match
   if (name) {
     const match = existing.find((c) => normalizeComparableName(c.full_name) === name);
+    if (match) return match;
+  }
+  return null;
+}
+
+/** Check if an import row matches an existing consultant (to prevent creating a duplicate customer) */
+export function findConsultantDuplicate(
+  row: ParsedRow,
+  consultants: TeamConsultant[]
+): TeamConsultant | null {
+  const email = row.mapped.email?.toLowerCase();
+  const phone = row.mapped.phone;
+  const name = row.mapped.full_name ? normalizeComparableName(row.mapped.full_name) : null;
+
+  if (email) {
+    const match = consultants.find((c) => c.email?.toLowerCase() === email);
+    if (match) return match;
+  }
+  if (phone) {
+    const normalizedPhone = phone.replace(/\D/g, "");
+    const match = consultants.find((c) => {
+      const cPhone = c.phone?.replace(/\D/g, "") || "";
+      return cPhone.length >= 7 && cPhone === normalizedPhone;
+    });
+    if (match) return match;
+  }
+  if (name) {
+    const match = consultants.find((c) => normalizeComparableName(c.name) === name);
     if (match) return match;
   }
   return null;
