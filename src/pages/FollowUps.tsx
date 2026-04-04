@@ -1788,14 +1788,51 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     setSaving(false);
   };
 
+  const handleDidNotConnect = async () => {
+    setSaving(true);
+    try {
+      const retryInfo = getSkipRetryDays(item.activity_status);
+      const retryDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
+
+      // Do NOT update last_contacted — this is not a real contact
+      const updates: Record<string, any> = {
+        next_follow_up_date: retryDate,
+        follow_up_reason: "Did not connect — retry scheduled",
+      };
+      await updateCustomer(item.id, updates as any);
+
+      // Log optional note if provided (as a non-contact note type)
+      if (skipNote.trim()) {
+        await logCustomerActivity({ customerId: item.id, noteType: "Other", noteText: `Did not connect: ${skipNote.trim()}`, nextFollowUpDate: retryDate });
+      }
+
+      setNextFollowUp(retryDate);
+      setFollowUpSource("manual");
+      setDidNotConnect(true);
+      setActivityLogged(true); // enables the "Confirm Next Step" flow
+      setLoggedMessage(`Did not connect — retry auto-set to ${formatDateOnly(retryDate)} (${retryInfo.label})`);
+
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      if (skipNote.trim()) {
+        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["customer-notes", item.id] });
+      }
+
+      setTimeout(() => nextFollowUpRef.current?.focus(), 100);
+    } catch { toast.error("Failed to save"); }
+    setSaving(false);
+  };
+
   const handleSaveNextStep = async () => {
     if (!activityLogged) {
-      toast.error("Please log activity first");
+      toast.error("Please log activity or mark as did not connect first");
       return;
     }
     setSaving(true);
     try {
-      const reason = followUpSource === "catalog" && catalogType
+      const reason = didNotConnect
+        ? "Did not connect — retry scheduled"
+        : followUpSource === "catalog" && catalogType
         ? `${catalogType} Catalog Follow-Up`
         : followUpSource === "manual" ? "Manual follow-up" : autoInfo.label;
       await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null, follow_up_reason: reason } as any);
