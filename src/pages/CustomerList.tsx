@@ -264,7 +264,6 @@ export default function CustomerList() {
               )}
             </PopoverContent>
           </Popover>
-          </Select>
         </div>
 
         {/* Table */}
