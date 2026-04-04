@@ -1,12 +1,13 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchCustomers } from "@/lib/queries";
+import { fetchCustomers, fetchTeamConsultants } from "@/lib/queries";
 import {
   parseCSV,
   autoMapHeaders,
   processRows,
   findDuplicate,
+  findConsultantDuplicate,
   buildCustomerRecord,
   DESTINATION_FIELDS,
   type DestField,
