@@ -663,6 +663,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
       setActionItem(null); setNoteText(""); setNoteType("Call"); setFollowUpDate("");
       setInlineNoteId(null); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
