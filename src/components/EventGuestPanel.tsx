@@ -153,7 +153,7 @@ export default function EventGuestPanel({ eventId }: Props) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground py-1.5">{g.phone || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground py-1.5">{formatPhone(g.phone)}</TableCell>
                   <TableCell className="py-1.5">
                     <Select
                       value={g.rsvp || "Maybe"}

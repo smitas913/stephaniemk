@@ -313,7 +313,7 @@ export default function TodaysPlan() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-medium text-foreground truncate">{d.customer_name || "Unnamed"}</span>
-                      {d.phone && <span className="text-xs text-muted-foreground">{d.phone}</span>}
+                      {d.phone && <span className="text-xs text-muted-foreground">{formatPhone(d.phone)}</span>}
                       {!d.address && (
                         <Tooltip>
                           <TooltipTrigger>
