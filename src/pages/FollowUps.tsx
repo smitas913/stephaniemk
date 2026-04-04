@@ -6,7 +6,7 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, fetchEventTasks, completeEventTask,
+  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
