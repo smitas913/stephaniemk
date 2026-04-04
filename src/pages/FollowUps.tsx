@@ -176,6 +176,41 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: CalendarCheck },
 };
 
+const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation"]);
+
+function getTimestampDateKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return toLocalDateKey(parsed);
+}
+
+async function logCustomerActivity({
+  customerId,
+  noteType,
+  noteText,
+  nextFollowUpDate,
+}: {
+  customerId: string;
+  noteType: string;
+  noteText?: string;
+  nextFollowUpDate?: string | null;
+}) {
+  const fallbackNote = `${noteType} follow-up completed`;
+  const noteBody = noteText?.trim() || fallbackNote;
+
+  await Promise.all([
+    createCustomerNote({ customer_id: customerId, note_text: noteBody, note_type: noteType }),
+    createNote({
+      entity_type: "Customer",
+      customer_id: customerId,
+      note_body: noteBody,
+      note_type: noteType,
+      next_follow_up_date: nextFollowUpDate ?? null,
+    }),
+  ]);
+}
+
 // ─── Main Component ───
 
 export default function FollowUps() {
@@ -216,7 +251,13 @@ export default function FollowUps() {
 
     // Reach-out details from unified notes (covers customers & prospects)
     const reachOutItems: FocusDetailItem[] = unifiedNotes
-      .filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
+      .filter((n) => {
+        const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+        if (noteDay !== todayKey) return false;
+        return n.entity_type === "Customer"
+          ? CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type)
+          : contactTypes.has(n.note_type);
+      })
       .map((n) => {
         let name = "Unknown";
         let type = n.entity_type || "Customer";
@@ -237,7 +278,7 @@ export default function FollowUps() {
 
     // Also include customer_notes logged today (legacy table — ensures customer activities always count)
     const customerNoteItems: FocusDetailItem[] = allNotes
-      .filter((n) => n.created_at.startsWith(todayKey) && contactTypes.has(n.note_type))
+      .filter((n) => getTimestampDateKey(n.created_at) === todayKey && CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type))
       .map((n) => {
         const c = customers.find((c) => c.id === n.customer_id);
         return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
@@ -625,10 +666,7 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
-        if (note.trim()) {
-          await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: type });
-          await createNote({ entity_type: "Customer", customer_id: item.id, note_body: note.trim(), note_type: type });
-        }
+        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextFollowUpDate: nextDate ?? null });
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
@@ -678,13 +716,21 @@ export default function FollowUps() {
   const detailNoteMutation = useMutation({
     mutationFn: async () => {
       if (!detailItem || !detailNoteText.trim()) return;
-      if (detailItem.itemType === "customer") await createCustomerNote({ customer_id: detailItem.id, note_text: detailNoteText.trim(), note_type: detailNoteType });
+      if (detailItem.itemType === "customer") {
+        await logCustomerActivity({
+          customerId: detailItem.id,
+          noteType: detailNoteType === "General" ? "Other" : detailNoteType,
+          noteText: detailNoteText.trim(),
+          nextFollowUpDate: normalizeFollowUpDate(detailFollowUpDate),
+        });
+      }
       else if (detailItem.itemType === "prospect") await createProspectNote({ prospect_id: detailItem.id, note_text: detailNoteText.trim() });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       setDetailNoteText(""); setDetailNoteType("Call"); toast.success("Note added");
     },
   });
@@ -742,10 +788,7 @@ export default function FollowUps() {
           updates.dormant_follow_up_stage = nextStage;
         }
         await updateCustomer(item.id, updates as any);
-        if (note.trim()) {
-          await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: nType });
-          await createNote({ entity_type: "Customer", customer_id: item.id, note_body: note.trim(), note_type: nType });
-        }
+        await logCustomerActivity({ customerId: item.id, noteType: nType, noteText: note, nextFollowUpDate: nextDate });
       } else if (item.itemType === "prospect") {
         const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
         await updateProspect(item.id, { last_contact_date: today, next_follow_up_date: nextDate } as any);
@@ -1667,9 +1710,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       }
 
       await updateCustomer(item.id, updates as any);
-      await createCustomerNote({ customer_id: item.id, note_text: newNote.trim(), note_type: activityType });
-      // Also write to unified notes table so it appears in Daily Reach Outs
-      await createNote({ entity_type: "Customer", customer_id: item.id, note_body: newNote.trim(), note_type: activityType });
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText: newNote.trim(), nextFollowUpDate: autoNextDate });
 
       // Update local state
       setNextFollowUp(autoNextDate);
