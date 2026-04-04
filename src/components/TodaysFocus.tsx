@@ -2,12 +2,14 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Target, Phone, CalendarPlus, Share2, Briefcase, PartyPopper, Coffee, User, ChevronRight, ChevronLeft } from "lucide-react";
+import { Target, Phone, CalendarPlus, Share2, Briefcase, PartyPopper, Coffee, User, ChevronRight, ChevronLeft, BarChart3, Calendar } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import TodaysPlan from "@/components/TodaysPlan";
+import WeeklyScorecard from "@/components/WeeklyScorecard";
 import { cn } from "@/lib/utils";
 import { format, subDays, addDays } from "date-fns";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { computeMetricsForDate } from "@/lib/focusMetrics";
 
 type DayType = "booking" | "event" | "light";
 
