@@ -87,6 +87,18 @@ export default function AdminTools() {
                   </Button>
                 </CardContent>
               </Card>
+              <Card className="border-border/50">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <GitMerge className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm text-foreground">Merge Duplicates</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Find and merge duplicate Customer/Consultant records</p>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-4">
+              <MergeDuplicates />
             </div>
           </TabsContent>
 
