@@ -152,54 +152,77 @@ export default function TodaysFocus({
     <div className="space-y-4">
       <Card className="border-primary/20 shadow-md bg-primary/5">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
-            <CardTitle className="text-base font-semibold text-foreground">Today's Focus</CardTitle>
-          </div>
-
-          {/* Date Navigator */}
-          <div className="flex items-center justify-between mt-2">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goBack}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <button
-              type="button"
-              className="text-sm font-medium text-foreground hover:underline"
-              onClick={() => setSelectedDate(todayKey)}
-            >
-              {dateLabel}
-            </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={goForward}
-              disabled={isToday}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {isToday && (
-            <div className="flex gap-1.5 mt-2">
-              {DAY_TYPES.map(dt => (
-                <button
-                  key={dt.value}
-                  type="button"
-                  onClick={() => setDayType(dt.value)}
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
-                    dayType === dt.value
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted"
-                  )}
-                  title={dt.description}
-                >
-                  <dt.icon className="w-3 h-3" />
-                  {dt.label}
-                </button>
-              ))}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base font-semibold text-foreground">Today's Focus</CardTitle>
             </div>
+            {/* Daily / Weekly Toggle */}
+            <div className="flex gap-0.5 rounded-full border border-border p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("daily")}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors",
+                  viewMode === "daily" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Calendar className="w-3 h-3" /> Daily
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("weekly")}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors",
+                  viewMode === "weekly" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <BarChart3 className="w-3 h-3" /> Weekly
+              </button>
+            </div>
+          </div>
+
+          {viewMode === "daily" && (
+            <>
+              {/* Date Navigator */}
+              <div className="flex items-center justify-between mt-2">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goBack}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <button
+                  type="button"
+                  className="text-sm font-medium text-foreground hover:underline"
+                  onClick={() => setSelectedDate(todayKey)}
+                >
+                  {dateLabel}
+                </button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goForward} disabled={isToday}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {isToday && (
+                <div className="flex gap-1.5 mt-2">
+                  {DAY_TYPES.map(dt => (
+                    <button
+                      key={dt.value}
+                      type="button"
+                      onClick={() => setDayType(dt.value)}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                        dayType === dt.value
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                      title={dt.description}
+                    >
+                      <dt.icon className="w-3 h-3" />
+                      {dt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
