@@ -426,6 +426,38 @@ export default function CustomerDetail() {
 
         {/* Notes & Activity Timeline */}
         <CustomerNotesTimeline customerId={id!} />
+
+        {/* Convert to Consultant */}
+        {!isConsultant && customer.relationship_status !== "Former Consultant" && (
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Convert to Consultant</p>
+                <p className="text-xs text-muted-foreground">Move this person to the Leadership module. All history will be preserved.</p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowConvertConfirm(true)}>
+                <ArrowRightLeft className="w-3.5 h-3.5" />Convert
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        <AlertDialog open={showConvertConfirm} onOpenChange={setShowConvertConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Convert to Consultant?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {customer.full_name} will be moved to the Consultants list under Leadership. Their order history and notes will be preserved, but they will be removed from customer follow-ups.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => convertToConsultantMut.mutate()} disabled={convertToConsultantMut.isPending}>
+                {convertToConsultantMut.isPending ? "Converting..." : "Convert"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
