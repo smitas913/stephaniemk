@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck, CalendarDays } from "lucide-react";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
