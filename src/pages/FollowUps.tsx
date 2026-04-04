@@ -34,7 +34,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import {
