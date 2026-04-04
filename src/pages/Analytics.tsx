@@ -348,6 +348,7 @@ export default function Analytics() {
                         <TableHead className="text-xs">Period</TableHead>
                         <TableHead className="text-xs text-center">Faces</TableHead>
                         <TableHead className="text-xs text-center">Parties</TableHead>
+                        <TableHead className="text-xs text-center">Facials</TableHead>
                         <TableHead className="text-xs text-center">Sharings</TableHead>
                         <TableHead className="text-xs text-center">New Team</TableHead>
                         <TableHead className="text-xs text-right">Sales</TableHead>
@@ -359,6 +360,7 @@ export default function Analytics() {
                           <TableCell className="text-sm font-semibold text-foreground whitespace-nowrap">{avg.label}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.faces}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.parties}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{avg.data.facials}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.sharings}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{avg.data.newTeam}</TableCell>
                           <TableCell className="text-sm text-right tabular-nums">{formatCurrency(avg.data.sales)}</TableCell>
