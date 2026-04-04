@@ -21,6 +21,7 @@ type MonthRow = {
   label: string;
   faces: number;
   parties: number;
+  facials: number;
   sharings: number;
   newTeam: number;
   sales: number;
