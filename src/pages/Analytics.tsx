@@ -86,16 +86,18 @@ export default function Analytics() {
       const mStart = startOfMonth(refDate);
       const mEnd = endOfMonth(refDate);
       const mLabel = format(mStart, "MMM yyyy");
-      const mEvents = events.filter((e) => e.event_status === "Held" && inRange(e.event_date, mStart, mEnd));
-      const mAllEvents = events.filter((e) => inRange(e.event_date, mStart, mEnd));
-      const mPF = mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
+      // Count events as "held" if status is Held OR if date has passed and status is still Booked
+      const isEffectivelyHeld = (e: EventRecord) =>
+        e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey());
+      const mEvents = events.filter((e) => isEffectivelyHeld(e) && inRange(e.event_date, mStart, mEnd));
       const mOrders = orders.filter((o) => inRange(o.order_date, mStart, mEnd));
       const mSales = mOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
       months.push({
         label: mLabel,
-        faces: mPF.reduce((s, e) => s + Number(e.guest_count || 0), 0),
+        faces: mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial").reduce((s, e) => s + Number(e.guest_count || 0), 0),
         parties: mEvents.filter((e) => e.event_type === "Party").length,
+        facials: mEvents.filter((e) => e.event_type === "Facial").length,
         sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
         newTeam: prospects.filter((p) =>
           (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
