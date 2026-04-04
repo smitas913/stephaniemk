@@ -34,7 +34,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import {
@@ -1641,6 +1641,13 @@ function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormant
   return { days: 90, label: "Reorder cycle (90 days)" };
 }
 
+function getSkipRetryDays(activityStatus: string | undefined): { days: number; label: string } {
+  if (activityStatus === "Dormant") return { days: 4, label: "Retry in 4 days (Dormant)" };
+  if (activityStatus === "Warm") return { days: 7, label: "Retry in 7 days (Warm)" };
+  if (activityStatus === "Active") return { days: 14, label: "Retry in 14 days (Active)" };
+  return { days: 7, label: "Retry in 7 days" };
+}
+
 function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, onClose, detailNotes, scheduleDelivery, setScheduleDelivery, deliveryDate, setDeliveryDate, deliveryNotes, setDeliveryNotes, deliveryCreateMut }: {
   item: ActionItem;
   customers: Customer[];
@@ -1667,6 +1674,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [activityLogged, setActivityLogged] = useState(false);
   const nextStepConfirmed = false; // panel closes on confirm, so always false while open
   const [loggedMessage, setLoggedMessage] = useState("");
+  const [skipNote, setSkipNote] = useState("");
+  const [didNotConnect, setDidNotConnect] = useState(false);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Fetch active catalog follow-ups for this customer
@@ -1779,14 +1788,51 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     setSaving(false);
   };
 
+  const handleDidNotConnect = async () => {
+    setSaving(true);
+    try {
+      const retryInfo = getSkipRetryDays(item.activity_status);
+      const retryDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
+
+      // Do NOT update last_contacted — this is not a real contact
+      const updates: Record<string, any> = {
+        next_follow_up_date: retryDate,
+        follow_up_reason: "Did not connect — retry scheduled",
+      };
+      await updateCustomer(item.id, updates as any);
+
+      // Log optional note if provided (as a non-contact note type)
+      if (skipNote.trim()) {
+        await logCustomerActivity({ customerId: item.id, noteType: "Other", noteText: `Did not connect: ${skipNote.trim()}`, nextFollowUpDate: retryDate });
+      }
+
+      setNextFollowUp(retryDate);
+      setFollowUpSource("manual");
+      setDidNotConnect(true);
+      setActivityLogged(true); // enables the "Confirm Next Step" flow
+      setLoggedMessage(`Did not connect — retry auto-set to ${formatDateOnly(retryDate)} (${retryInfo.label})`);
+
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      if (skipNote.trim()) {
+        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["customer-notes", item.id] });
+      }
+
+      setTimeout(() => nextFollowUpRef.current?.focus(), 100);
+    } catch { toast.error("Failed to save"); }
+    setSaving(false);
+  };
+
   const handleSaveNextStep = async () => {
     if (!activityLogged) {
-      toast.error("Please log activity first");
+      toast.error("Please log activity or mark as did not connect first");
       return;
     }
     setSaving(true);
     try {
-      const reason = followUpSource === "catalog" && catalogType
+      const reason = didNotConnect
+        ? "Did not connect — retry scheduled"
+        : followUpSource === "catalog" && catalogType
         ? `${catalogType} Catalog Follow-Up`
         : followUpSource === "manual" ? "Manual follow-up" : autoInfo.label;
       await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null, follow_up_reason: reason } as any);
@@ -1860,7 +1906,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       {activityLogged && !nextStepConfirmed && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
           <Clock className="w-4 h-4 shrink-0" />
-          Activity logged — please confirm the next step below to complete this follow-up
+          {didNotConnect ? "Attempt noted" : "Activity logged"} — please confirm the next step below to complete this follow-up
         </div>
       )}
 
@@ -1917,6 +1963,34 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
           </>
         )}
       </div>
+
+      {/* ── Did Not Connect / Skip ── */}
+      {!activityLogged && (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <PhoneMissed className="w-4 h-4 text-muted-foreground" />
+            Didn't Connect?
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            Use this if you attempted contact but couldn't reach them. This will NOT update the last contacted date or count as a reach out.
+          </p>
+          <Textarea
+            value={skipNote}
+            onChange={(e) => setSkipNote(e.target.value)}
+            placeholder="Optional: No answer, left voicemail, will try again later..."
+            className="min-h-[50px]"
+          />
+          <Button
+            variant="outline"
+            className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
+            onClick={handleDidNotConnect}
+            disabled={saving}
+          >
+            <PhoneMissed className="w-4 h-4 mr-1.5" />
+            {saving ? "Saving..." : "Did Not Connect — Skip to Next"}
+          </Button>
+        </div>
+      )}
 
       {/* ── SECTION 2: Next Step (highlighted after activity logged) ── */}
       <div className={cn(
