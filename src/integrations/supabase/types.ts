@@ -1219,6 +1219,39 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_goals: {
+        Row: {
+          bookings: number
+          created_at: string
+          id: string
+          preset: string
+          reach_outs: number
+          sharings: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bookings?: number
+          created_at?: string
+          id?: string
+          preset?: string
+          reach_outs?: number
+          sharings?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bookings?: number
+          created_at?: string
+          id?: string
+          preset?: string
+          reach_outs?: number
+          sharings?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       customer_summary: {
