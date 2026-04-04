@@ -225,34 +225,47 @@ export default function TodaysFocus({
             </>
           )}
         </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Summary chips for historical dates */}
-          {!isToday && (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="font-semibold text-primary">{currentReachOuts}</span>
-              <span className="text-muted-foreground text-xs">Reach Outs</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="font-semibold text-emerald-600">{currentBookings}</span>
-              <span className="text-muted-foreground text-xs">Bookings</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="font-semibold text-violet-600">{currentSharing}</span>
-              <span className="text-muted-foreground text-xs">Sharing</span>
-            </div>
-          )}
-
-          <GoalItem icon={Phone} label="Daily Reach Outs" current={currentReachOuts} goal={isToday ? goals.reachOuts : currentReachOuts || 1} color="text-primary" onClick={() => setActivePanel("reachOuts")} />
-          <GoalItem icon={CalendarPlus} label="Bookings" current={currentBookings} goal={isToday ? goals.bookings : currentBookings || 1} color="text-emerald-500" onClick={() => setActivePanel("bookings")} />
-          {(isToday ? goals.sharing > 0 : currentSharing > 0) && (
-            <GoalItem icon={Share2} label="Sharing" current={currentSharing} goal={isToday ? goals.sharing : currentSharing || 1} color="text-violet-500" onClick={() => setActivePanel("sharing")} />
-          )}
-          {isToday && (
-            <p className="text-[10px] text-muted-foreground pt-1">
-              {dayType === "booking" && "Target: 8–12 reach outs · 4–5 days/week"}
-              {dayType === "event" && "Bookings come from events · 5–8 reach outs"}
-              {dayType === "light" && "Reduced schedule · focus on follow-ups"}
-            </p>
-          )}
-        </CardContent>
+        {viewMode === "daily" ? (
+          <CardContent className="space-y-3">
+            {!isToday && (
+              <div className="flex items-center gap-3 text-sm">
+                <span className="font-semibold text-primary">{currentReachOuts}</span>
+                <span className="text-muted-foreground text-xs">Reach Outs</span>
+                <span className="text-muted-foreground">·</span>
+                <span className="font-semibold text-emerald-600">{currentBookings}</span>
+                <span className="text-muted-foreground text-xs">Bookings</span>
+                <span className="text-muted-foreground">·</span>
+                <span className="font-semibold text-violet-600">{currentSharing}</span>
+                <span className="text-muted-foreground text-xs">Sharing</span>
+              </div>
+            )}
+            <GoalItem icon={Phone} label="Daily Reach Outs" current={currentReachOuts} goal={isToday ? goals.reachOuts : currentReachOuts || 1} color="text-primary" onClick={() => setActivePanel("reachOuts")} />
+            <GoalItem icon={CalendarPlus} label="Bookings" current={currentBookings} goal={isToday ? goals.bookings : currentBookings || 1} color="text-emerald-500" onClick={() => setActivePanel("bookings")} />
+            {(isToday ? goals.sharing > 0 : currentSharing > 0) && (
+              <GoalItem icon={Share2} label="Sharing" current={currentSharing} goal={isToday ? goals.sharing : currentSharing || 1} color="text-violet-500" onClick={() => setActivePanel("sharing")} />
+            )}
+            {isToday && (
+              <p className="text-[10px] text-muted-foreground pt-1">
+                {dayType === "booking" && "Target: 8–12 reach outs · 4–5 days/week"}
+                {dayType === "event" && "Bookings come from events · 5–8 reach outs"}
+                {dayType === "light" && "Reduced schedule · focus on follow-ups"}
+              </p>
+            )}
+          </CardContent>
+        ) : (
+          <CardContent>
+            <WeeklyScorecard
+              rawData={rawData}
+              todayReachOuts={reachOutsToday}
+              todayBookings={bookingsToday}
+              todaySharing={sharingToday}
+              onDayClick={(dateKey) => {
+                setSelectedDate(dateKey);
+                setViewMode("daily");
+              }}
+            />
+          </CardContent>
+        )}
       </Card>
 
       {isToday && <TodaysPlan />}
