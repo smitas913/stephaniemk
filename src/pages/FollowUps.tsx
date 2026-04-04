@@ -376,11 +376,13 @@ export default function FollowUps() {
   }, [allNotes]);
 
   const enrichedCustomers = useMemo(() => {
-    return customers.filter((c) => c.is_active !== false).map((c) => {
-      const custOrders = allOrders.filter((o) => o.customer_id === c.id);
-      const computed = computeCustomerFields(c, custOrders);
-      return { ...c, ...computed };
-    });
+    return customers
+      .filter((c) => c.is_active !== false && c.relationship_status !== "Consultant")
+      .map((c) => {
+        const custOrders = allOrders.filter((o) => o.customer_id === c.id);
+        const computed = computeCustomerFields(c, custOrders);
+        return { ...c, ...computed };
+      });
   }, [customers, allOrders]);
 
   // Detail sheet queries
