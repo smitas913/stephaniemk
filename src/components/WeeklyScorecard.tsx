@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { format, startOfWeek, addDays, subWeeks, addWeeks, isSameDay } from "date-fns";
+import { format, startOfWeek, addDays, subWeeks, addWeeks } from "date-fns";
 import { ChevronLeft, ChevronRight, Phone, CalendarPlus, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toLocalDateKey } from "@/lib/dateOnly";
@@ -35,9 +35,6 @@ export default function WeeklyScorecard({
   const todayDate = new Date(todayKey + "T12:00:00");
   const currentWeekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
 
-  const [weekOffset, setWeekOffset] = useMemo(() => [0], []);
-  // We need state for week offset
-  const { useState } = require("react");
   const [offset, setOffset] = useState(0);
 
   const weekStart = useMemo(() => {
@@ -49,26 +46,19 @@ export default function WeeklyScorecard({
     const result: { dateKey: string; dayLabel: string; date: Date }[] = [];
     for (let i = 0; i < 7; i++) {
       const d = addDays(weekStart, i);
-      result.push({
-        dateKey: toLocalDateKey(d),
-        dayLabel: format(d, "EEE"),
-        date: d,
-      });
+      result.push({ dateKey: toLocalDateKey(d), dayLabel: format(d, "EEE"), date: d });
     }
     return result;
   }, [weekStart]);
 
   const isCurrentWeek = offset === 0;
-  const isFutureBlocked = isCurrentWeek;
 
   const dayMetrics = useMemo(() => {
     return days.map(({ dateKey }) => {
       if (dateKey === todayKey) {
         return { reachOuts: todayReachOuts, bookings: todayBookings, sharing: todaySharing };
       }
-      if (dateKey > todayKey) {
-        return { reachOuts: 0, bookings: 0, sharing: 0 };
-      }
+      if (dateKey > todayKey) return { reachOuts: 0, bookings: 0, sharing: 0 };
       if (!rawData) return { reachOuts: 0, bookings: 0, sharing: 0 };
       const m = computeMetricsForDate(dateKey, rawData);
       return { reachOuts: m.reachOuts, bookings: m.bookings, sharing: m.sharing };
@@ -77,11 +67,7 @@ export default function WeeklyScorecard({
 
   const totals = useMemo(() => {
     return dayMetrics.reduce(
-      (acc, m) => ({
-        reachOuts: acc.reachOuts + m.reachOuts,
-        bookings: acc.bookings + m.bookings,
-        sharing: acc.sharing + m.sharing,
-      }),
+      (acc, m) => ({ reachOuts: acc.reachOuts + m.reachOuts, bookings: acc.bookings + m.bookings, sharing: acc.sharing + m.sharing }),
       { reachOuts: 0, bookings: 0, sharing: 0 }
     );
   }, [dayMetrics]);
@@ -93,17 +79,13 @@ export default function WeeklyScorecard({
     <div className="space-y-3">
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOffset((o: number) => o - 1)}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOffset((o) => o - 1)}>
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <button
-          type="button"
-          className="text-sm font-medium text-foreground hover:underline"
-          onClick={() => setOffset(0)}
-        >
+        <button type="button" className="text-sm font-medium text-foreground hover:underline" onClick={() => setOffset(0)}>
           {isCurrentWeek ? "This Week" : weekLabel}
         </button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOffset((o: number) => o + 1)} disabled={isFutureBlocked}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOffset((o) => o + 1)} disabled={isCurrentWeek}>
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
@@ -111,23 +93,17 @@ export default function WeeklyScorecard({
       {/* Weekly Totals */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-primary/10 p-2">
-          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-            <Phone className="w-3 h-3" /> Reach Outs
-          </div>
+          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground"><Phone className="w-3 h-3" /> Reach Outs</div>
           <p className="text-lg font-bold text-primary">{totals.reachOuts}</p>
           <p className="text-[10px] text-muted-foreground">/ {WEEKLY_TARGETS.reachOuts} target</p>
         </div>
         <div className="rounded-lg bg-emerald-500/10 p-2">
-          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-            <CalendarPlus className="w-3 h-3" /> Bookings
-          </div>
+          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground"><CalendarPlus className="w-3 h-3" /> Bookings</div>
           <p className="text-lg font-bold text-emerald-600">{totals.bookings}</p>
           <p className="text-[10px] text-muted-foreground">/ {WEEKLY_TARGETS.bookings} target</p>
         </div>
         <div className="rounded-lg bg-violet-500/10 p-2">
-          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-            <Share2 className="w-3 h-3" /> Sharing
-          </div>
+          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground"><Share2 className="w-3 h-3" /> Sharing</div>
           <p className="text-lg font-bold text-violet-600">{totals.sharing}</p>
           <p className="text-[10px] text-muted-foreground">/ {WEEKLY_TARGETS.sharing} target</p>
         </div>
@@ -168,15 +144,8 @@ export default function WeeklyScorecard({
                 isFuture ? "opacity-40 cursor-not-allowed" : "hover:bg-muted/50 cursor-pointer"
               )}
             >
-              {/* Day label */}
-              <span className={cn("w-8 text-xs font-medium", isToday ? "text-primary" : "text-muted-foreground")}>
-                {day.dayLabel}
-              </span>
-              <span className="text-[10px] text-muted-foreground w-12">
-                {format(day.date, "M/d")}
-              </span>
-
-              {/* Metrics */}
+              <span className={cn("w-8 text-xs font-medium", isToday ? "text-primary" : "text-muted-foreground")}>{day.dayLabel}</span>
+              <span className="text-[10px] text-muted-foreground w-12">{format(day.date, "M/d")}</span>
               {!isFuture && (
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", statusColor(m.reachOuts, DAILY_TARGET))}>
@@ -194,7 +163,6 @@ export default function WeeklyScorecard({
                   )}
                 </div>
               )}
-
               <ChevronRight className="w-3 h-3 text-muted-foreground/40 flex-shrink-0" />
             </button>
           );
