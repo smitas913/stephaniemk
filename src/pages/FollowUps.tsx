@@ -1665,16 +1665,57 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
+  const [nextStepConfirmed, setNextStepConfirmed] = useState(false);
   const [loggedMessage, setLoggedMessage] = useState("");
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
-  const autoInfo = useMemo(() => getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage), [item.activity_status, currentDormantStage]);
-  const [nextFollowUp, setNextFollowUp] = useState(() => {
-    if (customer?.next_follow_up_date && compareDateOnly(customer.next_follow_up_date) === 1) {
-      return customer.next_follow_up_date;
-    }
-    return format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+  // Fetch active catalog follow-ups for this customer
+  const { data: catalogFollowUps = [] } = useQuery({
+    queryKey: ["catalog-followups", item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("catalog_campaign_customers" as any)
+        .select("*, catalog_campaigns:campaign_id(campaign_type, mailing_date)")
+        .eq("customer_id", item.id)
+        .eq("follow_up_completed", false);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
   });
+
+  // Find the earliest pending catalog follow-up
+  const catalogFollowUp = useMemo(() => {
+    if (catalogFollowUps.length === 0) return null;
+    const sorted = [...catalogFollowUps]
+      .filter((cf: any) => cf.follow_up_date)
+      .sort((a: any, b: any) => a.follow_up_date.localeCompare(b.follow_up_date));
+    return sorted[0] || null;
+  }, [catalogFollowUps]);
+
+  const autoInfo = useMemo(() => getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage), [item.activity_status, currentDormantStage]);
+
+  // Determine initial next follow-up: catalog takes priority if earlier
+  const [nextFollowUp, setNextFollowUp] = useState(() => {
+    const cadenceDate = format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+    const existingDate = customer?.next_follow_up_date && compareDateOnly(customer.next_follow_up_date) === 1
+      ? customer.next_follow_up_date : cadenceDate;
+    return existingDate;
+  });
+
+  const [followUpSource, setFollowUpSource] = useState<"cadence" | "catalog" | "manual">("cadence");
+
+  // Once catalog data loads, check if it should take priority
+  useEffect(() => {
+    if (catalogFollowUp && catalogFollowUp.follow_up_date) {
+      const catalogDate = catalogFollowUp.follow_up_date;
+      if (!nextFollowUp || catalogDate < nextFollowUp) {
+        setNextFollowUp(catalogDate);
+        setFollowUpSource("catalog");
+      }
+    }
+  }, [catalogFollowUp]);
+
+  const catalogType = catalogFollowUp?.catalog_campaigns?.campaign_type;
 
   const handleLogActivity = async () => {
     if (!newNote.trim()) {
@@ -1685,7 +1726,6 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     try {
       const today = toLocalDateKey();
 
-      // Calculate next follow-up using activity-status-aware cadence
       let autoNextDate: string;
       let nextStage = currentDormantStage;
       let cadenceLabel: string;
@@ -1701,22 +1741,33 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         cadenceLabel = info.label;
       }
 
+      // Check if catalog follow-up is earlier
+      let effectiveDate = autoNextDate;
+      let effectiveSource: "cadence" | "catalog" = "cadence";
+      let effectiveLabel = cadenceLabel;
+      if (catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
+        effectiveDate = catalogFollowUp.follow_up_date;
+        effectiveSource = "catalog";
+        effectiveLabel = `${catalogType} Catalog Follow-Up`;
+      }
+
       const updates: Record<string, any> = {
         last_contacted: today,
-        next_follow_up_date: autoNextDate,
+        next_follow_up_date: effectiveDate,
+        follow_up_reason: effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
       };
       if (isDormant) {
         updates.dormant_follow_up_stage = nextStage;
       }
 
       await updateCustomer(item.id, updates as any);
-      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText: newNote.trim(), nextFollowUpDate: autoNextDate });
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText: newNote.trim(), nextFollowUpDate: effectiveDate });
 
-      // Update local state
-      setNextFollowUp(autoNextDate);
+      setNextFollowUp(effectiveDate);
+      setFollowUpSource(effectiveSource);
       setNewNote("");
       setActivityLogged(true);
-      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)} (${cadenceLabel})`);
+      setLoggedMessage(`Activity logged ✓ Next follow-up auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`);
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
@@ -1731,24 +1782,33 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const handleSaveNextStep = async () => {
     setSaving(true);
     try {
-      await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null } as any);
+      const reason = followUpSource === "catalog" && catalogType
+        ? `${catalogType} Catalog Follow-Up`
+        : followUpSource === "manual" ? "Manual follow-up" : autoInfo.label;
+      await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null, follow_up_reason: reason } as any);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      toast.success("Next step updated");
+      setNextStepConfirmed(true);
+      toast.success("Next step confirmed — follow-up cycle complete ✓");
     } catch { toast.error("Failed to save"); }
     setSaving(false);
   };
 
   const todayFormatted = format(new Date(), "MMMM d, yyyy");
-  const autoFollowUpLabel = useMemo(() => {
+
+  const followUpReasonLabel = useMemo(() => {
     if (!nextFollowUp) return null;
+    if (followUpSource === "catalog" && catalogType) {
+      return `${catalogType} Catalog Follow-Up — ${formatDateOnly(nextFollowUp)}`;
+    }
+    // Check if it matches the auto cadence
     const autoDate = isDormant
       ? getNextDormantFollowUpDate((currentDormantStage || "Stage 1") as DormantStage)
-      : format(addDays(new Date(), 90), "yyyy-MM-dd");
+      : format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
     if (nextFollowUp === autoDate) {
       return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${autoInfo.label}`;
     }
     return `Manually set to ${formatDateOnly(nextFollowUp)}`;
-  }, [nextFollowUp, isDormant, currentDormantStage, autoInfo.label]);
+  }, [nextFollowUp, followUpSource, catalogType, isDormant, currentDormantStage, autoInfo]);
 
   return (
     <div className="space-y-6">
@@ -1768,8 +1828,39 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         </div>
       )}
 
-      {/* Success confirmation banner */}
-      {activityLogged && loggedMessage && (
+      {/* Catalog follow-up priority notice */}
+      {catalogFollowUp && (
+        <div className="p-3 rounded-lg bg-accent/50 border border-accent space-y-1">
+          <p className="text-xs font-medium text-primary uppercase tracking-wider flex items-center gap-1">
+            📬 Active Catalog Follow-Up
+          </p>
+          <p className="text-sm font-medium text-foreground">
+            {catalogType} Catalog — due {formatDateOnly(catalogFollowUp.follow_up_date)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            This catalog follow-up takes priority over normal cadence
+          </p>
+        </div>
+      )}
+
+      {/* Completion banner */}
+      {activityLogged && nextStepConfirmed && (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          Follow-up cycle complete ✓ You can close this panel.
+        </div>
+      )}
+
+      {/* Activity logged but next step not confirmed */}
+      {activityLogged && !nextStepConfirmed && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+          <Clock className="w-4 h-4 shrink-0" />
+          Activity logged — please confirm the next step below to complete this follow-up
+        </div>
+      )}
+
+      {/* Success message */}
+      {activityLogged && loggedMessage && !nextStepConfirmed && (
         <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           {loggedMessage}
@@ -1777,47 +1868,65 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       )}
 
       {/* ── SECTION 1: Log Today's Activity ── */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <div className={cn("rounded-lg border bg-card p-4 space-y-3", activityLogged ? "border-green-200 dark:border-green-800 opacity-75" : "border-border")}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Log Today's Activity</h3>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            Log Today's Activity
+            {activityLogged && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+          </h3>
           <span className="text-xs text-muted-foreground">Today — {todayFormatted}</span>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity Type</label>
-          <Select value={activityType} onValueChange={setActivityType}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {CUSTOMER_ACTIVITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+        {!activityLogged && (
+          <>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity Type</label>
+              <Select value={activityType} onValueChange={setActivityType}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CUSTOMER_ACTIVITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
-          </label>
-          <Textarea
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder="What happened? What was discussed?"
-            className="min-h-[80px]"
-            autoFocus
-          />
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
+              </label>
+              <Textarea
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="What happened? What was discussed?"
+                className="min-h-[80px]"
+                autoFocus
+              />
+            </div>
 
-        <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
-          <CheckCircle2 className="w-4 h-4 mr-1.5" />
-          {saving ? "Saving..." : "Log Activity"}
-        </Button>
-        <p className="text-[11px] text-muted-foreground text-center">
-          Logging updates last contacted and auto-sets next follow-up
-        </p>
+            <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
+              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              {saving ? "Saving..." : "Log Activity"}
+            </Button>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Logging updates last contacted and auto-sets next follow-up
+            </p>
+          </>
+        )}
       </div>
 
-      {/* ── SECTION 2: Next Step ── */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Next Step</h3>
+      {/* ── SECTION 2: Next Step (highlighted after activity logged) ── */}
+      <div className={cn(
+        "rounded-lg border bg-card p-4 space-y-3",
+        activityLogged && !nextStepConfirmed
+          ? "border-primary ring-2 ring-primary/20"
+          : nextStepConfirmed ? "border-green-200 dark:border-green-800" : "border-border"
+      )}>
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          Next Step
+          {nextStepConfirmed && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+          {activityLogged && !nextStepConfirmed && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
+          )}
+        </h3>
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -1828,17 +1937,26 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
             type="date"
             value={nextFollowUp}
             min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
-            onChange={(e) => setNextFollowUp(e.target.value)}
+            onChange={(e) => { setNextFollowUp(e.target.value); setFollowUpSource("manual"); }}
             className="h-9"
+            disabled={nextStepConfirmed}
           />
-          {autoFollowUpLabel && (
-            <p className="text-[11px] text-muted-foreground italic">{autoFollowUpLabel}</p>
+          {followUpReasonLabel && (
+            <p className={cn(
+              "text-[11px] italic",
+              followUpSource === "catalog" ? "text-primary font-medium" : "text-muted-foreground"
+            )}>
+              {followUpReasonLabel}
+            </p>
           )}
         </div>
 
-        <Button variant="outline" className="w-full" onClick={handleSaveNextStep} disabled={saving}>
-          {saving ? "Saving..." : "Update Next Step"}
-        </Button>
+        {!nextStepConfirmed && (
+          <Button className="w-full" onClick={handleSaveNextStep} disabled={saving}>
+            <CalendarCheck className="w-4 h-4 mr-1.5" />
+            {saving ? "Saving..." : "Confirm Next Step"}
+          </Button>
+        )}
       </div>
 
       {/* Schedule Delivery */}
