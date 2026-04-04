@@ -96,7 +96,12 @@ export default function MailingLists() {
     }
 
     if (addressOnly) {
-      list = list.filter((c) => c.address_line_1?.trim());
+      list = list.filter((c) =>
+        c.address_line_1?.trim() &&
+        c.city?.trim() &&
+        c.state_territory?.trim() &&
+        c.postal_code?.trim()
+      );
     }
 
     return list
@@ -214,7 +219,7 @@ export default function MailingLists() {
               )}
 
               <div className="flex items-center gap-2 ml-auto">
-                <label className="text-xs text-muted-foreground">Address only</label>
+                <label className="text-xs text-muted-foreground">Complete address</label>
                 <Switch checked={addressOnly} onCheckedChange={setAddressOnly} />
               </div>
               <div className="flex items-center gap-2">
@@ -233,7 +238,7 @@ export default function MailingLists() {
           {records[0]?.tag && <Badge variant="outline" className="text-xs">{records[0].tag}</Badge>}
           {addressOnly && (
             <Badge variant="outline" className="text-xs gap-1">
-              <MapPin className="w-3 h-3" />With address
+              <MapPin className="w-3 h-3" />Complete address
             </Badge>
           )}
         </div>
@@ -245,7 +250,7 @@ export default function MailingLists() {
               <Mail className="w-10 h-10 text-muted-foreground/40 mb-3" />
               <p className="text-sm font-medium text-muted-foreground">No matching records</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                {addressOnly ? "Try turning off the 'Address only' filter" : "Adjust your filters to find customers"}
+                {addressOnly ? "Try turning off the 'Complete address' filter" : "Adjust your filters to find customers"}
               </p>
             </CardContent>
           </Card>
