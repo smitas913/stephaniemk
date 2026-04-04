@@ -1669,6 +1669,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
       await updateCustomer(item.id, updates as any);
       await createCustomerNote({ customer_id: item.id, note_text: newNote.trim(), note_type: activityType });
+      // Also write to unified notes table so it appears in Daily Reach Outs
+      await createNote({ entity_type: "Customer", customer_id: item.id, note_body: newNote.trim(), note_type: activityType });
 
       // Update local state
       setNextFollowUp(autoNextDate);
