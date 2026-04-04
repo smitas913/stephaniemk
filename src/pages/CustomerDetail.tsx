@@ -123,6 +123,8 @@ export default function CustomerDetail() {
   });
 
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   const convertToConsultantMut = useMutation({
     mutationFn: () => convertCustomerToConsultant(customer!),
@@ -133,6 +135,29 @@ export default function CustomerDetail() {
       navigate("/leadership");
     },
     onError: (err: any) => toast.error(err.message || "Failed to convert"),
+  });
+
+  const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const customerHasOrders = allOrders.some((o) => o.customer_id === id);
+
+  const archiveMutation = useMutation({
+    mutationFn: () => customer!.is_active !== false ? archiveCustomer(id!) : unarchiveCustomer(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(customer!.is_active !== false ? "Customer archived" : "Customer restored");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCustomer(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Customer deleted permanently");
+      navigate("/customers");
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const isConsultant = customer?.relationship_status === "Consultant";
