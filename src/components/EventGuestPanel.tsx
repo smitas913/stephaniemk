@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, convertGuestToCustomer, updateEventGuest } from "@/lib/queries";
 import { RSVP_OPTIONS } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
+import { formatPhone } from "@/lib/phoneUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
