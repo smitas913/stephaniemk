@@ -1665,7 +1665,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
-  const [nextStepConfirmed, setNextStepConfirmed] = useState(false);
+  const nextStepConfirmed = false; // panel closes on confirm, so always false while open
   const [loggedMessage, setLoggedMessage] = useState("");
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
