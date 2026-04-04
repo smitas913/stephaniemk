@@ -6,6 +6,7 @@ import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEv
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { COACHING_STATUSES, EVENT_STATUSES } from "@/lib/types";
+import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
