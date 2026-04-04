@@ -625,7 +625,10 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
-        if (note.trim()) await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: type });
+        if (note.trim()) {
+          await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: type });
+          await createNote({ entity_type: "Customer", customer_id: item.id, note_body: note.trim(), note_type: type });
+        }
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
