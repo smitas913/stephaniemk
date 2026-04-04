@@ -114,6 +114,7 @@ export default function Analytics() {
         label: "",
         faces: Math.round(rows.reduce((s, r) => s + r.faces, 0) / n),
         parties: Math.round((rows.reduce((s, r) => s + r.parties, 0) / n) * 10) / 10,
+        facials: Math.round((rows.reduce((s, r) => s + r.facials, 0) / n) * 10) / 10,
         sharings: Math.round((rows.reduce((s, r) => s + r.sharings, 0) / n) * 10) / 10,
         newTeam: Math.round((rows.reduce((s, r) => s + r.newTeam, 0) / n) * 10) / 10,
         sales: Math.round(rows.reduce((s, r) => s + r.sales, 0) / n),
