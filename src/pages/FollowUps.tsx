@@ -1641,6 +1641,13 @@ function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormant
   return { days: 90, label: "Reorder cycle (90 days)" };
 }
 
+function getSkipRetryDays(activityStatus: string | undefined): { days: number; label: string } {
+  if (activityStatus === "Dormant") return { days: 4, label: "Retry in 4 days (Dormant)" };
+  if (activityStatus === "Warm") return { days: 7, label: "Retry in 7 days (Warm)" };
+  if (activityStatus === "Active") return { days: 14, label: "Retry in 14 days (Active)" };
+  return { days: 7, label: "Retry in 7 days" };
+}
+
 function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, onClose, detailNotes, scheduleDelivery, setScheduleDelivery, deliveryDate, setDeliveryDate, deliveryNotes, setDeliveryNotes, deliveryCreateMut }: {
   item: ActionItem;
   customers: Customer[];
