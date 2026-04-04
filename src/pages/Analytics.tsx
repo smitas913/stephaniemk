@@ -212,7 +212,7 @@ export default function Analytics() {
         ) : (
           <div className="space-y-5">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Total Sales</p>
@@ -227,8 +227,14 @@ export default function Analytics() {
               </Card>
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xs text-muted-foreground font-medium">Total Parties</p>
+                  <p className="text-xs text-muted-foreground font-medium">Parties</p>
                   <p className="text-xl font-bold text-foreground mt-1">{analytics.totals.parties}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Facials</p>
+                  <p className="text-xl font-bold text-foreground mt-1">{analytics.totals.facials}</p>
                 </CardContent>
               </Card>
               <Card className="border-border/50 shadow-sm">
