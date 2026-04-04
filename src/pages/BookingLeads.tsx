@@ -240,10 +240,10 @@ export default function BookingLeads() {
                       {lead.phone && (
                         <>
                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`tel:${lead.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                            <a href={`tel:${phoneForLink(lead.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`sms:${lead.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                            <a href={`sms:${phoneForLink(lead.phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
                           </Button>
                         </>
                       )}
