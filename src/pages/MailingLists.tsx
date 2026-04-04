@@ -250,7 +250,7 @@ export default function MailingLists() {
               <Mail className="w-10 h-10 text-muted-foreground/40 mb-3" />
               <p className="text-sm font-medium text-muted-foreground">No matching records</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                {addressOnly ? "Try turning off the 'Address only' filter" : "Adjust your filters to find customers"}
+                {addressOnly ? "Try turning off the 'Complete address' filter" : "Adjust your filters to find customers"}
               </p>
             </CardContent>
           </Card>
