@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Target, Phone, CalendarPlus, Share2, Briefcase, PartyPopper, Coffee, User, ChevronRight } from "lucide-react";
+import { Target, Phone, CalendarPlus, Share2, Briefcase, PartyPopper, Coffee, User, ChevronRight, ChevronLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import TodaysPlan from "@/components/TodaysPlan";
 import { cn } from "@/lib/utils";
+import { format, subDays, addDays } from "date-fns";
+import { toLocalDateKey } from "@/lib/dateOnly";
 
 type DayType = "booking" | "event" | "light";
 
@@ -23,9 +26,19 @@ const GOALS: Record<DayType, { reachOuts: number; bookings: number; sharing: num
 export interface FocusDetailItem {
   id: string;
   name: string;
-  type: string;       // "Customer" | "Lead" | "Consultant" | "Prospect" | "Event"
-  method?: string;     // "Call" | "Text" | "Email" | "In Person"
-  detail?: string;     // e.g. "Party" | "Facial" | booking type
+  type: string;
+  method?: string;
+  detail?: string;
+}
+
+export interface FocusRawData {
+  unifiedNotes: any[];
+  allNotes: any[];
+  customers: any[];
+  prospects: any[];
+  bookingLeads: any[];
+  consultants: any[];
+  events: any[];
 }
 
 interface GoalProps {
@@ -36,6 +49,124 @@ interface GoalProps {
   bookingDetails?: FocusDetailItem[];
   sharingDetails?: FocusDetailItem[];
   onDetailNavigate?: (type: string, id: string) => void;
+  rawData?: FocusRawData;
+}
+
+const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation"]);
+
+function getTimestampDateKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return toLocalDateKey(parsed);
+}
+
+function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
+  reachOuts: number;
+  bookings: number;
+  sharing: number;
+  reachOutDetails: FocusDetailItem[];
+  bookingDetails: FocusDetailItem[];
+  sharingDetails: FocusDetailItem[];
+} {
+  const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
+  const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
+
+  // Reach-outs from unified notes
+  const reachOutItems: FocusDetailItem[] = unifiedNotes
+    .filter((n: any) => {
+      const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+      if (noteDay !== dateKey) return false;
+      return n.entity_type === "Customer"
+        ? CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type)
+        : contactTypes.has(n.note_type);
+    })
+    .map((n: any) => {
+      let name = "Unknown";
+      let type = n.entity_type || "Customer";
+      let id = n.customer_id || n.prospect_id || n.id;
+      if (n.entity_type === "Customer" && n.customer_id) {
+        const c = customers.find((c: any) => c.id === n.customer_id);
+        name = c?.full_name || "Customer";
+        id = n.customer_id;
+        type = "Customer";
+      } else if (n.entity_type === "Prospect" && n.prospect_id) {
+        const p = prospects.find((p: any) => p.id === n.prospect_id);
+        name = p?.name || "Prospect";
+        id = n.prospect_id;
+        type = "Prospect";
+      }
+      return { id, name, type, method: n.note_type, detail: undefined };
+    });
+
+  // Legacy customer_notes
+  const customerNoteItems: FocusDetailItem[] = allNotes
+    .filter((n: any) => getTimestampDateKey(n.created_at) === dateKey && CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type))
+    .map((n: any) => {
+      const c = customers.find((c: any) => c.id === n.customer_id);
+      return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
+    });
+
+  // Booking Leads
+  const leadReachOutItems: FocusDetailItem[] = bookingLeads
+    .filter((l: any) => l.last_contact_date === dateKey && !l.converted_customer_id)
+    .map((l: any) => ({
+      id: l.id, name: l.name, type: "Lead", method: "Call",
+      detail: l.lead_activity || undefined,
+    }));
+
+  // Consultants
+  const consultantReachOutItems: FocusDetailItem[] = [];
+  for (const c of consultants) {
+    const updatedThatDay = (c as any).updated_at?.startsWith(dateKey);
+    const coachingAdvanced = (c as any).next_coaching_date && (c as any).next_coaching_date > dateKey;
+    if (updatedThatDay && coachingAdvanced) {
+      consultantReachOutItems.push({
+        id: (c as any).id, name: (c as any).name, type: "Consultant",
+        method: "Coaching", detail: (c as any).coaching_focus || undefined,
+      });
+    }
+  }
+
+  // Dedup
+  const seenIds = new Set<string>();
+  const allReachOutItems: FocusDetailItem[] = [];
+  for (const item of [...reachOutItems, ...customerNoteItems, ...leadReachOutItems, ...consultantReachOutItems]) {
+    if (!seenIds.has(item.id)) { seenIds.add(item.id); allReachOutItems.push(item); }
+  }
+
+  // Bookings
+  const bookingItems: FocusDetailItem[] = events
+    .filter((e: any) => e.created_at.startsWith(dateKey))
+    .map((e: any) => ({
+      id: e.event_id, name: e.hostess_name || e.event_id, type: "Event",
+      detail: e.event_type || undefined,
+    }));
+
+  // Sharing
+  const sharingItems: FocusDetailItem[] = [
+    ...prospects
+      .filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(dateKey))
+      .map((p: any) => ({ id: p.id, name: p.name, type: "Prospect" as const, detail: "Shared Opportunity" })),
+    ...events
+      .filter((e: any) => e.event_date === dateKey && ((e as any).sharing_appointments_count || 0) > 0)
+      .map((e: any) => ({
+        id: e.event_id, name: e.hostess_name || e.event_id, type: "Event" as const,
+        detail: `${(e as any).sharing_appointments_count} sharing appt${((e as any).sharing_appointments_count || 0) > 1 ? "s" : ""}`,
+      })),
+  ];
+  const sharingFromEvents = events
+    .filter((e: any) => e.event_date === dateKey)
+    .reduce((sum: number, e: any) => sum + ((e as any).sharing_appointments_count || 0), 0);
+
+  return {
+    reachOuts: allReachOutItems.length,
+    bookings: bookingItems.length,
+    sharing: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
+    reachOutDetails: allReachOutItems,
+    bookingDetails: bookingItems,
+    sharingDetails: sharingItems,
+  };
 }
 
 function GoalItem({ icon: Icon, label, current, goal, color, onClick }: {
@@ -80,15 +211,52 @@ export default function TodaysFocus({
   reachOutsToday = 0, bookingsToday = 0, sharingToday = 0,
   reachOutDetails = [], bookingDetails = [], sharingDetails = [],
   onDetailNavigate,
+  rawData,
 }: GoalProps) {
+  const todayKey = toLocalDateKey();
   const [dayType, setDayType] = useState<DayType>("booking");
-  const goals = GOALS[dayType];
+  const [selectedDate, setSelectedDate] = useState(todayKey);
   const [activePanel, setActivePanel] = useState<"reachOuts" | "bookings" | "sharing" | null>(null);
+  const goals = GOALS[dayType];
+
+  const isToday = selectedDate === todayKey;
+
+  // Compute metrics for the selected date
+  const dateMetrics = useMemo(() => {
+    if (isToday || !rawData) return null;
+    return computeMetricsForDate(selectedDate, rawData);
+  }, [selectedDate, isToday, rawData]);
+
+  const currentReachOuts = isToday ? reachOutsToday : (dateMetrics?.reachOuts ?? 0);
+  const currentBookings = isToday ? bookingsToday : (dateMetrics?.bookings ?? 0);
+  const currentSharing = isToday ? sharingToday : (dateMetrics?.sharing ?? 0);
+  const currentReachOutDetails = isToday ? reachOutDetails : (dateMetrics?.reachOutDetails ?? []);
+  const currentBookingDetails = isToday ? bookingDetails : (dateMetrics?.bookingDetails ?? []);
+  const currentSharingDetails = isToday ? sharingDetails : (dateMetrics?.sharingDetails ?? []);
+
+  const goBack = () => {
+    const d = new Date(selectedDate + "T12:00:00");
+    setSelectedDate(toLocalDateKey(subDays(d, 1)));
+  };
+  const goForward = () => {
+    if (isToday) return;
+    const d = new Date(selectedDate + "T12:00:00");
+    const next = toLocalDateKey(addDays(d, 1));
+    if (next <= todayKey) setSelectedDate(next);
+  };
+
+  const dateLabel = (() => {
+    if (isToday) return "Today";
+    const d = new Date(selectedDate + "T12:00:00");
+    const yesterday = toLocalDateKey(subDays(new Date(), 1));
+    if (selectedDate === yesterday) return "Yesterday";
+    return format(d, "MMM d, yyyy");
+  })();
 
   const panelConfig = {
-    reachOuts: { title: "Daily Reach Outs", icon: Phone, items: reachOutDetails, color: "text-primary" },
-    bookings: { title: "Bookings", icon: CalendarPlus, items: bookingDetails, color: "text-emerald-500" },
-    sharing: { title: "Sharing", icon: Share2, items: sharingDetails, color: "text-violet-500" },
+    reachOuts: { title: "Daily Reach Outs", icon: Phone, items: currentReachOutDetails, color: "text-primary" },
+    bookings: { title: "Bookings", icon: CalendarPlus, items: currentBookingDetails, color: "text-emerald-500" },
+    sharing: { title: "Sharing", icon: Share2, items: currentSharingDetails, color: "text-violet-500" },
   };
 
   const panel = activePanel ? panelConfig[activePanel] : null;
@@ -101,41 +269,83 @@ export default function TodaysFocus({
             <Target className="w-5 h-5 text-primary" />
             <CardTitle className="text-base font-semibold text-foreground">Today's Focus</CardTitle>
           </div>
-          <div className="flex gap-1.5 mt-2">
-            {DAY_TYPES.map(dt => (
-              <button
-                key={dt.value}
-                type="button"
-                onClick={() => setDayType(dt.value)}
-                className={cn(
-                  "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
-                  dayType === dt.value
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted"
-                )}
-                title={dt.description}
-              >
-                <dt.icon className="w-3 h-3" />
-                {dt.label}
-              </button>
-            ))}
+
+          {/* Date Navigator */}
+          <div className="flex items-center justify-between mt-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goBack}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <button
+              type="button"
+              className="text-sm font-medium text-foreground hover:underline"
+              onClick={() => setSelectedDate(todayKey)}
+            >
+              {dateLabel}
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={goForward}
+              disabled={isToday}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
+
+          {isToday && (
+            <div className="flex gap-1.5 mt-2">
+              {DAY_TYPES.map(dt => (
+                <button
+                  key={dt.value}
+                  type="button"
+                  onClick={() => setDayType(dt.value)}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors",
+                    dayType === dt.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  title={dt.description}
+                >
+                  <dt.icon className="w-3 h-3" />
+                  {dt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-3">
-          <GoalItem icon={Phone} label="Daily Reach Outs" current={reachOutsToday} goal={goals.reachOuts} color="text-primary" onClick={() => setActivePanel("reachOuts")} />
-          <GoalItem icon={CalendarPlus} label="Bookings" current={bookingsToday} goal={goals.bookings} color="text-emerald-500" onClick={() => setActivePanel("bookings")} />
-          {goals.sharing > 0 && (
-            <GoalItem icon={Share2} label="Sharing" current={sharingToday} goal={goals.sharing} color="text-violet-500" onClick={() => setActivePanel("sharing")} />
+          {/* Summary chips for historical dates */}
+          {!isToday && (
+            <div className="flex items-center gap-3 text-sm">
+              <span className="font-semibold text-primary">{currentReachOuts}</span>
+              <span className="text-muted-foreground text-xs">Reach Outs</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="font-semibold text-emerald-600">{currentBookings}</span>
+              <span className="text-muted-foreground text-xs">Bookings</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="font-semibold text-violet-600">{currentSharing}</span>
+              <span className="text-muted-foreground text-xs">Sharing</span>
+            </div>
           )}
-          <p className="text-[10px] text-muted-foreground pt-1">
-            {dayType === "booking" && "Target: 8–12 reach outs · 4–5 days/week"}
-            {dayType === "event" && "Bookings come from events · 5–8 reach outs"}
-            {dayType === "light" && "Reduced schedule · focus on follow-ups"}
-          </p>
+
+          <GoalItem icon={Phone} label="Daily Reach Outs" current={currentReachOuts} goal={isToday ? goals.reachOuts : currentReachOuts || 1} color="text-primary" onClick={() => setActivePanel("reachOuts")} />
+          <GoalItem icon={CalendarPlus} label="Bookings" current={currentBookings} goal={isToday ? goals.bookings : currentBookings || 1} color="text-emerald-500" onClick={() => setActivePanel("bookings")} />
+          {(isToday ? goals.sharing > 0 : currentSharing > 0) && (
+            <GoalItem icon={Share2} label="Sharing" current={currentSharing} goal={isToday ? goals.sharing : currentSharing || 1} color="text-violet-500" onClick={() => setActivePanel("sharing")} />
+          )}
+          {isToday && (
+            <p className="text-[10px] text-muted-foreground pt-1">
+              {dayType === "booking" && "Target: 8–12 reach outs · 4–5 days/week"}
+              {dayType === "event" && "Bookings come from events · 5–8 reach outs"}
+              {dayType === "light" && "Reduced schedule · focus on follow-ups"}
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      <TodaysPlan />
+      {isToday && <TodaysPlan />}
 
       {/* Activity Detail Sheet */}
       <Sheet open={!!activePanel} onOpenChange={(open) => !open && setActivePanel(null)}>
@@ -148,7 +358,7 @@ export default function TodaysFocus({
                   {panel.title}
                 </SheetTitle>
                 <SheetDescription>
-                  {panel.items.length} {panel.items.length === 1 ? "activity" : "activities"} logged today
+                  {panel.items.length} {panel.items.length === 1 ? "activity" : "activities"} {isToday ? "today" : `on ${dateLabel}`}
                 </SheetDescription>
               </SheetHeader>
 
@@ -156,8 +366,12 @@ export default function TodaysFocus({
                 {panel.items.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <User className="w-10 h-10 text-muted-foreground/40 mb-3" />
-                    <p className="text-sm font-medium text-muted-foreground">No activity logged yet today</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">Complete reach outs, bookings, or sharing to see them here</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {isToday ? "No activity logged yet today" : `No activity on ${dateLabel}`}
+                    </p>
+                    {isToday && (
+                      <p className="text-xs text-muted-foreground/70 mt-1">Complete reach outs, bookings, or sharing to see them here</p>
+                    )}
                   </div>
                 ) : (
                   panel.items.map((item) => (
