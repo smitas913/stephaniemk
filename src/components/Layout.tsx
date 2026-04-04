@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, UserPlus, Receipt, Calendar, Target, CalendarCheck, Crown, TrendingUp } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, UserPlus, Receipt, Calendar, Target, CalendarCheck, Crown, TrendingUp, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -14,6 +14,7 @@ const adminNavItems = [
   { to: "/leadership", label: "Leadership", icon: Crown },
   { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
   { to: "/customers", label: "Customers", icon: Users },
+  { to: "/campaigns", label: "Campaigns", icon: BookOpen },
   // Row 2: Analysis & reference
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/scoreboard", label: "Scoreboard", icon: Target },

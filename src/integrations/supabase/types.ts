@@ -65,6 +65,85 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_campaign_customers: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          customer_id: string
+          follow_up_completed: boolean
+          follow_up_date: string | null
+          id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          customer_id: string
+          follow_up_completed?: boolean
+          follow_up_date?: string | null
+          id?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string
+          follow_up_completed?: boolean
+          follow_up_date?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_campaign_customers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_campaign_customers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalog_campaigns: {
+        Row: {
+          campaign_type: string
+          created_at: string
+          id: string
+          mailing_date: string
+          notes: string | null
+          owner_user_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_type: string
+          created_at?: string
+          id?: string
+          mailing_date: string
+          notes?: string | null
+          owner_user_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_type?: string
+          created_at?: string
+          id?: string
+          mailing_date?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       custom_blackout_days: {
         Row: {
           blackout_date: string
