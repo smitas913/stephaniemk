@@ -1665,7 +1665,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
-  const [nextStepConfirmed, setNextStepConfirmed] = useState(false);
+  const nextStepConfirmed = false; // panel closes on confirm, so always false while open
   const [loggedMessage, setLoggedMessage] = useState("");
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
@@ -1780,6 +1780,10 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   };
 
   const handleSaveNextStep = async () => {
+    if (!activityLogged) {
+      toast.error("Please log activity first");
+      return;
+    }
     setSaving(true);
     try {
       const reason = followUpSource === "catalog" && catalogType
@@ -1787,8 +1791,9 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         : followUpSource === "manual" ? "Manual follow-up" : autoInfo.label;
       await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null, follow_up_reason: reason } as any);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      setNextStepConfirmed(true);
-      toast.success("Next step confirmed — follow-up cycle complete ✓");
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      toast.success("Follow-up complete ✓");
+      onClose();
     } catch { toast.error("Failed to save"); }
     setSaving(false);
   };
