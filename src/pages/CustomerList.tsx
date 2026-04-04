@@ -222,6 +222,49 @@ export default function CustomerList() {
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
+          <Popover open={missingOpen} onOpenChange={setMissingOpen}>
+            <PopoverTrigger asChild>
+              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-2" align="start">
+              {[
+                { key: "birthday", label: "Missing Birthday" },
+                { key: "phone", label: "Missing Phone" },
+                { key: "email", label: "Missing Email" },
+                { key: "address", label: "Missing Address" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={cn(
+                    "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
+                    filterMissing.includes(key)
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-foreground"
+                  )}
+                  onClick={() => {
+                    setFilterMissing((prev) =>
+                      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                    );
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              {filterMissing.length > 0 && (
+                <button
+                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
+                  onClick={() => { setFilterMissing([]); setMissingOpen(false); }}
+                >
+                  Clear all
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
+          </Select>
         </div>
 
         {/* Table */}
