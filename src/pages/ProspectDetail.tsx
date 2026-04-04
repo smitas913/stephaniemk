@@ -157,8 +157,8 @@ export default function ProspectDetail() {
           <div className="flex gap-1">
             {prospect.phone && (
               <>
-                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${prospect.phone}`}><Phone className="w-4 h-4" /></a></Button>
-                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${prospect.phone}`}><MessageSquare className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(prospect.phone)}`}><Phone className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${phoneForLink(prospect.phone)}`}><MessageSquare className="w-4 h-4" /></a></Button>
               </>
             )}
             {prospect.email && (
