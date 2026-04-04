@@ -305,7 +305,7 @@ export default function ProspectDetail() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                <InfoRow label="Phone" value={prospect.phone} />
+                <InfoRow label="Phone" value={formatPhone(prospect.phone)} />
                 <InfoRow label="Email" value={prospect.email} />
                 <InfoRow label="Date Shared" value={prospect.date_shared ? formatDateOnly(prospect.date_shared) : null} />
                 <InfoRow label="Last Contact" value={prospect.last_contact_date ? formatDateOnly(prospect.last_contact_date) : null} />

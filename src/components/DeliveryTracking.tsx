@@ -67,7 +67,7 @@ export default function DeliveryTracking() {
               merged.map((c) => (
                 <tr key={c.id} className="border-b border-border/30 last:border-b-0 hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-2.5 font-medium text-foreground">{c.name}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{c.phone || "—"}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground hidden sm:table-cell">{formatPhone(c.phone)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <span className="inline-flex items-center gap-1 text-foreground font-semibold">
                       <Truck className="w-3.5 h-3.5 text-primary" />

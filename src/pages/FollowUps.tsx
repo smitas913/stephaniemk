@@ -1137,8 +1137,8 @@ export default function FollowUps() {
               <div className="flex gap-2">
                 {actionItem.phone && (
                   <>
-                    <Button variant="outline" size="sm" asChild><a href={`tel:${actionItem.phone}`}><Phone className="w-3.5 h-3.5 mr-1" />Call</a></Button>
-                    <Button variant="outline" size="sm" asChild><a href={`sms:${actionItem.phone}`}><MessageSquare className="w-3.5 h-3.5 mr-1" />Text</a></Button>
+                    <Button variant="outline" size="sm" asChild><a href={`tel:${phoneForLink(actionItem.phone)}`}><Phone className="w-3.5 h-3.5 mr-1" />Call</a></Button>
+                    <Button variant="outline" size="sm" asChild><a href={`sms:${phoneForLink(actionItem.phone)}`}><MessageSquare className="w-3.5 h-3.5 mr-1" />Text</a></Button>
                   </>
                 )}
                 {actionItem.email && (

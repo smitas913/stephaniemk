@@ -468,10 +468,10 @@ export default function EventDetail() {
                   {event.hostess_phone && (
                     <>
                       <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`tel:${event.hostess_phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                        <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`sms:${event.hostess_phone}`}>Text</a>
+                        <a href={`sms:${phoneForLink(event.hostess_phone)}`}>Text</a>
                       </Button>
                     </>
                   )}

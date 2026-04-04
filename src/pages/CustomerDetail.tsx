@@ -184,8 +184,8 @@ export default function CustomerDetail() {
           <div className="flex gap-1">
             {customer.phone && (
               <>
-                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${customer.phone}`}><Phone className="w-4 h-4" /></a></Button>
-                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${customer.phone}`}><MessageSquare className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(customer.phone)}`}><Phone className="w-4 h-4" /></a></Button>
+                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${phoneForLink(customer.phone)}`}><MessageSquare className="w-4 h-4" /></a></Button>
               </>
             )}
             {customer.email && (

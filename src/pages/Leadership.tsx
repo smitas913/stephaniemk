@@ -465,7 +465,7 @@ function ConsultantsTab() {
                     {vc.phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                        <a href={`tel:${vc.phone}`} className="text-primary hover:underline">{vc.phone}</a>
+                        <a href={`tel:${phoneForLink(vc.phone)}`} className="text-primary hover:underline">{formatPhone(vc.phone)}</a>
                       </div>
                     )}
                     {vc.email && (

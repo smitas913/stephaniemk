@@ -318,10 +318,10 @@ export default function BookingLeads() {
                   {editLead.phone && (
                     <>
                       <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                        <a href={`tel:${editLead.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
+                        <a href={`tel:${phoneForLink(editLead.phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                       </Button>
                       <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                        <a href={`sms:${editLead.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                        <a href={`sms:${phoneForLink(editLead.phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
                       </Button>
                     </>
                   )}
