@@ -103,6 +103,7 @@ export default function TodaysFocus({
   const [dayType, setDayType] = useState<DayType>("booking");
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [activePanel, setActivePanel] = useState<"reachOuts" | "bookings" | "sharing" | null>(null);
+  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
   const goals = GOALS[dayType];
 
   const isToday = selectedDate === todayKey;
