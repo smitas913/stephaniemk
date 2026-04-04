@@ -128,9 +128,16 @@ export default function EventDetail() {
             <p className="text-sm text-muted-foreground font-mono">{eventId}</p>
           </div>
           {event && (
-            <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
-              {event.event_status || "Booked"}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
+                {event.event_status || "Booked"}
+              </Badge>
+              {event.reschedule_status && event.reschedule_status !== "None" && (
+                <Badge variant="outline" className="text-xs">
+                  {event.reschedule_status}
+                </Badge>
+              )}
+            </div>
           )}
         </div>
 
