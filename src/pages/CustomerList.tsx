@@ -12,12 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 
@@ -26,6 +27,7 @@ type EnrichedCustomer = Customer & CustomerComputed & {
 };
 
 export default function CustomerList() {
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -211,6 +213,61 @@ export default function CustomerList() {
         {/* Table */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-12">Loading...</p>
+        ) : isMobile ? (
+          /* Mobile card view */
+          <div className="space-y-2">
+            {filtered.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No customers found.</p>
+            ) : filtered.map((c) => (
+              <div
+                key={c.id}
+                className="border border-border rounded-lg p-3 bg-card active:bg-muted/50 transition-colors"
+                onClick={() => navigate(`/customers/${c.id}`)}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-sm text-foreground truncate flex-1 mr-2">{c.full_name}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {c.vip === "VIP" && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded font-medium bg-purple-100 text-purple-700">
+                        <Star className="w-2.5 h-2.5 fill-current" />VIP
+                      </span>
+                    )}
+                    {c.activity_status && c.relationship_status !== "Consultant" && (
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                        c.activity_status === "Active" ? "bg-green-100 text-green-700" :
+                        c.activity_status === "Warm" ? "bg-yellow-100 text-yellow-700" :
+                        c.activity_status === "Dormant" ? "bg-red-100 text-red-700" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        {c.activity_status}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                  {c.phone ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <a href={`tel:${phoneForLink(c.phone)}`} className="text-primary hover:underline flex items-center gap-1">
+                        <Phone className="w-3 h-3" />{formatPhone(c.phone)}
+                      </a>
+                      <a href={`sms:${phoneForLink(c.phone)}`} className="text-muted-foreground hover:text-primary">
+                        <MessageSquare className="w-3 h-3" />
+                      </a>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">No phone</span>
+                  )}
+                  {c.email && (
+                    <a href={`mailto:${c.email}`} className="text-muted-foreground hover:text-primary flex items-center gap-1 truncate">
+                      <Mail className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{c.email}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="border border-border rounded-lg overflow-auto">
             <Table>

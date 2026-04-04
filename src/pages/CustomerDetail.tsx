@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, convertCustomerToConsultant } from "@/lib/queries";
+import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck, ArrowRightLeft, Archive, ArchiveRestore } from "lucide-react";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -123,6 +123,8 @@ export default function CustomerDetail() {
   });
 
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
 
   const convertToConsultantMut = useMutation({
     mutationFn: () => convertCustomerToConsultant(customer!),
@@ -133,6 +135,29 @@ export default function CustomerDetail() {
       navigate("/leadership");
     },
     onError: (err: any) => toast.error(err.message || "Failed to convert"),
+  });
+
+  const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const customerHasOrders = allOrders.some((o) => o.customer_id === id);
+
+  const archiveMutation = useMutation({
+    mutationFn: () => customer!.is_active !== false ? archiveCustomer(id!) : unarchiveCustomer(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(customer!.is_active !== false ? "Customer archived" : "Customer restored");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCustomer(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      toast.success("Customer deleted permanently");
+      navigate("/customers");
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const isConsultant = customer?.relationship_status === "Consultant";
@@ -456,6 +481,81 @@ export default function CustomerDetail() {
               <AlertDialogAction onClick={() => convertToConsultantMut.mutate()} disabled={convertToConsultantMut.isPending}>
                 {convertToConsultantMut.isPending ? "Converting..." : "Convert"}
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Archive / Delete Actions */}
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Manage Customer</h3>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setShowArchiveConfirm(true)}
+              >
+                {customer.is_active !== false ? (
+                  <><Archive className="w-3.5 h-3.5" />Archive</>
+                ) : (
+                  <><ArchiveRestore className="w-3.5 h-3.5" />Restore</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Archive Confirmation */}
+        <AlertDialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{customer.is_active !== false ? "Archive" : "Restore"} {customer.full_name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {customer.is_active !== false
+                  ? "This customer will be moved to the archived list. You can restore them at any time."
+                  : "This customer will be restored to the active list."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending}>
+                {archiveMutation.isPending ? "Processing..." : customer.is_active !== false ? "Archive" : "Restore"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Permanently Delete {customer.full_name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {customerHasOrders
+                  ? "This customer cannot be deleted because they have order history. Use Archive instead to hide them from the active list."
+                  : "This will permanently delete this customer and all their data. This action cannot be undone."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {!customerHasOrders && (
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
