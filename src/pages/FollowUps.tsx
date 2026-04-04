@@ -1584,9 +1584,15 @@ function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormant
     if (stage === "Stage 3" || stage === "Annual") {
       return { days: 365, label: "Annual check-in (1 year)" };
     }
-    return { days: 5, label: `Dormant cadence (5 days)` };
+    return { days: 5, label: "Dormant cadence (5 days)" };
   }
-  // Default reorder cycle
+  if (activityStatus === "Warm") {
+    return { days: 45, label: "Warm reorder cycle (45 days)" };
+  }
+  if (activityStatus === "Active") {
+    return { days: 75, label: "Active check-in (75 days)" };
+  }
+  // No Orders or unknown
   return { days: 90, label: "Reorder cycle (90 days)" };
 }
 
