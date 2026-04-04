@@ -292,6 +292,25 @@ export default function EventDetail() {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-xs text-muted-foreground">Reschedule</label>
+                  <Select
+                    value={(event as any).reschedule_status || "None"}
+                    onValueChange={(val) => {
+                      if (val !== ((event as any).reschedule_status || "None")) {
+                        eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESCHEDULE_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                <div>
                   <label className="text-xs text-muted-foreground">Guest Count</label>
                   <Input
                     type="number" min={0} className="h-8 text-sm"
