@@ -27,6 +27,7 @@ type EnrichedCustomer = Customer & CustomerComputed & {
 };
 
 export default function CustomerList() {
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
