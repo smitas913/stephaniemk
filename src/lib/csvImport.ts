@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import type { Customer } from "./types";
+import type { Customer, TeamConsultant } from "./types";
 
 // Destination fields the admin can map CSV columns to
 export const DESTINATION_FIELDS = [
