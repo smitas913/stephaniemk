@@ -547,6 +547,24 @@ function ConsultantsTab() {
       </Sheet>
 
       <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
+
+      {/* Convert to Customer Confirmation */}
+      <AlertDialog open={!!convertTarget} onOpenChange={(open) => !open && setConvertTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert to Customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {convertTarget?.name} will be moved to the Customers list with a "Former Consultant" status. Their coaching data will be removed but all customer history will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => convertTarget && convertToCustomerMut.mutate(convertTarget)} disabled={convertToCustomerMut.isPending}>
+              {convertToCustomerMut.isPending ? "Converting..." : "Convert"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
