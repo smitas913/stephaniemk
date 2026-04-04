@@ -484,6 +484,81 @@ export default function CustomerDetail() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Archive / Delete Actions */}
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Manage Customer</h3>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setShowArchiveConfirm(true)}
+              >
+                {customer.is_active !== false ? (
+                  <><Archive className="w-3.5 h-3.5" />Archive</>
+                ) : (
+                  <><ArchiveRestore className="w-3.5 h-3.5" />Restore</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Archive Confirmation */}
+        <AlertDialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{customer.is_active !== false ? "Archive" : "Restore"} {customer.full_name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {customer.is_active !== false
+                  ? "This customer will be moved to the archived list. You can restore them at any time."
+                  : "This customer will be restored to the active list."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => archiveMutation.mutate()} disabled={archiveMutation.isPending}>
+                {archiveMutation.isPending ? "Processing..." : customer.is_active !== false ? "Archive" : "Restore"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Permanently Delete {customer.full_name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {customerHasOrders
+                  ? "This customer cannot be deleted because they have order history. Use Archive instead to hide them from the active list."
+                  : "This will permanently delete this customer and all their data. This action cannot be undone."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {!customerHasOrders && (
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+                </AlertDialogAction>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
