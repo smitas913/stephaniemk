@@ -138,7 +138,19 @@ export default function CustomerList() {
       const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU;
+
+      // Missing info filters
+      let matchMissing = true;
+      if (filterMissing.length > 0) {
+        for (const f of filterMissing) {
+          if (f === "birthday" && c.birthday) { matchMissing = false; break; }
+          if (f === "phone" && c.phone?.trim()) { matchMissing = false; break; }
+          if (f === "email" && c.email?.trim()) { matchMissing = false; break; }
+          if (f === "address" && c.address_line_1?.trim() && c.city?.trim() && c.state_territory?.trim() && c.postal_code?.trim()) { matchMissing = false; break; }
+        }
+      }
+
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchMissing;
     });
 
     if (sortByVip === "vip-first") {
