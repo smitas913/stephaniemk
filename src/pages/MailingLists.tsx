@@ -96,7 +96,12 @@ export default function MailingLists() {
     }
 
     if (addressOnly) {
-      list = list.filter((c) => c.address_line_1?.trim());
+      list = list.filter((c) =>
+        c.address_line_1?.trim() &&
+        c.city?.trim() &&
+        c.state_territory?.trim() &&
+        c.postal_code?.trim()
+      );
     }
 
     return list
