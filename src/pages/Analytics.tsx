@@ -298,6 +298,7 @@ export default function Analytics() {
                         <TableHead className="text-xs">Month</TableHead>
                         <TableHead className="text-xs text-center">Faces</TableHead>
                         <TableHead className="text-xs text-center">Parties</TableHead>
+                        <TableHead className="text-xs text-center">Facials</TableHead>
                         <TableHead className="text-xs text-center">Sharings</TableHead>
                         <TableHead className="text-xs text-center">New Team</TableHead>
                         <TableHead className="text-xs text-right">Sales</TableHead>
@@ -309,6 +310,7 @@ export default function Analytics() {
                           <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">{row.label}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.faces}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.parties}</TableCell>
+                          <TableCell className="text-sm text-center tabular-nums">{row.facials}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.sharings}</TableCell>
                           <TableCell className="text-sm text-center tabular-nums">{row.newTeam}</TableCell>
                           <TableCell className="text-sm text-right tabular-nums">{formatCurrency(row.sales)}</TableCell>
@@ -319,6 +321,7 @@ export default function Analytics() {
                         <TableCell className="text-sm font-bold text-foreground">Total</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.faces}</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.parties}</TableCell>
+                        <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.facials}</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.sharings}</TableCell>
                         <TableCell className="text-sm text-center font-bold tabular-nums">{analytics.totals.newTeam}</TableCell>
                         <TableCell className="text-sm text-right font-bold tabular-nums">{formatCurrency(analytics.totals.sales)}</TableCell>
