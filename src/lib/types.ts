@@ -96,6 +96,7 @@ export interface EventRecord {
   future_bookings_count: number | null;
   sharing_appointments_count: number | null;
   event_status: string;
+  reschedule_status: string | null;
   is_archived: boolean | null;
   notes: string | null;
   owner_user_id: string | null;
