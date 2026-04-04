@@ -38,6 +38,8 @@ export default function CustomerList() {
   const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
+  const [filterMissing, setFilterMissing] = useState<string[]>([]);
+  const [missingOpen, setMissingOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
