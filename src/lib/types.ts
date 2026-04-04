@@ -278,6 +278,8 @@ export interface TeamConsultant {
   last_name: string | null;
   phone: string | null;
   email: string | null;
+  secondary_email: string | null;
+  secondary_phone: string | null;
   join_date: string | null;
   status: string;
   last_order_date: string | null;
