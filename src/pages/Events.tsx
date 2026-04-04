@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly } from "@/lib/dateOnly";
@@ -15,12 +16,30 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
 
+const statusColor = (s: string) => {
+  switch (s) {
+    case "Held": return "bg-green-100 text-green-700 border-green-200";
+    case "Cancelled": return "bg-red-100 text-red-700 border-red-200";
+    default: return "bg-blue-100 text-blue-700 border-blue-200";
+  }
+};
+
+const rescheduleColor = (s: string | null) => {
+  switch (s) {
+    case "Rescheduled": return "bg-amber-100 text-amber-700 border-amber-200";
+    case "In Process of Rescheduling": return "bg-orange-100 text-orange-700 border-orange-200";
+    default: return "";
+  }
+};
+
 export default function Events() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [rescheduleFilter, setRescheduleFilter] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
@@ -38,8 +57,6 @@ export default function Events() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-
-  // Calculate totals per event from orders
   const eventSales = useMemo(() => {
     const map = new Map<string, { total: number; orderCount: number }>();
     for (const o of orders) {
@@ -57,6 +74,8 @@ export default function Events() {
     return events.filter((e) => {
       if (typeFilter !== "all" && e.event_type !== typeFilter) return false;
       if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
+      if (statusFilter !== "all" && e.event_status !== statusFilter) return false;
+      if (rescheduleFilter !== "all" && (e.reschedule_status || "None") !== rescheduleFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -67,7 +86,7 @@ export default function Events() {
       }
       return true;
     });
-  }, [events, search, typeFilter, formatFilter]);
+  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
 
   const sorted = useMemo(() =>
     [...filtered].sort((a, b) => (b.event_date || "").localeCompare(a.event_date || "")),
@@ -153,6 +172,28 @@ export default function Events() {
               <SelectItem value="Zoom">Zoom</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-[140px] text-sm">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Booked">Booked</SelectItem>
+              <SelectItem value="Held">Held</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={rescheduleFilter} onValueChange={setRescheduleFilter}>
+            <SelectTrigger className="h-9 w-[180px] text-sm">
+              <SelectValue placeholder="Reschedule" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Reschedule</SelectItem>
+              <SelectItem value="None">None</SelectItem>
+              <SelectItem value="In Process of Rescheduling">In Process</SelectItem>
+              <SelectItem value="Rescheduled">Rescheduled</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
@@ -168,14 +209,13 @@ export default function Events() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Event ID</TableHead>
-                  <TableHead className="text-xs">Type</TableHead>
                   <TableHead className="text-xs">Hostess</TableHead>
+                  <TableHead className="text-xs">Type</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
                   <TableHead className="text-xs text-center">Guests</TableHead>
                   <TableHead className="text-xs text-center">Ordering</TableHead>
                   <TableHead className="text-xs text-right">Total Sales</TableHead>
                   <TableHead className="text-xs text-center">Bookings</TableHead>
-                  <TableHead className="text-xs text-center">Sharings</TableHead>
                   <TableHead className="text-xs text-center">Conv %</TableHead>
                   <TableHead className="text-xs w-10"></TableHead>
                 </TableRow>
@@ -187,6 +227,7 @@ export default function Events() {
                   const evTotalSales = sales?.total || 0;
                   const guestCount = e.guest_count || 0;
                   const convRate = guestCount > 0 ? ((orderCount / guestCount) * 100).toFixed(0) : "—";
+                  const rStatus = e.reschedule_status || "None";
 
                   return (
                     <TableRow
@@ -197,23 +238,31 @@ export default function Events() {
                       <TableCell className="text-xs whitespace-nowrap">
                         {formatDateOnly(e.event_date)}
                       </TableCell>
-                      <TableCell className="text-xs font-mono max-w-[140px] truncate" title={e.event_id}>
-                        {e.event_id}
-                      </TableCell>
+                      <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
                       <TableCell className="text-xs">
                         {e.event_type || "—"}
                         {(e.event_format && e.event_format !== "In-Person") && (
                           <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(e.event_status))}>
+                            {e.event_status}
+                          </Badge>
+                          {rStatus !== "None" && (
+                            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
+                              {rStatus === "In Process of Rescheduling" ? "Rescheduling" : rStatus}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
                       <TableCell className="text-center text-sm">{e.ordering_guest_count || orderCount || "—"}</TableCell>
                       <TableCell className="text-right text-sm font-semibold">
                         {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
                       </TableCell>
                       <TableCell className="text-center text-sm">{e.future_bookings_count || "—"}</TableCell>
-                      <TableCell className="text-center text-sm">{e.sharing_appointments_count || "—"}</TableCell>
                       <TableCell className="text-center">
                         {convRate !== "—" ? (
                           <span className={cn("text-xs font-semibold",
