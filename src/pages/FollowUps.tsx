@@ -978,6 +978,15 @@ export default function FollowUps() {
                       reachOutDetails={reachOutDetails}
                       bookingDetails={bookingDetails}
                       sharingDetails={sharingDetails}
+                      rawData={{
+                        unifiedNotes: unifiedNotes,
+                        allNotes: allNotes,
+                        customers: customers,
+                        prospects: prospects,
+                        bookingLeads: bookingLeads,
+                        consultants: consultants,
+                        events: events,
+                      }}
                       onDetailNavigate={(type, id) => {
                         if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
                         else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
