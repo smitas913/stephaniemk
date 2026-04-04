@@ -268,7 +268,7 @@ export default function TodaysFocus({
         )}
       </Card>
 
-      {isToday && <TodaysPlan />}
+      {viewMode === "daily" && isToday && <TodaysPlan />}
 
       {/* Activity Detail Sheet */}
       <Sheet open={!!activePanel} onOpenChange={(open) => !open && setActivePanel(null)}>
