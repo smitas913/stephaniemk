@@ -15,6 +15,7 @@ const adminNavItems = [
   { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
+  { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
   // Row 2: Analysis & reference
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/scoreboard", label: "Scoreboard", icon: Target },
