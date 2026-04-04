@@ -121,6 +121,21 @@ export default function CustomerDetail() {
     },
   });
 
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+
+  const convertToConsultantMut = useMutation({
+    mutationFn: () => convertCustomerToConsultant(customer!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      toast.success(`${customer!.full_name} converted to Consultant`);
+      navigate("/leadership");
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to convert"),
+  });
+
+  const isConsultant = customer?.relationship_status === "Consultant";
+
   if (!customer || !computed) return <Layout><p className="text-muted-foreground text-center py-12">Loading...</p></Layout>;
 
   const formatDate = (d: string | null | undefined) => {
