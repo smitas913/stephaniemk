@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -38,6 +38,8 @@ export default function CustomerList() {
   const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
+  const [filterMissing, setFilterMissing] = useState<string[]>([]);
+  const [missingOpen, setMissingOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
@@ -136,7 +138,19 @@ export default function CustomerList() {
       const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU;
+
+      // Missing info filters
+      let matchMissing = true;
+      if (filterMissing.length > 0) {
+        for (const f of filterMissing) {
+          if (f === "birthday" && c.birthday) { matchMissing = false; break; }
+          if (f === "phone" && c.phone?.trim()) { matchMissing = false; break; }
+          if (f === "email" && c.email?.trim()) { matchMissing = false; break; }
+          if (f === "address" && c.address_line_1?.trim() && c.city?.trim() && c.state_territory?.trim() && c.postal_code?.trim()) { matchMissing = false; break; }
+        }
+      }
+
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchMissing;
     });
 
     if (sortByVip === "vip-first") {
@@ -163,7 +177,7 @@ export default function CustomerList() {
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip, sortCol, sortDir]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, sortByVip, sortCol, sortDir, filterMissing]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -208,6 +222,48 @@ export default function CustomerList() {
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
+          <Popover open={missingOpen} onOpenChange={setMissingOpen}>
+            <PopoverTrigger asChild>
+              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}
+                <ChevronDown className="w-3 h-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-2" align="start">
+              {[
+                { key: "birthday", label: "Missing Birthday" },
+                { key: "phone", label: "Missing Phone" },
+                { key: "email", label: "Missing Email" },
+                { key: "address", label: "Missing Address" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  className={cn(
+                    "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
+                    filterMissing.includes(key)
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted text-foreground"
+                  )}
+                  onClick={() => {
+                    setFilterMissing((prev) =>
+                      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                    );
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              {filterMissing.length > 0 && (
+                <button
+                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
+                  onClick={() => { setFilterMissing([]); setMissingOpen(false); }}
+                >
+                  Clear all
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Table */}
