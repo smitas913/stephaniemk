@@ -107,7 +107,17 @@ export default function ImportCustomers() {
       errored = 0;
     let contactDataWarnings = 0;
 
+    const existingConsultants = await fetchTeamConsultants();
+
     for (const row of validRows) {
+      // Check if this person already exists as a consultant — skip to prevent duplicates
+      const consultantMatch = findConsultantDuplicate(row, existingConsultants);
+      if (consultantMatch) {
+        skipped++;
+        details.push({ rowIndex: row.rowIndex, status: "skipped", reason: `Already exists as consultant: ${consultantMatch.name}` });
+        continue;
+      }
+
       const duplicate = findDuplicate(row, existing);
       const record = buildCustomerRecord(row);
       const legacyNotes = row.mapped.legacy_notes?.trim() || null;
