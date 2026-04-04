@@ -1001,7 +1001,7 @@ export default function FollowUps() {
                                       </div>
                                       {del.phone && (
                                         <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-                                          <a href={`tel:${del.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                          <a href={`tel:${phoneForLink(del.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                                         </Button>
                                       )}
                                     </div>
