@@ -625,7 +625,10 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
-        if (note.trim()) await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: type });
+        if (note.trim()) {
+          await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: type });
+          await createNote({ entity_type: "Customer", customer_id: item.id, note_body: note.trim(), note_type: type });
+        }
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
@@ -660,6 +663,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
       setActionItem(null); setNoteText(""); setNoteType("Call"); setFollowUpDate("");
       setInlineNoteId(null); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
@@ -740,6 +744,7 @@ export default function FollowUps() {
         await updateCustomer(item.id, updates as any);
         if (note.trim()) {
           await createCustomerNote({ customer_id: item.id, note_text: note.trim(), note_type: nType });
+          await createNote({ entity_type: "Customer", customer_id: item.id, note_body: note.trim(), note_type: nType });
         }
       } else if (item.itemType === "prospect") {
         const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
@@ -759,6 +764,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       setDetailItem(null);
       toast.success("Follow-up complete! Next date auto-scheduled.");
     },
