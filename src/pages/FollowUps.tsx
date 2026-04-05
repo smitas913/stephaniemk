@@ -514,6 +514,7 @@ export default function FollowUps() {
           followUpReason: (c as any).coaching_focus || "Coaching",
           lastContacted: null,
           actionLabel: "Coaching",
+          allow_non_working_day: !!(c as any).allow_non_working_day,
         };
       });
 
