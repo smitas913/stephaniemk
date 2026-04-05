@@ -403,6 +403,16 @@ export default function FollowUps() {
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
+  // Reschedule workflow state
+  const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
+  const [rescheduleNoteText, setRescheduleNoteText] = useState("");
+  const [rescheduleNoteType, setRescheduleNoteType] = useState("Call");
+  const [rescheduleStep, setRescheduleStep] = useState<"log" | "confirm">("log");
+  const [rescheduleNewDate, setRescheduleNewDate] = useState<string | null>(null);
+  const [setNewDateEvent, setSetNewDateEvent] = useState<EventRecord | null>(null);
+  const [newEventDate, setNewEventDate] = useState("");
+  const [manualNextStepEvent, setManualNextStepEvent] = useState<EventRecord | null>(null);
+
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
     for (const n of allNotes) { if (!map.has(n.customer_id)) map.set(n.customer_id, n); }
