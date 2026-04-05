@@ -2701,7 +2701,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 function ActionRow({
   item, inlineNoteId, inlineNoteText, inlineNoteType, inlineFollowUpDate,
   setInlineNoteText, setInlineNoteType, setInlineFollowUpDate,
-  onToggleInline, onInlineSave, onOpenDetail, isPending,
+  onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
@@ -2715,6 +2715,7 @@ function ActionRow({
   onInlineSave: () => void;
   onOpenDetail: () => void;
   isPending: boolean;
+  onToggleWorkdayOverride?: (newValue: boolean) => void;
 }) {
   const badge = TYPE_BADGE[item.itemType];
   return (
