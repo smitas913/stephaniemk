@@ -122,6 +122,7 @@ export interface EventRecord {
   reschedule_next_follow_up_date: string | null;
   reschedule_last_contact_date: string | null;
   requires_manual_next_step: boolean;
+  allow_non_working_day: boolean;
 }
 
 export interface EventGuest {
