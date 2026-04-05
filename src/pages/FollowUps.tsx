@@ -991,6 +991,35 @@ export default function FollowUps() {
     },
   });
 
+  const toggleWorkdayOverrideMutation = useMutation({
+    mutationFn: async ({ item, newValue }: { item: ActionItem; newValue: boolean }) => {
+      const tableMap: Record<string, string> = {
+        customer: "customers",
+        prospect: "prospects",
+        lead: "booking_leads",
+        consultant: "team_consultants",
+        hostess: "events",
+        event_task: "event_tasks",
+      };
+      const table = tableMap[item.itemType];
+      if (!table) return;
+      const { error } = await supabase
+        .from(table as any)
+        .update({ allow_non_working_day: newValue } as any)
+        .eq("id", item.itemType === "hostess" ? item.id : (item._eventTaskId || item.id));
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      toast.success("Workday override updated");
+    },
+  });
+
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
