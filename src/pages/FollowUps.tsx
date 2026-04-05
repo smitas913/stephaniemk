@@ -34,7 +34,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import {
@@ -432,7 +432,7 @@ export default function FollowUps() {
   });
 
   // ─── Build unified action items ───
-  const { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+  const { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
     const todayDate = getLocalToday();
     const todayKey = toLocalDateKey(todayDate);
     const upcoming7Key = toLocalDateKey(addDays(todayDate, 7));
@@ -589,10 +589,30 @@ export default function FollowUps() {
       return normalized > todayKey && normalized <= upcoming7Key;
     }));
 
-    // Events
-    const todayEvents = events.filter((e) => e.event_date && normalizeDateOnly(e.event_date) === todayKey && !e.is_archived);
+    // Events — only show active events (Booked + not rescheduling)
+    const todayEvents = events.filter((e) => {
+      if (!e.event_date || e.is_archived) return false;
+      if (normalizeDateOnly(e.event_date) !== todayKey) return false;
+      if (e.event_status === "Cancelled") return false;
+      const reschedule = (e as any).reschedule_status || "None";
+      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
+      return true;
+    });
+
+    // Rescheduling follow-up: events needing rebooking attention
+    const reschedulingFollowUp = events.filter((e) => {
+      if (e.is_archived) return false;
+      const reschedule = (e as any).reschedule_status || "None";
+      if (reschedule === "In Process of Rescheduling") return true;
+      if (e.event_status === "Cancelled" && e.event_date) return true;
+      return false;
+    });
+
     const upcomingEvents = events.filter((e) => {
       if (!e.event_date || e.is_archived) return false;
+      if (e.event_status === "Cancelled") return false;
+      const reschedule = (e as any).reschedule_status || "None";
+      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
       const normalized = normalizeDateOnly(e.event_date);
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
@@ -616,7 +636,7 @@ export default function FollowUps() {
     }
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming };
+    return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads]);
 
   // Distribution candidates
@@ -1028,7 +1048,7 @@ export default function FollowUps() {
                                 <div className="divide-y divide-border/40">
                                   {todayEvents.map((evt) => (
                                     <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                      onClick={() => navigate(`/events/${evt.event_id}`)}>
+                                      onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
@@ -1043,7 +1063,44 @@ export default function FollowUps() {
                               </div>
                             )}
 
-                            {/* Deliveries */}
+                            {/* Rescheduling Follow-Up */}
+                            {reschedulingFollowUp.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <RefreshCw className="w-3 h-3" /> Rescheduling Follow-Up ({reschedulingFollowUp.length})
+                                </p>
+                                <div className="divide-y divide-border/40">
+                                  {reschedulingFollowUp.map((evt) => (
+                                    <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                      onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-foreground truncate">
+                                          {evt.hostess_name || evt.event_id}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                          {evt.event_type && <span>{evt.event_type}</span>}
+                                          {evt.event_date && <span>• {formatDateOnly(evt.event_date)}</span>}
+                                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                                            {(evt as any).reschedule_status === "In Process of Rescheduling"
+                                              ? "Rescheduling"
+                                              : evt.event_status}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {evt.hostess_phone && (
+                                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                            <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                          </Button>
+                                        )}
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             {todayDeliveries.length > 0 && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks } from "@/lib/queries";
@@ -31,6 +31,7 @@ const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
@@ -118,7 +119,11 @@ export default function EventDetail() {
       <div className="space-y-6 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/events")}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+            const from = (location.state as any)?.from;
+            if (from) navigate(from);
+            else navigate(-1);
+          }}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="flex-1">
