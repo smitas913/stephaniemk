@@ -790,9 +790,10 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
 export const generateGuestInviteTask = async (eventId: string) => {
   const userId = await getCurrentUserId();
   const ooo = await fetchScheduleSettings();
+  const workdays = buildWorkdayFlags(ooo);
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
-  const adjusted = nextAvailableDay(todayDate, ooo);
+  const adjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
   const today = toLocalDateKeyImport(adjusted);
 
   // Check if already exists
