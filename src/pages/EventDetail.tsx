@@ -31,6 +31,7 @@ const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
