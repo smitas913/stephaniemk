@@ -1048,7 +1048,7 @@ export default function FollowUps() {
                                 <div className="divide-y divide-border/40">
                                   {todayEvents.map((evt) => (
                                     <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                      onClick={() => navigate(`/events/${evt.event_id}`)}>
+                                      onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
