@@ -771,7 +771,7 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
     const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
 
     // Smart-schedule each pre-event task
-    const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo));
+    const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
 
     tasks.push(
       { event_id: eventId, task_name: "Hostess Pre-Profile + Guest Review", task_type: "pre_profile", due_date: fmt(fiveBefore), owner_user_id: userId },
