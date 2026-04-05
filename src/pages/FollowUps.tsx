@@ -403,6 +403,16 @@ export default function FollowUps() {
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
+  // Reschedule workflow state
+  const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
+  const [rescheduleNoteText, setRescheduleNoteText] = useState("");
+  const [rescheduleNoteType, setRescheduleNoteType] = useState("Call");
+  const [rescheduleStep, setRescheduleStep] = useState<"log" | "confirm">("log");
+  const [rescheduleNewDate, setRescheduleNewDate] = useState<string | null>(null);
+  const [setNewDateEvent, setSetNewDateEvent] = useState<EventRecord | null>(null);
+  const [newEventDate, setNewEventDate] = useState("");
+  const [manualNextStepEvent, setManualNextStepEvent] = useState<EventRecord | null>(null);
+
   const notesByCustomer = useMemo(() => {
     const map = new Map<string, CustomerNote>();
     for (const n of allNotes) { if (!map.has(n.customer_id)) map.set(n.customer_id, n); }
@@ -589,30 +599,35 @@ export default function FollowUps() {
       return normalized > todayKey && normalized <= upcoming7Key;
     }));
 
-    // Events — only show active events (Booked + not rescheduling)
+    // Events — only show active events (Booked + Reschedule=None + today)
     const todayEvents = events.filter((e) => {
       if (!e.event_date || e.is_archived) return false;
       if (normalizeDateOnly(e.event_date) !== todayKey) return false;
-      if (e.event_status === "Cancelled") return false;
-      const reschedule = (e as any).reschedule_status || "None";
-      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
+      if (e.event_status !== "Booked") return false;
+      const reschedule = e.reschedule_status || "None";
+      if (reschedule !== "None") return false;
       return true;
     });
 
     // Rescheduling follow-up: events needing rebooking attention
     const reschedulingFollowUp = events.filter((e) => {
       if (e.is_archived) return false;
-      const reschedule = (e as any).reschedule_status || "None";
+      const reschedule = e.reschedule_status || "None";
       if (reschedule === "In Process of Rescheduling") return true;
-      if (e.event_status === "Cancelled" && e.event_date) return true;
+      if (e.event_status === "Cancelled") return true;
       return false;
+    }).sort((a, b) => {
+      // Due today/overdue first
+      const aDate = a.reschedule_next_follow_up_date || "9999";
+      const bDate = b.reschedule_next_follow_up_date || "9999";
+      return aDate.localeCompare(bDate);
     });
 
     const upcomingEvents = events.filter((e) => {
       if (!e.event_date || e.is_archived) return false;
-      if (e.event_status === "Cancelled") return false;
-      const reschedule = (e as any).reschedule_status || "None";
-      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
+      if (e.event_status !== "Booked") return false;
+      const reschedule = e.reschedule_status || "None";
+      if (reschedule !== "None") return false;
       const normalized = normalizeDateOnly(e.event_date);
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
@@ -875,6 +890,91 @@ export default function FollowUps() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  // ─── Reschedule cadence ───
+  const RESCHEDULE_CADENCE_DAYS = [1, 2, 3, 14, 30]; // attempt 0→+1, 1→+2, 2→+3, 3→+14, 4→+30, 5→STOP
+  const getNextRescheduleFollowUp = (attempt: number): string | null => {
+    if (attempt >= RESCHEDULE_CADENCE_DAYS.length) return null;
+    return toLocalDateKey(addDays(new Date(), RESCHEDULE_CADENCE_DAYS[attempt]));
+  };
+
+  const rescheduleLogMutation = useMutation({
+    mutationFn: async ({ event, noteType: nt, noteText: text }: { event: EventRecord; noteType: string; noteText: string }) => {
+      const newAttempt = (event.reschedule_attempt_number || 0) + 1;
+      const nextFollowUp = getNextRescheduleFollowUp(newAttempt);
+      const updates: Record<string, any> = {
+        reschedule_last_contact_date: toLocalDateKey(),
+        reschedule_attempt_number: newAttempt,
+        reschedule_next_follow_up_date: nextFollowUp,
+        reschedule_status: "In Process of Rescheduling",
+        requires_manual_next_step: newAttempt >= 5,
+      };
+      await updateEvent(event.id, updates);
+      // Also log a note for traceability
+      if (text.trim()) {
+        const { data: userData } = await supabase.auth.getUser();
+        await supabase.from("customer_notes" as any).insert({
+          customer_id: event.id,
+          note_text: `[Reschedule ${nt}] ${text.trim()}`,
+          note_type: nt,
+          owner_user_id: userData.user?.id || null,
+        } as any).then(() => {});
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setRescheduleActivityEvent(null);
+      setRescheduleNoteText("");
+      setRescheduleNoteType("Call");
+      setRescheduleStep("log");
+      toast.success("Reschedule follow-up logged");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const rescheduleSetNewDateMutation = useMutation({
+    mutationFn: async ({ event, newDate }: { event: EventRecord; newDate: string }) => {
+      await updateEvent(event.id, {
+        event_date: newDate,
+        event_status: "Booked",
+        reschedule_status: "None",
+        reschedule_attempt_number: 0,
+        reschedule_next_follow_up_date: null,
+        reschedule_last_contact_date: null,
+        requires_manual_next_step: false,
+      } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setSetNewDateEvent(null);
+      setNewEventDate("");
+      toast.success("Event rebooked successfully!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const rescheduleArchiveMutation = useMutation({
+    mutationFn: async (event: EventRecord) => {
+      await updateEvent(event.id, { is_archived: true, reschedule_next_follow_up_date: null, requires_manual_next_step: false } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setManualNextStepEvent(null);
+      toast.success("Event archived — follow-up stopped");
+    },
+  });
+
+  const rescheduleToNurtureMutation = useMutation({
+    mutationFn: async (event: EventRecord) => {
+      await updateEvent(event.id, { reschedule_next_follow_up_date: null, requires_manual_next_step: false, reschedule_status: "None", event_status: "Cancelled" } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setManualNextStepEvent(null);
+      toast.success("Moved to nurture — no further auto follow-up");
+    },
+  });
+
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
@@ -1063,40 +1163,68 @@ export default function FollowUps() {
                               </div>
                             )}
 
-                            {/* Rescheduling Follow-Up */}
+                            {/* Reschedule Follow-Ups Due Today */}
                             {reschedulingFollowUp.length > 0 && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <RefreshCw className="w-3 h-3" /> Rescheduling Follow-Up ({reschedulingFollowUp.length})
+                                  <RefreshCw className="w-3 h-3" /> Reschedule Follow-Ups ({reschedulingFollowUp.length})
                                 </p>
                                 <div className="divide-y divide-border/40">
-                                  {reschedulingFollowUp.map((evt) => (
-                                    <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                      onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-foreground truncate">
-                                          {evt.hostess_name || evt.event_id}
-                                        </p>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                          {evt.event_type && <span>{evt.event_type}</span>}
-                                          {evt.event_date && <span>• {formatDateOnly(evt.event_date)}</span>}
-                                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-                                            {(evt as any).reschedule_status === "In Process of Rescheduling"
-                                              ? "Rescheduling"
-                                              : evt.event_status}
-                                          </Badge>
+                                  {reschedulingFollowUp.map((evt) => {
+                                    const todayKey = toLocalDateKey();
+                                    const fuDate = evt.reschedule_next_follow_up_date;
+                                    const isDueNow = !fuDate || fuDate <= todayKey;
+                                    return (
+                                      <div key={evt.id} className="py-2 px-1 space-y-1">
+                                        <div className="flex items-center gap-3">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-foreground truncate">
+                                              {evt.hostess_name || evt.event_id}
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                              {evt.event_type && <span>{evt.event_type}</span>}
+                                              {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
+                                              <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
+                                              {evt.reschedule_last_contact_date && (
+                                                <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>
+                                              )}
+                                              {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
+                                              {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            {evt.hostess_phone && (
+                                              <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                              </Button>
+                                            )}
+                                            {evt.hostess_phone && (
+                                              <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          {evt.requires_manual_next_step ? (
+                                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>
+                                              Choose Next Step
+                                            </Button>
+                                          ) : (
+                                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRescheduleActivityEvent(evt); setRescheduleStep("log"); }}>
+                                              Log Activity
+                                            </Button>
+                                          )}
+                                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>
+                                            Set New Date
+                                          </Button>
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                                          </Button>
                                         </div>
                                       </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {evt.hostess_phone && (
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                            <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                          </Button>
-                                        )}
-                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                      </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
@@ -1497,6 +1625,113 @@ export default function FollowUps() {
                     {distributeMutation.isPending ? "Distributing..." : "Apply Distribution"}
                   </Button>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Reschedule Activity Log Dialog */}
+        <Dialog open={!!rescheduleActivityEvent} onOpenChange={(open) => { if (!open) { setRescheduleActivityEvent(null); setRescheduleStep("log"); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {rescheduleStep === "log" ? "Log Reschedule Activity" : "Confirm Next Step"}
+              </DialogTitle>
+            </DialogHeader>
+            {rescheduleActivityEvent && rescheduleStep === "log" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {rescheduleActivityEvent.hostess_name} — {rescheduleActivityEvent.event_type || "Event"} (Attempt #{(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1})
+                </p>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Activity Type</label>
+                  <Select value={rescheduleNoteType} onValueChange={setRescheduleNoteType}>
+                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Call", "Text", "Email", "In Person"].map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
+                  <Textarea className="text-xs mt-1 min-h-[60px]" placeholder="Left voicemail, sent text..." value={rescheduleNoteText} onChange={(e) => setRescheduleNoteText(e.target.value)} />
+                </div>
+                <Button className="w-full" onClick={() => setRescheduleStep("confirm")}>Continue to Confirm</Button>
+              </div>
+            )}
+            {rescheduleActivityEvent && rescheduleStep === "confirm" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Activity: <strong>{rescheduleNoteType}</strong> — Attempt #{(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1}
+                </p>
+                {(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1 >= 5 ? (
+                  <p className="text-sm text-destructive font-medium">This is attempt #5. No further auto-scheduling. You will need to choose a manual next step.</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Next follow-up will be auto-scheduled in {RESCHEDULE_CADENCE_DAYS[(rescheduleActivityEvent.reschedule_attempt_number || 0)]} day(s).
+                  </p>
+                )}
+                <Button
+                  className="w-full"
+                  disabled={rescheduleLogMutation.isPending}
+                  onClick={() => rescheduleLogMutation.mutate({ event: rescheduleActivityEvent, noteType: rescheduleNoteType, noteText: rescheduleNoteText })}
+                >
+                  {rescheduleLogMutation.isPending ? "Saving..." : "Confirm Next Step"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Set New Date Dialog */}
+        <Dialog open={!!setNewDateEvent} onOpenChange={(open) => { if (!open) setSetNewDateEvent(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Set New Event Date</DialogTitle>
+            </DialogHeader>
+            {setNewDateEvent && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Rebook <strong>{setNewDateEvent.hostess_name || setNewDateEvent.event_id}</strong> — {setNewDateEvent.event_type || "Event"}
+                </p>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">New Event Date</label>
+                  <Input type="date" className="h-8 text-xs mt-1" value={newEventDate} min={toLocalDateKey()} onChange={(e) => setNewEventDate(e.target.value)} />
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={!newEventDate || rescheduleSetNewDateMutation.isPending}
+                  onClick={() => rescheduleSetNewDateMutation.mutate({ event: setNewDateEvent, newDate: newEventDate })}
+                >
+                  {rescheduleSetNewDateMutation.isPending ? "Rebooking..." : "Rebook Event"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Manual Next Step Dialog (Attempt 5+) */}
+        <Dialog open={!!manualNextStepEvent} onOpenChange={(open) => { if (!open) setManualNextStepEvent(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Choose Next Step</DialogTitle>
+            </DialogHeader>
+            {manualNextStepEvent && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  <strong>{manualNextStepEvent.hostess_name || manualNextStepEvent.event_id}</strong> has reached 5 reschedule attempts. Choose what to do next:
+                </p>
+                <Button className="w-full" variant="default" onClick={() => { setManualNextStepEvent(null); setSetNewDateEvent(manualNextStepEvent); setNewEventDate(""); }}>
+                  <CalendarCheck className="w-4 h-4 mr-2" /> Reschedule (Set New Date)
+                </Button>
+                <Button className="w-full" variant="outline" disabled={rescheduleToNurtureMutation.isPending} onClick={() => rescheduleToNurtureMutation.mutate(manualNextStepEvent)}>
+                  Move to Nurture Follow-Up
+                </Button>
+                <Button className="w-full" variant="secondary" disabled={rescheduleArchiveMutation.isPending} onClick={() => rescheduleArchiveMutation.mutate(manualNextStepEvent)}>
+                  Archive / Stop Follow-Up
+                </Button>
               </div>
             )}
           </DialogContent>
