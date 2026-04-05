@@ -668,7 +668,7 @@ export default function FollowUps() {
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
     return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday]);
 
   // Distribution candidates
   const distributeCandidates = useMemo(() => {
