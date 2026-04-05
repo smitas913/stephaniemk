@@ -1994,30 +1994,30 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         )}
       </div>
 
-      {/* ── Did Not Connect / Skip ── */}
+      {/* ── Skip (no outreach attempted) ── */}
       {!activityLogged && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <PhoneMissed className="w-4 h-4 text-muted-foreground" />
-            Didn't Connect?
+            <SkipForward className="w-4 h-4 text-muted-foreground" />
+            Skip This Follow-Up
           </h3>
           <p className="text-[11px] text-muted-foreground">
-            Use this if you attempted contact but couldn't reach them. This will NOT update the last contacted date or count as a reach out.
+            No outreach attempted. Moves the follow-up forward without counting as a reach out or updating last contacted.
           </p>
           <Textarea
             value={skipNote}
             onChange={(e) => setSkipNote(e.target.value)}
-            placeholder="Optional: No answer, left voicemail, will try again later..."
+            placeholder="Optional: reason for skipping..."
             className="min-h-[50px]"
           />
           <Button
             variant="outline"
-            className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
-            onClick={handleDidNotConnect}
+            className="w-full border-muted-foreground/30 text-muted-foreground hover:bg-muted"
+            onClick={handleSkipped}
             disabled={saving}
           >
-            <PhoneMissed className="w-4 h-4 mr-1.5" />
-            {saving ? "Saving..." : "Did Not Connect — Skip to Next"}
+            <SkipForward className="w-4 h-4 mr-1.5" />
+            {saving ? "Saving..." : "Skip — Move to Next"}
           </Button>
         </div>
       )}
