@@ -80,6 +80,37 @@ export interface OOOPeriod {
   ooo_end_date: string | null;
 }
 
+/** Workday flags indexed by JS day number (0=Sun … 6=Sat). All true = default. */
+export type WorkdayFlags = [boolean, boolean, boolean, boolean, boolean, boolean, boolean];
+
+export const DEFAULT_WORKDAYS: WorkdayFlags = [true, true, true, true, true, true, true];
+
+/** Build WorkdayFlags from schedule settings fields */
+export function buildWorkdayFlags(settings: {
+  workday_sunday?: boolean;
+  workday_monday?: boolean;
+  workday_tuesday?: boolean;
+  workday_wednesday?: boolean;
+  workday_thursday?: boolean;
+  workday_friday?: boolean;
+  workday_saturday?: boolean;
+} | null | undefined): WorkdayFlags {
+  if (!settings) return DEFAULT_WORKDAYS;
+  return [
+    settings.workday_sunday ?? true,   // 0 = Sunday
+    settings.workday_monday ?? true,   // 1 = Monday
+    settings.workday_tuesday ?? true,  // 2 = Tuesday
+    settings.workday_wednesday ?? true,// 3 = Wednesday
+    settings.workday_thursday ?? true, // 4 = Thursday
+    settings.workday_friday ?? true,   // 5 = Friday
+    settings.workday_saturday ?? true, // 6 = Saturday
+  ];
+}
+
+function isNonWorkday(date: Date, workdays: WorkdayFlags): boolean {
+  return !workdays[date.getDay()];
+}
+
 function isInOOO(dateKey: string, ooo: OOOPeriod | null): boolean {
   if (!ooo?.ooo_start_date || !ooo?.ooo_end_date) return false;
   return dateKey >= ooo.ooo_start_date && dateKey <= ooo.ooo_end_date;
@@ -91,18 +122,19 @@ function isCustomBlackout(dateKey: string, blackoutDates: Set<string>): boolean 
 
 /**
  * Given a candidate date, advance it forward until it lands on a valid working day
- * (not Sunday, not a holiday, not in OOO, not a custom blackout day).
+ * (not a non-workday, not a holiday, not in OOO, not a custom blackout day).
  */
 export function nextAvailableDay(
   candidate: Date,
   ooo: OOOPeriod | null = null,
   blackoutDates: Set<string> = new Set(),
+  workdays: WorkdayFlags = DEFAULT_WORKDAYS,
 ): Date {
   let current = candidate;
   let safety = 0;
   while (safety < 90) {
     const key = toLocalDateKey(current);
-    if (!isSunday(current) && !isHoliday(key) && !isInOOO(key, ooo) && !isCustomBlackout(key, blackoutDates)) {
+    if (!isNonWorkday(current, workdays) && !isHoliday(key) && !isInOOO(key, ooo) && !isCustomBlackout(key, blackoutDates)) {
       return current;
     }
     current = addDays(current, 1);
@@ -113,18 +145,19 @@ export function nextAvailableDay(
 
 /**
  * Same as nextAvailableDay but also skips Saturdays (weekday-only scheduling).
+ * When workday flags are provided, those take precedence over the default Sat/Sun skip.
  */
 export function nextAvailableWeekday(
   candidate: Date,
   ooo: OOOPeriod | null = null,
   blackoutDates: Set<string> = new Set(),
+  workdays: WorkdayFlags = DEFAULT_WORKDAYS,
 ): Date {
   let current = candidate;
   let safety = 0;
   while (safety < 90) {
     const key = toLocalDateKey(current);
-    const day = current.getDay();
-    if (day !== 0 && day !== 6 && !isHoliday(key) && !isInOOO(key, ooo) && !isCustomBlackout(key, blackoutDates)) {
+    if (!isNonWorkday(current, workdays) && !isHoliday(key) && !isInOOO(key, ooo) && !isCustomBlackout(key, blackoutDates)) {
       return current;
     }
     current = addDays(current, 1);
@@ -141,17 +174,18 @@ export function spreadTasks(
   maxPerDay: number,
   ooo: OOOPeriod | null = null,
   blackoutDates: Set<string> = new Set(),
+  workdays: WorkdayFlags = DEFAULT_WORKDAYS,
 ): string[] {
   const dayCount = new Map<string, number>();
   return dates.map((d) => {
     let candidate = parseLocalDate(d);
-    candidate = nextAvailableWeekday(candidate, ooo, blackoutDates);
+    candidate = nextAvailableWeekday(candidate, ooo, blackoutDates, workdays);
     let key = toLocalDateKey(candidate);
 
     let safety = 0;
     while ((dayCount.get(key) ?? 0) >= maxPerDay && safety < 60) {
       candidate = addDays(candidate, 1);
-      candidate = nextAvailableWeekday(candidate, ooo, blackoutDates);
+      candidate = nextAvailableWeekday(candidate, ooo, blackoutDates, workdays);
       key = toLocalDateKey(candidate);
       safety++;
     }
@@ -161,14 +195,20 @@ export function spreadTasks(
   });
 }
 
-/** Check if a date string falls on Sunday, holiday, OOO, or blackout */
+/** Check if a date string falls on a non-workday, holiday, OOO, or blackout */
 export function isBlockedDay(
   dateStr: string,
   ooo: OOOPeriod | null = null,
   blackoutDates: Set<string> = new Set(),
+  workdays: WorkdayFlags = DEFAULT_WORKDAYS,
 ): boolean {
   const d = parseLocalDate(dateStr);
-  return isSunday(d) || isHoliday(dateStr) || isInOOO(dateStr, ooo) || isCustomBlackout(dateStr, blackoutDates);
+  return isNonWorkday(d, workdays) || isHoliday(dateStr) || isInOOO(dateStr, ooo) || isCustomBlackout(dateStr, blackoutDates);
+}
+
+/** Check if today is a non-working day (for Today page messaging) */
+export function isTodayNonWorkday(workdays: WorkdayFlags = DEFAULT_WORKDAYS): boolean {
+  return !workdays[new Date().getDay()];
 }
 
 /** Holiday list for display purposes */
