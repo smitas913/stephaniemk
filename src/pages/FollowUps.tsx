@@ -432,7 +432,7 @@ export default function FollowUps() {
   });
 
   // ─── Build unified action items ───
-  const { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+  const { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
     const todayDate = getLocalToday();
     const todayKey = toLocalDateKey(todayDate);
     const upcoming7Key = toLocalDateKey(addDays(todayDate, 7));
