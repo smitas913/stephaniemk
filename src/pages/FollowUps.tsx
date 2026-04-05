@@ -495,6 +495,7 @@ export default function FollowUps() {
           followUpReason: p.next_step_type || `Prospect - ${p.opportunity_status}`,
           lastContacted: p.last_contact_date,
           actionLabel: p.next_step_type || "Next Step",
+          allow_non_working_day: !!(p as any).allow_non_working_day,
         };
       });
 
