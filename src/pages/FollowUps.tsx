@@ -533,6 +533,7 @@ export default function FollowUps() {
           followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
           lastContacted: null,
           actionLabel: "Hostess Coaching",
+          allow_non_working_day: !!(e as any).allow_non_working_day,
         };
       });
 
