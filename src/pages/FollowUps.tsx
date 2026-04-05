@@ -474,6 +474,7 @@ export default function FollowUps() {
         followUpReason: c.follow_up_reason || "Customer Follow-Up",
         lastNotePreview: notePreview, lastContacted: c.last_contacted,
         actionLabel: "Follow-up",
+        allow_non_working_day: !!(c as any).allow_non_working_day,
         _address: fullAddress || null,
         _relationship_status: c.relationship_status,
       };
