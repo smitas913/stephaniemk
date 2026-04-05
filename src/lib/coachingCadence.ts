@@ -57,6 +57,7 @@ export function getNextCoachingDate(
   currentCoachingDateStr: string | null | undefined,
   today = getLocalToday(),
   ooo: OOOPeriod | null = null,
+  workdays: WorkdayFlags = DEFAULT_WORKDAYS,
 ): string | null {
   const cadence = getCadenceInfo(joinDateStr, today);
   if (!cadence || cadence.phase === "graduated") return null;
@@ -67,7 +68,7 @@ export function getNextCoachingDate(
   const tomorrow = addDays(today, 1);
   const finalDate = candidateDate >= tomorrow ? candidateDate : tomorrow;
 
-  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo, new Set(), workdays));
 }
 
 /**
