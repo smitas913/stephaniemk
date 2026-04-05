@@ -313,6 +313,7 @@ export interface TeamConsultant {
   city: string | null;
   state_territory: string | null;
   postal_code: string | null;
+  allow_non_working_day: boolean;
 }
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;
