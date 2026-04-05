@@ -1630,7 +1630,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
 // ─── Customer Edit Panel (unified activity + next step flow) ───
 
-const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation"] as const;
+const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation", "Did Not Connect"] as const;
 
 function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
   if (activityStatus === "Dormant") {
