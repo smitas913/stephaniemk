@@ -1063,7 +1063,44 @@ export default function FollowUps() {
                               </div>
                             )}
 
-                            {/* Deliveries */}
+                            {/* Rescheduling Follow-Up */}
+                            {reschedulingFollowUp.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <RefreshCw className="w-3 h-3" /> Rescheduling Follow-Up ({reschedulingFollowUp.length})
+                                </p>
+                                <div className="divide-y divide-border/40">
+                                  {reschedulingFollowUp.map((evt) => (
+                                    <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                      onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-foreground truncate">
+                                          {evt.hostess_name || evt.event_id}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                          {evt.event_type && <span>{evt.event_type}</span>}
+                                          {evt.event_date && <span>• {formatDateOnly(evt.event_date)}</span>}
+                                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                                            {(evt as any).reschedule_status === "In Process of Rescheduling"
+                                              ? "Rescheduling"
+                                              : evt.event_status}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {evt.hostess_phone && (
+                                          <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                            <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                          </Button>
+                                        )}
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             {todayDeliveries.length > 0 && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
