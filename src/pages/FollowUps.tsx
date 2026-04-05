@@ -6,9 +6,10 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote,
+  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
+import { buildWorkdayFlags, isTodayNonWorkday } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
 import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
@@ -228,6 +229,9 @@ export default function FollowUps() {
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
   const { data: eventTasksRaw = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const { data: scheduleSettings } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
+  const workdayFlags = buildWorkdayFlags(scheduleSettings);
+  const isNonWorkday = isTodayNonWorkday(workdayFlags);
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
@@ -1023,6 +1027,12 @@ export default function FollowUps() {
 
               {/* ===== TODAY TAB ===== */}
               <TabsContent value="today" className="mt-4">
+                {isNonWorkday && (
+                  <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
+                    <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <p className="text-sm text-muted-foreground">Today is marked as a non-working day in Admin settings. Follow-ups and tasks scheduled for today have been moved forward.</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Left Column (2/3) */}
                   <div className="lg:col-span-2 space-y-4">

@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
-import { nextAvailableWeekday, nextAvailableDay, spreadTasks, type OOOPeriod } from "./smartSchedule";
+import { nextAvailableWeekday, nextAvailableDay, spreadTasks, buildWorkdayFlags, type OOOPeriod } from "./smartSchedule";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
@@ -751,11 +751,12 @@ export const deleteEventTasksByEventId = async (eventId: string) => {
 export const generateEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
   const userId = await getCurrentUserId();
   const ooo = await fetchScheduleSettings();
+  const workdays = buildWorkdayFlags(ooo);
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
   // Task 1: Send Hostess Form — due today (skip blocked days)
-  const todayAdjusted = nextAvailableDay(todayDate, ooo);
+  const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
   const today = toLocalDateKeyImport(todayAdjusted);
 
   const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
@@ -770,7 +771,7 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
     const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
 
     // Smart-schedule each pre-event task
-    const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo));
+    const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
 
     tasks.push(
       { event_id: eventId, task_name: "Hostess Pre-Profile + Guest Review", task_type: "pre_profile", due_date: fmt(fiveBefore), owner_user_id: userId },
@@ -789,9 +790,10 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
 export const generateGuestInviteTask = async (eventId: string) => {
   const userId = await getCurrentUserId();
   const ooo = await fetchScheduleSettings();
+  const workdays = buildWorkdayFlags(ooo);
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
-  const adjusted = nextAvailableDay(todayDate, ooo);
+  const adjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
   const today = toLocalDateKeyImport(adjusted);
 
   // Check if already exists
@@ -816,6 +818,13 @@ export interface ScheduleSettings {
   ooo_start_date: string | null;
   ooo_end_date: string | null;
   light_schedule_mode: boolean;
+  workday_monday: boolean;
+  workday_tuesday: boolean;
+  workday_wednesday: boolean;
+  workday_thursday: boolean;
+  workday_friday: boolean;
+  workday_saturday: boolean;
+  workday_sunday: boolean;
 }
 
 export const fetchScheduleSettings = async (): Promise<ScheduleSettings | null> => {

@@ -1,6 +1,6 @@
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { parseLocalDate, toLocalDateKey, getLocalToday } from "@/lib/dateOnly";
-import { nextAvailableWeekday, type OOOPeriod } from "@/lib/smartSchedule";
+import { nextAvailableWeekday, type OOOPeriod, type WorkdayFlags, DEFAULT_WORKDAYS } from "@/lib/smartSchedule";
 
 export type CadencePhase = "intensive" | "building" | "steady" | "graduated";
 
@@ -57,6 +57,7 @@ export function getNextCoachingDate(
   currentCoachingDateStr: string | null | undefined,
   today = getLocalToday(),
   ooo: OOOPeriod | null = null,
+  workdays: WorkdayFlags = DEFAULT_WORKDAYS,
 ): string | null {
   const cadence = getCadenceInfo(joinDateStr, today);
   if (!cadence || cadence.phase === "graduated") return null;
@@ -67,26 +68,26 @@ export function getNextCoachingDate(
   const tomorrow = addDays(today, 1);
   const finalDate = candidateDate >= tomorrow ? candidateDate : tomorrow;
 
-  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo, new Set(), workdays));
 }
 
 /**
  * Auto-populate the initial coaching date for a new consultant.
  * Sets to tomorrow (or next weekday).
  */
-export function getInitialCoachingDate(today = getLocalToday(), ooo: OOOPeriod | null = null): string {
+export function getInitialCoachingDate(today = getLocalToday(), ooo: OOOPeriod | null = null, workdays: WorkdayFlags = DEFAULT_WORKDAYS): string {
   const candidate = addDays(today, 1);
-  return toLocalDateKey(nextAvailableWeekday(candidate, ooo));
+  return toLocalDateKey(nextAvailableWeekday(candidate, ooo, new Set(), workdays));
 }
 
 /**
  * Snooze: push the next coaching date forward by the given number of days.
  */
-export function snoozeCoachingDate(currentDateStr: string | null | undefined, snoozeDays: number, today = getLocalToday(), ooo: OOOPeriod | null = null): string {
+export function snoozeCoachingDate(currentDateStr: string | null | undefined, snoozeDays: number, today = getLocalToday(), ooo: OOOPeriod | null = null, workdays: WorkdayFlags = DEFAULT_WORKDAYS): string {
   const baseDate = currentDateStr ? parseLocalDate(currentDateStr) : today;
   const candidate = addDays(baseDate, snoozeDays);
   const tomorrow = addDays(today, 1);
   const finalDate = candidate >= tomorrow ? candidate : tomorrow;
 
-  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo, new Set(), workdays));
 }

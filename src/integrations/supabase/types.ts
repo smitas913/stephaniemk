@@ -1210,6 +1210,13 @@ export type Database = {
           ooo_start_date: string | null
           updated_at: string
           user_id: string
+          workday_friday: boolean
+          workday_monday: boolean
+          workday_saturday: boolean
+          workday_sunday: boolean
+          workday_thursday: boolean
+          workday_tuesday: boolean
+          workday_wednesday: boolean
         }
         Insert: {
           created_at?: string
@@ -1219,6 +1226,13 @@ export type Database = {
           ooo_start_date?: string | null
           updated_at?: string
           user_id: string
+          workday_friday?: boolean
+          workday_monday?: boolean
+          workday_saturday?: boolean
+          workday_sunday?: boolean
+          workday_thursday?: boolean
+          workday_tuesday?: boolean
+          workday_wednesday?: boolean
         }
         Update: {
           created_at?: string
@@ -1228,6 +1242,13 @@ export type Database = {
           ooo_start_date?: string | null
           updated_at?: string
           user_id?: string
+          workday_friday?: boolean
+          workday_monday?: boolean
+          workday_saturday?: boolean
+          workday_sunday?: boolean
+          workday_thursday?: boolean
+          workday_tuesday?: boolean
+          workday_wednesday?: boolean
         }
         Relationships: []
       }
