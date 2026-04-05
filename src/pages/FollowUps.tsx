@@ -2740,12 +2740,26 @@ function ActionRow({
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {item.allow_non_working_day && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">Any Day</span>
+            )}
             {item.follow_up_status === "OVERDUE" ? (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
                 {item.daysOverdue ? `${item.daysOverdue}d overdue` : "Overdue"}
               </span>
             ) : (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold">Today</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Today</span>
+            )}
+            {onToggleWorkdayOverride && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-8 w-8", item.allow_non_working_day ? "text-primary" : "text-muted-foreground")}
+                onClick={(e) => { e.stopPropagation(); onToggleWorkdayOverride(!item.allow_non_working_day); }}
+                title={item.allow_non_working_day ? "Remove non-working day override" : "Allow on non-working days"}
+              >
+                <CalendarCheck className="w-3.5 h-3.5" />
+              </Button>
             )}
             {item.phone && (
               <>
