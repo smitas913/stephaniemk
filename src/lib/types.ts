@@ -117,6 +117,10 @@ export interface EventRecord {
   hostess_next_action_date: string | null;
   event_time: string | null;
   event_location: string | null;
+  reschedule_attempt_number: number;
+  reschedule_next_follow_up_date: string | null;
+  reschedule_last_contact_date: string | null;
+  requires_manual_next_step: boolean;
 }
 
 export interface EventGuest {

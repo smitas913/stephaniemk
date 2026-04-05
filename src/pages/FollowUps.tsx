@@ -602,10 +602,15 @@ export default function FollowUps() {
     // Rescheduling follow-up: events needing rebooking attention
     const reschedulingFollowUp = events.filter((e) => {
       if (e.is_archived) return false;
-      const reschedule = (e as any).reschedule_status || "None";
+      const reschedule = e.reschedule_status || "None";
       if (reschedule === "In Process of Rescheduling") return true;
-      if (e.event_status === "Cancelled" && e.event_date) return true;
+      if (e.event_status === "Cancelled") return true;
       return false;
+    }).sort((a, b) => {
+      // Due today/overdue first
+      const aDate = a.reschedule_next_follow_up_date || "9999";
+      const bDate = b.reschedule_next_follow_up_date || "9999";
+      return aDate.localeCompare(bDate);
     });
 
     const upcomingEvents = events.filter((e) => {
