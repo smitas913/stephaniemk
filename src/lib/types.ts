@@ -23,6 +23,7 @@ export interface Customer {
   new_customer_flag: boolean;
   archived_at: string | null;
   dormant_follow_up_stage: string | null;
+  allow_non_working_day: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -121,6 +122,7 @@ export interface EventRecord {
   reschedule_next_follow_up_date: string | null;
   reschedule_last_contact_date: string | null;
   requires_manual_next_step: boolean;
+  allow_non_working_day: boolean;
 }
 
 export interface EventGuest {
@@ -193,6 +195,7 @@ export interface Prospect {
   next_follow_up_date: string | null;
   notes: string | null;
   owner_user_id: string | null;
+  allow_non_working_day: boolean;
   created_at: string;
   updated_at: string | null;
   next_step_type: string | null;
@@ -258,6 +261,7 @@ export interface BookingLead {
   notes: string | null;
   converted_customer_id: string | null;
   owner_user_id: string | null;
+  allow_non_working_day: boolean;
   created_at: string;
   updated_at: string | null;
 }
@@ -309,6 +313,7 @@ export interface TeamConsultant {
   city: string | null;
   state_territory: string | null;
   postal_code: string | null;
+  allow_non_working_day: boolean;
 }
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;

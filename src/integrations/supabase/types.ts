@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       booking_leads: {
         Row: {
+          allow_non_working_day: boolean
           converted_customer_id: string | null
           created_at: string
           email: string | null
@@ -32,6 +33,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allow_non_working_day?: boolean
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -48,6 +50,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allow_non_working_day?: boolean
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -214,6 +217,7 @@ export type Database = {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
+          allow_non_working_day: boolean
           archived_at: string | null
           birthday: string | null
           birthday_mmdd: string | null
@@ -244,6 +248,7 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
+          allow_non_working_day?: boolean
           archived_at?: string | null
           birthday?: string | null
           birthday_mmdd?: string | null
@@ -274,6 +279,7 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
+          allow_non_working_day?: boolean
           archived_at?: string | null
           birthday?: string | null
           birthday_mmdd?: string | null
@@ -306,6 +312,7 @@ export type Database = {
       daily_plan_items: {
         Row: {
           address: string | null
+          allow_non_working_day: boolean
           created_at: string
           customer_id: string | null
           customer_name: string
@@ -321,6 +328,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_non_working_day?: boolean
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -336,6 +344,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_non_working_day?: boolean
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -401,6 +410,7 @@ export type Database = {
       }
       event_tasks: {
         Row: {
+          allow_non_working_day: boolean
           completed_at: string | null
           created_at: string
           due_date: string | null
@@ -412,6 +422,7 @@ export type Database = {
           task_type: string
         }
         Insert: {
+          allow_non_working_day?: boolean
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
@@ -423,6 +434,7 @@ export type Database = {
           task_type: string
         }
         Update: {
+          allow_non_working_day?: boolean
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
@@ -437,6 +449,7 @@ export type Database = {
       }
       events: {
         Row: {
+          allow_non_working_day: boolean
           checklist_google_form_completed: boolean | null
           checklist_guest_list_received: boolean | null
           checklist_invitations_sent: boolean | null
@@ -475,6 +488,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allow_non_working_day?: boolean
           checklist_google_form_completed?: boolean | null
           checklist_guest_list_received?: boolean | null
           checklist_invitations_sent?: boolean | null
@@ -513,6 +527,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allow_non_working_day?: boolean
           checklist_google_form_completed?: boolean | null
           checklist_guest_list_received?: boolean | null
           checklist_invitations_sent?: boolean | null
@@ -1027,6 +1042,7 @@ export type Database = {
       }
       prospects: {
         Row: {
+          allow_non_working_day: boolean
           created_at: string
           customer_id: string | null
           date_shared: string | null
@@ -1045,6 +1061,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allow_non_working_day?: boolean
           created_at?: string
           customer_id?: string | null
           date_shared?: string | null
@@ -1063,6 +1080,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allow_non_working_day?: boolean
           created_at?: string
           customer_id?: string | null
           date_shared?: string | null
@@ -1100,6 +1118,7 @@ export type Database = {
       team_consultants: {
         Row: {
           address_line_1: string | null
+          allow_non_working_day: boolean
           birthday: string | null
           city: string | null
           coaching_focus: string | null
@@ -1131,6 +1150,7 @@ export type Database = {
         }
         Insert: {
           address_line_1?: string | null
+          allow_non_working_day?: boolean
           birthday?: string | null
           city?: string | null
           coaching_focus?: string | null
@@ -1162,6 +1182,7 @@ export type Database = {
         }
         Update: {
           address_line_1?: string | null
+          allow_non_working_day?: boolean
           birthday?: string | null
           city?: string | null
           coaching_focus?: string | null

@@ -90,6 +90,7 @@ type ActionItem = {
   lastNotePreview?: string;
   lastContacted?: string | null;
   actionLabel: string;
+  allow_non_working_day?: boolean;
   // Extra customer fields for enhanced panel
   _address?: string | null;
   _relationship_status?: string | null;
@@ -473,6 +474,7 @@ export default function FollowUps() {
         followUpReason: c.follow_up_reason || "Customer Follow-Up",
         lastNotePreview: notePreview, lastContacted: c.last_contacted,
         actionLabel: "Follow-up",
+        allow_non_working_day: !!(c as any).allow_non_working_day,
         _address: fullAddress || null,
         _relationship_status: c.relationship_status,
       };
@@ -493,6 +495,7 @@ export default function FollowUps() {
           followUpReason: p.next_step_type || `Prospect - ${p.opportunity_status}`,
           lastContacted: p.last_contact_date,
           actionLabel: p.next_step_type || "Next Step",
+          allow_non_working_day: !!(p as any).allow_non_working_day,
         };
       });
 
@@ -511,6 +514,7 @@ export default function FollowUps() {
           followUpReason: (c as any).coaching_focus || "Coaching",
           lastContacted: null,
           actionLabel: "Coaching",
+          allow_non_working_day: !!(c as any).allow_non_working_day,
         };
       });
 
@@ -529,6 +533,7 @@ export default function FollowUps() {
           followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
           lastContacted: null,
           actionLabel: "Hostess Coaching",
+          allow_non_working_day: !!(e as any).allow_non_working_day,
         };
       });
 
@@ -547,6 +552,7 @@ export default function FollowUps() {
           followUpReason: lead.lead_source ? `Booking Lead - ${lead.lead_source}` : "Booking Follow-Up",
           lastContacted: lead.last_contact_date,
           actionLabel: "Booking Follow-Up",
+          allow_non_working_day: !!(lead as any).allow_non_working_day,
         };
       });
 
@@ -577,6 +583,7 @@ export default function FollowUps() {
           followUpReason: taskDetail,
           lastContacted: null,
           actionLabel: "Hostess Coaching",
+          allow_non_working_day: !!(t as any).allow_non_working_day,
           _eventTaskId: t.id,
           _eventId: t.event_id,
         };
@@ -594,7 +601,12 @@ export default function FollowUps() {
       return a.name.localeCompare(b.name);
     });
 
-    const todayActions = sortItems(allItems.filter((item) => item.next_follow_up && isDueTodayOrEarlier(item.next_follow_up, todayKey)));
+    const todayActions = sortItems(allItems.filter((item) => {
+      if (!item.next_follow_up || !isDueTodayOrEarlier(item.next_follow_up, todayKey)) return false;
+      // On non-working days, only show items with override enabled
+      if (isNonWorkday && !item.allow_non_working_day) return false;
+      return true;
+    }));
 
     const upcomingActions = sortItems(allItems.filter((item) => {
       if (!item.next_follow_up) return false;
@@ -656,7 +668,7 @@ export default function FollowUps() {
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
     return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday]);
 
   // Distribution candidates
   const distributeCandidates = useMemo(() => {
@@ -979,6 +991,35 @@ export default function FollowUps() {
     },
   });
 
+  const toggleWorkdayOverrideMutation = useMutation({
+    mutationFn: async ({ item, newValue }: { item: ActionItem; newValue: boolean }) => {
+      const tableMap: Record<string, string> = {
+        customer: "customers",
+        prospect: "prospects",
+        lead: "booking_leads",
+        consultant: "team_consultants",
+        hostess: "events",
+        event_task: "event_tasks",
+      };
+      const table = tableMap[item.itemType];
+      if (!table) return;
+      const { error } = await supabase
+        .from(table as any)
+        .update({ allow_non_working_day: newValue } as any)
+        .eq("id", item.itemType === "hostess" ? item.id : (item._eventTaskId || item.id));
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      toast.success("Workday override updated");
+    },
+  });
+
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
@@ -1030,7 +1071,7 @@ export default function FollowUps() {
                 {isNonWorkday && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is marked as a non-working day in Admin settings. Follow-ups and tasks scheduled for today have been moved forward.</p>
+                    <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown. Other follow-ups have been moved to the next working day.</p>
                   </div>
                 )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -1074,6 +1115,7 @@ export default function FollowUps() {
                                     onInlineSave={() => handleInlineSave(item)}
                                     onOpenDetail={() => openDetailSheet(item)}
                                     isPending={contactMutation.isPending}
+                                    onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
                                   />
                                 ))}
                               </div>
@@ -2659,7 +2701,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 function ActionRow({
   item, inlineNoteId, inlineNoteText, inlineNoteType, inlineFollowUpDate,
   setInlineNoteText, setInlineNoteType, setInlineFollowUpDate,
-  onToggleInline, onInlineSave, onOpenDetail, isPending,
+  onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
@@ -2673,6 +2715,7 @@ function ActionRow({
   onInlineSave: () => void;
   onOpenDetail: () => void;
   isPending: boolean;
+  onToggleWorkdayOverride?: (newValue: boolean) => void;
 }) {
   const badge = TYPE_BADGE[item.itemType];
   return (
@@ -2697,12 +2740,26 @@ function ActionRow({
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {item.allow_non_working_day && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">Any Day</span>
+            )}
             {item.follow_up_status === "OVERDUE" ? (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
                 {item.daysOverdue ? `${item.daysOverdue}d overdue` : "Overdue"}
               </span>
             ) : (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold">Today</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Today</span>
+            )}
+            {onToggleWorkdayOverride && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-8 w-8", item.allow_non_working_day ? "text-primary" : "text-muted-foreground")}
+                onClick={(e) => { e.stopPropagation(); onToggleWorkdayOverride(!item.allow_non_working_day); }}
+                title={item.allow_non_working_day ? "Remove non-working day override" : "Allow on non-working days"}
+              >
+                <CalendarCheck className="w-3.5 h-3.5" />
+              </Button>
             )}
             {item.phone && (
               <>
