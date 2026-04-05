@@ -1814,29 +1814,29 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     setSaving(false);
   };
 
-  const handleDidNotConnect = async () => {
+  const handleSkipped = async () => {
     setSaving(true);
     try {
       const retryInfo = getSkipRetryDays(item.activity_status);
       const retryDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
 
-      // Do NOT update last_contacted — this is not a real contact
+      // Do NOT update last_contacted — no outreach was attempted
       const updates: Record<string, any> = {
         next_follow_up_date: retryDate,
-        follow_up_reason: "Did not connect — retry scheduled",
+        follow_up_reason: "Skipped — rescheduled",
       };
       await updateCustomer(item.id, updates as any);
 
       // Log optional note if provided (as a non-contact note type)
       if (skipNote.trim()) {
-        await logCustomerActivity({ customerId: item.id, noteType: "Other", noteText: `Did not connect: ${skipNote.trim()}`, nextFollowUpDate: retryDate });
+        await logCustomerActivity({ customerId: item.id, noteType: "Other", noteText: `Skipped: ${skipNote.trim()}`, nextFollowUpDate: retryDate });
       }
 
       setNextFollowUp(retryDate);
       setFollowUpSource("manual");
-      setDidNotConnect(true);
-      setActivityLogged(true); // enables the "Confirm Next Step" flow
-      setLoggedMessage(`Did not connect — retry auto-set to ${formatDateOnly(retryDate)} (${retryInfo.label})`);
+      setSkipped(true);
+      setActivityLogged(true);
+      setLoggedMessage(`Skipped — next follow-up auto-set to ${formatDateOnly(retryDate)} (${retryInfo.label})`);
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       if (skipNote.trim()) {
@@ -1851,12 +1851,14 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
   const handleSaveNextStep = async () => {
     if (!activityLogged) {
-      toast.error("Please log activity or mark as did not connect first");
+      toast.error("Please log activity first, or skip this follow-up");
       return;
     }
     setSaving(true);
     try {
-      const reason = didNotConnect
+      const reason = skipped
+        ? "Skipped — rescheduled"
+        : didNotConnect
         ? "Did not connect — retry scheduled"
         : followUpSource === "catalog" && catalogType
         ? `${catalogType} Catalog Follow-Up`
