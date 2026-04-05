@@ -83,11 +83,11 @@ export function getInitialCoachingDate(today = getLocalToday(), ooo: OOOPeriod |
 /**
  * Snooze: push the next coaching date forward by the given number of days.
  */
-export function snoozeCoachingDate(currentDateStr: string | null | undefined, snoozeDays: number, today = getLocalToday(), ooo: OOOPeriod | null = null): string {
+export function snoozeCoachingDate(currentDateStr: string | null | undefined, snoozeDays: number, today = getLocalToday(), ooo: OOOPeriod | null = null, workdays: WorkdayFlags = DEFAULT_WORKDAYS): string {
   const baseDate = currentDateStr ? parseLocalDate(currentDateStr) : today;
   const candidate = addDays(baseDate, snoozeDays);
   const tomorrow = addDays(today, 1);
   const finalDate = candidate >= tomorrow ? candidate : tomorrow;
 
-  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo));
+  return toLocalDateKey(nextAvailableWeekday(finalDate, ooo, new Set(), workdays));
 }
