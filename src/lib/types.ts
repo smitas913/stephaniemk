@@ -23,6 +23,7 @@ export interface Customer {
   new_customer_flag: boolean;
   archived_at: string | null;
   dormant_follow_up_stage: string | null;
+  allow_non_working_day: boolean;
   created_at: string;
   updated_at: string;
 }
