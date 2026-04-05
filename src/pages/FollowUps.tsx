@@ -636,7 +636,7 @@ export default function FollowUps() {
     }
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, birthdaysToday, birthdaysUpcoming };
+    return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads]);
 
   // Distribution candidates
