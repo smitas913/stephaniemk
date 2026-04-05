@@ -1071,7 +1071,7 @@ export default function FollowUps() {
                 {isNonWorkday && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is marked as a non-working day in Admin settings. Follow-ups and tasks scheduled for today have been moved forward.</p>
+                    <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown. Other follow-ups have been moved to the next working day.</p>
                   </div>
                 )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
