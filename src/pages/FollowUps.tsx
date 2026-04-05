@@ -34,7 +34,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import {
@@ -176,7 +176,7 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: CalendarCheck },
 };
 
-const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation"]);
+const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation", "Did Not Connect"]);
 
 function getTimestampDateKey(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -1630,7 +1630,7 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
 // ─── Customer Edit Panel (unified activity + next step flow) ───
 
-const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation"] as const;
+const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation", "Did Not Connect"] as const;
 
 function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
   if (activityStatus === "Dormant") {
@@ -1685,6 +1685,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [loggedMessage, setLoggedMessage] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [didNotConnect, setDidNotConnect] = useState(false);
+  const [skipped, setSkipped] = useState(false);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Fetch active catalog follow-ups for this customer
@@ -1736,7 +1737,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const catalogType = catalogFollowUp?.catalog_campaigns?.campaign_type;
 
   const handleLogActivity = async () => {
-    if (!newNote.trim()) {
+    const isDidNotConnect = activityType === "Did Not Connect";
+    if (!isDidNotConnect && !newNote.trim()) {
       toast.error("Please add a note about what happened");
       return;
     }
@@ -1748,7 +1750,12 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       let nextStage = currentDormantStage;
       let cadenceLabel: string;
 
-      if (isDormant) {
+      if (isDidNotConnect) {
+        // Did Not Connect uses shorter retry intervals
+        const retryInfo = getSkipRetryDays(item.activity_status);
+        autoNextDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
+        cadenceLabel = retryInfo.label;
+      } else if (isDormant) {
         const effectiveStage = currentDormantStage || "Stage 1";
         nextStage = getNextDormantStage(effectiveStage);
         autoNextDate = getNextDormantFollowUpDate(effectiveStage);
@@ -1759,11 +1766,11 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         cadenceLabel = info.label;
       }
 
-      // Check if catalog follow-up is earlier
+      // Check if catalog follow-up is earlier (only for non-DNC)
       let effectiveDate = autoNextDate;
       let effectiveSource: "cadence" | "catalog" = "cadence";
       let effectiveLabel = cadenceLabel;
-      if (catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
+      if (!isDidNotConnect && catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
         effectiveDate = catalogFollowUp.follow_up_date;
         effectiveSource = "catalog";
         effectiveLabel = `${catalogType} Catalog Follow-Up`;
@@ -1772,20 +1779,30 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       const updates: Record<string, any> = {
         last_contacted: today,
         next_follow_up_date: effectiveDate,
-        follow_up_reason: effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
+        follow_up_reason: isDidNotConnect
+          ? "Did not connect — retry scheduled"
+          : effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
       };
-      if (isDormant) {
+      if (!isDidNotConnect && isDormant) {
         updates.dormant_follow_up_stage = nextStage;
       }
 
       await updateCustomer(item.id, updates as any);
-      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText: newNote.trim(), nextFollowUpDate: effectiveDate });
+      const noteText = isDidNotConnect
+        ? (newNote.trim() || "Did not connect — attempted contact")
+        : newNote.trim();
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextFollowUpDate: effectiveDate });
 
       setNextFollowUp(effectiveDate);
       setFollowUpSource(effectiveSource);
       setNewNote("");
       setActivityLogged(true);
-      setLoggedMessage(`Activity logged ✓ Next follow-up auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`);
+      if (isDidNotConnect) setDidNotConnect(true);
+      setLoggedMessage(
+        isDidNotConnect
+          ? `Attempt logged ✓ Retry auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`
+          : `Activity logged ✓ Next follow-up auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`
+      );
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
@@ -1797,29 +1814,29 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     setSaving(false);
   };
 
-  const handleDidNotConnect = async () => {
+  const handleSkipped = async () => {
     setSaving(true);
     try {
       const retryInfo = getSkipRetryDays(item.activity_status);
       const retryDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
 
-      // Do NOT update last_contacted — this is not a real contact
+      // Do NOT update last_contacted — no outreach was attempted
       const updates: Record<string, any> = {
         next_follow_up_date: retryDate,
-        follow_up_reason: "Did not connect — retry scheduled",
+        follow_up_reason: "Skipped — rescheduled",
       };
       await updateCustomer(item.id, updates as any);
 
       // Log optional note if provided (as a non-contact note type)
       if (skipNote.trim()) {
-        await logCustomerActivity({ customerId: item.id, noteType: "Other", noteText: `Did not connect: ${skipNote.trim()}`, nextFollowUpDate: retryDate });
+        await logCustomerActivity({ customerId: item.id, noteType: "Other", noteText: `Skipped: ${skipNote.trim()}`, nextFollowUpDate: retryDate });
       }
 
       setNextFollowUp(retryDate);
       setFollowUpSource("manual");
-      setDidNotConnect(true);
-      setActivityLogged(true); // enables the "Confirm Next Step" flow
-      setLoggedMessage(`Did not connect — retry auto-set to ${formatDateOnly(retryDate)} (${retryInfo.label})`);
+      setSkipped(true);
+      setActivityLogged(true);
+      setLoggedMessage(`Skipped — next follow-up auto-set to ${formatDateOnly(retryDate)} (${retryInfo.label})`);
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       if (skipNote.trim()) {
@@ -1834,12 +1851,14 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
   const handleSaveNextStep = async () => {
     if (!activityLogged) {
-      toast.error("Please log activity or mark as did not connect first");
+      toast.error("Please log activity first, or skip this follow-up");
       return;
     }
     setSaving(true);
     try {
-      const reason = didNotConnect
+      const reason = skipped
+        ? "Skipped — rescheduled"
+        : didNotConnect
         ? "Did not connect — retry scheduled"
         : followUpSource === "catalog" && catalogType
         ? `${catalogType} Catalog Follow-Up`
@@ -1915,7 +1934,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       {activityLogged && !nextStepConfirmed && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
           <Clock className="w-4 h-4 shrink-0" />
-          {didNotConnect ? "Attempt noted" : "Activity logged"} — please confirm the next step below to complete this follow-up
+          {skipped ? "Skipped" : didNotConnect ? "Attempt noted" : "Activity logged"} — please confirm the next step below to complete this follow-up
         </div>
       )}
 
@@ -1962,41 +1981,43 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
               />
             </div>
 
-            <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
+            <Button className="w-full" onClick={handleLogActivity} disabled={saving || (activityType !== "Did Not Connect" && !newNote.trim())}>
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              {saving ? "Saving..." : "Log Activity"}
+              {saving ? "Saving..." : activityType === "Did Not Connect" ? "Log Attempt" : "Log Activity"}
             </Button>
             <p className="text-[11px] text-muted-foreground text-center">
-              Logging updates last contacted and auto-sets next follow-up
+              {activityType === "Did Not Connect"
+                ? "Counts as a reach out attempt · updates last contacted · uses shorter retry interval"
+                : "Logging updates last contacted and auto-sets next follow-up"}
             </p>
           </>
         )}
       </div>
 
-      {/* ── Did Not Connect / Skip ── */}
+      {/* ── Skip (no outreach attempted) ── */}
       {!activityLogged && (
         <div className="rounded-lg border border-border bg-card p-4 space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <PhoneMissed className="w-4 h-4 text-muted-foreground" />
-            Didn't Connect?
+            <SkipForward className="w-4 h-4 text-muted-foreground" />
+            Skip This Follow-Up
           </h3>
           <p className="text-[11px] text-muted-foreground">
-            Use this if you attempted contact but couldn't reach them. This will NOT update the last contacted date or count as a reach out.
+            No outreach attempted. Moves the follow-up forward without counting as a reach out or updating last contacted.
           </p>
           <Textarea
             value={skipNote}
             onChange={(e) => setSkipNote(e.target.value)}
-            placeholder="Optional: No answer, left voicemail, will try again later..."
+            placeholder="Optional: reason for skipping..."
             className="min-h-[50px]"
           />
           <Button
             variant="outline"
-            className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
-            onClick={handleDidNotConnect}
+            className="w-full border-muted-foreground/30 text-muted-foreground hover:bg-muted"
+            onClick={handleSkipped}
             disabled={saving}
           >
-            <PhoneMissed className="w-4 h-4 mr-1.5" />
-            {saving ? "Saving..." : "Did Not Connect — Skip to Next"}
+            <SkipForward className="w-4 h-4 mr-1.5" />
+            {saving ? "Saving..." : "Skip — Move to Next"}
           </Button>
         </div>
       )}
