@@ -1027,6 +1027,12 @@ export default function FollowUps() {
 
               {/* ===== TODAY TAB ===== */}
               <TabsContent value="today" className="mt-4">
+                {isNonWorkday && (
+                  <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
+                    <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <p className="text-sm text-muted-foreground">Today is marked as a non-working day in Admin settings. Follow-ups and tasks scheduled for today have been moved forward.</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Left Column (2/3) */}
                   <div className="lg:col-span-2 space-y-4">
