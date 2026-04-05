@@ -229,6 +229,9 @@ export default function FollowUps() {
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
   const { data: eventTasksRaw = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const { data: scheduleSettings } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
+  const workdayFlags = buildWorkdayFlags(scheduleSettings);
+  const isNonWorkday = isTodayNonWorkday(workdayFlags);
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
