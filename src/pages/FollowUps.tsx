@@ -1934,7 +1934,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       {activityLogged && !nextStepConfirmed && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
           <Clock className="w-4 h-4 shrink-0" />
-          {didNotConnect ? "Attempt noted" : "Activity logged"} — please confirm the next step below to complete this follow-up
+          {skipped ? "Skipped" : didNotConnect ? "Attempt noted" : "Activity logged"} — please confirm the next step below to complete this follow-up
         </div>
       )}
 
