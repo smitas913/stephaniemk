@@ -1737,7 +1737,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const catalogType = catalogFollowUp?.catalog_campaigns?.campaign_type;
 
   const handleLogActivity = async () => {
-    if (!newNote.trim()) {
+    const isDidNotConnect = activityType === "Did Not Connect";
+    if (!isDidNotConnect && !newNote.trim()) {
       toast.error("Please add a note about what happened");
       return;
     }
@@ -1749,7 +1750,12 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       let nextStage = currentDormantStage;
       let cadenceLabel: string;
 
-      if (isDormant) {
+      if (isDidNotConnect) {
+        // Did Not Connect uses shorter retry intervals
+        const retryInfo = getSkipRetryDays(item.activity_status);
+        autoNextDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
+        cadenceLabel = retryInfo.label;
+      } else if (isDormant) {
         const effectiveStage = currentDormantStage || "Stage 1";
         nextStage = getNextDormantStage(effectiveStage);
         autoNextDate = getNextDormantFollowUpDate(effectiveStage);
@@ -1760,11 +1766,11 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         cadenceLabel = info.label;
       }
 
-      // Check if catalog follow-up is earlier
+      // Check if catalog follow-up is earlier (only for non-DNC)
       let effectiveDate = autoNextDate;
       let effectiveSource: "cadence" | "catalog" = "cadence";
       let effectiveLabel = cadenceLabel;
-      if (catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
+      if (!isDidNotConnect && catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
         effectiveDate = catalogFollowUp.follow_up_date;
         effectiveSource = "catalog";
         effectiveLabel = `${catalogType} Catalog Follow-Up`;
@@ -1773,20 +1779,30 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       const updates: Record<string, any> = {
         last_contacted: today,
         next_follow_up_date: effectiveDate,
-        follow_up_reason: effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
+        follow_up_reason: isDidNotConnect
+          ? "Did not connect — retry scheduled"
+          : effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
       };
-      if (isDormant) {
+      if (!isDidNotConnect && isDormant) {
         updates.dormant_follow_up_stage = nextStage;
       }
 
       await updateCustomer(item.id, updates as any);
-      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText: newNote.trim(), nextFollowUpDate: effectiveDate });
+      const noteText = isDidNotConnect
+        ? (newNote.trim() || "Did not connect — attempted contact")
+        : newNote.trim();
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextFollowUpDate: effectiveDate });
 
       setNextFollowUp(effectiveDate);
       setFollowUpSource(effectiveSource);
       setNewNote("");
       setActivityLogged(true);
-      setLoggedMessage(`Activity logged ✓ Next follow-up auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`);
+      if (isDidNotConnect) setDidNotConnect(true);
+      setLoggedMessage(
+        isDidNotConnect
+          ? `Attempt logged ✓ Retry auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`
+          : `Activity logged ✓ Next follow-up auto-set to ${formatDateOnly(effectiveDate)} — ${effectiveLabel}`
+      );
 
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
