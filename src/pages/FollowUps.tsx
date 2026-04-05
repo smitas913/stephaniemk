@@ -1981,12 +1981,14 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
               />
             </div>
 
-            <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
+            <Button className="w-full" onClick={handleLogActivity} disabled={saving || (activityType !== "Did Not Connect" && !newNote.trim())}>
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              {saving ? "Saving..." : "Log Activity"}
+              {saving ? "Saving..." : activityType === "Did Not Connect" ? "Log Attempt" : "Log Activity"}
             </Button>
             <p className="text-[11px] text-muted-foreground text-center">
-              Logging updates last contacted and auto-sets next follow-up
+              {activityType === "Did Not Connect"
+                ? "Counts as a reach out attempt · updates last contacted · uses shorter retry interval"
+                : "Logging updates last contacted and auto-sets next follow-up"}
             </p>
           </>
         )}
