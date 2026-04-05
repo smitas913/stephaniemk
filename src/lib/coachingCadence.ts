@@ -1,6 +1,6 @@
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { parseLocalDate, toLocalDateKey, getLocalToday } from "@/lib/dateOnly";
-import { nextAvailableWeekday, type OOOPeriod } from "@/lib/smartSchedule";
+import { nextAvailableWeekday, type OOOPeriod, type WorkdayFlags, DEFAULT_WORKDAYS } from "@/lib/smartSchedule";
 
 export type CadencePhase = "intensive" | "building" | "steady" | "graduated";
 
