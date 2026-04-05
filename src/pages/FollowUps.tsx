@@ -890,6 +890,91 @@ export default function FollowUps() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  // ─── Reschedule cadence ───
+  const RESCHEDULE_CADENCE_DAYS = [1, 2, 3, 14, 30]; // attempt 0→+1, 1→+2, 2→+3, 3→+14, 4→+30, 5→STOP
+  const getNextRescheduleFollowUp = (attempt: number): string | null => {
+    if (attempt >= RESCHEDULE_CADENCE_DAYS.length) return null;
+    return toLocalDateKey(addDays(new Date(), RESCHEDULE_CADENCE_DAYS[attempt]));
+  };
+
+  const rescheduleLogMutation = useMutation({
+    mutationFn: async ({ event, noteType: nt, noteText: text }: { event: EventRecord; noteType: string; noteText: string }) => {
+      const newAttempt = (event.reschedule_attempt_number || 0) + 1;
+      const nextFollowUp = getNextRescheduleFollowUp(newAttempt);
+      const updates: Record<string, any> = {
+        reschedule_last_contact_date: toLocalDateKey(),
+        reschedule_attempt_number: newAttempt,
+        reschedule_next_follow_up_date: nextFollowUp,
+        reschedule_status: "In Process of Rescheduling",
+        requires_manual_next_step: newAttempt >= 5,
+      };
+      await updateEvent(event.id, updates);
+      // Also log a note for traceability
+      if (text.trim()) {
+        const { data: userData } = await supabase.auth.getUser();
+        await supabase.from("customer_notes" as any).insert({
+          customer_id: event.id,
+          note_text: `[Reschedule ${nt}] ${text.trim()}`,
+          note_type: nt,
+          owner_user_id: userData.user?.id || null,
+        } as any).then(() => {});
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setRescheduleActivityEvent(null);
+      setRescheduleNoteText("");
+      setRescheduleNoteType("Call");
+      setRescheduleStep("log");
+      toast.success("Reschedule follow-up logged");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const rescheduleSetNewDateMutation = useMutation({
+    mutationFn: async ({ event, newDate }: { event: EventRecord; newDate: string }) => {
+      await updateEvent(event.id, {
+        event_date: newDate,
+        event_status: "Booked",
+        reschedule_status: "None",
+        reschedule_attempt_number: 0,
+        reschedule_next_follow_up_date: null,
+        reschedule_last_contact_date: null,
+        requires_manual_next_step: false,
+      } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setSetNewDateEvent(null);
+      setNewEventDate("");
+      toast.success("Event rebooked successfully!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const rescheduleArchiveMutation = useMutation({
+    mutationFn: async (event: EventRecord) => {
+      await updateEvent(event.id, { is_archived: true, reschedule_next_follow_up_date: null, requires_manual_next_step: false } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setManualNextStepEvent(null);
+      toast.success("Event archived — follow-up stopped");
+    },
+  });
+
+  const rescheduleToNurtureMutation = useMutation({
+    mutationFn: async (event: EventRecord) => {
+      await updateEvent(event.id, { reschedule_next_follow_up_date: null, requires_manual_next_step: false, reschedule_status: "None", event_status: "Cancelled" } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      setManualNextStepEvent(null);
+      toast.success("Moved to nurture — no further auto follow-up");
+    },
+  });
+
   const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
