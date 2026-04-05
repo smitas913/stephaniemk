@@ -1,7 +1,7 @@
 import { toLocalDateKey } from "@/lib/dateOnly";
 import type { FocusDetailItem, FocusRawData } from "@/components/TodaysFocus";
 
-const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation"]);
+const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation", "Did Not Connect"]);
 
 function getTimestampDateKey(value: string | null | undefined): string | null {
   if (!value) return null;

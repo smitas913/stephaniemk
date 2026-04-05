@@ -1685,6 +1685,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [loggedMessage, setLoggedMessage] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [didNotConnect, setDidNotConnect] = useState(false);
+  const [skipped, setSkipped] = useState(false);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Fetch active catalog follow-ups for this customer
