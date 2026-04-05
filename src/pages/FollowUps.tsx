@@ -601,7 +601,12 @@ export default function FollowUps() {
       return a.name.localeCompare(b.name);
     });
 
-    const todayActions = sortItems(allItems.filter((item) => item.next_follow_up && isDueTodayOrEarlier(item.next_follow_up, todayKey)));
+    const todayActions = sortItems(allItems.filter((item) => {
+      if (!item.next_follow_up || !isDueTodayOrEarlier(item.next_follow_up, todayKey)) return false;
+      // On non-working days, only show items with override enabled
+      if (isNonWorkday && !item.allow_non_working_day) return false;
+      return true;
+    }));
 
     const upcomingActions = sortItems(allItems.filter((item) => {
       if (!item.next_follow_up) return false;
