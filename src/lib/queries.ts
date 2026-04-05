@@ -751,11 +751,12 @@ export const deleteEventTasksByEventId = async (eventId: string) => {
 export const generateEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
   const userId = await getCurrentUserId();
   const ooo = await fetchScheduleSettings();
+  const workdays = buildWorkdayFlags(ooo);
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
   // Task 1: Send Hostess Form — due today (skip blocked days)
-  const todayAdjusted = nextAvailableDay(todayDate, ooo);
+  const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
   const today = toLocalDateKeyImport(todayAdjusted);
 
   const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
