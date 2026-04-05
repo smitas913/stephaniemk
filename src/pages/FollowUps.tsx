@@ -583,6 +583,7 @@ export default function FollowUps() {
           followUpReason: taskDetail,
           lastContacted: null,
           actionLabel: "Hostess Coaching",
+          allow_non_working_day: !!(t as any).allow_non_working_day,
           _eventTaskId: t.id,
           _eventId: t.event_id,
         };
