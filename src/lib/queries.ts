@@ -816,6 +816,13 @@ export interface ScheduleSettings {
   ooo_start_date: string | null;
   ooo_end_date: string | null;
   light_schedule_mode: boolean;
+  workday_monday: boolean;
+  workday_tuesday: boolean;
+  workday_wednesday: boolean;
+  workday_thursday: boolean;
+  workday_friday: boolean;
+  workday_saturday: boolean;
+  workday_sunday: boolean;
 }
 
 export const fetchScheduleSettings = async (): Promise<ScheduleSettings | null> => {
