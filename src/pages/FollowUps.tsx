@@ -90,6 +90,7 @@ type ActionItem = {
   lastNotePreview?: string;
   lastContacted?: string | null;
   actionLabel: string;
+  allow_non_working_day?: boolean;
   // Extra customer fields for enhanced panel
   _address?: string | null;
   _relationship_status?: string | null;
