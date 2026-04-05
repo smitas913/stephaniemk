@@ -615,9 +615,9 @@ export default function FollowUps() {
 
     const upcomingEvents = events.filter((e) => {
       if (!e.event_date || e.is_archived) return false;
-      if (e.event_status === "Cancelled") return false;
-      const reschedule = (e as any).reschedule_status || "None";
-      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
+      if (e.event_status !== "Booked") return false;
+      const reschedule = e.reschedule_status || "None";
+      if (reschedule !== "None") return false;
       const normalized = normalizeDateOnly(e.event_date);
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
