@@ -194,6 +194,7 @@ export interface Prospect {
   next_follow_up_date: string | null;
   notes: string | null;
   owner_user_id: string | null;
+  allow_non_working_day: boolean;
   created_at: string;
   updated_at: string | null;
   next_step_type: string | null;
