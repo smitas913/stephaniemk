@@ -589,10 +589,30 @@ export default function FollowUps() {
       return normalized > todayKey && normalized <= upcoming7Key;
     }));
 
-    // Events
-    const todayEvents = events.filter((e) => e.event_date && normalizeDateOnly(e.event_date) === todayKey && !e.is_archived);
+    // Events — only show active events (Booked + not rescheduling)
+    const todayEvents = events.filter((e) => {
+      if (!e.event_date || e.is_archived) return false;
+      if (normalizeDateOnly(e.event_date) !== todayKey) return false;
+      if (e.event_status === "Cancelled") return false;
+      const reschedule = (e as any).reschedule_status || "None";
+      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
+      return true;
+    });
+
+    // Rescheduling follow-up: events needing rebooking attention
+    const reschedulingFollowUp = events.filter((e) => {
+      if (e.is_archived) return false;
+      const reschedule = (e as any).reschedule_status || "None";
+      if (reschedule === "In Process of Rescheduling") return true;
+      if (e.event_status === "Cancelled" && e.event_date) return true;
+      return false;
+    });
+
     const upcomingEvents = events.filter((e) => {
       if (!e.event_date || e.is_archived) return false;
+      if (e.event_status === "Cancelled") return false;
+      const reschedule = (e as any).reschedule_status || "None";
+      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
       const normalized = normalizeDateOnly(e.event_date);
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
