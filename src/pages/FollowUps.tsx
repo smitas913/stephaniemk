@@ -589,13 +589,13 @@ export default function FollowUps() {
       return normalized > todayKey && normalized <= upcoming7Key;
     }));
 
-    // Events — only show active events (Booked + not rescheduling)
+    // Events — only show active events (Booked + Reschedule=None + today)
     const todayEvents = events.filter((e) => {
       if (!e.event_date || e.is_archived) return false;
       if (normalizeDateOnly(e.event_date) !== todayKey) return false;
-      if (e.event_status === "Cancelled") return false;
-      const reschedule = (e as any).reschedule_status || "None";
-      if (reschedule === "In Process of Rescheduling" || reschedule === "Rescheduled") return false;
+      if (e.event_status !== "Booked") return false;
+      const reschedule = e.reschedule_status || "None";
+      if (reschedule !== "None") return false;
       return true;
     });
 
