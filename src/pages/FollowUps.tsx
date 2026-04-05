@@ -552,6 +552,7 @@ export default function FollowUps() {
           followUpReason: lead.lead_source ? `Booking Lead - ${lead.lead_source}` : "Booking Follow-Up",
           lastContacted: lead.last_contact_date,
           actionLabel: "Booking Follow-Up",
+          allow_non_working_day: !!(lead as any).allow_non_working_day,
         };
       });
 
