@@ -260,6 +260,7 @@ export interface BookingLead {
   notes: string | null;
   converted_customer_id: string | null;
   owner_user_id: string | null;
+  allow_non_working_day: boolean;
   created_at: string;
   updated_at: string | null;
 }
