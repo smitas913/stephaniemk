@@ -924,9 +924,9 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const openContactDialog = (item: ActionItem, defaultType = "Call") => { setActionItem(item); setNoteText(""); setNoteType(defaultType); setFollowUpDate(""); };
-  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
-  const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
+  const openContactDialog = (item: ActionItem, defaultType = "Call") => { setActionItem(item); setNoteText(""); setNoteNextStep(""); setNoteType(defaultType); setFollowUpDate(""); };
+  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNextStep(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
+  const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, nextStep: noteNextStep, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
 
   const deliveryCreateMut = useMutation({
     mutationFn: async () => {
