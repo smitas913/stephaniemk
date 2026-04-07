@@ -1009,9 +1009,13 @@ export const convertConsultantToCustomer = async (
   }
 
   if (customerId) {
-    // Update existing customer record back to Former Consultant
+    // Update existing customer record back to Former Consultant, carry latest address
     await supabase.from("customers").update({
       relationship_status: "Former Consultant",
+      address_line_1: consultant.address_line_1 || undefined,
+      city: consultant.city || undefined,
+      state_territory: consultant.state_territory || undefined,
+      postal_code: consultant.postal_code || undefined,
     } as any).eq("id", customerId);
   } else {
     // Create a customer record if none exists
