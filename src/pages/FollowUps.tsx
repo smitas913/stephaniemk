@@ -3259,7 +3259,7 @@ function ActionRow({
     <div>
       <div className="py-2.5 group">
         <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenDetail}>
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenQuickAction || onOpenDetail}>
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
               {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>}
