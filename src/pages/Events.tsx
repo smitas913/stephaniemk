@@ -158,8 +158,8 @@ export default function Events() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="Party">Party</SelectItem>
-              <SelectItem value="Facial">Facial</SelectItem>
+              <SelectItem value="Networking Event">Networking</SelectItem>
+              <SelectItem value="Vendor Event">Vendor</SelectItem>
             </SelectContent>
           </Select>
           <Select value={formatFilter} onValueChange={setFormatFilter}>
