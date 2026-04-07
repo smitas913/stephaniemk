@@ -177,7 +177,7 @@ export const NOTE_TYPES = ["Call", "Text", "Email", "In Person", "Follow-Up", "O
 
 export interface Note {
   id: string;
-  entity_type: "Customer" | "Prospect";
+  entity_type: "Customer" | "Prospect" | "Lead" | "Consultant" | "Hostess";
   customer_id: string | null;
   prospect_id: string | null;
   note_date: string;
