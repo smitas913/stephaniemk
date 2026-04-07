@@ -1976,22 +1976,36 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
 const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation", "Did Not Connect"] as const;
 
-function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+const FOLLOW_UP_TYPES = ["Quick Follow-Up", "Standard Follow-Up", "Reorder Cycle"] as const;
+type FollowUpType = typeof FOLLOW_UP_TYPES[number];
+
+function getFollowUpDaysForType(followUpType: FollowUpType, activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+  if (followUpType === "Quick Follow-Up") {
+    return { days: 2, label: "Quick Follow-Up (2 days)" };
+  }
+  if (followUpType === "Standard Follow-Up") {
+    return { days: 7, label: "Standard Follow-Up (7 days)" };
+  }
+  // Reorder Cycle — use activity-based long cadence
   if (activityStatus === "Dormant") {
     const stage = (dormantStage || "Stage 1") as DormantStage;
     if (stage === "Stage 3" || stage === "Annual") {
-      return { days: 365, label: "Annual check-in (1 year)" };
+      return { days: 365, label: "Reorder Cycle — Annual (1 year)" };
     }
     return { days: 5, label: "Dormant cadence (5 days)" };
   }
   if (activityStatus === "Warm") {
-    return { days: 45, label: "Warm reorder cycle (45 days)" };
+    return { days: 45, label: "Reorder Cycle (45 days)" };
   }
   if (activityStatus === "Active") {
-    return { days: 75, label: "Active check-in (75 days)" };
+    return { days: 75, label: "Reorder Cycle (75 days)" };
   }
-  // No Orders or unknown
-  return { days: 90, label: "Reorder cycle (90 days)" };
+  return { days: 90, label: "Reorder Cycle (90 days)" };
+}
+
+function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+  // Default to Quick Follow-Up
+  return getFollowUpDaysForType("Quick Follow-Up", activityStatus, dormantStage);
 }
 
 function getSkipRetryDays(activityStatus: string | undefined): { days: number; label: string } {
