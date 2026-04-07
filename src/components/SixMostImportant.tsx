@@ -110,7 +110,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     });
   }, [configs, progress, dayType, getTargetForItem, isOOO]);
 
-  const completedCount = items.filter((i) => i.isComplete || (i.current >= i.target && i.target > 0)).length;
+  const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
   const winStatus = useMemo(() => {
     if (completedCount >= 6) return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
