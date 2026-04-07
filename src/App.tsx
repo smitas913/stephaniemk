@@ -37,6 +37,7 @@ import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
 import Campaigns from "./pages/Campaigns";
 import MailingLists from "./pages/MailingLists";
+import Communications from "./pages/Communications";
 
 const queryClient = new QueryClient();
 
@@ -138,6 +139,7 @@ const AppRoutes = () => (
     <Route path="/booking-leads" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><BookingLeads /></ProtectedRoute>} />
     <Route path="/campaigns" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Campaigns /></ProtectedRoute>} />
     <Route path="/mailing-lists" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><MailingLists /></ProtectedRoute>} />
+    <Route path="/communications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Communications /></ProtectedRoute>} />
     <Route path="/expenses" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Expenses /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminTools /></ProtectedRoute>} />
     <Route path="/users" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><UserManagement /></ProtectedRoute>} />
