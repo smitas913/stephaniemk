@@ -2958,6 +2958,22 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
           />
         </div>
 
+        <div className="flex items-center gap-4 pt-1">
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={isBookingAttempt} onCheckedChange={(v) => setIsBookingAttempt(!!v)} />
+            <span className="text-muted-foreground">Booking Attempt</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={isFollowUpFlag} onCheckedChange={(v) => setIsFollowUpFlag(!!v)} />
+            <span className="text-muted-foreground">Follow-Up</span>
+          </label>
+        </div>
+        {isFirstContact && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400">
+            First contact — defaults to Booking Attempt only
+          </p>
+        )}
+
         <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
           <CheckCircle2 className="w-4 h-4 mr-1.5" />
           {saving ? "Saving..." : "Log Activity"}
