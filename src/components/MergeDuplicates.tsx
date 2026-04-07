@@ -102,7 +102,7 @@ export default function MergeDuplicates() {
       if (Object.keys(updates).length > 0) {
         const { error: updateErr } = await supabase
           .from("team_consultants")
-          .update(updates)
+          .update(updates as any)
           .eq("id", consultant.id);
         if (updateErr) throw updateErr;
       }
