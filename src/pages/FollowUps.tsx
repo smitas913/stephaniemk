@@ -393,14 +393,17 @@ export default function FollowUps() {
   };
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [noteNextStep, setNoteNextStep] = useState("");
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
   const [inlineNoteId, setInlineNoteId] = useState<string | null>(null);
   const [inlineNoteText, setInlineNoteText] = useState("");
+  const [inlineNextStep, setInlineNextStep] = useState("");
   const [inlineNoteType, setInlineNoteType] = useState("Call");
   const [inlineFollowUpDate, setInlineFollowUpDate] = useState("");
   const [detailItem, setDetailItem] = useState<ActionItem | null>(null);
   const [detailNoteText, setDetailNoteText] = useState("");
+  const [detailNextStep, setDetailNextStep] = useState("");
   const [detailNoteType, setDetailNoteType] = useState("Call");
   const [detailFollowUpDate, setDetailFollowUpDate] = useState("");
   const [showDistribute, setShowDistribute] = useState(false);
