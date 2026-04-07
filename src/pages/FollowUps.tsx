@@ -21,6 +21,7 @@ import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLea
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
 import type { FocusDetailItem } from "@/components/TodaysFocus";
+import SixMostImportant from "@/components/SixMostImportant";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -417,62 +418,26 @@ export default function FollowUps() {
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
-   // ─── 6 Most Important Things (daily checklist) ───
-   const DEFAULT_SIX_ITEMS = [
-     "Booking Activity",
-     "Recruiting Conversations",
-     "Follow-Ups Completed",
-     "Personal Appointment (Held or Confirmed)",
-     "Team Building (Coach / Connect)",
-     "Relationship Building (Notes / Check-ins)",
-   ];
-   const labelsKey = "six-items-labels";
-   const checksKey = `six-items-checks-${toLocalDateKey()}`;
-   const [sixLabels, setSixLabels] = useState<string[]>(() => {
-     try {
-       const stored = localStorage.getItem(labelsKey);
-       return stored ? JSON.parse(stored) : [...DEFAULT_SIX_ITEMS];
-     } catch { return [...DEFAULT_SIX_ITEMS]; }
-   });
-   const [sixChecks, setSixChecks] = useState<boolean[]>(() => {
-     try {
-       const stored = localStorage.getItem(checksKey);
-       return stored ? JSON.parse(stored) : Array(6).fill(false);
-     } catch { return Array(6).fill(false); }
-   });
-   const [sixEditMode, setSixEditMode] = useState(false);
-   const [sixDraft, setSixDraft] = useState<string[]>([...sixLabels]);
-
-   const toggleSixCheck = useCallback((idx: number) => {
-     setSixChecks(prev => {
-       const next = [...prev];
-       next[idx] = !next[idx];
-       localStorage.setItem(checksKey, JSON.stringify(next));
-       return next;
-     });
-   }, [checksKey]);
-
-   const saveSixLabels = useCallback((labels: string[]) => {
-     setSixLabels(labels);
-     localStorage.setItem(labelsKey, JSON.stringify(labels));
-     setSixEditMode(false);
-   }, []);
-
-   const resetSixLabels = useCallback(() => {
-     const d = [...DEFAULT_SIX_ITEMS];
-     setSixDraft(d);
-     saveSixLabels(d);
-   }, [saveSixLabels]);
-
-   const moveSixItem = useCallback((from: number, dir: -1 | 1) => {
-     const to = from + dir;
-     if (to < 0 || to > 5) return;
-     setSixDraft(prev => {
-       const next = [...prev];
-       [next[from], next[to]] = [next[to], next[from]];
-       return next;
-     });
-   }, []);
+   // ─── Auto-counts for 6 Most Important Things ───
+   const focusAutoCounts = useMemo(() => {
+     const todayKey = toLocalDateKey();
+     // Follow-ups completed today: unified notes logged today
+     const followups = unifiedNotes.filter((n: any) => {
+       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
+       return noteDay === todayKey && (n.entity_type === "Customer" || n.entity_type === "Prospect");
+     }).length;
+     // Recruiting: prospects with "Shared" status updated today
+     const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
+     // Personal appointments: events happening today
+     const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
+     // Relationship building: customer notes of relationship types today
+     const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
+     const relationship = allNotes.filter((n: any) => {
+       const noteDay = n.created_at ? n.created_at.slice(0, 10) : null;
+       return noteDay === todayKey && relTypes.has(n.note_type);
+     }).length;
+     return { followups, recruiting, appointments, relationship };
+   }, [unifiedNotes, prospects, events, allNotes]);
 
   // Mobile detection
   const isMobile = useIsMobile();
