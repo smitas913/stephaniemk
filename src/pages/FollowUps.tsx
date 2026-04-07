@@ -1094,11 +1094,11 @@ export default function FollowUps() {
   // ─── Render ───
   return (
     <Layout>
-      <div className="space-y-4 pb-8">
+      <div className={cn("pb-8", isMobile ? "space-y-2" : "space-y-4")}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Today</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
             </p>
           </div>
