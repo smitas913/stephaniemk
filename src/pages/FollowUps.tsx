@@ -2407,7 +2407,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       const noteText = isDidNotConnect
         ? (newNote.trim() || "Did not connect — attempted contact")
         : newNote.trim();
-      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextStep: nextStepText.trim(), nextFollowUpDate: effectiveDate });
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextStep: nextStepText.trim(), nextFollowUpDate: effectiveDate, isBookingAttempt, isFollowUp: isFollowUpFlag });
 
       setNextFollowUp(effectiveDate);
       setFollowUpSource(effectiveSource);
