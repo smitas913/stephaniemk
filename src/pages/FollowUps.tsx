@@ -886,6 +886,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
       setDetailNoteText(""); setDetailNextStep(""); setDetailNoteType("Call"); toast.success("Note added");
     },
   });
@@ -2488,6 +2489,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes", item.id] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
 
       setTimeout(() => nextFollowUpRef.current?.focus(), 100);
     } catch { toast.error("Failed to save"); }
