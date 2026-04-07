@@ -845,6 +845,8 @@ export type Database = {
           customer_id: string | null
           entity_type: string
           id: string
+          is_booking_attempt: boolean
+          is_follow_up: boolean
           next_follow_up_date: string | null
           next_step: string | null
           note_body: string
@@ -858,6 +860,8 @@ export type Database = {
           customer_id?: string | null
           entity_type: string
           id?: string
+          is_booking_attempt?: boolean
+          is_follow_up?: boolean
           next_follow_up_date?: string | null
           next_step?: string | null
           note_body: string
@@ -871,6 +875,8 @@ export type Database = {
           customer_id?: string | null
           entity_type?: string
           id?: string
+          is_booking_attempt?: boolean
+          is_follow_up?: boolean
           next_follow_up_date?: string | null
           next_step?: string | null
           note_body?: string
