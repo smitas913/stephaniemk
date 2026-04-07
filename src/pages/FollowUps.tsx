@@ -89,6 +89,7 @@ type ActionItem = {
   daysOverdue?: number | null;
   followUpReason?: string;
   lastNotePreview?: string;
+  lastNextStep?: string;
   lastContacted?: string | null;
   actionLabel: string;
   allow_non_working_day?: boolean;
