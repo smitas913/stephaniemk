@@ -1255,9 +1255,11 @@ export default function FollowUps() {
                                 item={item}
                                 inlineNoteId={inlineNoteId}
                                 inlineNoteText={inlineNoteText}
+                                inlineNextStep={inlineNextStep}
                                 inlineNoteType={inlineNoteType}
                                 inlineFollowUpDate={inlineFollowUpDate}
                                 setInlineNoteText={setInlineNoteText}
+                                setInlineNextStep={setInlineNextStep}
                                 setInlineNoteType={setInlineNoteType}
                                 setInlineFollowUpDate={setInlineFollowUpDate}
                                 onToggleInline={() => toggleInlineNote(item)}
