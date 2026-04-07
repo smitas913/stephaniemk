@@ -2035,11 +2035,13 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const isDormant = item.activity_status === "Dormant";
   const currentDormantStage = (item.dormant_follow_up_stage || null) as DormantStage;
 
+  const [followUpType, setFollowUpType] = useState<FollowUpType>("Quick Follow-Up");
+
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
-  const nextStepConfirmed = false; // panel closes on confirm, so always false while open
+  const nextStepConfirmed = false;
   const [loggedMessage, setLoggedMessage] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [didNotConnect, setDidNotConnect] = useState(false);
