@@ -427,10 +427,11 @@ export default function FollowUps() {
    // ─── Auto-counts for 6 Most Important Things ───
    const focusAutoCounts = useMemo(() => {
      const todayKey = toLocalDateKey();
-     // Follow-ups completed today: unified notes logged today
+     // Follow-ups completed today: unified notes logged today (all entity types)
+     const followUpEntityTypes = new Set(["Customer", "Prospect", "Lead", "Consultant", "Hostess"]);
      const followups = unifiedNotes.filter((n: any) => {
        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       return noteDay === todayKey && (n.entity_type === "Customer" || n.entity_type === "Prospect");
+       return noteDay === todayKey && followUpEntityTypes.has(n.entity_type);
      }).length;
      // Recruiting: prospects with "Shared" status updated today
      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
