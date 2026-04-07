@@ -441,8 +441,13 @@ export default function FollowUps() {
     });
   }, [priorityStorageKey]);
 
+  // Mobile detection
+  const isMobile = useIsMobile();
+
   // Relationship Touches collapsed state
   const [touchesOpen, setTouchesOpen] = useState(false);
+  // Scorecard collapsed on mobile by default
+  const [scorecardOpen, setScorecardOpen] = useState(true);
 
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
