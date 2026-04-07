@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -35,7 +36,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -440,8 +441,13 @@ export default function FollowUps() {
     });
   }, [priorityStorageKey]);
 
+  // Mobile detection
+  const isMobile = useIsMobile();
+
   // Relationship Touches collapsed state
   const [touchesOpen, setTouchesOpen] = useState(false);
+  // Scorecard collapsed on mobile by default
+  const [scorecardOpen, setScorecardOpen] = useState(true);
 
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
@@ -1088,11 +1094,11 @@ export default function FollowUps() {
   // ─── Render ───
   return (
     <Layout>
-      <div className="space-y-4 pb-8">
+      <div className={cn("pb-8", isMobile ? "space-y-2" : "space-y-4")}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Today</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
             </p>
           </div>
@@ -1125,7 +1131,7 @@ export default function FollowUps() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className={cn(isMobile ? "space-y-2" : "space-y-4")}>
 
                   {/* ═══ Daily Quote ═══ */}
                   {(() => {
@@ -1149,7 +1155,7 @@ export default function FollowUps() {
 
                   {/* ═══ SECTION 1: Top 6 Priorities ═══ */}
                   <Card className="border-primary/20 shadow-md bg-primary/5">
-                    <CardHeader className="pb-2">
+                    <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-md bg-primary/10">
@@ -1163,7 +1169,7 @@ export default function FollowUps() {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className={cn("pt-0", isMobile && "px-3")}>
                       {priorityIds.length === 0 && !showPriorityPicker ? (
                         <p className="text-xs text-muted-foreground py-3 text-center">
                           Select up to 6 priority tasks to focus on today
@@ -1276,7 +1282,7 @@ export default function FollowUps() {
 
                     return (
                       <Card className="border-border/50 shadow-sm">
-                        <CardHeader className="pb-2">
+                        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
                               <Users className="w-4 h-4 text-blue-600" />
@@ -1285,7 +1291,7 @@ export default function FollowUps() {
                             <Badge variant="secondary" className="text-xs">{followUpItems.length}</Badge>
                           </div>
                         </CardHeader>
-                        <CardContent className="pt-0">
+                        <CardContent className={cn("pt-0", isMobile && "px-3")}>
                           {followUpItems.length === 0 ? (
                             <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
                           ) : (
@@ -1529,31 +1535,52 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
 
-                  {/* ═══ SECTION 5: Daily Scorecard ═══ */}
-                  <TodaysFocus
-                    reachOutsToday={reachOutsToday}
-                    bookingsToday={bookingsToday}
-                    sharingToday={sharingToday}
-                    reachOutDetails={reachOutDetails}
-                    bookingDetails={bookingDetails}
-                    sharingDetails={sharingDetails}
-                    rawData={{
-                      unifiedNotes: unifiedNotes,
-                      allNotes: allNotes,
-                      customers: customers,
-                      prospects: prospects,
-                      bookingLeads: bookingLeads,
-                      consultants: consultants,
-                      events: events,
-                    }}
-                    onDetailNavigate={(type, id) => {
-                      if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                      else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                      else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                      else if (type === "Lead") navigate("/booking-leads");
-                      else if (type === "Consultant") navigate("/leadership");
-                    }}
-                  />
+                  {/* ═══ SECTION 5: Daily Scorecard (Collapsed on mobile) ═══ */}
+                  <Collapsible open={isMobile ? scorecardOpen : true} onOpenChange={setScorecardOpen}>
+                    <Card className="border-border/50 shadow-sm">
+                      <CollapsibleTrigger className="w-full" disabled={!isMobile}>
+                        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-md bg-primary/10">
+                                <Target className="w-4 h-4 text-primary" />
+                              </div>
+                              <CardTitle className="text-sm font-semibold text-foreground">Daily Scorecard</CardTitle>
+                            </div>
+                            {isMobile && <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", scorecardOpen && "rotate-180")} />}
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className={cn(isMobile ? "px-3 pt-0" : "pt-0")}>
+                          <TodaysFocus
+                            reachOutsToday={reachOutsToday}
+                            bookingsToday={bookingsToday}
+                            sharingToday={sharingToday}
+                            reachOutDetails={reachOutDetails}
+                            bookingDetails={bookingDetails}
+                            sharingDetails={sharingDetails}
+                            rawData={{
+                              unifiedNotes: unifiedNotes,
+                              allNotes: allNotes,
+                              customers: customers,
+                              prospects: prospects,
+                              bookingLeads: bookingLeads,
+                              consultants: consultants,
+                              events: events,
+                            }}
+                            onDetailNavigate={(type, id) => {
+                              if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                              else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                              else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                              else if (type === "Lead") navigate("/booking-leads");
+                              else if (type === "Consultant") navigate("/leadership");
+                            }}
+                          />
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
 
                   {/* ═══ SECTION 6: Relationship Touches (Collapsed) ═══ */}
                   <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
