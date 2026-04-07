@@ -759,18 +759,19 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, type, nextDate }: { item: ActionItem; note: string; type: string; nextDate?: string }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
-        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextFollowUpDate: nextDate ?? null });
+        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: nextDate ?? null });
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateProspect(item.id, updates as any);
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
+        await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: note.trim() || `${type} follow-up`, note_type: type, next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null });
       } else if (item.itemType === "consultant") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
@@ -802,8 +803,8 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
-      setActionItem(null); setNoteText(""); setNoteType("Call"); setFollowUpDate("");
-      setInlineNoteId(null); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
+      setActionItem(null); setNoteText(""); setNoteNextStep(""); setNoteType("Call"); setFollowUpDate("");
+      setInlineNoteId(null); setInlineNoteText(""); setInlineNextStep(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
       toast.success("Marked as contacted");
     },
   });
