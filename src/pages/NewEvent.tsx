@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEvents, upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
@@ -294,9 +295,14 @@ export default function NewEvent() {
 
             {/* Location — only for In-Person */}
             {!isVirtual && (
-              <div>
+              <div className="max-w-sm">
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
-                <Input placeholder="Address or venue" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} className="h-10 max-w-sm" />
+                <AddressAutocomplete
+                  value={eventLocation}
+                  onChange={setEventLocation}
+                  onAddressSelect={(parsed) => setEventLocation(parsed.formatted)}
+                  placeholder="Address or venue"
+                />
               </div>
             )}
 
