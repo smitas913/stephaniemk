@@ -72,7 +72,7 @@ export default function AddOrder() {
   const [showAdditional, setShowAdditional] = useState(false);
   const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
 
-  const isEventBased = orderType === "Party" || orderType === "Facial";
+  const isEventBased = orderType === "Networking Event" || orderType === "Vendor Event";
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
 
   // Auto-fill customer name
@@ -95,8 +95,8 @@ export default function AddOrder() {
     if (!isEventBased) return [];
     return events
       .filter(e => {
-        if (orderType === "Party") return !e.event_type || e.event_type === "Party";
-        if (orderType === "Facial") return e.event_type === "Facial";
+        if (orderType === "Networking Event") return !e.event_type || e.event_type === "Networking Event";
+        if (orderType === "Vendor Event") return e.event_type === "Vendor Event";
         return true;
       })
       .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || ""));

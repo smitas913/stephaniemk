@@ -42,22 +42,22 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const cancelRate = evBooked > 0 ? (evCancelled / evBooked) * 100 : 0;
 
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
-    const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
+    const totalNetworking = periodEvents.filter((e) => e.event_type === "Networking Event").length;
+    const totalVendor = periodEvents.filter((e) => e.event_type === "Vendor Event").length;
 
     // Sales by order_type
     const salesByType = (type: string) =>
       periodOrders.filter((o) => o.order_type === type).reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const reorderSales = salesByType("Reorder");
-    const partySales = salesByType("Party");
-    const facialSales = salesByType("Facial");
-    const otherSales = periodRevenue - reorderSales - partySales - facialSales;
+    const networkingSales = salesByType("Networking Event");
+    const vendorSales = salesByType("Vendor Event");
+    const otherSales = periodRevenue - reorderSales - networkingSales - vendorSales;
 
-    // Avg Face: Party + Facial sales / Party + Facial guest_count
-    const partyFacialEvents = periodEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
-    const partyFacialGuests = partyFacialEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const partyFacialSales = partySales + facialSales;
-    const avgFace = partyFacialGuests > 0 ? partyFacialSales / partyFacialGuests : 0;
+    // Avg Face: all event sales / all event guest_count
+    const allEventTypes = periodEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
+    const allEventGuests = allEventTypes.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const allEventSales = networkingSales + vendorSales;
+    const avgFace = allEventGuests > 0 ? allEventSales / allEventGuests : 0;
 
     const periodExpenses = expenses.filter((e) => {
       const d = parseISO(e.expense_date);
@@ -71,9 +71,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion Rate: Party events ONLY (exclude facials — 1:1 appointments)
+    // Conversion Rate: Networking events (group events with guests)
     const qualifyingEvents = periodEvents.filter(
-      (e) => e.event_type === "Party" && Number(e.guest_count || 0) > 0
+      (e) => e.event_type === "Networking Event" && Number(e.guest_count || 0) > 0
     );
     const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     // Calculate ordering guests from actual orders linked to these events
@@ -120,10 +120,10 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .filter((c) => c.retail_this_year > 0);
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    // Hostess metrics: Party events ONLY (exclude facials — 1:1 appointments)
-    const partyEvents = events.filter((e) => e.event_type === "Party");
+    // Hostess metrics: Networking events
+    const networkingEvents = events.filter((e) => e.event_type === "Networking Event");
     const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
-    for (const evt of partyEvents) {
+    for (const evt of networkingEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessAllEventsMap.get(name) || { totalEvents: 0, hasFuture: false };
@@ -132,9 +132,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       hostessAllEventsMap.set(name, entry);
     }
 
-    const periodPartyEvents = periodEvents.filter((e) => e.event_type === "Party");
+    const periodNetworkingEvents = periodEvents.filter((e) => e.event_type === "Networking Event");
     const hostessMap = new Map<string, { events: number; sales: number }>();
-    for (const evt of periodPartyEvents) {
+    for (const evt of periodNetworkingEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessMap.get(name) || { events: 0, sales: 0 };
@@ -156,7 +156,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
+    return { periodRevenue, totalFaces, totalNetworking, totalVendor, avgFace, reorderSales, networkingSales, vendorSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
   }, [customers, orders, expenses, events, period]);
 }
 

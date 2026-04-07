@@ -50,14 +50,14 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const monthCancelled = monthAllEvents.filter((e) => e.event_status === "Cancelled").length;
     const monthHoldRate = monthBooked > 0 ? Math.round((monthHeld / monthBooked) * 1000) / 10 : 0;
 
-    const weekPartyFacial = weekEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
-    const weekFaces = weekPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
+    const weekAllEvents = weekEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
+    const weekFaces = weekAllEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const weekNetworking = weekEvents.filter((e) => e.event_type === "Networking Event").length;
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
 
-    const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
-    const monthPartyFacial = monthEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
-    const monthFaces = monthPartyFacial.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const monthNetworking = monthEvents.filter((e) => e.event_type === "Networking Event").length;
+    const monthAllEventTypes = monthEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
+    const monthFaces = monthAllEventTypes.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const monthSharing = monthEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
     const monthNewTeam = prospects.filter((p) =>
       (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, monthStart, monthEnd)

@@ -96,9 +96,9 @@ export default function Analytics() {
 
       months.push({
         label: mLabel,
-        faces: mEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial").reduce((s, e) => s + Number(e.guest_count || 0), 0),
-        parties: mEvents.filter((e) => e.event_type === "Party").length,
-        facials: mEvents.filter((e) => e.event_type === "Facial").length,
+        faces: mEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event").reduce((s, e) => s + Number(e.guest_count || 0), 0),
+        networking: mEvents.filter((e) => e.event_type === "Networking Event").length,
+        vendor: mEvents.filter((e) => e.event_type === "Vendor Event").length,
         sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
         newTeam: prospects.filter((p) =>
           (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
