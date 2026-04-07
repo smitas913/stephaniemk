@@ -508,19 +508,11 @@ export default function FollowUps() {
      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
      // Personal appointments: events happening today
      const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
-     // Consultant coaching: consultants coached/contacted today
-     let coaching = 0;
-     for (const c of consultants) {
-       const updatedToday = (c as any).updated_at?.startsWith(todayKey);
-       const coachingAdvanced = (c as any).next_coaching_date && (c as any).next_coaching_date > todayKey;
-       if (updatedToday && coachingAdvanced) coaching++;
-     }
-     // Also count unified notes for consultants today
-     const consultantNotes = unifiedNotes.filter((n: any) => {
-       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       return noteDay === todayKey && n.entity_type === "Consultant";
-     }).length;
-     coaching = Math.max(coaching, consultantNotes);
+      // Consultant coaching: count unified notes with entity_type "Consultant" today
+      const coaching = unifiedNotes.filter((n: any) => {
+        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
+        return noteDay === todayKey && n.entity_type === "Consultant";
+      }).length;
 
      // Relationship building: customer notes of relationship types today
      const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
@@ -529,7 +521,7 @@ export default function FollowUps() {
        return noteDay === todayKey && relTypes.has(n.note_type);
      }).length;
      return { booking_attempts, followups, recruiting, appointments, coaching, relationship };
-   }, [unifiedNotes, prospects, events, allNotes, bookingLeads, consultants]);
+   }, [unifiedNotes, prospects, events, allNotes, bookingLeads]);
 
   // Mobile detection
   const isMobile = useIsMobile();
