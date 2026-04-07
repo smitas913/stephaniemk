@@ -28,7 +28,7 @@ const FORMAT_OPTIONS = [
   { value: "Zoom", label: "Zoom", icon: Monitor },
 ] as const;
 
-const SHARING_OUTCOMES = ["Interested", "Follow-Up", "Joined", "Not Interested"] as const;
+
 
 export default function NewEvent() {
   const navigate = useNavigate();
@@ -40,11 +40,6 @@ export default function NewEvent() {
   const [eventFormat, setEventFormat] = useState<string>("In-Person");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
-  const [guestCount, setGuestCount] = useState("");
-  const [bookings, setBookings] = useState("");
-  const [sharings, setSharings] = useState("");
-  const [sharingOutcome, setSharingOutcome] = useState("");
-  const [leadsCollected, setLeadsCollected] = useState("");
   const [notes, setNotes] = useState("");
   const [eventLocation, setEventLocation] = useState("");
   const [eventTime, setEventTime] = useState("");
@@ -222,57 +217,7 @@ export default function NewEvent() {
               </div>
             )}
 
-            {/* Dynamic Fields — Party / Facial */}
-            {isPartyOrFacial && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Guest Count (Faces)</label>
-                  <Input type="number" min={0} placeholder="0" value={guestCount} onChange={(e) => setGuestCount(e.target.value)} className="h-10 max-w-[120px]" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 max-w-xs">
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Bookings</label>
-                    <Input type="number" min={0} placeholder="0" value={bookings} onChange={(e) => setBookings(e.target.value)} className="h-10" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">Sharings</label>
-                    <Input type="number" min={0} placeholder="0" value={sharings} onChange={(e) => setSharings(e.target.value)} className="h-10" />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Dynamic Fields — Sharing Appointment */}
-            {isSharing && (
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Outcome</label>
-                <div className="flex flex-wrap gap-2">
-                  {SHARING_OUTCOMES.map((o) => (
-                    <button
-                      key={o}
-                      type="button"
-                      onClick={() => setSharingOutcome(sharingOutcome === o ? "" : o)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full border text-sm font-medium transition-colors",
-                        sharingOutcome === o
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:bg-muted"
-                      )}
-                    >
-                      {o}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic Fields — Lead Generating Event */}
-            {isLeadGen && (
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Number of Leads Collected</label>
-                <Input type="number" min={0} placeholder="0" value={leadsCollected} onChange={(e) => setLeadsCollected(e.target.value)} className="h-10 max-w-[120px]" />
-              </div>
-            )}
+            {/* Post-event fields removed — captured when marking event as Held */}
 
             {/* Notes */}
             <div>
