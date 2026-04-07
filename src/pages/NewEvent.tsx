@@ -61,14 +61,8 @@ export default function NewEvent() {
         event_time: eventTime || null,
         event_location: eventLocation || null,
         hostess_name: hostessName || undefined,
-        guest_count: parseInt(guestCount) || 0,
-        future_bookings_count: parseInt(bookings) || 0,
-        sharing_appointments_count: parseInt(sharings) || 0,
-        notes: [
-          notes.trim(),
-          isSharing && sharingOutcome ? `Outcome: ${sharingOutcome}` : "",
-          isLeadGen && leadsCollected ? `Leads collected: ${leadsCollected}` : "",
-        ].filter(Boolean).join("\n") || null,
+        guest_count: 0,
+        notes: notes.trim() || null,
       });
       return eventId;
     },
