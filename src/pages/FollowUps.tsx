@@ -1131,7 +1131,7 @@ export default function FollowUps() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className={cn(isMobile ? "space-y-2" : "space-y-4")}>
 
                   {/* ═══ Daily Quote ═══ */}
                   {(() => {
@@ -1535,31 +1535,52 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
 
-                  {/* ═══ SECTION 5: Daily Scorecard ═══ */}
-                  <TodaysFocus
-                    reachOutsToday={reachOutsToday}
-                    bookingsToday={bookingsToday}
-                    sharingToday={sharingToday}
-                    reachOutDetails={reachOutDetails}
-                    bookingDetails={bookingDetails}
-                    sharingDetails={sharingDetails}
-                    rawData={{
-                      unifiedNotes: unifiedNotes,
-                      allNotes: allNotes,
-                      customers: customers,
-                      prospects: prospects,
-                      bookingLeads: bookingLeads,
-                      consultants: consultants,
-                      events: events,
-                    }}
-                    onDetailNavigate={(type, id) => {
-                      if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                      else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                      else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                      else if (type === "Lead") navigate("/booking-leads");
-                      else if (type === "Consultant") navigate("/leadership");
-                    }}
-                  />
+                  {/* ═══ SECTION 5: Daily Scorecard (Collapsed on mobile) ═══ */}
+                  <Collapsible open={isMobile ? scorecardOpen : true} onOpenChange={setScorecardOpen}>
+                    <Card className="border-border/50 shadow-sm">
+                      <CollapsibleTrigger className="w-full" disabled={!isMobile}>
+                        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-md bg-primary/10">
+                                <Target className="w-4 h-4 text-primary" />
+                              </div>
+                              <CardTitle className="text-sm font-semibold text-foreground">Daily Scorecard</CardTitle>
+                            </div>
+                            {isMobile && <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", scorecardOpen && "rotate-180")} />}
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className={cn(isMobile ? "px-3 pt-0" : "pt-0")}>
+                          <TodaysFocus
+                            reachOutsToday={reachOutsToday}
+                            bookingsToday={bookingsToday}
+                            sharingToday={sharingToday}
+                            reachOutDetails={reachOutDetails}
+                            bookingDetails={bookingDetails}
+                            sharingDetails={sharingDetails}
+                            rawData={{
+                              unifiedNotes: unifiedNotes,
+                              allNotes: allNotes,
+                              customers: customers,
+                              prospects: prospects,
+                              bookingLeads: bookingLeads,
+                              consultants: consultants,
+                              events: events,
+                            }}
+                            onDetailNavigate={(type, id) => {
+                              if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                              else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                              else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                              else if (type === "Lead") navigate("/booking-leads");
+                              else if (type === "Consultant") navigate("/leadership");
+                            }}
+                          />
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
 
                   {/* ═══ SECTION 6: Relationship Touches (Collapsed) ═══ */}
                   <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
