@@ -521,7 +521,7 @@ export default function FollowUps() {
        return noteDay === todayKey && relTypes.has(n.note_type);
      }).length;
      return { booking_attempts, followups, recruiting, appointments, coaching, relationship };
-   }, [unifiedNotes, prospects, events, allNotes, bookingLeads, consultants]);
+   }, [unifiedNotes, prospects, events, allNotes, bookingLeads]);
 
   // Mobile detection
   const isMobile = useIsMobile();
