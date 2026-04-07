@@ -21,8 +21,8 @@ type TimeView = "this-month" | "ytd" | "all-time";
 type MonthRow = {
   label: string;
   faces: number;
-  networking: number;
-  vendor: number;
+  parties: number;
+  facials: number;
   sharings: number;
   newTeam: number;
   sales: number;
@@ -96,9 +96,9 @@ export default function Analytics() {
 
       months.push({
         label: mLabel,
-        faces: mEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event").reduce((s, e) => s + Number(e.guest_count || 0), 0),
-        networking: mEvents.filter((e) => e.event_type === "Networking Event").length,
-        vendor: mEvents.filter((e) => e.event_type === "Vendor Event").length,
+        faces: mEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0),
+        parties: mEvents.filter((e) => e.event_type === "Party").length,
+        facials: mEvents.filter((e) => e.event_type === "Facial").length,
         sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
         newTeam: prospects.filter((p) =>
           (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
@@ -113,8 +113,8 @@ export default function Analytics() {
       return {
         label: "",
         faces: Math.round(rows.reduce((s, r) => s + r.faces, 0) / n),
-        networking: Math.round((rows.reduce((s, r) => s + r.networking, 0) / n) * 10) / 10,
-        vendor: Math.round((rows.reduce((s, r) => s + r.vendor, 0) / n) * 10) / 10,
+        parties: Math.round((rows.reduce((s, r) => s + r.parties, 0) / n) * 10) / 10,
+        facials: Math.round((rows.reduce((s, r) => s + r.facials, 0) / n) * 10) / 10,
         sharings: Math.round((rows.reduce((s, r) => s + r.sharings, 0) / n) * 10) / 10,
         newTeam: Math.round((rows.reduce((s, r) => s + r.newTeam, 0) / n) * 10) / 10,
         sales: Math.round(rows.reduce((s, r) => s + r.sales, 0) / n),
@@ -131,8 +131,8 @@ export default function Analytics() {
     const totals: MonthRow = {
       label: "Total",
       faces: months.reduce((s, r) => s + r.faces, 0),
-      networking: months.reduce((s, r) => s + r.networking, 0),
-      vendor: months.reduce((s, r) => s + r.vendor, 0),
+      parties: months.reduce((s, r) => s + r.parties, 0),
+      facials: months.reduce((s, r) => s + r.facials, 0),
       sharings: months.reduce((s, r) => s + r.sharings, 0),
       newTeam: months.reduce((s, r) => s + r.newTeam, 0),
       sales: months.reduce((s, r) => s + r.sales, 0),
