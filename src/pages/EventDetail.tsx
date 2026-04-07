@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
-const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
+const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -59,7 +59,6 @@ export default function EventDetail() {
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Event updated");
     },
   });
 
@@ -380,11 +379,11 @@ export default function EventDetail() {
                 </div>
                 <div className={cn("col-span-1 sm:col-span-3")}>
                   <label className="text-xs text-muted-foreground">
-                    {(event.event_format || "In-Person") === "Zoom" ? "Virtual Link" : "Location"}
+                    {(event.event_format || "In-Person") === "Virtual" ? "Virtual Link / Location" : "Location"}
                   </label>
                   <Input
                     className="h-8 text-sm"
-                    placeholder={(event.event_format || "In-Person") === "Zoom" ? "https://zoom.us/..." : "Address or venue"}
+                    placeholder={(event.event_format || "In-Person") === "Virtual" ? "Meeting link or venue" : "Address or venue"}
                     defaultValue={(event as any).event_location || ""}
                     key={`el-${(event as any).event_location}`}
                     onBlur={(e) => {
@@ -689,6 +688,24 @@ export default function EventDetail() {
             </div>
           )}
         </div>
+
+        {/* Save Details Button */}
+        {event && (
+          <div className="flex gap-3 pt-2">
+            <Button
+              className="h-11 px-8"
+              onClick={() => {
+                toast.success("Details saved");
+                navigate("/events");
+              }}
+            >
+              Save Details
+            </Button>
+            <Button variant="outline" className="h-11" onClick={() => navigate("/events")}>
+              Back to Events
+            </Button>
+          </div>
+        )}
 
         {/* Post-Event Prompt */}
         <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>

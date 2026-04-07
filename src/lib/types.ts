@@ -73,8 +73,11 @@ export interface CustomerComputed {
   recently_contacted: boolean;
 }
 
-export const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
+export const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
 export type EventFormat = typeof EVENT_FORMATS[number];
+
+export const VIRTUAL_PLATFORMS = ["Zoom", "Other"] as const;
+export type VirtualPlatform = typeof VIRTUAL_PLATFORMS[number];
 
 export const EVENT_STATUSES = ["Booked", "Held", "Cancelled"] as const;
 export type EventStatus = typeof EVENT_STATUSES[number];
@@ -123,6 +126,20 @@ export interface EventRecord {
   reschedule_last_contact_date: string | null;
   requires_manual_next_step: boolean;
   allow_non_working_day: boolean;
+  zoom_id: string | null;
+  zoom_password: string | null;
+  zoom_link: string | null;
+  virtual_platform: string | null;
+  virtual_platform_link: string | null;
+  virtual_notes: string | null;
+}
+
+export interface ZoomDefaults {
+  id: string;
+  user_id: string;
+  zoom_id: string | null;
+  zoom_password: string | null;
+  zoom_link: string | null;
 }
 
 export interface EventGuest {
