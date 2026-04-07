@@ -192,11 +192,13 @@ async function logCustomerActivity({
   customerId,
   noteType,
   noteText,
+  nextStep,
   nextFollowUpDate,
 }: {
   customerId: string;
   noteType: string;
   noteText?: string;
+  nextStep?: string;
   nextFollowUpDate?: string | null;
 }) {
   const fallbackNote = `${noteType} follow-up completed`;
@@ -209,6 +211,7 @@ async function logCustomerActivity({
       customer_id: customerId,
       note_body: noteBody,
       note_type: noteType,
+      next_step: nextStep?.trim() || null,
       next_follow_up_date: nextFollowUpDate ?? null,
     }),
   ]);
