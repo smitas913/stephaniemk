@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PartyPopper, Sparkles, Share2, Megaphone } from "lucide-react";
+import { PartyPopper, Sparkles, Share2, Megaphone, MapPin, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
@@ -28,24 +28,38 @@ interface AddEventDialogProps {
 
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
+  const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
+
   const [eventType, setEventType] = useState<string>("Party");
   const [leadGenSubtype, setLeadGenSubtype] = useState<string>("Networking Event");
+  const [eventFormat, setEventFormat] = useState<string>("In-Person");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
+  const [hostessPhone, setHostessPhone] = useState("");
 
   const isLeadGen = eventType === "Lead Generating Event";
+  const isVirtual = eventFormat === "Virtual";
 
   const mutation = useMutation({
     mutationFn: async () => {
       const displayType = isLeadGen ? leadGenSubtype : eventType;
       const eventId = generateEventId(eventType, eventDate, hostessName || "Event", existingEventIds);
-      await upsertEvent({
+      const payload: Record<string, any> = {
         event_id: eventId,
         event_type: displayType,
+        event_format: eventFormat,
         event_date: eventDate,
         hostess_name: hostessName.trim() || null,
+        hostess_phone: hostessPhone.trim() || null,
         guest_count: 0,
-      });
+      };
+      if (isVirtual && zoomDefaults) {
+        payload.virtual_platform = "Zoom";
+        payload.zoom_id = zoomDefaults.zoom_id || null;
+        payload.zoom_password = zoomDefaults.zoom_password || null;
+        payload.zoom_link = zoomDefaults.zoom_link || null;
+      }
+      await upsertEvent(payload as any);
       return eventId;
     },
     onSuccess: async (eventId) => {
@@ -69,8 +83,10 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   const resetForm = () => {
     setEventType("Party");
     setLeadGenSubtype("Networking Event");
+    setEventFormat("In-Person");
     setEventDate(toLocalDateKey());
     setHostessName("");
+    setHostessPhone("");
   };
 
   const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype) && !mutation.isPending;
@@ -134,6 +150,37 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
             </div>
           )}
 
+          {/* Format */}
+          <div>
+            <label className="text-sm font-medium text-foreground">Format</label>
+            <div className="flex gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setEventFormat("In-Person")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 h-9 rounded-lg border-2 text-sm font-medium transition-colors",
+                  eventFormat === "In-Person"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <MapPin className="w-4 h-4" />In Person
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventFormat("Virtual")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 h-9 rounded-lg border-2 text-sm font-medium transition-colors",
+                  eventFormat === "Virtual"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Monitor className="w-4 h-4" />Virtual
+              </button>
+            </div>
+          </div>
+
           {/* Date */}
           <div>
             <label className="text-sm font-medium text-foreground">Date *</label>
@@ -149,6 +196,20 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
               placeholder="Optional — can add later"
               value={hostessName}
               onChange={(e) => setHostessName(e.target.value)}
+              className="h-9 mt-1"
+            />
+          </div>
+
+          {/* Hostess Phone */}
+          <div>
+            <label className="text-sm font-medium text-foreground">
+              {eventType === "Sharing Appointment" ? "Contact Phone" : "Hostess Phone"}
+            </label>
+            <Input
+              type="tel"
+              placeholder="Optional"
+              value={hostessPhone}
+              onChange={(e) => setHostessPhone(e.target.value)}
               className="h-9 mt-1"
             />
           </div>
