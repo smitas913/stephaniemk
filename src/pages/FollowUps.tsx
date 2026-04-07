@@ -1186,9 +1186,14 @@ export default function FollowUps() {
                     const teamTypes = new Set(["consultant"]);
                     const followUpItems = todayActions.filter(i => !teamTypes.has(i.itemType));
 
+                    // Priority hierarchy: each item appears ONLY once in the highest-priority bucket
                     const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
-                    const dueTodayItems = followUpItems.filter(i => i.follow_up_status !== "OVERDUE" && i.itemType !== "event_task" && i.itemType !== "hostess");
-                    const highPriorityItems = followUpItems.filter(i => i.itemType === "event_task" || i.itemType === "hostess");
+                    const overdueIds = new Set(overdueItems.map(i => i.id));
+                    const dueTodayItems = followUpItems.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
+                    const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
+                    const highPriorityItems = followUpItems.filter(i => !overdueIds.has(i.id) && !dueTodayIds.has(i.id) && (i.itemType === "event_task" || i.itemType === "hostess"));
+                    const usedIds = new Set([...overdueIds, ...dueTodayIds, ...highPriorityItems.map(i => i.id)]);
+                    const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
 
                     const renderUnifiedSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string) => {
                       if (items.length === 0) return null;
