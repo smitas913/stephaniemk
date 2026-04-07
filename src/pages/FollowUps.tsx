@@ -1155,7 +1155,7 @@ export default function FollowUps() {
 
                   {/* ═══ SECTION 1: Top 6 Priorities ═══ */}
                   <Card className="border-primary/20 shadow-md bg-primary/5">
-                    <CardHeader className="pb-2">
+                    <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="p-1.5 rounded-md bg-primary/10">
@@ -1169,7 +1169,7 @@ export default function FollowUps() {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className={cn("pt-0", isMobile && "px-3")}>
                       {priorityIds.length === 0 && !showPriorityPicker ? (
                         <p className="text-xs text-muted-foreground py-3 text-center">
                           Select up to 6 priority tasks to focus on today
