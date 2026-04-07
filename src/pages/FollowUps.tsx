@@ -1102,6 +1102,26 @@ export default function FollowUps() {
 
                 <div className="space-y-4">
 
+                  {/* ═══ Daily Quote ═══ */}
+                  {(() => {
+                    const quotes = [
+                      { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
+                      { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+                      { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+                      { text: "Your only limit is the one you set for yourself.", author: "Unknown" },
+                      { text: "She believed she could, so she did.", author: "R.S. Grey" },
+                      { text: "Small daily improvements are the key to staggering long-term results.", author: "Unknown" },
+                      { text: "You don't have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+                    ];
+                    const dayIndex = Math.floor(Date.now() / 86400000) % quotes.length;
+                    const q = quotes[dayIndex];
+                    return (
+                      <p className="text-center text-sm italic text-muted-foreground py-1">
+                        &ldquo;{q.text}&rdquo; <span className="not-italic font-medium">— {q.author}</span>
+                      </p>
+                    );
+                  })()}
+
                   {/* ═══ SECTION 1: Top 6 Priorities ═══ */}
                   <Card className="border-primary/20 shadow-md bg-primary/5">
                     <CardHeader className="pb-2">
