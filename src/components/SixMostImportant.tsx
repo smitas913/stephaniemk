@@ -214,7 +214,7 @@ function FocusItemRow({
           </span>
           <div className="flex items-center gap-1 shrink-0 ml-2">
             {item.isAutoTracked && (
-              <Zap className="w-3 h-3 text-amber-500" title="Auto-tracked" />
+              <span title="Auto-tracked"><Zap className="w-3 h-3 text-amber-500" /></span>
             )}
             <span className={cn("text-xs font-medium", done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
               {item.current}/{item.target}
