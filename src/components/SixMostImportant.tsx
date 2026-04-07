@@ -22,9 +22,11 @@ import FocusDrillDown from "@/components/focus/FocusDrillDown";
 import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
 
 interface AutoCounts {
+  booking_attempts: number;
   followups: number;
   recruiting: number;
   appointments: number;
+  coaching: number;
   relationship: number;
 }
 
