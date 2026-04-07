@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 export default function AddConsultant() {
   const navigate = useNavigate();
@@ -126,7 +127,17 @@ export default function AddConsultant() {
             {/* Address */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Address</label>
-              <Input placeholder="Street address" value={address1} onChange={(e) => setAddress1(e.target.value)} className="h-10" />
+              <AddressAutocomplete
+                value={address1}
+                onChange={setAddress1}
+                onAddressSelect={(parsed) => {
+                  setAddress1(parsed.street_address);
+                  setCity(parsed.city);
+                  setState(parsed.state);
+                  setPostal(parsed.zip_code);
+                }}
+                placeholder="Street address"
+              />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
