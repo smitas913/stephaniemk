@@ -77,7 +77,7 @@ export function useFocusItems(dateKey?: string) {
     enabled: !!user,
   });
 
-  const { data: progress = [], isLoading: progressLoading } = useQuery({
+  const { data: progress = [], isLoading: progressLoading, isFetching: progressFetching } = useQuery({
     queryKey: ["daily-focus-progress", user?.id, selectedDate],
     queryFn: async () => {
       if (!user) return [];
@@ -98,7 +98,11 @@ export function useFocusItems(dateKey?: string) {
       })) as DailyFocusProgress[];
     },
     enabled: !!user,
+    placeholderData: (prev) => prev,
   });
+
+  const hasHistoricalData = !progressLoading && !progressFetching && progress.length > 0;
+  const noHistoricalData = !progressLoading && !progressFetching && progress.length === 0 && !isToday;
 
   const { data: dayTypeTargets = [] } = useQuery({
     queryKey: ["day-type-targets", user?.id],
@@ -248,5 +252,8 @@ export function useFocusItems(dateKey?: string) {
     saveDayTypeTargets: saveDayTypeTargets.mutateAsync,
     fetchWeekProgress,
     isSaving: saveConfigs.isPending,
+    hasHistoricalData,
+    noHistoricalData,
+    progressFetching,
   };
 }
