@@ -456,6 +456,17 @@ export default function FollowUps() {
     return map;
   }, [allNotes]);
 
+  // Map latest unified note (with next_step) per customer
+  const unifiedNotesByCustomer = useMemo(() => {
+    const map = new Map<string, { note_body: string; next_step: string | null }>();
+    for (const n of unifiedNotes) {
+      if (n.entity_type === "Customer" && n.customer_id && !map.has(n.customer_id)) {
+        map.set(n.customer_id, { note_body: (n as any).note_body || "", next_step: (n as any).next_step || null });
+      }
+    }
+    return map;
+  }, [unifiedNotes]);
+
   const enrichedCustomers = useMemo(() => {
     return customers
       .filter((c) => c.is_active !== false && c.relationship_status !== "Consultant")
