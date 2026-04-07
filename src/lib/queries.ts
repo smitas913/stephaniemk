@@ -1028,3 +1028,28 @@ export const convertConsultantToCustomer = async (
   // Remove from team_consultants
   await supabase.from("team_consultants").delete().eq("id", consultant.id);
 };
+
+// Zoom Defaults
+export const fetchZoomDefaults = async () => {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("zoom_defaults" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as any;
+};
+
+export const upsertZoomDefaults = async (defaults: { zoom_id?: string | null; zoom_password?: string | null; zoom_link?: string | null }) => {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("zoom_defaults" as any)
+    .upsert({ ...defaults, user_id: userId } as any, { onConflict: "user_id" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
