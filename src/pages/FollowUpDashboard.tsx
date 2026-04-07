@@ -119,10 +119,10 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .filter((c) => c.retail_this_year > 0);
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    // Hostess metrics: Networking events
-    const networkingEvents = events.filter((e) => e.event_type === "Networking Event");
+    // Hostess metrics: Party and Facial events (events with hostesses)
+    const hostessEvents = events.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
-    for (const evt of networkingEvents) {
+    for (const evt of hostessEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessAllEventsMap.get(name) || { totalEvents: 0, hasFuture: false };
@@ -131,9 +131,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       hostessAllEventsMap.set(name, entry);
     }
 
-    const periodNetworkingEvents = periodEvents.filter((e) => e.event_type === "Networking Event");
+    const periodHostessEvents = periodEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const hostessMap = new Map<string, { events: number; sales: number }>();
-    for (const evt of periodNetworkingEvents) {
+    for (const evt of periodHostessEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessMap.get(name) || { events: 0, sales: 0 };
@@ -155,7 +155,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalNetworking, totalVendor, avgFace, reorderSales, networkingSales, vendorSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
   }, [customers, orders, expenses, events, period]);
 }
 
