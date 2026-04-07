@@ -412,6 +412,23 @@ export default function FollowUps() {
   const [universalPanelOpen, setUniversalPanelOpen] = useState(false);
 
   const openUniversalPanel = useCallback((item: ActionItem) => {
+    // Build recent notes for this entity from unified notes
+    const entityNotes = unifiedNotes
+      .filter((n: any) => {
+        if (item.itemType === "customer" && n.customer_id === item.id) return true;
+        if (item.itemType === "prospect" && n.prospect_id === item.id) return true;
+        if (item.itemType === "lead" && n.entity_type === "Lead" && n.note_body?.includes(item.name)) return true;
+        if (item.itemType === "consultant" && n.entity_type === "Consultant" && n.note_body?.includes(item.name)) return true;
+        if (item.itemType === "hostess" && n.entity_type === "Hostess" && n.note_body?.includes(item.name)) return true;
+        return false;
+      })
+      .slice(0, 5)
+      .map((n: any) => ({
+        date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+        actionType: n.note_type || "Note",
+        preview: (n.note_body || "").slice(0, 80),
+      }));
+
     setUniversalPanelItem({
       id: item.id,
       personType: item.itemType,
@@ -423,9 +440,11 @@ export default function FollowUps() {
       followUpReason: item.followUpReason,
       daysOverdue: item.daysOverdue,
       followUpStatus: item.follow_up_status,
+      nextFollowUpDate: item.next_follow_up || null,
+      recentNotes: entityNotes,
     });
     setUniversalPanelOpen(true);
-  }, []);
+  }, [unifiedNotes]);
 
 
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
