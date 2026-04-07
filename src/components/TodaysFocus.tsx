@@ -2,8 +2,9 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Target, Phone, CalendarPlus, Share2, Briefcase, PartyPopper, Coffee, User, ChevronRight, ChevronLeft, BarChart3, Calendar } from "lucide-react";
+import { Target, Phone, CalendarPlus, Share2, Briefcase, PartyPopper, Coffee, User, ChevronRight, ChevronLeft, BarChart3, Calendar, TrendingUp } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import FocusDrillDown from "@/components/focus/FocusDrillDown";
 import TodaysPlan from "@/components/TodaysPlan";
 import WeeklyScorecard from "@/components/WeeklyScorecard";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,7 @@ export default function TodaysFocus({
   const [dayType, setDayType] = useState<DayType>("booking");
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [activePanel, setActivePanel] = useState<"reachOuts" | "bookings" | "sharing" | null>(null);
+  const [bookingDrillOpen, setBookingDrillOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
   const goals = GOALS[dayType];
 
@@ -116,12 +118,22 @@ export default function TodaysFocus({
     return computeMetricsForDate(selectedDate, rawData);
   }, [selectedDate, isToday, rawData]);
 
+  const todayMetrics = useMemo(() => {
+    if (!isToday || !rawData) return null;
+    return computeMetricsForDate(todayKey, rawData);
+  }, [isToday, rawData, todayKey]);
+
   const currentReachOuts = isToday ? reachOutsToday : (dateMetrics?.reachOuts ?? 0);
   const currentBookings = isToday ? bookingsToday : (dateMetrics?.bookings ?? 0);
   const currentSharing = isToday ? sharingToday : (dateMetrics?.sharing ?? 0);
   const currentReachOutDetails = isToday ? reachOutDetails : (dateMetrics?.reachOutDetails ?? []);
   const currentBookingDetails = isToday ? bookingDetails : (dateMetrics?.bookingDetails ?? []);
   const currentSharingDetails = isToday ? sharingDetails : (dateMetrics?.sharingDetails ?? []);
+
+  const activeMetrics = isToday ? todayMetrics : dateMetrics;
+  const currentBookingAttempts = activeMetrics?.bookingAttempts ?? 0;
+  const currentConversionRate = activeMetrics?.bookingConversionRate ?? 0;
+  const currentBookingAttemptDetails = activeMetrics?.bookingAttemptDetails ?? [];
 
   const goBack = () => {
     const d = new Date(selectedDate + "T12:00:00");
@@ -245,6 +257,33 @@ export default function TodaysFocus({
             <GoalItem icon={CalendarPlus} label="Bookings" current={currentBookings} goal={isToday ? goals.bookings : currentBookings || 1} color="text-emerald-500" onClick={() => setActivePanel("bookings")} />
             {(isToday ? goals.sharing > 0 : currentSharing > 0) && (
               <GoalItem icon={Share2} label="Sharing" current={currentSharing} goal={isToday ? goals.sharing : currentSharing || 1} color="text-violet-500" onClick={() => setActivePanel("sharing")} />
+            )}
+            {/* Booking Conversion Summary */}
+            {(currentBookingAttempts > 0 || currentBookings > 0) && (
+              <button
+                type="button"
+                onClick={() => setBookingDrillOpen(true)}
+                className="w-full mt-2 flex items-center justify-between px-3 py-2 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors group"
+              >
+                <div className="flex items-center gap-4 text-xs">
+                  <span className="flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-primary" />
+                    <span className="text-muted-foreground">Attempts</span>
+                    <span className="font-semibold text-foreground">{currentBookingAttempts}</span>
+                  </span>
+                  <span className="text-muted-foreground">·</span>
+                  <span>
+                    <span className="text-muted-foreground">Bookings</span>{" "}
+                    <span className="font-semibold text-emerald-600">{currentBookings}</span>
+                  </span>
+                  <span className="text-muted-foreground">·</span>
+                  <span>
+                    <span className="text-muted-foreground">Rate</span>{" "}
+                    <span className="font-semibold text-foreground">{currentConversionRate}%</span>
+                  </span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
             )}
             {isToday && (
               <p className="text-[10px] text-muted-foreground pt-1">
