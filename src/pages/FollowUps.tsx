@@ -786,10 +786,26 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
+        // Create unified note for consultant coaching so it appears in Today metrics
+        await createNote({
+          entity_type: "Consultant",
+          note_body: note.trim() || `${type} coaching`,
+          note_type: type,
+          next_step: nextStep?.trim() || null,
+          next_follow_up_date: nextDate ?? null,
+        });
       } else if (item.itemType === "hostess") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
+        // Create unified note for hostess activity so it counts in Today metrics
+        await createNote({
+          entity_type: "Hostess",
+          note_body: note.trim() || `${type} hostess coaching`,
+          note_type: type,
+          next_step: nextStep?.trim() || null,
+          next_follow_up_date: nextDate ?? null,
+        });
       } else if (item.itemType === "lead") {
         const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
         const updates: Record<string, string | null> = {
@@ -798,6 +814,14 @@ export default function FollowUps() {
         };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
+        // Create unified note for lead activity
+        await createNote({
+          entity_type: "Lead",
+          note_body: note.trim() || `${type} follow-up`,
+          note_type: type,
+          next_step: nextStep?.trim() || null,
+          next_follow_up_date: nextDate || defaultNext,
+        });
       } else if (item.itemType === "event_task") {
         await completeEventTask(item.id);
       }
