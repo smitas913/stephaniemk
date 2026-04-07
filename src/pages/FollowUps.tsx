@@ -197,12 +197,16 @@ async function logCustomerActivity({
   noteText,
   nextStep,
   nextFollowUpDate,
+  isBookingAttempt,
+  isFollowUp,
 }: {
   customerId: string;
   noteType: string;
   noteText?: string;
   nextStep?: string;
   nextFollowUpDate?: string | null;
+  isBookingAttempt?: boolean;
+  isFollowUp?: boolean;
 }) {
   const fallbackNote = `${noteType} follow-up completed`;
   const noteBody = noteText?.trim() || fallbackNote;
@@ -216,6 +220,8 @@ async function logCustomerActivity({
       note_type: noteType,
       next_step: nextStep?.trim() || null,
       next_follow_up_date: nextFollowUpDate ?? null,
+      is_booking_attempt: isBookingAttempt ?? false,
+      is_follow_up: isFollowUp ?? true,
     }),
   ]);
 }
@@ -2285,6 +2291,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const [skipNote, setSkipNote] = useState("");
   const [didNotConnect, setDidNotConnect] = useState(false);
   const [skipped, setSkipped] = useState(false);
+  const [isBookingAttempt, setIsBookingAttempt] = useState(false);
+  const [isFollowUpFlag, setIsFollowUpFlag] = useState(true);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Fetch active catalog follow-ups for this customer
@@ -2399,7 +2407,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       const noteText = isDidNotConnect
         ? (newNote.trim() || "Did not connect — attempted contact")
         : newNote.trim();
-      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextStep: nextStepText.trim(), nextFollowUpDate: effectiveDate });
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextStep: nextStepText.trim(), nextFollowUpDate: effectiveDate, isBookingAttempt, isFollowUp: isFollowUpFlag });
 
       setNextFollowUp(effectiveDate);
       setFollowUpSource(effectiveSource);
@@ -2597,6 +2605,17 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
               />
             </div>
 
+            <div className="flex items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={isFollowUpFlag} onCheckedChange={(v) => setIsFollowUpFlag(!!v)} />
+                <span className="text-muted-foreground">Follow-Up</span>
+              </label>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={isBookingAttempt} onCheckedChange={(v) => setIsBookingAttempt(!!v)} />
+                <span className="text-muted-foreground">Booking Attempt</span>
+              </label>
+            </div>
+
             <Button className="w-full" onClick={handleLogActivity} disabled={saving || (activityType !== "Did Not Connect" && !newNote.trim())}>
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
               {saving ? "Saving..." : activityType === "Did Not Connect" ? "Log Attempt" : "Log Activity"}
@@ -2780,6 +2799,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   onClose: () => void;
 }) {
   const lead = bookingLeads.find((l) => l.id === item.id);
+  const isFirstContact = lead?.status === "New";
   const [status, setStatus] = useState(lead?.status || "New");
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
@@ -2792,6 +2812,9 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
   const [loggedMessage, setLoggedMessage] = useState("");
+  // Lead logic: first contact = booking attempt only, subsequent = follow-up + optional booking attempt
+  const [isBookingAttempt, setIsBookingAttempt] = useState(true);
+  const [isFollowUpFlag, setIsFollowUpFlag] = useState(!isFirstContact);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Sync state when lead data refreshes (after mutation + invalidation)
@@ -2934,6 +2957,22 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
             className="h-9"
           />
         </div>
+
+        <div className="flex items-center gap-4 pt-1">
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={isBookingAttempt} onCheckedChange={(v) => setIsBookingAttempt(!!v)} />
+            <span className="text-muted-foreground">Booking Attempt</span>
+          </label>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <Checkbox checked={isFollowUpFlag} onCheckedChange={(v) => setIsFollowUpFlag(!!v)} />
+            <span className="text-muted-foreground">Follow-Up</span>
+          </label>
+        </div>
+        {isFirstContact && (
+          <p className="text-[10px] text-amber-600 dark:text-amber-400">
+            First contact — defaults to Booking Attempt only
+          </p>
+        )}
 
         <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
           <CheckCircle2 className="w-4 h-4 mr-1.5" />

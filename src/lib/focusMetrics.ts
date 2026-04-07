@@ -14,9 +14,12 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   reachOuts: number;
   bookings: number;
   sharing: number;
+  bookingAttempts: number;
+  bookingConversionRate: number;
   reachOutDetails: FocusDetailItem[];
   bookingDetails: FocusDetailItem[];
   sharingDetails: FocusDetailItem[];
+  bookingAttemptDetails: FocusDetailItem[];
 } {
   const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
@@ -86,6 +89,46 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
       detail: e.event_type || undefined,
     }));
 
+  // Booking attempt items: notes flagged as is_booking_attempt
+  const bookingAttemptItems: FocusDetailItem[] = unifiedNotes
+    .filter((n: any) => {
+      const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+      return noteDay === dateKey && n.is_booking_attempt === true;
+    })
+    .map((n: any) => {
+      let name = "Unknown";
+      let type = n.entity_type || "Customer";
+      let id = n.customer_id || n.prospect_id || n.id;
+      if (n.entity_type === "Customer" && n.customer_id) {
+        const c = customers.find((c: any) => c.id === n.customer_id);
+        name = c?.full_name || "Customer";
+        id = n.customer_id;
+        type = "Customer";
+      } else if (n.entity_type === "Prospect" && n.prospect_id) {
+        const p = prospects.find((p: any) => p.id === n.prospect_id);
+        name = p?.name || "Prospect";
+        id = n.prospect_id;
+        type = "Prospect";
+      }
+      return { id, name, type, method: n.note_type, detail: n.note_body?.slice(0, 60) || undefined, isBookingAttempt: true };
+    });
+
+  // Also count lead contacts as booking attempts (leads are inherently booking pipeline)
+  const leadBookingAttemptItems: FocusDetailItem[] = bookingLeads
+    .filter((l: any) => l.last_contact_date === dateKey && !l.converted_customer_id)
+    .map((l: any) => ({
+      id: l.id, name: l.name, type: "Lead",
+      method: l.lead_activity || "Call",
+      detail: undefined,
+      isBookingAttempt: true,
+    }));
+
+  const seenAttemptIds = new Set<string>();
+  const allBookingAttemptItems: FocusDetailItem[] = [];
+  for (const item of [...bookingAttemptItems, ...leadBookingAttemptItems]) {
+    if (!seenAttemptIds.has(item.id)) { seenAttemptIds.add(item.id); allBookingAttemptItems.push(item); }
+  }
+
   const sharingItems: FocusDetailItem[] = [
     ...prospects
       .filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(dateKey))
@@ -101,12 +144,19 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((e: any) => e.event_date === dateKey)
     .reduce((sum: number, e: any) => sum + ((e as any).sharing_appointments_count || 0), 0);
 
+  const bookingAttemptsCount = allBookingAttemptItems.length;
+  const bookingsCount = bookingItems.length;
+  const conversionRate = bookingAttemptsCount > 0 ? Math.round((bookingsCount / bookingAttemptsCount) * 100) : 0;
+
   return {
     reachOuts: allReachOutItems.length,
-    bookings: bookingItems.length,
+    bookings: bookingsCount,
     sharing: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
+    bookingAttempts: bookingAttemptsCount,
+    bookingConversionRate: conversionRate,
     reachOutDetails: allReachOutItems,
     bookingDetails: bookingItems,
     sharingDetails: sharingItems,
+    bookingAttemptDetails: allBookingAttemptItems,
   };
 }

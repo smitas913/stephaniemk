@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ChevronRight, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,9 @@ const TYPE_COLORS: Record<string, string> = {
   Event: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
 };
 
+const FILTER_TYPES = ["All", "Lead", "Customer", "Consultant"] as const;
+type FilterType = typeof FILTER_TYPES[number];
+
 interface FocusDrillDownProps {
   open: boolean;
   onClose: () => void;
@@ -18,28 +22,58 @@ interface FocusDrillDownProps {
   dateLabel: string;
   items: FocusDetailItem[];
   onNavigate?: (type: string, id: string) => void;
+  showTypeFilter?: boolean;
 }
 
 export default function FocusDrillDown({
-  open, onClose, title, dateLabel, items, onNavigate,
+  open, onClose, title, dateLabel, items, onNavigate, showTypeFilter,
 }: FocusDrillDownProps) {
+  const [filter, setFilter] = useState<FilterType>("All");
+
+  const filteredItems = filter === "All" ? items : items.filter(i => i.type === filter);
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+    <Sheet open={open} onOpenChange={(o) => { if (!o) { onClose(); setFilter("All"); } }}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>
-            {items.length} {items.length === 1 ? "activity" : "activities"} — {dateLabel}
+            {filteredItems.length} {filteredItems.length === 1 ? "activity" : "activities"} — {dateLabel}
           </SheetDescription>
         </SheetHeader>
+
+        {showTypeFilter && items.length > 0 && (
+          <div className="flex gap-1.5 mt-3 flex-wrap">
+            {FILTER_TYPES.map((ft) => {
+              const count = ft === "All" ? items.length : items.filter(i => i.type === ft).length;
+              if (ft !== "All" && count === 0) return null;
+              return (
+                <button
+                  key={ft}
+                  type="button"
+                  onClick={() => setFilter(ft)}
+                  className={cn(
+                    "text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors",
+                    filter === ft
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  {ft} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="mt-4 space-y-2">
-          {items.length === 0 ? (
+          {filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <User className="w-10 h-10 text-muted-foreground/40 mb-3" />
               <p className="text-sm font-medium text-muted-foreground">No activity logged</p>
             </div>
           ) : (
-            items.map((item) => (
+            filteredItems.map((item) => (
               <button
                 key={item.id + (item.method || "")}
                 type="button"
@@ -48,7 +82,7 @@ export default function FocusDrillDown({
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                  <div className="flex items-center gap-1.5 mt-1">
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                     <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_COLORS[item.type] || "bg-muted text-muted-foreground")}>
                       {item.type}
                     </span>
@@ -57,8 +91,13 @@ export default function FocusDrillDown({
                         {item.method}
                       </span>
                     )}
+                    {item.isBookingAttempt && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                        Booking Attempt
+                      </span>
+                    )}
                     {item.detail && (
-                      <span className="text-[10px] text-muted-foreground">{item.detail}</span>
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">{item.detail}</span>
                     )}
                   </div>
                 </div>

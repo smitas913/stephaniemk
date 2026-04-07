@@ -203,9 +203,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
       case "followups": return metrics.reachOutDetails;
       case "recruiting": return metrics.sharingDetails;
       case "appointments": return metrics.bookingDetails;
+      case "booking_attempts": return metrics.bookingAttemptDetails;
       case "relationship": return metrics.reachOutDetails.filter(d => ["General", "Gift", "Check-in", "Birthday"].includes(d.method || ""));
       default:
-        if (config.label.toLowerCase().includes("booking")) return metrics.bookingDetails;
+        if (config.label.toLowerCase().includes("booking")) return metrics.bookingAttemptDetails.length > 0 ? metrics.bookingAttemptDetails : metrics.bookingDetails;
         if (config.label.toLowerCase().includes("team")) return [];
         return [];
     }
@@ -213,6 +214,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
 
   const drillDownConfig = drillDownIndex !== null ? configs.find(c => c.sort_order === drillDownIndex) : null;
   const drillDownItems = drillDownIndex !== null ? getDrillDownItems(drillDownIndex) : [];
+  const drillDownShowFilter = drillDownConfig?.auto_track_key === "booking_attempts" || drillDownConfig?.label.toLowerCase().includes("booking");
 
   const dateLabel = (() => {
     if (isToday) return "Today";
@@ -326,6 +328,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
         dateLabel={dateLabel}
         items={drillDownItems}
         onNavigate={onDetailNavigate}
+        showTypeFilter={drillDownShowFilter}
       />
     </>
   );
