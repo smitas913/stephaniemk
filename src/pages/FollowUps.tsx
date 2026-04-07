@@ -1733,18 +1733,31 @@ export default function FollowUps() {
               </div>
             )}
             <div className="space-y-3">
-              {actionItem?.itemType === "customer" && (
-                <Select value={noteType} onValueChange={setNoteType}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{NOTE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              )}
-              {actionItem?.itemType !== "consultant" && (
-                <Textarea placeholder="Add a note (optional)..." value={noteText} onChange={(e) => setNoteText(e.target.value)} className="min-h-[80px]" />
-              )}
+              {/* Quick-tap activity type */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity Type</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Call", "Text", "Email", "In Person"].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNoteType(type)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                        noteType === type
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-background text-foreground hover:bg-muted"
+                      )}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Textarea placeholder="Add a note (optional)..." value={noteText} onChange={(e) => setNoteText(e.target.value)} className="min-h-[60px]" />
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
-                  {actionItem?.itemType === "consultant" ? "Next Coaching Date" : "Next Follow-Up Date"}
+                  {actionItem?.itemType === "consultant" ? "Next Coaching Date" : "Next Follow-Up Date"} (optional)
                 </label>
                 <Input type="date" value={followUpDate} min={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setFollowUpDate(e.target.value)} className="h-9" />
               </div>
