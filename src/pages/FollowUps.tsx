@@ -409,6 +409,33 @@ export default function FollowUps() {
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
+  // Top 6 Priorities (persisted per day)
+  const priorityStorageKey = `priorities-${toLocalDateKey()}`;
+  const [priorityIds, setPriorityIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(priorityStorageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch { return []; }
+  });
+  const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+  const togglePriority = useCallback((id: string) => {
+    setPriorityIds(prev => {
+      const next = prev.includes(id) ? prev.filter(p => p !== id) : prev.length < 6 ? [...prev, id] : prev;
+      localStorage.setItem(priorityStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }, [priorityStorageKey]);
+  const removePriority = useCallback((id: string) => {
+    setPriorityIds(prev => {
+      const next = prev.filter(p => p !== id);
+      localStorage.setItem(priorityStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }, [priorityStorageKey]);
+
+  // Relationship Touches collapsed state
+  const [touchesOpen, setTouchesOpen] = useState(false);
+
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
   const [rescheduleNoteText, setRescheduleNoteText] = useState("");
