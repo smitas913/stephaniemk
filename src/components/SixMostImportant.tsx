@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Star, Pencil } from "lucide-react";
+import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
 import { useFocusItems, DEFAULT_FOCUS_ITEMS, DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
 import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
@@ -111,6 +111,13 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   }, [configs, progress, dayType, getTargetForItem, isOOO]);
 
   const completedCount = items.filter((i) => i.isComplete || (i.current >= i.target && i.target > 0)).length;
+
+  const winStatus = useMemo(() => {
+    if (completedCount >= 6) return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
+    if (completedCount >= 5) return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
+    if (completedCount >= 4) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
+    return null;
+  }, [completedCount]);
 
   // Weekly data
   const currentWeekStart = useMemo(() => {
@@ -239,6 +246,12 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               <Badge variant="secondary" className="text-xs">
                 {completedCount} / {items.length || 6}
               </Badge>
+              {winStatus && (
+                <Badge variant="outline" className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}>
+                  <winStatus.icon className="w-3 h-3" />
+                  {winStatus.label}
+                </Badge>
+              )}
             </div>
             {!editMode && isToday && (
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEdit}>
