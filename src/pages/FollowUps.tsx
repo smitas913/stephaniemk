@@ -3007,16 +3007,18 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 // ─── Action Row Component ───
 
 function ActionRow({
-  item, inlineNoteId, inlineNoteText, inlineNoteType, inlineFollowUpDate,
-  setInlineNoteText, setInlineNoteType, setInlineFollowUpDate,
+  item, inlineNoteId, inlineNoteText, inlineNextStep, inlineNoteType, inlineFollowUpDate,
+  setInlineNoteText, setInlineNextStep, setInlineNoteType, setInlineFollowUpDate,
   onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
   inlineNoteText: string;
+  inlineNextStep: string;
   inlineNoteType: string;
   inlineFollowUpDate: string;
   setInlineNoteText: (v: string) => void;
+  setInlineNextStep: (v: string) => void;
   setInlineNoteType: (v: string) => void;
   setInlineFollowUpDate: (v: string) => void;
   onToggleInline: () => void;
