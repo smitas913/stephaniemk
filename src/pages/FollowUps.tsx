@@ -2848,13 +2848,24 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const autoFollowUpDays = getAutoFollowUpDays(newStatus);
       const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
 
-      await updateBookingLead(item.id, {
-        last_contact_date: today,
-        next_follow_up_date: autoNextDate,
-        status: newStatus,
-        notes: updatedNotes,
-        lead_activity: activityType,
-      } as any);
+      await Promise.all([
+        updateBookingLead(item.id, {
+          last_contact_date: today,
+          next_follow_up_date: autoNextDate,
+          status: newStatus,
+          notes: updatedNotes,
+          lead_activity: activityType,
+        } as any),
+        createNote({
+          entity_type: "Lead",
+          note_body: newNote.trim(),
+          note_type: activityType,
+          next_step: nextStepText.trim() || null,
+          next_follow_up_date: autoNextDate,
+          is_booking_attempt: isBookingAttempt,
+          is_follow_up: isFollowUpFlag,
+        }),
+      ]);
 
       // Update local state immediately
       setNextFollowUp(autoNextDate);
@@ -2863,8 +2874,10 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       setActivityLogged(true);
       setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)}`);
 
-      // Refresh data but DON'T close
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
 
       // Focus the next follow-up date input
       setTimeout(() => nextFollowUpRef.current?.focus(), 100);
