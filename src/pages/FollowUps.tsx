@@ -781,42 +781,44 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, nextStep, type, nextDate }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
-        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: nextDate ?? null });
+        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: nextDate ?? null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: isFollowUp ?? true });
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateProspect(item.id, updates as any);
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
-        await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: note.trim() || `${type} follow-up`, note_type: type, next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null });
+        await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: note.trim() || `${type} follow-up`, note_type: type, next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null, is_booking_attempt: isBookingAttempt ?? false, is_follow_up: isFollowUp ?? true });
       } else if (item.itemType === "consultant") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
-        // Create unified note for consultant coaching so it appears in Today metrics
         await createNote({
           entity_type: "Consultant",
           note_body: note.trim() || `${type} coaching`,
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,
+          is_booking_attempt: isBookingAttempt ?? false,
+          is_follow_up: isFollowUp ?? true,
         });
       } else if (item.itemType === "hostess") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
-        // Create unified note for hostess activity so it counts in Today metrics
         await createNote({
           entity_type: "Hostess",
           note_body: note.trim() || `${type} hostess coaching`,
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,
+          is_booking_attempt: isBookingAttempt ?? false,
+          is_follow_up: isFollowUp ?? true,
         });
       } else if (item.itemType === "lead") {
         const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
@@ -826,13 +828,14 @@ export default function FollowUps() {
         };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
-        // Create unified note for lead activity
         await createNote({
           entity_type: "Lead",
           note_body: note.trim() || `${type} follow-up`,
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate || defaultNext,
+          is_booking_attempt: isBookingAttempt ?? true,
+          is_follow_up: isFollowUp ?? true,
         });
       } else if (item.itemType === "event_task") {
         await completeEventTask(item.id);
@@ -849,6 +852,7 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
       setActionItem(null); setNoteText(""); setNoteNextStep(""); setNoteType("Call"); setFollowUpDate("");
       setInlineNoteId(null); setInlineNoteText(""); setInlineNextStep(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
       toast.success("Marked as contacted");
