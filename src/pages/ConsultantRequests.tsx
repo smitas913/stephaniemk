@@ -50,7 +50,7 @@ export default function ConsultantRequests({ embedded = false }: { embedded?: bo
       if (approved) {
         (updates as any).role = "consultant";
       }
-      const { error } = await supabase.from("profiles").update(updates).eq("id", id);
+      const { error } = await supabase.from("profiles").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_, { approved }) => {

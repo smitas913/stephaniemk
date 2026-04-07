@@ -189,7 +189,7 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
         if (isDup && dupAction === "update") {
           const dupInfo = duplicates.find((d) => d.rowIdx === row.rowIdx)!;
           const { supabase } = await import("@/integrations/supabase/client");
-          const { error } = await supabase.from("team_consultants").update(payload).eq("id", dupInfo.existingId);
+          const { error } = await supabase.from("team_consultants").update(payload as any).eq("id", dupInfo.existingId);
           if (error) throw error;
           updated++;
         } else {
