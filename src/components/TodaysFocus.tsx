@@ -387,6 +387,22 @@ export default function TodaysFocus({
           )}
         </SheetContent>
       </Sheet>
+
+      <FocusDrillDown
+        open={bookingDrillOpen}
+        onClose={() => setBookingDrillOpen(false)}
+        title="Booking Conversion"
+        dateLabel={dateLabel}
+        items={currentBookingAttemptDetails}
+        onNavigate={onDetailNavigate}
+        showTypeFilter
+        bookingSummary={{
+          attempts: currentBookingAttempts,
+          bookings: currentBookings,
+          conversionRate: currentConversionRate,
+          bookingDetails: currentBookingDetails,
+        }}
+      />
     </div>
   );
 }
