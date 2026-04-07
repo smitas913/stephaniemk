@@ -1,0 +1,166 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createCustomer } from "@/lib/queries";
+import { toLocalDateKey } from "@/lib/dateOnly";
+import { RELATIONSHIP_STATUSES } from "@/lib/types";
+import Layout from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
+
+export default function AddCustomer() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address1, setAddress1] = useState("");
+  const [address2, setAddress2] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [postal, setPostal] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [relationship, setRelationship] = useState("Customer");
+  const [firstOrderDate, setFirstOrderDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [nextFollowUp, setNextFollowUp] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      createCustomer({
+        full_name: name.trim(),
+        phone: phone.trim() || null,
+        email: email.trim() || null,
+        address_line_1: address1.trim() || null,
+        address_line_2: address2.trim() || null,
+        city: city.trim() || null,
+        state_territory: state.trim() || null,
+        postal_code: postal.trim() || null,
+        birthday: birthday || null,
+        relationship_status: relationship,
+        profile_date_first_order_date: firstOrderDate || null,
+        notes: notes.trim() || null,
+        next_follow_up_date: nextFollowUp || null,
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Customer created");
+      navigate(`/customers/${data.id}`);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const hasContact = phone.trim() || email.trim();
+  const canSubmit = name.trim() && hasContact && !mutation.isPending;
+
+  return (
+    <Layout>
+      <div className="space-y-6 max-w-2xl">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/customers")}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Add Customer</h2>
+            <p className="text-sm text-muted-foreground">Create a new customer with full details</p>
+          </div>
+        </div>
+
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-6 space-y-5">
+            {/* Name */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Full Name *</label>
+              <Input placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} className="h-10" />
+            </div>
+
+            {/* Contact */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Phone {!email.trim() ? "*" : ""}</label>
+                <Input placeholder="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-10" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Email {!phone.trim() ? "*" : ""}</label>
+                <Input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10" />
+              </div>
+            </div>
+            {!hasContact && name.trim() && (
+              <p className="text-xs text-destructive">At least one contact method (phone or email) is required.</p>
+            )}
+
+            {/* Address */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Address</label>
+              <Input placeholder="Street address" value={address1} onChange={(e) => setAddress1(e.target.value)} className="h-10 mb-2" />
+              <Input placeholder="Apt, Suite, etc. (optional)" value={address2} onChange={(e) => setAddress2(e.target.value)} className="h-10" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">City</label>
+                <Input value={city} onChange={(e) => setCity(e.target.value)} className="h-10" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">State</label>
+                <Input value={state} onChange={(e) => setState(e.target.value)} className="h-10" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Zip</label>
+                <Input value={postal} onChange={(e) => setPostal(e.target.value)} className="h-10" />
+              </div>
+            </div>
+
+            {/* Birthday & Relationship */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Birthday</label>
+                <Input type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} className="h-10" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Relationship</label>
+                <Select value={relationship} onValueChange={setRelationship}>
+                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* First Order & Follow-Up */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">First Order Date</label>
+                <Input type="date" value={firstOrderDate} onChange={(e) => setFirstOrderDate(e.target.value)} className="h-10" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Next Follow-Up</label>
+                <Input type="date" value={nextFollowUp} min={toLocalDateKey()} onChange={(e) => setNextFollowUp(e.target.value)} className="h-10" />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label>
+              <Textarea placeholder="Any notes about this customer..." value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[80px]" />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2">
+              <Button className="h-11 px-8" disabled={!canSubmit} onClick={() => mutation.mutate()}>
+                {mutation.isPending ? "Creating..." : "Create Customer"}
+              </Button>
+              <Button variant="outline" className="h-11" onClick={() => navigate("/customers")}>Cancel</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+}
