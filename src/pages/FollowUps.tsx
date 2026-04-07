@@ -22,6 +22,8 @@ import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
 import type { FocusDetailItem } from "@/components/TodaysFocus";
 import SixMostImportant from "@/components/SixMostImportant";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
