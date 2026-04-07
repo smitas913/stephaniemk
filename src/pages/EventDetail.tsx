@@ -63,7 +63,36 @@ export default function EventDetail() {
     },
   });
 
-  // Post-event prompt state
+  // Post-event completion dialog state
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [completionData, setCompletionData] = useState({ guest_count: "", bookings: "", sharings: "", sales: "" });
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+  const handleStatusChange = (val: string) => {
+    if (!event || val === (event.event_status || "Booked")) return;
+    if (val === "Held") {
+      setPendingStatus(val);
+      setCompletionData({ guest_count: "", bookings: "", sharings: "", sales: "" });
+      setShowCompletionDialog(true);
+    } else {
+      eventMutation.mutate({ event_id: event.event_id, event_status: val } as any);
+    }
+  };
+
+  const submitCompletion = () => {
+    if (!event || !pendingStatus) return;
+    eventMutation.mutate({
+      event_id: event.event_id,
+      event_status: pendingStatus,
+      guest_count: parseInt(completionData.guest_count) || 0,
+      future_bookings_count: parseInt(completionData.bookings) || 0,
+      sharing_appointments_count: parseInt(completionData.sharings) || 0,
+    } as any);
+    setShowCompletionDialog(false);
+    setPendingStatus(null);
+  };
+
+  // Legacy post-event prompt state (auto-prompt for past booked events)
   const [showPostEventPrompt, setShowPostEventPrompt] = useState(false);
   const isPastEvent = event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
 
