@@ -29,18 +29,18 @@ export interface DayTypeTarget {
 }
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
-  { sort_order: 0, label: "Booking Activity", default_target: 3, auto_track_key: null },
+  { sort_order: 0, label: "Booking Attempts", default_target: 10, auto_track_key: null },
   { sort_order: 1, label: "Recruiting Conversations", default_target: 2, auto_track_key: "recruiting" },
-  { sort_order: 2, label: "Follow-Ups Completed", default_target: 5, auto_track_key: "followups" },
+  { sort_order: 2, label: "Follow-Ups Completed", default_target: 10, auto_track_key: "followups" },
   { sort_order: 3, label: "Personal Appointment (Held or Confirmed)", default_target: 1, auto_track_key: "appointments" },
   { sort_order: 4, label: "Consultant Coaching", default_target: 2, auto_track_key: null },
-  { sort_order: 5, label: "Relationship Building (Notes / Check-ins)", default_target: 3, auto_track_key: "relationship" },
+  { sort_order: 5, label: "Relationship Building (Notes / Check-ins)", default_target: 2, auto_track_key: "relationship" },
 ];
 
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
-  power: [3, 2, 5, 1, 2, 3],
-  appointment: [1, 1, 3, 2, 1, 2],
-  flex: [2, 1, 3, 0, 1, 2],
+  power: [10, 2, 10, 1, 2, 2],
+  appointment: [6, 1, 6, 1, 1, 1],
+  flex: [1, 0, 3, 0, 0, 1],
 };
 
 export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
