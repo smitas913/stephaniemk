@@ -2248,15 +2248,11 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     if (followUpSource === "catalog" && catalogType) {
       return `${catalogType} Catalog Follow-Up — ${formatDateOnly(nextFollowUp)}`;
     }
-    // Check if it matches the auto cadence
-    const autoDate = isDormant
-      ? getNextDormantFollowUpDate((currentDormantStage || "Stage 1") as DormantStage)
-      : format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
-    if (nextFollowUp === autoDate) {
-      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${autoInfo.label}`;
+    if (followUpSource === "manual") {
+      return `Manually set to ${formatDateOnly(nextFollowUp)}`;
     }
-    return `Manually set to ${formatDateOnly(nextFollowUp)}`;
-  }, [nextFollowUp, followUpSource, catalogType, isDormant, currentDormantStage, autoInfo]);
+    return `${autoInfo.label} — ${formatDateOnly(nextFollowUp)}`;
+  }, [nextFollowUp, followUpSource, catalogType, autoInfo]);
 
   return (
     <div className="space-y-6">
