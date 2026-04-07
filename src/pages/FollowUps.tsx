@@ -22,6 +22,8 @@ import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
 import type { FocusDetailItem } from "@/components/TodaysFocus";
 import SixMostImportant from "@/components/SixMostImportant";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -405,6 +407,27 @@ export default function FollowUps() {
     });
     toast.success("Birthday message marked complete!");
   };
+  // Universal Action Panel state
+  const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
+  const [universalPanelOpen, setUniversalPanelOpen] = useState(false);
+
+  const openUniversalPanel = useCallback((item: ActionItem) => {
+    setUniversalPanelItem({
+      id: item.id,
+      personType: item.itemType,
+      name: item.name,
+      phone: item.phone,
+      email: item.email,
+      statusLabel: item.activity_status || item.opportunity_status,
+      vip: item.vip,
+      followUpReason: item.followUpReason,
+      daysOverdue: item.daysOverdue,
+      followUpStatus: item.follow_up_status,
+    });
+    setUniversalPanelOpen(true);
+  }, []);
+
+
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteNextStep, setNoteNextStep] = useState("");
@@ -896,6 +919,47 @@ export default function FollowUps() {
     },
   });
 
+  // Universal Action Panel handler (placed after contactMutation)
+  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+    item: UniversalActionItem;
+    actionType: string;
+    note: string;
+    isBookingAttempt: boolean;
+    isFollowUp: boolean;
+    nextFollowUpDate: string | null;
+  }) => {
+    if (nextFollowUpDate !== null) {
+      const updateDateAsync = async () => {
+        if (uItem.personType === "customer") {
+          await updateCustomer(uItem.id, { next_follow_up_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "prospect") {
+          await updateProspect(uItem.id, { next_follow_up_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "consultant") {
+          await updateTeamConsultant(uItem.id, { next_coaching_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "hostess") {
+          await updateEvent(uItem.id, { hostess_next_action_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "lead") {
+          await updateBookingLead(uItem.id, { next_follow_up_date: nextFollowUpDate } as any);
+        }
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["prospects"] });
+        queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+        toast.success(`Follow-up set for ${formatDateOnly(nextFollowUpDate)}`);
+      };
+      updateDateAsync();
+      return;
+    }
+    const ai: ActionItem = {
+      id: uItem.id, itemType: uItem.personType, name: uItem.name,
+      phone: uItem.phone, email: uItem.email,
+      next_follow_up: null, follow_up_status: uItem.followUpStatus || "", actionLabel: "",
+    };
+    contactMutation.mutate({ item: ai, note, type: actionType, isBookingAttempt, isFollowUp });
+  }, [contactMutation, queryClient]);
+
   const handleInlineSave = (item: ActionItem) => {
     contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
   };
@@ -1302,7 +1366,8 @@ export default function FollowUps() {
                                 isPending={contactMutation.isPending}
                                  onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
                                  onQuickLog={(type) => handleQuickLog(item, type)}
-                               />
+                                 onOpenQuickAction={() => openUniversalPanel(item)}
+                                />
                             ))}
                           </div>
                         </div>
@@ -1435,6 +1500,7 @@ export default function FollowUps() {
                                       isPending={contactMutation.isPending}
                                        onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
                                        onQuickLog={(type) => handleQuickLog(item, type)}
+                                       onOpenQuickAction={() => openUniversalPanel(item)}
                                      />
                                   ))}
                                 </div>
@@ -1465,6 +1531,7 @@ export default function FollowUps() {
                                       isPending={contactMutation.isPending}
                                        onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
                                        onQuickLog={(type) => handleQuickLog(item, type)}
+                                       onOpenQuickAction={() => openUniversalPanel(item)}
                                      />
                                   ))}
                                 </div>
@@ -1810,6 +1877,19 @@ export default function FollowUps() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Universal Action Panel */}
+        <UniversalActionPanel
+          item={universalPanelItem}
+          open={universalPanelOpen}
+          onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); }}
+          onLogAction={handleUniversalAction}
+          onNavigateToProfile={(uItem) => {
+            const ai: ActionItem = { id: uItem.id, itemType: uItem.personType, name: uItem.name, phone: uItem.phone, email: uItem.email, next_follow_up: null, follow_up_status: "", actionLabel: "" };
+            navigateToItem(ai);
+          }}
+          isPending={contactMutation.isPending}
+        />
 
         {/* Detail Sheet */}
         <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
@@ -3164,7 +3244,7 @@ function ActionRow({
   item, inlineNoteId, inlineNoteText, inlineNextStep, inlineNoteType, inlineFollowUpDate,
   setInlineNoteText, setInlineNextStep, setInlineNoteType, setInlineFollowUpDate,
   onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
-  onQuickLog,
+  onQuickLog, onOpenQuickAction,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
@@ -3182,6 +3262,7 @@ function ActionRow({
   isPending: boolean;
   onToggleWorkdayOverride?: (newValue: boolean) => void;
   onQuickLog?: (activityType: string) => void;
+  onOpenQuickAction?: () => void;
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const [tagFollowUp, setTagFollowUp] = useState(true);
@@ -3194,7 +3275,7 @@ function ActionRow({
     <div>
       <div className="py-2.5 group">
         <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenDetail}>
+          <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenQuickAction || onOpenDetail}>
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
               {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>}
