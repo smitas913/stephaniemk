@@ -42,21 +42,20 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const cancelRate = evBooked > 0 ? (evCancelled / evBooked) * 100 : 0;
 
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const totalNetworking = periodEvents.filter((e) => e.event_type === "Networking Event").length;
-    const totalVendor = periodEvents.filter((e) => e.event_type === "Vendor Event").length;
+    const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
+    const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
 
     // Sales by order_type
     const salesByType = (type: string) =>
       periodOrders.filter((o) => o.order_type === type).reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const reorderSales = salesByType("Reorder");
-    const networkingSales = salesByType("Networking Event");
-    const vendorSales = salesByType("Vendor Event");
-    const otherSales = periodRevenue - reorderSales - networkingSales - vendorSales;
+    const partySales = salesByType("Party");
+    const facialSales = salesByType("Facial");
+    const otherSales = periodRevenue - reorderSales - partySales - facialSales;
 
     // Avg Face: all event sales / all event guest_count
-    const allEventTypes = periodEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
-    const allEventGuests = allEventTypes.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const allEventSales = networkingSales + vendorSales;
+    const allEventGuests = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const allEventSales = partySales + facialSales;
     const avgFace = allEventGuests > 0 ? allEventSales / allEventGuests : 0;
 
     const periodExpenses = expenses.filter((e) => {
