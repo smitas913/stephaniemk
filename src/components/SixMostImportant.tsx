@@ -252,6 +252,8 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
             isOOO={isOOO}
             onDateChange={(d) => { setSelectedDate(d); setViewMode("daily"); }}
             onViewModeChange={setViewMode}
+            selectedWeekStart={selectedWeekStart}
+            onWeekChange={setSelectedWeekStart}
           />
 
           {viewMode === "daily" && (
@@ -279,6 +281,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               configs={configs}
               weekData={weekData}
               onDayClick={(d) => { setSelectedDate(d); setViewMode("daily"); }}
+              weekStart={selectedWeekStart}
             />
           ) : (
             <div className="space-y-1.5">
