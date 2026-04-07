@@ -486,6 +486,12 @@ export type Database = {
           reschedule_status: string | null
           sharing_appointments_count: number | null
           updated_at: string | null
+          virtual_notes: string | null
+          virtual_platform: string | null
+          virtual_platform_link: string | null
+          zoom_id: string | null
+          zoom_link: string | null
+          zoom_password: string | null
         }
         Insert: {
           allow_non_working_day?: boolean
@@ -525,6 +531,12 @@ export type Database = {
           reschedule_status?: string | null
           sharing_appointments_count?: number | null
           updated_at?: string | null
+          virtual_notes?: string | null
+          virtual_platform?: string | null
+          virtual_platform_link?: string | null
+          zoom_id?: string | null
+          zoom_link?: string | null
+          zoom_password?: string | null
         }
         Update: {
           allow_non_working_day?: boolean
@@ -564,6 +576,12 @@ export type Database = {
           reschedule_status?: string | null
           sharing_appointments_count?: number | null
           updated_at?: string | null
+          virtual_notes?: string | null
+          virtual_platform?: string | null
+          virtual_platform_link?: string | null
+          zoom_id?: string | null
+          zoom_link?: string | null
+          zoom_password?: string | null
         }
         Relationships: []
       }
@@ -1306,6 +1324,36 @@ export type Database = {
           sharings?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      zoom_defaults: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          zoom_id: string | null
+          zoom_link: string | null
+          zoom_password: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          zoom_id?: string | null
+          zoom_link?: string | null
+          zoom_password?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          zoom_id?: string | null
+          zoom_link?: string | null
+          zoom_password?: string | null
         }
         Relationships: []
       }
