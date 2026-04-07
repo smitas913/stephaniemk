@@ -407,6 +407,81 @@ export default function FollowUps() {
     });
     toast.success("Birthday message marked complete!");
   };
+  // Universal Action Panel state
+  const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
+  const [universalPanelOpen, setUniversalPanelOpen] = useState(false);
+
+  const openUniversalPanel = useCallback((item: ActionItem) => {
+    setUniversalPanelItem({
+      id: item.id,
+      personType: item.itemType,
+      name: item.name,
+      phone: item.phone,
+      email: item.email,
+      statusLabel: item.activity_status || item.opportunity_status,
+      vip: item.vip,
+      followUpReason: item.followUpReason,
+      daysOverdue: item.daysOverdue,
+      followUpStatus: item.follow_up_status,
+    });
+    setUniversalPanelOpen(true);
+  }, []);
+
+  // Track whether this is the initial log or the follow-up date update
+  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+    item: UniversalActionItem;
+    actionType: string;
+    note: string;
+    isBookingAttempt: boolean;
+    isFollowUp: boolean;
+    nextFollowUpDate: string | null;
+  }) => {
+    // If nextFollowUpDate is provided, this is the "What's Next" step — update the follow-up date
+    if (nextFollowUpDate !== null) {
+      // Update follow-up date on the entity
+      const updateDateAsync = async () => {
+        if (uItem.personType === "customer") {
+          await updateCustomer(uItem.id, { next_follow_up_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "prospect") {
+          await updateProspect(uItem.id, { next_follow_up_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "consultant") {
+          await updateTeamConsultant(uItem.id, { next_coaching_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "hostess") {
+          await updateEvent(uItem.id, { hostess_next_action_date: nextFollowUpDate } as any);
+        } else if (uItem.personType === "lead") {
+          await updateBookingLead(uItem.id, { next_follow_up_date: nextFollowUpDate } as any);
+        }
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["prospects"] });
+        queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+        toast.success(`Follow-up set for ${formatDateOnly(nextFollowUpDate)}`);
+      };
+      updateDateAsync();
+      return;
+    }
+
+    // Initial action log — build an ActionItem-compatible object and use contactMutation
+    const actionItem: ActionItem = {
+      id: uItem.id,
+      itemType: uItem.personType,
+      name: uItem.name,
+      phone: uItem.phone,
+      email: uItem.email,
+      next_follow_up: null,
+      follow_up_status: uItem.followUpStatus || "",
+      actionLabel: "",
+    };
+    contactMutation.mutate({
+      item: actionItem,
+      note,
+      type: actionType,
+      isBookingAttempt,
+      isFollowUp,
+    });
+  }, [contactMutation, queryClient]);
+
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteNextStep, setNoteNextStep] = useState("");
