@@ -33,7 +33,7 @@ export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 1, label: "Recruiting Conversations", default_target: 2, auto_track_key: "recruiting" },
   { sort_order: 2, label: "Follow-Ups Completed", default_target: 5, auto_track_key: "followups" },
   { sort_order: 3, label: "Personal Appointment (Held or Confirmed)", default_target: 1, auto_track_key: "appointments" },
-  { sort_order: 4, label: "Team Building (Coach / Connect)", default_target: 2, auto_track_key: null },
+  { sort_order: 4, label: "Consultant Coaching", default_target: 2, auto_track_key: null },
   { sort_order: 5, label: "Relationship Building (Notes / Check-ins)", default_target: 3, auto_track_key: "relationship" },
 ];
 
