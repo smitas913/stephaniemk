@@ -823,12 +823,9 @@ export default function FollowUps() {
           const effectiveStage = currentStage || "Stage 1";
           nextStage = getNextDormantStage(effectiveStage as DormantStage);
           nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
-        } else if (item.activity_status === "Warm") {
-          nextDate = format(addDays(new Date(), 45), "yyyy-MM-dd");
-        } else if (item.activity_status === "Active") {
-          nextDate = format(addDays(new Date(), 75), "yyyy-MM-dd");
         } else {
-          nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+          // Default to Quick Follow-Up (2 days) — not reorder cycle
+          nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
         }
 
         const updates: Record<string, any> = {
