@@ -7,12 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PartyPopper, Sparkles } from "lucide-react";
+import { Users, Store } from "lucide-react";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
-  { value: "Party", label: "Party", icon: PartyPopper },
-  { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "Networking Event", label: "Networking", icon: Users },
+  { value: "Vendor Event", label: "Vendor", icon: Store },
 ] as const;
 
 interface AddEventDialogProps {
@@ -24,7 +24,7 @@ interface AddEventDialogProps {
 
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
-  const [eventType, setEventType] = useState<string>("Party");
+  const [eventType, setEventType] = useState<string>("Networking Event");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
 
@@ -59,7 +59,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   });
 
   const resetForm = () => {
-    setEventType("Party");
+    setEventType("Networking Event");
     setEventDate(toLocalDateKey());
     setHostessName("");
   };

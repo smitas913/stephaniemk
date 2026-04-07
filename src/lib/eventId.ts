@@ -4,7 +4,7 @@ export function generateEventId(
   customerName: string,
   existingEventIds: string[]
 ): string {
-  const prefix = orderType === "Reorder" ? "R" : orderType === "Party" ? "P" : "F";
+  const prefix = orderType === "Reorder" ? "R" : orderType === "Networking Event" ? "N" : orderType === "Vendor Event" ? "V" : "E";
   const [year, month, day] = orderDate.split("-");
 
   // Customer code: first initial + up to 7 chars of last name

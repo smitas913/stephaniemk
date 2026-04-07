@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PartyPopper, Sparkles, Monitor, MapPin } from "lucide-react";
+import { ArrowLeft, Users, Store, Monitor, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
-  { value: "Party", label: "Party", icon: PartyPopper },
-  { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "Networking Event", label: "Networking", icon: Users },
+  { value: "Vendor Event", label: "Vendor", icon: Store },
 ] as const;
 
 const FORMAT_OPTIONS = [
@@ -29,7 +29,7 @@ export default function NewEvent() {
   const queryClient = useQueryClient();
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
 
-  const [eventType, setEventType] = useState<string>("Party");
+  const [eventType, setEventType] = useState<string>("Networking Event");
   const [eventFormat, setEventFormat] = useState<string>("In-Person");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
@@ -81,7 +81,7 @@ export default function NewEvent() {
           </Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">New Event</h2>
-            <p className="text-sm text-muted-foreground">Create a new party or facial event</p>
+            <p className="text-sm text-muted-foreground">Create a new networking or vendor event</p>
           </div>
         </div>
 

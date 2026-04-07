@@ -141,8 +141,8 @@ export interface EventGuest {
 }
 
 export const RELATIONSHIP_STATUSES = ["Customer", "Former Consultant"] as const;
-export const ORDER_TYPES = ["Reorder", "Party", "Facial", "Appointment", "Other"] as const;
-export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Facial"] as const;
+export const ORDER_TYPES = ["Reorder", "Networking Event", "Vendor Event", "Appointment", "Other"] as const;
+export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Vendor Event"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Credit Card", "CashApp", "Paypal", "MyShop", "Other"] as const;
 export const FOLLOW_UP_STAGES = ["2 Day", "2 Week", "2 Month", "Complete"] as const;
 export const ORDER_SOURCES = ["Text", "Phone", "Online", "In Person"] as const;
@@ -178,8 +178,7 @@ export const NEXT_STEP_TYPES = [
   "Follow-Up Call",
   "Invited to Event",
   "Attend Event",
-  "Booked Party",
-  "Booked Facial",
+  "Booked Event",
   "Send Information",
   "Other",
 ] as const;
@@ -246,7 +245,7 @@ export interface Income {
 
 export const BOOKING_LEAD_STATUSES = ["New", "Contacted", "Booked", "Not Interested"] as const;
 export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Facial Box", "Bridal", "Vendor Table", "Social Media", "Other"] as const;
-export const LEAD_ACTIVITIES = ["No Activity Yet", "Facial Booked", "1:1 Appointment Booked", "Party Booked", "Samples Given", "Follow-Up Needed"] as const;
+export const LEAD_ACTIVITIES = ["No Activity Yet", "1:1 Appointment Booked", "Event Booked", "Samples Given", "Follow-Up Needed"] as const;
 export const DEFAULT_LEAD_SOURCE = "Networking";
 
 export interface BookingLead {
