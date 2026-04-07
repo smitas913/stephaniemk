@@ -3228,7 +3228,7 @@ function ActionRow({
   item, inlineNoteId, inlineNoteText, inlineNextStep, inlineNoteType, inlineFollowUpDate,
   setInlineNoteText, setInlineNextStep, setInlineNoteType, setInlineFollowUpDate,
   onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
-  onQuickLog,
+  onQuickLog, onOpenQuickAction,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
@@ -3246,6 +3246,7 @@ function ActionRow({
   isPending: boolean;
   onToggleWorkdayOverride?: (newValue: boolean) => void;
   onQuickLog?: (activityType: string) => void;
+  onOpenQuickAction?: () => void;
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const [tagFollowUp, setTagFollowUp] = useState(true);
