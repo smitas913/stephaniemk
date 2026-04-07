@@ -542,6 +542,9 @@ function ConsultantsTab() {
                     </div>
                   </>
                 )}
+
+                <Separator className="my-4" />
+                <ConsultantActivityLogger consultantId={vc.id} consultantName={vc.name} />
               </>
             );
           })()}
