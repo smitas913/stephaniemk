@@ -26,6 +26,7 @@ import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Sea
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
+import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
 import { toast } from "sonner";
 
 
