@@ -9,14 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, Copy, Save, RefreshCw, Plus, Trash2, Video } from "lucide-react";
 import { toast } from "sonner";
 
+interface FocusArea {
+  title: string;
+  goal: string;
+  currentProgress: string;
+  incentive: string;
+}
+
 interface EmailData {
   subjectLine: string;
   openingMessage: string;
   includeVideo: boolean;
   videoLink: string;
-  unitGoal: string;
-  currentProgress: string;
-  focusThisWeek: string;
+  focusAreas: FocusArea[];
+  mainFocusThisWeek: string;
   productName: string;
   whyItMatters: string;
   simpleWayToShare: string;
@@ -27,14 +33,15 @@ interface EmailData {
   closing: string;
 }
 
+const emptyFocusArea: FocusArea = { title: "", goal: "", currentProgress: "", incentive: "" };
+
 const initialData: EmailData = {
   subjectLine: "",
   openingMessage: "",
   includeVideo: false,
   videoLink: "",
-  unitGoal: "",
-  currentProgress: "",
-  focusThisWeek: "",
+  focusAreas: [{ ...emptyFocusArea }],
+  mainFocusThisWeek: "",
   productName: "",
   whyItMatters: "",
   simpleWayToShare: "",
@@ -72,6 +79,21 @@ export default function WeeklyUnitEmailTemplate() {
   const update = <K extends keyof EmailData>(key: K, value: EmailData[K]) =>
     setData((prev) => ({ ...prev, [key]: value }));
 
+  const updateFocusArea = (index: number, field: keyof FocusArea, value: string) => {
+    const areas = [...data.focusAreas];
+    areas[index] = { ...areas[index], [field]: value };
+    setData((prev) => ({ ...prev, focusAreas: areas }));
+  };
+
+  const addFocusArea = () => {
+    setData((prev) => ({ ...prev, focusAreas: [...prev.focusAreas, { ...emptyFocusArea }] }));
+  };
+
+  const removeFocusArea = (index: number) => {
+    if (data.focusAreas.length <= 1) return;
+    setData((prev) => ({ ...prev, focusAreas: prev.focusAreas.filter((_, i) => i !== index) }));
+  };
+
   const updateActionStep = (index: number, value: string) => {
     const steps = [...data.actionSteps];
     steps[index] = value;
@@ -105,12 +127,21 @@ export default function WeeklyUnitEmailTemplate() {
       lines.push("");
     }
 
-    if (data.unitGoal || data.currentProgress || data.focusThisWeek) {
+    const filledAreas = data.focusAreas.filter((a) => a.title || a.goal || a.currentProgress);
+    if (filledAreas.length > 0 || data.mainFocusThisWeek) {
       lines.push("📊 **Unit Focus**");
-      if (data.unitGoal) lines.push(`🎯 Goal: ${data.unitGoal}`);
-      if (data.currentProgress) lines.push(`📈 Progress: ${data.currentProgress}`);
-      if (data.focusThisWeek) lines.push(`🔥 This Week: ${data.focusThisWeek}`);
       lines.push("");
+      filledAreas.forEach((area) => {
+        if (area.title) lines.push(`**${area.title}**`);
+        if (area.goal) lines.push(`🎯 Goal: ${area.goal}`);
+        if (area.currentProgress) lines.push(`📈 Current: ${area.currentProgress}`);
+        if (area.incentive) lines.push(`🏅 Incentive: ${area.incentive}`);
+        lines.push("");
+      });
+      if (data.mainFocusThisWeek) {
+        lines.push(`➡️ Focus This Week: ${data.mainFocusThisWeek}`);
+        lines.push("");
+      }
     }
 
     if (data.productName) {
@@ -196,43 +227,58 @@ export default function WeeklyUnitEmailTemplate() {
             <SectionHeader emoji="🎥" title="Video Section" helper="Paste YouTube or video link (2–5 min message recommended)" />
             <div className="flex items-center gap-2">
               <Label htmlFor="video-toggle" className="text-xs text-muted-foreground">Include Video</Label>
-              <Switch
-                id="video-toggle"
-                checked={data.includeVideo}
-                onCheckedChange={(v) => update("includeVideo", v)}
-              />
+              <Switch id="video-toggle" checked={data.includeVideo} onCheckedChange={(v) => update("includeVideo", v)} />
             </div>
           </div>
           {data.includeVideo && (
             <div className="flex items-center gap-2">
               <Video className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Input
-                placeholder="https://youtube.com/watch?v=..."
-                value={data.videoLink}
-                onChange={(e) => update("videoLink", e.target.value)}
-              />
+              <Input placeholder="https://youtube.com/watch?v=..." value={data.videoLink} onChange={(e) => update("videoLink", e.target.value)} />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 4. Unit Focus */}
+      {/* 4. Unit Focus (Dynamic) */}
       <Card className="border-border/50">
-        <CardContent className="p-5 space-y-3">
-          <SectionHeader emoji="📊" title="Unit Focus" helper="Keep this clear and visual — like a scoreboard" />
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Unit Goal</Label>
-              <Input placeholder="$12,000" value={data.unitGoal} onChange={(e) => update("unitGoal", e.target.value)} />
+        <CardContent className="p-5 space-y-4">
+          <SectionHeader emoji="📊" title="Unit Focus" helper="Track one or multiple goals/challenges. Keep it visual and simple." />
+          {data.focusAreas.map((area, i) => (
+            <div key={i} className="space-y-3 rounded-lg border border-border/40 p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Focus Area {i + 1}</span>
+                {data.focusAreas.length > 1 && (
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeFocusArea(i)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Title</Label>
+                <Input placeholder="e.g. Faces Challenge, Recruiting Push" value={area.title} onChange={(e) => updateFocusArea(i, "title", e.target.value)} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Goal</Label>
+                  <Input placeholder="$12,000" value={area.goal} onChange={(e) => updateFocusArea(i, "goal", e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Current Progress</Label>
+                  <Input placeholder="$7,200" value={area.currentProgress} onChange={(e) => updateFocusArea(i, "currentProgress", e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Incentive / Prize (optional)</Label>
+                <Input placeholder="e.g. Free lipstick set for hitting goal" value={area.incentive} onChange={(e) => updateFocusArea(i, "incentive", e.target.value)} />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Current Progress</Label>
-              <Input placeholder="$7,200" value={data.currentProgress} onChange={(e) => update("currentProgress", e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Focus This Week</Label>
-              <Input placeholder="Bookings push" value={data.focusThisWeek} onChange={(e) => update("focusThisWeek", e.target.value)} />
-            </div>
+          ))}
+          <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs" onClick={addFocusArea}>
+            <Plus className="w-3.5 h-3.5" /> Add Focus Area
+          </Button>
+          <div className="space-y-1 pt-2 border-t border-border/30">
+            <Label className="text-xs text-muted-foreground">Main Focus This Week</Label>
+            <Input placeholder="What matters MOST this week across all goals?" value={data.mainFocusThisWeek} onChange={(e) => update("mainFocusThisWeek", e.target.value)} />
           </div>
         </CardContent>
       </Card>
@@ -266,9 +312,7 @@ export default function WeeklyUnitEmailTemplate() {
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={data.growthType} onValueChange={(v) => update("growthType", v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Podcast">🎧 Podcast</SelectItem>
                   <SelectItem value="Book">📖 Book</SelectItem>
@@ -289,12 +333,7 @@ export default function WeeklyUnitEmailTemplate() {
       <Card className="border-border/50">
         <CardContent className="p-5 space-y-3">
           <SectionHeader emoji="🏆" title="Recognition" helper="Keep it short. Highlight a few wins, not everyone" />
-          <Textarea
-            placeholder="Shoutout to Sarah for her first $600 week! 🎉"
-            value={data.recognition}
-            onChange={(e) => update("recognition", e.target.value)}
-            rows={3}
-          />
+          <Textarea placeholder="Shoutout to Sarah for her first $600 week! 🎉" value={data.recognition} onChange={(e) => update("recognition", e.target.value)} rows={3} />
         </CardContent>
       </Card>
 
@@ -306,11 +345,7 @@ export default function WeeklyUnitEmailTemplate() {
             {data.actionSteps.map((step, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground w-5 text-right shrink-0">{i + 1}.</span>
-                <Input
-                  placeholder={`Action step ${i + 1}`}
-                  value={step}
-                  onChange={(e) => updateActionStep(i, e.target.value)}
-                />
+                <Input placeholder={`Action step ${i + 1}`} value={step} onChange={(e) => updateActionStep(i, e.target.value)} />
                 {data.actionSteps.length > 1 && (
                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeActionStep(i)}>
                     <Trash2 className="w-3.5 h-3.5" />
@@ -329,11 +364,7 @@ export default function WeeklyUnitEmailTemplate() {
       <Card className="border-border/50">
         <CardContent className="p-5 space-y-3">
           <SectionHeader emoji="💛" title="Closing" helper="1–2 lines. Encourage, reinforce belief, or create momentum" />
-          <Input
-            placeholder="You've got this — let's make it a great week! 💪"
-            value={data.closing}
-            onChange={(e) => update("closing", e.target.value)}
-          />
+          <Input placeholder="You've got this — let's make it a great week! 💪" value={data.closing} onChange={(e) => update("closing", e.target.value)} />
         </CardContent>
       </Card>
 
