@@ -8,6 +8,8 @@ import { PeriodProvider } from "@/hooks/usePeriodFilter";
 import Landing from "./pages/Landing";
 import FollowUpDashboard from "./pages/FollowUpDashboard";
 import CustomerList from "./pages/CustomerList";
+import AddCustomer from "./pages/AddCustomer";
+import AddConsultant from "./pages/AddConsultant";
 import CustomerDetail from "./pages/CustomerDetail";
 import Orders from "./pages/Orders";
 import AddOrder from "./pages/AddOrder";
@@ -122,6 +124,7 @@ const AppRoutes = () => (
     <Route path="/scoreboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Scoreboard /></ProtectedRoute>} />
     <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
     <Route path="/customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerList /></ProtectedRoute>} />
+    <Route path="/customers/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddCustomer /></ProtectedRoute>} />
     <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerDetail /></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Orders /></ProtectedRoute>} />
     <Route path="/orders/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddOrder /></ProtectedRoute>} />
@@ -136,6 +139,7 @@ const AppRoutes = () => (
     <Route path="/prospects" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Prospects /></ProtectedRoute>} />
     <Route path="/prospects/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ProspectDetail /></ProtectedRoute>} />
     <Route path="/leadership" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Leadership /></ProtectedRoute>} />
+    <Route path="/consultants/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddConsultant /></ProtectedRoute>} />
     <Route path="/booking-leads" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><BookingLeads /></ProtectedRoute>} />
     <Route path="/campaigns" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Campaigns /></ProtectedRoute>} />
     <Route path="/mailing-lists" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><MailingLists /></ProtectedRoute>} />
