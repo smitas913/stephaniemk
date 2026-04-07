@@ -823,12 +823,9 @@ export default function FollowUps() {
           const effectiveStage = currentStage || "Stage 1";
           nextStage = getNextDormantStage(effectiveStage as DormantStage);
           nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
-        } else if (item.activity_status === "Warm") {
-          nextDate = format(addDays(new Date(), 45), "yyyy-MM-dd");
-        } else if (item.activity_status === "Active") {
-          nextDate = format(addDays(new Date(), 75), "yyyy-MM-dd");
         } else {
-          nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+          // Default to Quick Follow-Up (2 days) — not reorder cycle
+          nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
         }
 
         const updates: Record<string, any> = {
@@ -1976,22 +1973,36 @@ function ConsultantEditPanel({ item, consultants, queryClient, onClose }: {
 
 const CUSTOMER_ACTIVITY_TYPES = ["Call", "Text", "Email", "Delivery", "Reorder Conversation", "Did Not Connect"] as const;
 
-function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+const FOLLOW_UP_TYPES = ["Quick Follow-Up", "Standard Follow-Up", "Reorder Cycle"] as const;
+type FollowUpType = typeof FOLLOW_UP_TYPES[number];
+
+function getFollowUpDaysForType(followUpType: FollowUpType, activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+  if (followUpType === "Quick Follow-Up") {
+    return { days: 2, label: "Quick Follow-Up (2 days)" };
+  }
+  if (followUpType === "Standard Follow-Up") {
+    return { days: 7, label: "Standard Follow-Up (7 days)" };
+  }
+  // Reorder Cycle — use activity-based long cadence
   if (activityStatus === "Dormant") {
     const stage = (dormantStage || "Stage 1") as DormantStage;
     if (stage === "Stage 3" || stage === "Annual") {
-      return { days: 365, label: "Annual check-in (1 year)" };
+      return { days: 365, label: "Reorder Cycle — Annual (1 year)" };
     }
     return { days: 5, label: "Dormant cadence (5 days)" };
   }
   if (activityStatus === "Warm") {
-    return { days: 45, label: "Warm reorder cycle (45 days)" };
+    return { days: 45, label: "Reorder Cycle (45 days)" };
   }
   if (activityStatus === "Active") {
-    return { days: 75, label: "Active check-in (75 days)" };
+    return { days: 75, label: "Reorder Cycle (75 days)" };
   }
-  // No Orders or unknown
-  return { days: 90, label: "Reorder cycle (90 days)" };
+  return { days: 90, label: "Reorder Cycle (90 days)" };
+}
+
+function getCustomerAutoFollowUpDays(activityStatus: string | undefined, dormantStage: string | null | undefined): { days: number; label: string } {
+  // Default to Quick Follow-Up
+  return getFollowUpDaysForType("Quick Follow-Up", activityStatus, dormantStage);
 }
 
 function getSkipRetryDays(activityStatus: string | undefined): { days: number; label: string } {
@@ -2021,11 +2032,13 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   const isDormant = item.activity_status === "Dormant";
   const currentDormantStage = (item.dormant_follow_up_stage || null) as DormantStage;
 
+  const [followUpType, setFollowUpType] = useState<FollowUpType>("Quick Follow-Up");
+
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
-  const nextStepConfirmed = false; // panel closes on confirm, so always false while open
+  const nextStepConfirmed = false;
   const [loggedMessage, setLoggedMessage] = useState("");
   const [skipNote, setSkipNote] = useState("");
   const [didNotConnect, setDidNotConnect] = useState(false);
@@ -2055,15 +2068,24 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     return sorted[0] || null;
   }, [catalogFollowUps]);
 
-  const autoInfo = useMemo(() => getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage), [item.activity_status, currentDormantStage]);
+  const autoInfo = useMemo(() => getFollowUpDaysForType(followUpType, item.activity_status, currentDormantStage), [followUpType, item.activity_status, currentDormantStage]);
 
   // Determine initial next follow-up: catalog takes priority if earlier
   const [nextFollowUp, setNextFollowUp] = useState(() => {
-    const cadenceDate = format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+    const cadenceDate = format(addDays(new Date(), 2), "yyyy-MM-dd"); // Default: Quick Follow-Up
     const existingDate = customer?.next_follow_up_date && compareDateOnly(customer.next_follow_up_date) === 1
       ? customer.next_follow_up_date : cadenceDate;
     return existingDate;
   });
+
+  // Update date when follow-up type changes
+  useEffect(() => {
+    if (followUpSource !== "manual" && followUpSource !== "catalog") {
+      const newDate = format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+      setNextFollowUp(newDate);
+      setFollowUpSource("cadence");
+    }
+  }, [followUpType]);
 
   const [followUpSource, setFollowUpSource] = useState<"cadence" | "catalog" | "manual">("cadence");
 
@@ -2206,7 +2228,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         ? "Did not connect — retry scheduled"
         : followUpSource === "catalog" && catalogType
         ? `${catalogType} Catalog Follow-Up`
-        : followUpSource === "manual" ? "Manual follow-up" : autoInfo.label;
+        : followUpSource === "manual" ? "Manual follow-up" : `${followUpType} — ${autoInfo.label}`;
       await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null, follow_up_reason: reason } as any);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
@@ -2223,15 +2245,11 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     if (followUpSource === "catalog" && catalogType) {
       return `${catalogType} Catalog Follow-Up — ${formatDateOnly(nextFollowUp)}`;
     }
-    // Check if it matches the auto cadence
-    const autoDate = isDormant
-      ? getNextDormantFollowUpDate((currentDormantStage || "Stage 1") as DormantStage)
-      : format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
-    if (nextFollowUp === autoDate) {
-      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${autoInfo.label}`;
+    if (followUpSource === "manual") {
+      return `Manually set to ${formatDateOnly(nextFollowUp)}`;
     }
-    return `Manually set to ${formatDateOnly(nextFollowUp)}`;
-  }, [nextFollowUp, followUpSource, catalogType, isDormant, currentDormantStage, autoInfo]);
+    return `${autoInfo.label} — ${formatDateOnly(nextFollowUp)}`;
+  }, [nextFollowUp, followUpSource, catalogType, autoInfo]);
 
   return (
     <div className="space-y-6">
@@ -2380,6 +2398,24 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
           )}
         </h3>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            Follow-Up Type <span className="text-destructive">*</span>
+          </label>
+          <Select value={followUpType} onValueChange={(v) => { setFollowUpType(v as FollowUpType); setFollowUpSource("cadence"); }}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FOLLOW_UP_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t === "Quick Follow-Up" ? "Quick Follow-Up (1–3 days)"
+                    : t === "Standard Follow-Up" ? "Standard Follow-Up (manual)"
+                    : `Reorder Cycle (${item.activity_status === "Warm" ? "45" : item.activity_status === "Active" ? "75" : "90"} days)`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
