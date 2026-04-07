@@ -7,13 +7,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Users, Store } from "lucide-react";
+import { PartyPopper, Sparkles, Share2, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
-  { value: "Networking Event", label: "Networking", icon: Users },
-  { value: "Vendor Event", label: "Vendor", icon: Store },
+  { value: "Party", label: "Party", icon: PartyPopper },
+  { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "Sharing Appointment", label: "Sharing", icon: Share2 },
+  { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
+
+const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
 interface AddEventDialogProps {
   open: boolean;
@@ -24,16 +28,20 @@ interface AddEventDialogProps {
 
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
-  const [eventType, setEventType] = useState<string>("Networking Event");
+  const [eventType, setEventType] = useState<string>("Party");
+  const [leadGenSubtype, setLeadGenSubtype] = useState<string>("Networking Event");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
 
+  const isLeadGen = eventType === "Lead Generating Event";
+
   const mutation = useMutation({
     mutationFn: async () => {
+      const displayType = isLeadGen ? leadGenSubtype : eventType;
       const eventId = generateEventId(eventType, eventDate, hostessName || "Event", existingEventIds);
       await upsertEvent({
         event_id: eventId,
-        event_type: eventType,
+        event_type: displayType,
         event_date: eventDate,
         hostess_name: hostessName || undefined,
         guest_count: 0,
@@ -59,12 +67,13 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   });
 
   const resetForm = () => {
-    setEventType("Networking Event");
+    setEventType("Party");
+    setLeadGenSubtype("Networking Event");
     setEventDate(toLocalDateKey());
     setHostessName("");
   };
 
-  const canSubmit = eventType && eventDate && !mutation.isPending;
+  const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype) && !mutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
@@ -78,7 +87,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
           {/* Event Type */}
           <div>
             <label className="text-sm font-medium text-foreground">Type *</label>
-            <div className="flex gap-2 mt-1.5">
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
               {EVENT_TYPES.map((t) => {
                 const Icon = t.icon;
                 return (
@@ -87,7 +96,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
                     type="button"
                     onClick={() => setEventType(t.value)}
                     className={cn(
-                      "flex-1 flex items-center justify-center gap-2 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
+                      "flex items-center justify-center gap-2 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
                       eventType === t.value
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border bg-background text-muted-foreground hover:bg-muted"
@@ -101,15 +110,41 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
             </div>
           </div>
 
+          {/* Lead Gen Subtype */}
+          {isLeadGen && (
+            <div>
+              <label className="text-sm font-medium text-foreground">Subtype *</label>
+              <div className="flex gap-2 mt-1.5">
+                {LEAD_GEN_SUBTYPES.map((sub) => (
+                  <button
+                    key={sub}
+                    type="button"
+                    onClick={() => setLeadGenSubtype(sub)}
+                    className={cn(
+                      "flex-1 h-9 rounded-lg border-2 text-sm font-medium transition-colors",
+                      leadGenSubtype === sub
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Date */}
           <div>
             <label className="text-sm font-medium text-foreground">Date *</label>
             <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="h-9 mt-1" />
           </div>
 
-          {/* Hostess */}
+          {/* Hostess / Contact */}
           <div>
-            <label className="text-sm font-medium text-foreground">Hostess Name</label>
+            <label className="text-sm font-medium text-foreground">
+              {eventType === "Sharing Appointment" ? "Contact Name" : "Hostess Name"}
+            </label>
             <Input
               placeholder="Optional — can add later"
               value={hostessName}
