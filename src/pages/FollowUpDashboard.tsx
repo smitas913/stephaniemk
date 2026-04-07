@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, PartyPopper, Sparkles, Crown, Star, RefreshCw } from "lucide-react";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, Crown, Star, RefreshCw, Store } from "lucide-react";
 import { parseISO, isWithinInterval } from "date-fns";
 
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
@@ -177,14 +177,14 @@ export default function FollowUpDashboard() {
 
     const row1Cards = [
       { label: "Total Faces", value: String(m.totalFaces), icon: Users, accent: "text-primary" },
-      { label: "Total Parties", value: String(m.totalParties), icon: PartyPopper, accent: "text-primary" },
-      { label: "Total Facials", value: String(m.totalFacials), icon: Sparkles, accent: "text-primary" },
+      { label: "Networking Events", value: String(m.totalNetworking), icon: Users, accent: "text-primary" },
+      { label: "Vendor Events", value: String(m.totalVendor), icon: Store, accent: "text-primary" },
     ];
 
     const row2Cards = [
       { label: "Reorder Sales", value: `$${m.reorderSales.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
-      { label: "Party Sales", value: `$${m.partySales.toFixed(2)}`, icon: PartyPopper, accent: "text-primary" },
-      { label: "Facial Sales", value: `$${m.facialSales.toFixed(2)}`, icon: Sparkles, accent: "text-primary" },
+      { label: "Networking Sales", value: `$${m.networkingSales.toFixed(2)}`, icon: Users, accent: "text-primary" },
+      { label: "Vendor Sales", value: `$${m.vendorSales.toFixed(2)}`, icon: Store, accent: "text-primary" },
       { label: "Other Sales", value: `$${m.otherSales.toFixed(2)}`, icon: DollarSign, accent: "text-muted-foreground" },
       { label: "Avg / Face", value: `$${m.avgFace.toFixed(2)}`, icon: TrendingUp, accent: "text-primary" },
     ];

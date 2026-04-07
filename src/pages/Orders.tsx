@@ -181,7 +181,7 @@ export default function Orders() {
     { label: "Total Orders", value: String(summary.totalOrders), icon: ShoppingBag, accent: "text-blue-600" },
     { label: "Total Retail", value: `$${summary.totalRetail.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: "Reorders", value: `$${summary.reorderTotal.toFixed(2)}`, icon: RotateCcw, accent: "text-purple-600" },
-    { label: "Party Sales", value: `$${summary.partyTotal.toFixed(2)}`, icon: Sparkles, accent: "text-pink-600" },
+    { label: "Event Sales", value: `$${(summary.networkingTotal + summary.vendorTotal).toFixed(2)}`, icon: Sparkles, accent: "text-pink-600" },
   ];
 
   return (
