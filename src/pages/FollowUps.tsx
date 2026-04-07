@@ -2820,6 +2820,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const [status, setStatus] = useState(lead?.status || "New");
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
+  const [nextStepText, setNextStepText] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState(() => {
     if (lead?.next_follow_up_date) return lead.next_follow_up_date;
     const days = getAutoFollowUpDays(lead?.status || "New");
