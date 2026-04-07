@@ -272,9 +272,9 @@ export default function FollowUps() {
       .filter((n) => {
         const noteDay = n.note_date || getTimestampDateKey(n.created_at);
         if (noteDay !== todayKey) return false;
-        return n.entity_type === "Customer"
-          ? CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type)
-          : contactTypes.has(n.note_type);
+        if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
+        if (n.entity_type === "Lead" || n.entity_type === "Consultant" || n.entity_type === "Hostess") return true;
+        return contactTypes.has(n.note_type);
       })
       .map((n) => {
         let name = "Unknown";
@@ -290,6 +290,12 @@ export default function FollowUps() {
           name = p?.name || "Prospect";
           id = n.prospect_id;
           type = "Prospect";
+        } else if (n.entity_type === "Lead") {
+          type = "Lead";
+        } else if (n.entity_type === "Consultant") {
+          type = "Consultant";
+        } else if (n.entity_type === "Hostess") {
+          type = "Hostess";
         }
         return { id, name, type, method: n.note_type, detail: undefined };
       });
