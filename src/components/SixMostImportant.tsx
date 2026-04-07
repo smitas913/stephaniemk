@@ -328,6 +328,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
         dateLabel={dateLabel}
         items={drillDownItems}
         onNavigate={onDetailNavigate}
+        showTypeFilter={drillDownShowFilter}
       />
     </>
   );
