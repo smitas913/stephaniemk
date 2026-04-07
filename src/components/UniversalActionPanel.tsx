@@ -85,7 +85,7 @@ interface Props {
     note: string;
     isBookingAttempt: boolean;
     isFollowUp: boolean;
-    nextFollowUpDate: string | null;
+    nextFollowUpDate?: string | null;
   }) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
@@ -116,18 +116,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const handleActionClick = useCallback((actionKey: string) => {
     if (!item) return;
     setSelectedAction(actionKey);
-    const tags = getAutoTags(item.personType);
-    onLogAction({
-      item,
-      actionType: actionKey,
-      note: `${actionKey} contact`,
-      isBookingAttempt: tags.isBookingAttempt,
-      isFollowUp: tags.isFollowUp,
-      nextFollowUpDate: null,
-    });
     setActionLogged(true);
     setStep("whats-next");
-  }, [item, onLogAction]);
+  }, [item]);
 
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
@@ -145,7 +136,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       note: noteText.trim() || `${selectedAction || "Call"} contact`,
       isBookingAttempt: tags.isBookingAttempt,
       isFollowUp: tags.isFollowUp,
-      nextFollowUpDate: nextDate,
+      nextFollowUpDate: nextDate ?? undefined,
     });
     handleClose();
   }, [item, selectedAction, noteText, onLogAction, handleClose]);
