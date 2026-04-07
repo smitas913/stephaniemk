@@ -178,8 +178,7 @@ export const NEXT_STEP_TYPES = [
   "Follow-Up Call",
   "Invited to Event",
   "Attend Event",
-  "Booked Party",
-  "Booked Facial",
+  "Booked Event",
   "Send Information",
   "Other",
 ] as const;
