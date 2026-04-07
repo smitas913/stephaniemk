@@ -596,26 +596,29 @@ export default function EventDetail() {
                   />
                 </div>
               </div>
-              {/* Quick contact buttons */}
-              {(event.hostess_phone || event.hostess_email) && (
-                <div className="flex gap-1.5">
-                  {event.hostess_phone && (
-                    <>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`sms:${phoneForLink(event.hostess_phone)}`}>Text</a>
-                      </Button>
-                    </>
-                  )}
-                  {event.hostess_email && (
+              {/* Quick contact & Log Activity buttons */}
+              <div className="flex gap-1.5 flex-wrap">
+                {event.hostess_phone && (
+                  <>
                     <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                      <a href={`mailto:${event.hostess_email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                      <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                     </Button>
-                  )}
-                </div>
-              )}
+                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                      <a href={`sms:${phoneForLink(event.hostess_phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                    </Button>
+                  </>
+                )}
+                {event.hostess_email && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                    <a href={`mailto:${event.hostess_email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                  </Button>
+                )}
+                {event.hostess_name && (
+                  <Button size="sm" className="h-7 text-xs" onClick={openHostessActionPanel}>
+                    📋 Log Activity
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
