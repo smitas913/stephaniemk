@@ -70,9 +70,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion Rate: Networking events (group events with guests)
+    // Conversion Rate: Party events (group events with guests)
     const qualifyingEvents = periodEvents.filter(
-      (e) => e.event_type === "Networking Event" && Number(e.guest_count || 0) > 0
+      (e) => e.event_type === "Party" && Number(e.guest_count || 0) > 0
     );
     const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     // Calculate ordering guests from actual orders linked to these events
