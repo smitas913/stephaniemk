@@ -2071,15 +2071,24 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
     return sorted[0] || null;
   }, [catalogFollowUps]);
 
-  const autoInfo = useMemo(() => getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage), [item.activity_status, currentDormantStage]);
+  const autoInfo = useMemo(() => getFollowUpDaysForType(followUpType, item.activity_status, currentDormantStage), [followUpType, item.activity_status, currentDormantStage]);
 
   // Determine initial next follow-up: catalog takes priority if earlier
   const [nextFollowUp, setNextFollowUp] = useState(() => {
-    const cadenceDate = format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+    const cadenceDate = format(addDays(new Date(), 2), "yyyy-MM-dd"); // Default: Quick Follow-Up
     const existingDate = customer?.next_follow_up_date && compareDateOnly(customer.next_follow_up_date) === 1
       ? customer.next_follow_up_date : cadenceDate;
     return existingDate;
   });
+
+  // Update date when follow-up type changes
+  useEffect(() => {
+    if (followUpSource !== "manual" && followUpSource !== "catalog") {
+      const newDate = format(addDays(new Date(), autoInfo.days), "yyyy-MM-dd");
+      setNextFollowUp(newDate);
+      setFollowUpSource("cadence");
+    }
+  }, [followUpType]);
 
   const [followUpSource, setFollowUpSource] = useState<"cadence" | "catalog" | "manual">("cadence");
 
