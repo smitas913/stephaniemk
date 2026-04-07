@@ -606,7 +606,7 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
   const { generateEventId } = await import("./eventId");
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const eventType = "Networking Event";
+  const eventType = "Party";
   const eventId = generateEventId(eventType, dateStr, lead.name, existingEventIds);
   const { error: evErr } = await supabase
     .from("events")

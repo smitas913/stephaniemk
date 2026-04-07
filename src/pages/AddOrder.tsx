@@ -11,14 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Plus, ShoppingBag, RotateCcw, Users, Store, CheckCircle2, AlertTriangle, UserPlus, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 
 const ORDER_TYPE_OPTIONS = [
-  { value: "Networking Event", label: "Networking", icon: Users, eventBased: true },
-  { value: "Vendor Event", label: "Vendor", icon: Store, eventBased: true },
+  { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
+  { value: "Facial", label: "Facial", icon: Sparkles, eventBased: true },
+  { value: "Sharing Appointment", label: "Sharing", icon: Share2, eventBased: true },
+  { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone, eventBased: true },
   { value: "Reorder", label: "Reorder", icon: RotateCcw, eventBased: false },
   { value: "Other", label: "Other", icon: ShoppingBag, eventBased: false },
 ] as const;
@@ -40,7 +42,7 @@ export default function AddOrder() {
   // --- State ---
   const [orderType, setOrderType] = useState<OrderTypeValue | "">(() => {
     if (preselectedType && ORDER_TYPE_OPTIONS.some(o => o.value === preselectedType)) return preselectedType as OrderTypeValue;
-    if (preselectedEvent) return "Networking Event";
+    if (preselectedEvent) return "Party";
     return "";
   });
   const [customerId, setCustomerId] = useState(preselectedCustomer);
@@ -72,7 +74,7 @@ export default function AddOrder() {
   const [showAdditional, setShowAdditional] = useState(false);
   const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
 
-  const isEventBased = orderType === "Networking Event" || orderType === "Vendor Event";
+  const isEventBased = ORDER_TYPE_OPTIONS.find(o => o.value === orderType)?.eventBased ?? false;
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
 
   // Auto-fill customer name
@@ -95,8 +97,7 @@ export default function AddOrder() {
     if (!isEventBased) return [];
     return events
       .filter(e => {
-        if (orderType === "Networking Event") return !e.event_type || e.event_type === "Networking Event";
-        if (orderType === "Vendor Event") return e.event_type === "Vendor Event";
+        // Show all events for event-based order types
         return true;
       })
       .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || ""));

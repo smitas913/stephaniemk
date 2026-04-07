@@ -140,9 +140,9 @@ export default function Orders() {
     const totalOrders = filtered.length;
     const totalRetail = filtered.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const reorderTotal = filtered.filter((o) => o.order_type === "Reorder").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    const networkingTotal = filtered.filter((o) => o.order_type === "Networking Event").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    const vendorTotal = filtered.filter((o) => o.order_type === "Vendor Event").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
-    return { totalOrders, totalRetail, reorderTotal, networkingTotal, vendorTotal };
+    const partyTotal = filtered.filter((o) => o.order_type === "Party").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+    const facialTotal = filtered.filter((o) => o.order_type === "Facial").reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+    return { totalOrders, totalRetail, reorderTotal, partyTotal, facialTotal };
   }, [filtered]);
 
   const toggleSort = (field: SortField) => {
@@ -181,7 +181,7 @@ export default function Orders() {
     { label: "Total Orders", value: String(summary.totalOrders), icon: ShoppingBag, accent: "text-blue-600" },
     { label: "Total Retail", value: `$${summary.totalRetail.toFixed(2)}`, icon: DollarSign, accent: "text-green-600" },
     { label: "Reorders", value: `$${summary.reorderTotal.toFixed(2)}`, icon: RotateCcw, accent: "text-purple-600" },
-    { label: "Event Sales", value: `$${(summary.networkingTotal + summary.vendorTotal).toFixed(2)}`, icon: Sparkles, accent: "text-pink-600" },
+    { label: "Event Sales", value: `$${(summary.partyTotal + summary.facialTotal).toFixed(2)}`, icon: Sparkles, accent: "text-pink-600" },
   ];
 
   return (

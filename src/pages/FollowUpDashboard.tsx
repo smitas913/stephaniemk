@@ -42,21 +42,20 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     const cancelRate = evBooked > 0 ? (evCancelled / evBooked) * 100 : 0;
 
     const totalFaces = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const totalNetworking = periodEvents.filter((e) => e.event_type === "Networking Event").length;
-    const totalVendor = periodEvents.filter((e) => e.event_type === "Vendor Event").length;
+    const totalParties = periodEvents.filter((e) => e.event_type === "Party").length;
+    const totalFacials = periodEvents.filter((e) => e.event_type === "Facial").length;
 
     // Sales by order_type
     const salesByType = (type: string) =>
       periodOrders.filter((o) => o.order_type === type).reduce((s, o) => s + Number(o.retail_amount || 0), 0);
     const reorderSales = salesByType("Reorder");
-    const networkingSales = salesByType("Networking Event");
-    const vendorSales = salesByType("Vendor Event");
-    const otherSales = periodRevenue - reorderSales - networkingSales - vendorSales;
+    const partySales = salesByType("Party");
+    const facialSales = salesByType("Facial");
+    const otherSales = periodRevenue - reorderSales - partySales - facialSales;
 
     // Avg Face: all event sales / all event guest_count
-    const allEventTypes = periodEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
-    const allEventGuests = allEventTypes.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const allEventSales = networkingSales + vendorSales;
+    const allEventGuests = periodEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const allEventSales = partySales + facialSales;
     const avgFace = allEventGuests > 0 ? allEventSales / allEventGuests : 0;
 
     const periodExpenses = expenses.filter((e) => {
@@ -71,9 +70,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
     }, 0);
     const netProfit = periodProfit - totalExpenses;
 
-    // Conversion Rate: Networking events (group events with guests)
+    // Conversion Rate: Party events (group events with guests)
     const qualifyingEvents = periodEvents.filter(
-      (e) => e.event_type === "Networking Event" && Number(e.guest_count || 0) > 0
+      (e) => e.event_type === "Party" && Number(e.guest_count || 0) > 0
     );
     const convGuests = qualifyingEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     // Calculate ordering guests from actual orders linked to these events
@@ -120,10 +119,10 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .filter((c) => c.retail_this_year > 0);
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    // Hostess metrics: Networking events
-    const networkingEvents = events.filter((e) => e.event_type === "Networking Event");
+    // Hostess metrics: Party and Facial events (events with hostesses)
+    const hostessEvents = events.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const hostessAllEventsMap = new Map<string, { totalEvents: number; hasFuture: boolean }>();
-    for (const evt of networkingEvents) {
+    for (const evt of hostessEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessAllEventsMap.get(name) || { totalEvents: 0, hasFuture: false };
@@ -132,9 +131,9 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       hostessAllEventsMap.set(name, entry);
     }
 
-    const periodNetworkingEvents = periodEvents.filter((e) => e.event_type === "Networking Event");
+    const periodHostessEvents = periodEvents.filter((e) => e.event_type === "Party" || e.event_type === "Facial");
     const hostessMap = new Map<string, { events: number; sales: number }>();
-    for (const evt of periodNetworkingEvents) {
+    for (const evt of periodHostessEvents) {
       const name = evt.hostess_name?.trim();
       if (!name) continue;
       const entry = hostessMap.get(name) || { events: 0, sales: 0 };
@@ -156,7 +155,7 @@ function useMetrics(customers: Customer[], orders: OrderWithCustomer[], expenses
       .slice(0, 5)
       .filter((h) => h.sales > 0 || h.events > 0);
 
-    return { periodRevenue, totalFaces, totalNetworking, totalVendor, avgFace, reorderSales, networkingSales, vendorSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
+    return { periodRevenue, totalFaces, totalParties, totalFacials, avgFace, reorderSales, partySales, facialSales, otherSales, totalExpenses, netProfit, conversionRate, reorderRate, repeatCustomers, totalOrderingCustomers, convOrdering, convGuests, convEventCount, topCustomers, topHostesses, evBooked, evHeld, evCancelled, holdRate, cancelRate };
   }, [customers, orders, expenses, events, period]);
 }
 
@@ -177,14 +176,14 @@ export default function FollowUpDashboard() {
 
     const row1Cards = [
       { label: "Total Faces", value: String(m.totalFaces), icon: Users, accent: "text-primary" },
-      { label: "Networking Events", value: String(m.totalNetworking), icon: Users, accent: "text-primary" },
-      { label: "Vendor Events", value: String(m.totalVendor), icon: Store, accent: "text-primary" },
+      { label: "Parties", value: String(m.totalParties), icon: Users, accent: "text-primary" },
+      { label: "Facials", value: String(m.totalFacials), icon: Users, accent: "text-primary" },
     ];
 
     const row2Cards = [
       { label: "Reorder Sales", value: `$${m.reorderSales.toFixed(2)}`, icon: DollarSign, accent: "text-primary" },
-      { label: "Networking Sales", value: `$${m.networkingSales.toFixed(2)}`, icon: Users, accent: "text-primary" },
-      { label: "Vendor Sales", value: `$${m.vendorSales.toFixed(2)}`, icon: Store, accent: "text-primary" },
+      { label: "Party Sales", value: `$${m.partySales.toFixed(2)}`, icon: Users, accent: "text-primary" },
+      { label: "Facial Sales", value: `$${m.facialSales.toFixed(2)}`, icon: Users, accent: "text-primary" },
       { label: "Other Sales", value: `$${m.otherSales.toFixed(2)}`, icon: DollarSign, accent: "text-muted-foreground" },
       { label: "Avg / Face", value: `$${m.avgFace.toFixed(2)}`, icon: TrendingUp, accent: "text-primary" },
     ];

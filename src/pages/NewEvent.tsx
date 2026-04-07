@@ -4,53 +4,76 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEvents, upsertEvent, generateEventWorkflowTasks } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
-import { EVENT_FORMATS } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Users, Store, Monitor, MapPin } from "lucide-react";
+import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
-  { value: "Networking Event", label: "Networking", icon: Users },
-  { value: "Vendor Event", label: "Vendor", icon: Store },
+  { value: "Party", label: "Party", icon: PartyPopper },
+  { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "Sharing Appointment", label: "Sharing Appt", icon: Share2 },
+  { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
+
+const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
 const FORMAT_OPTIONS = [
   { value: "In-Person", label: "In-Person", icon: MapPin },
   { value: "Zoom", label: "Zoom", icon: Monitor },
 ] as const;
 
+const SHARING_OUTCOMES = ["Interested", "Follow-Up", "Joined", "Not Interested"] as const;
+
 export default function NewEvent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
 
-  const [eventType, setEventType] = useState<string>("Networking Event");
+  const [eventType, setEventType] = useState<string>("Party");
+  const [leadGenSubtype, setLeadGenSubtype] = useState<string>("Networking Event");
   const [eventFormat, setEventFormat] = useState<string>("In-Person");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
   const [guestCount, setGuestCount] = useState("");
   const [bookings, setBookings] = useState("");
   const [sharings, setSharings] = useState("");
+  const [sharingOutcome, setSharingOutcome] = useState("");
+  const [leadsCollected, setLeadsCollected] = useState("");
   const [notes, setNotes] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventTime, setEventTime] = useState("");
+
+  const isPartyOrFacial = eventType === "Party" || eventType === "Facial";
+  const isSharing = eventType === "Sharing Appointment";
+  const isLeadGen = eventType === "Lead Generating Event";
+  const showFormat = isPartyOrFacial || isSharing;
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const displayType = isLeadGen ? leadGenSubtype : eventType;
       const eventId = generateEventId(eventType, eventDate, hostessName || "Event", events.map(e => e.event_id));
       await upsertEvent({
         event_id: eventId,
-        event_type: eventType,
-        event_format: eventFormat,
+        event_type: displayType,
+        event_format: showFormat ? eventFormat : "In-Person",
         event_date: eventDate || null,
+        event_time: eventTime || null,
+        event_location: eventLocation || null,
         hostess_name: hostessName || undefined,
         guest_count: parseInt(guestCount) || 0,
         future_bookings_count: parseInt(bookings) || 0,
         sharing_appointments_count: parseInt(sharings) || 0,
-        notes: notes.trim() || null,
+        notes: [
+          notes.trim(),
+          isSharing && sharingOutcome ? `Outcome: ${sharingOutcome}` : "",
+          isLeadGen && leadsCollected ? `Leads collected: ${leadsCollected}` : "",
+        ].filter(Boolean).join("\n") || null,
       });
       return eventId;
     },
@@ -70,7 +93,7 @@ export default function NewEvent() {
     },
   });
 
-  const canSubmit = eventType && eventDate && !mutation.isPending;
+  const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype) && !mutation.isPending;
 
   return (
     <Layout>
@@ -81,7 +104,7 @@ export default function NewEvent() {
           </Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">New Event</h2>
-            <p className="text-sm text-muted-foreground">Create a new networking or vendor event</p>
+            <p className="text-sm text-muted-foreground">Create a new event</p>
           </div>
         </div>
 
@@ -90,7 +113,7 @@ export default function NewEvent() {
             {/* Event Type */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Event Type *</label>
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {EVENT_TYPES.map((t) => {
                   const Icon = t.icon;
                   return (
@@ -99,13 +122,13 @@ export default function NewEvent() {
                       type="button"
                       onClick={() => setEventType(t.value)}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 h-12 rounded-lg border-2 text-sm font-medium transition-colors",
+                        "flex items-center justify-center gap-2 h-11 rounded-lg border-2 text-sm font-medium transition-colors",
                         eventType === t.value
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border bg-background text-muted-foreground hover:bg-muted"
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4" />
                       {t.label}
                     </button>
                   );
@@ -113,61 +136,143 @@ export default function NewEvent() {
               </div>
             </div>
 
-            {/* Event Format */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Event Format *</label>
-              <div className="flex gap-3">
-                {FORMAT_OPTIONS.map((f) => {
-                  const Icon = f.icon;
-                  return (
+            {/* Lead Gen Subtype */}
+            {isLeadGen && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Event Subtype *</label>
+                <div className="flex gap-3">
+                  {LEAD_GEN_SUBTYPES.map((sub) => (
                     <button
-                      key={f.value}
+                      key={sub}
                       type="button"
-                      onClick={() => setEventFormat(f.value)}
+                      onClick={() => setLeadGenSubtype(sub)}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 h-12 rounded-lg border-2 text-sm font-medium transition-colors",
-                        eventFormat === f.value
+                        "flex-1 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
+                        leadGenSubtype === sub
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border bg-background text-muted-foreground hover:bg-muted"
                       )}
                     >
-                      <Icon className="w-5 h-5" />
-                      {f.label}
+                      {sub}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Date */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Event Date *</label>
-              <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="h-10 max-w-xs" />
-            </div>
-
-            {/* Hostess */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Hostess Name</label>
-              <Input placeholder="Optional — can add later" value={hostessName} onChange={(e) => setHostessName(e.target.value)} className="h-10 max-w-sm" />
-            </div>
-
-            {/* Guest Count */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Guest Count (Faces)</label>
-              <Input type="number" min={0} placeholder="0" value={guestCount} onChange={(e) => setGuestCount(e.target.value)} className="h-10 max-w-[120px]" />
-            </div>
-
-            {/* Bookings & Sharings */}
-            <div className="grid grid-cols-2 gap-4 max-w-xs">
+            {/* Event Format */}
+            {showFormat && (
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Bookings</label>
-                <Input type="number" min={0} placeholder="0" value={bookings} onChange={(e) => setBookings(e.target.value)} className="h-10" />
+                <label className="text-sm font-medium text-foreground mb-2 block">Format *</label>
+                <div className="flex gap-3">
+                  {FORMAT_OPTIONS.map((f) => {
+                    const Icon = f.icon;
+                    return (
+                      <button
+                        key={f.value}
+                        type="button"
+                        onClick={() => setEventFormat(f.value)}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-2 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
+                          eventFormat === f.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-4 max-w-sm">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Date *</label>
+                <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="h-10" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Sharings</label>
-                <Input type="number" min={0} placeholder="0" value={sharings} onChange={(e) => setSharings(e.target.value)} className="h-10" />
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Time</label>
+                <Input type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="h-10" />
               </div>
             </div>
+
+            {/* Location */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
+              <Input placeholder="Address or Zoom link" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} className="h-10 max-w-sm" />
+            </div>
+
+            {/* Hostess — for Party/Facial */}
+            {isPartyOrFacial && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Hostess Name</label>
+                <Input placeholder="Optional — can add later" value={hostessName} onChange={(e) => setHostessName(e.target.value)} className="h-10 max-w-sm" />
+              </div>
+            )}
+
+            {/* Contact Name — for Sharing */}
+            {isSharing && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Contact Name</label>
+                <Input placeholder="Person you're meeting with" value={hostessName} onChange={(e) => setHostessName(e.target.value)} className="h-10 max-w-sm" />
+              </div>
+            )}
+
+            {/* Dynamic Fields — Party / Facial */}
+            {isPartyOrFacial && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Guest Count (Faces)</label>
+                  <Input type="number" min={0} placeholder="0" value={guestCount} onChange={(e) => setGuestCount(e.target.value)} className="h-10 max-w-[120px]" />
+                </div>
+                <div className="grid grid-cols-2 gap-4 max-w-xs">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Bookings</label>
+                    <Input type="number" min={0} placeholder="0" value={bookings} onChange={(e) => setBookings(e.target.value)} className="h-10" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Sharings</label>
+                    <Input type="number" min={0} placeholder="0" value={sharings} onChange={(e) => setSharings(e.target.value)} className="h-10" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Dynamic Fields — Sharing Appointment */}
+            {isSharing && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Outcome</label>
+                <div className="flex flex-wrap gap-2">
+                  {SHARING_OUTCOMES.map((o) => (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => setSharingOutcome(sharingOutcome === o ? "" : o)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full border text-sm font-medium transition-colors",
+                        sharingOutcome === o
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Fields — Lead Generating Event */}
+            {isLeadGen && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Number of Leads Collected</label>
+                <Input type="number" min={0} placeholder="0" value={leadsCollected} onChange={(e) => setLeadsCollected(e.target.value)} className="h-10 max-w-[120px]" />
+              </div>
+            )}
 
             {/* Notes */}
             <div>
