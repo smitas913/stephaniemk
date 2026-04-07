@@ -14,9 +14,12 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   reachOuts: number;
   bookings: number;
   sharing: number;
+  bookingAttempts: number;
+  bookingConversionRate: number;
   reachOutDetails: FocusDetailItem[];
   bookingDetails: FocusDetailItem[];
   sharingDetails: FocusDetailItem[];
+  bookingAttemptDetails: FocusDetailItem[];
 } {
   const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);

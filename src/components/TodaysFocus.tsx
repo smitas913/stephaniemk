@@ -31,6 +31,8 @@ export interface FocusDetailItem {
   type: string;
   method?: string;
   detail?: string;
+  isBookingAttempt?: boolean;
+  isFollowUp?: boolean;
 }
 
 export interface FocusRawData {
