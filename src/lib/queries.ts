@@ -287,14 +287,12 @@ export const convertGuestToCustomer = async (guest: EventGuest) => {
 };
 
 export const updateEvent = async (eventId: string, updates: Partial<EventRecord>) => {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("events")
     .update(updates as any)
-    .eq("event_id", eventId)
-    .select()
-    .single();
+    .eq("id", eventId);
   if (error) throw error;
-  return data;
+  return { success: true, event_id: eventId };
 };
 
 // Customer Notes
