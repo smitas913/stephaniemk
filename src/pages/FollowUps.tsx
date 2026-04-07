@@ -2944,6 +2944,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
 
       // Focus the next follow-up date input
       setTimeout(() => nextFollowUpRef.current?.focus(), 100);
