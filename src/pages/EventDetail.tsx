@@ -873,6 +873,15 @@ export default function EventDetail() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Hostess Universal Action Panel */}
+      <UniversalActionPanel
+        item={actionPanelItem}
+        open={actionPanelOpen}
+        onClose={() => setActionPanelOpen(false)}
+        onLogAction={handleHostessAction}
+        isPending={hostessActionMutation.isPending}
+      />
     </Layout>
   );
 }
