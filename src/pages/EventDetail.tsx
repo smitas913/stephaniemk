@@ -689,6 +689,24 @@ export default function EventDetail() {
           )}
         </div>
 
+        {/* Save Details Button */}
+        {event && (
+          <div className="flex gap-3 pt-2">
+            <Button
+              className="h-11 px-8"
+              onClick={() => {
+                toast.success("Details saved");
+                navigate("/events");
+              }}
+            >
+              Save Details
+            </Button>
+            <Button variant="outline" className="h-11" onClick={() => navigate("/events")}>
+              Back to Events
+            </Button>
+          </div>
+        )}
+
         {/* Post-Event Prompt */}
         <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
           <DialogContent className="max-w-sm">
