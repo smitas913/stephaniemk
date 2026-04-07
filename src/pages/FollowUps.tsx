@@ -21,6 +21,7 @@ import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLea
 import Layout from "@/components/Layout";
 import TodaysFocus from "@/components/TodaysFocus";
 import type { FocusDetailItem } from "@/components/TodaysFocus";
+import SixMostImportant from "@/components/SixMostImportant";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -417,62 +418,26 @@ export default function FollowUps() {
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
-   // ─── 6 Most Important Things (daily checklist) ───
-   const DEFAULT_SIX_ITEMS = [
-     "Booking Activity",
-     "Recruiting Conversations",
-     "Follow-Ups Completed",
-     "Personal Appointment (Held or Confirmed)",
-     "Team Building (Coach / Connect)",
-     "Relationship Building (Notes / Check-ins)",
-   ];
-   const labelsKey = "six-items-labels";
-   const checksKey = `six-items-checks-${toLocalDateKey()}`;
-   const [sixLabels, setSixLabels] = useState<string[]>(() => {
-     try {
-       const stored = localStorage.getItem(labelsKey);
-       return stored ? JSON.parse(stored) : [...DEFAULT_SIX_ITEMS];
-     } catch { return [...DEFAULT_SIX_ITEMS]; }
-   });
-   const [sixChecks, setSixChecks] = useState<boolean[]>(() => {
-     try {
-       const stored = localStorage.getItem(checksKey);
-       return stored ? JSON.parse(stored) : Array(6).fill(false);
-     } catch { return Array(6).fill(false); }
-   });
-   const [sixEditMode, setSixEditMode] = useState(false);
-   const [sixDraft, setSixDraft] = useState<string[]>([...sixLabels]);
-
-   const toggleSixCheck = useCallback((idx: number) => {
-     setSixChecks(prev => {
-       const next = [...prev];
-       next[idx] = !next[idx];
-       localStorage.setItem(checksKey, JSON.stringify(next));
-       return next;
-     });
-   }, [checksKey]);
-
-   const saveSixLabels = useCallback((labels: string[]) => {
-     setSixLabels(labels);
-     localStorage.setItem(labelsKey, JSON.stringify(labels));
-     setSixEditMode(false);
-   }, []);
-
-   const resetSixLabels = useCallback(() => {
-     const d = [...DEFAULT_SIX_ITEMS];
-     setSixDraft(d);
-     saveSixLabels(d);
-   }, [saveSixLabels]);
-
-   const moveSixItem = useCallback((from: number, dir: -1 | 1) => {
-     const to = from + dir;
-     if (to < 0 || to > 5) return;
-     setSixDraft(prev => {
-       const next = [...prev];
-       [next[from], next[to]] = [next[to], next[from]];
-       return next;
-     });
-   }, []);
+   // ─── Auto-counts for 6 Most Important Things ───
+   const focusAutoCounts = useMemo(() => {
+     const todayKey = toLocalDateKey();
+     // Follow-ups completed today: unified notes logged today
+     const followups = unifiedNotes.filter((n: any) => {
+       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
+       return noteDay === todayKey && (n.entity_type === "Customer" || n.entity_type === "Prospect");
+     }).length;
+     // Recruiting: prospects with "Shared" status updated today
+     const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
+     // Personal appointments: events happening today
+     const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
+     // Relationship building: customer notes of relationship types today
+     const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
+     const relationship = allNotes.filter((n: any) => {
+       const noteDay = n.created_at ? n.created_at.slice(0, 10) : null;
+       return noteDay === todayKey && relTypes.has(n.note_type);
+     }).length;
+     return { followups, recruiting, appointments, relationship };
+   }, [unifiedNotes, prospects, events, allNotes]);
 
   // Mobile detection
   const isMobile = useIsMobile();
@@ -1187,73 +1152,7 @@ export default function FollowUps() {
                   })()}
 
                   {/* ═══ SECTION 1: 6 Most Important Things ═══ */}
-                  <Card className="border-primary/20 shadow-md bg-primary/5">
-                    <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-md bg-primary/10">
-                            <Star className="w-4 h-4 text-primary" />
-                          </div>
-                          <CardTitle className="text-sm font-semibold text-foreground">6 Most Important Things</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{sixChecks.filter(Boolean).length} / 6</Badge>
-                        </div>
-                        {!sixEditMode && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSixDraft([...sixLabels]); setSixEditMode(true); }}>
-                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className={cn("pt-0", isMobile && "px-3")}>
-                      {sixEditMode ? (
-                        <div className="space-y-2">
-                          {sixDraft.map((label, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
-                              <Input
-                                value={label}
-                                onChange={e => {
-                                  const next = [...sixDraft];
-                                  next[idx] = e.target.value;
-                                  setSixDraft(next);
-                                }}
-                                className="h-8 text-sm flex-1"
-                              />
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveSixItem(idx, -1)} disabled={idx === 0}>
-                                <ArrowUp className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveSixItem(idx, 1)} disabled={idx === 5}>
-                                <ArrowDown className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          ))}
-                          <div className="flex items-center gap-2 pt-1">
-                            <Button size="sm" className="h-7 text-xs" onClick={() => saveSixLabels(sixDraft)}>Save</Button>
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setSixEditMode(false)}>Cancel</Button>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 ml-auto text-muted-foreground" onClick={resetSixLabels}>
-                              <RotateCcw className="w-3 h-3" /> Reset
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          {sixLabels.map((label, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              className="w-full flex items-center gap-2.5 p-2 rounded-lg border border-border/50 bg-background/80 text-left transition-colors hover:bg-muted/30"
-                              onClick={() => toggleSixCheck(idx)}
-                            >
-                              <Checkbox checked={sixChecks[idx]} className="pointer-events-none" tabIndex={-1} />
-                              <span className={cn("text-sm", sixChecks[idx] ? "line-through text-muted-foreground" : "text-foreground font-medium")}>
-                                {label}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  <SixMostImportant autoCounts={focusAutoCounts} />
 
                   {/* ═══ SECTION 2: Follow-Ups (Unified View) ═══ */}
                   {(() => {
