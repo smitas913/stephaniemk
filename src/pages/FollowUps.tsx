@@ -977,6 +977,11 @@ export default function FollowUps() {
   const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNextStep(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
   const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, nextStep: noteNextStep, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
 
+  // Quick log: 1-tap activity logging with minimal data
+  const handleQuickLog = useCallback((item: ActionItem, activityType: string) => {
+    contactMutation.mutate({ item, note: `${activityType} contact`, type: activityType });
+  }, [contactMutation]);
+
   const deliveryCreateMut = useMutation({
     mutationFn: async () => {
       if (!detailItem) return;
