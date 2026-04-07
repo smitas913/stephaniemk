@@ -2799,6 +2799,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   onClose: () => void;
 }) {
   const lead = bookingLeads.find((l) => l.id === item.id);
+  const isFirstContact = lead?.status === "New";
   const [status, setStatus] = useState(lead?.status || "New");
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
@@ -2811,6 +2812,9 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
   const [loggedMessage, setLoggedMessage] = useState("");
+  // Lead logic: first contact = booking attempt only, subsequent = follow-up + optional booking attempt
+  const [isBookingAttempt, setIsBookingAttempt] = useState(true);
+  const [isFollowUpFlag, setIsFollowUpFlag] = useState(!isFirstContact);
   const nextFollowUpRef = useRef<HTMLInputElement>(null);
 
   // Sync state when lead data refreshes (after mutation + invalidation)
