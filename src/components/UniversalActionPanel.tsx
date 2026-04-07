@@ -85,7 +85,7 @@ interface Props {
     note: string;
     isBookingAttempt: boolean;
     isFollowUp: boolean;
-    nextFollowUpDate: string | null;
+    nextFollowUpDate?: string | null;
   }) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
