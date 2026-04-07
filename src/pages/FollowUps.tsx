@@ -2949,14 +2949,26 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
+            <FileText className="w-3 h-3" /> What Happened <span className="text-destructive">*</span>
           </label>
           <Textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="What happened? What was discussed?"
-            className="min-h-[80px]"
+            placeholder="Brief conversation summary — what was discussed?"
+            className="min-h-[70px]"
             autoFocus
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            ➡️ Next Step
+          </label>
+          <Input
+            value={nextStepText}
+            onChange={(e) => setNextStepText(e.target.value)}
+            placeholder="e.g., Book facial, Send info packet, Follow up next week..."
+            className="h-9"
           />
         </div>
 
