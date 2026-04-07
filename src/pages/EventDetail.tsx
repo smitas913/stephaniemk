@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
-const EVENT_FORMATS = ["In-Person", "Zoom"] as const;
+const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -59,7 +59,6 @@ export default function EventDetail() {
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Event updated");
     },
   });
 
