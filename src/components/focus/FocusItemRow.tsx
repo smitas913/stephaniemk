@@ -23,7 +23,7 @@ interface FocusItemRowProps {
 export default function FocusItemRow({
   item, onAdjust, onToggleComplete, onDrillDown, readOnly, isMobile,
 }: FocusItemRowProps) {
-  const met = item.current >= item.target && item.target > 0;
+  const met = item.current >= item.target;
   const done = item.isComplete || met;
   const pct = item.target > 0 ? Math.min(100, Math.round((item.current / item.target) * 100)) : 0;
 
