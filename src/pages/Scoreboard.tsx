@@ -50,14 +50,13 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const monthCancelled = monthAllEvents.filter((e) => e.event_status === "Cancelled").length;
     const monthHoldRate = monthBooked > 0 ? Math.round((monthHeld / monthBooked) * 1000) / 10 : 0;
 
-    const weekAllEvents = weekEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
+    const weekAllEvents = weekEvents;
     const weekFaces = weekAllEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const weekNetworking = weekEvents.filter((e) => e.event_type === "Networking Event").length;
+    const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
     const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
 
-    const monthNetworking = monthEvents.filter((e) => e.event_type === "Networking Event").length;
-    const monthAllEventTypes = monthEvents.filter((e) => e.event_type === "Networking Event" || e.event_type === "Vendor Event");
-    const monthFaces = monthAllEventTypes.reduce((s, e) => s + Number(e.guest_count || 0), 0);
+    const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
+    const monthFaces = monthEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const monthSharing = monthEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
     const monthNewTeam = prospects.filter((p) =>
       (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, monthStart, monthEnd)
@@ -80,13 +79,13 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
 
     const weekly: ScoreItem[] = [
       { label: "Faces", current: weekFaces, goal: 10, pct: Math.min((weekFaces / 10) * 100, 100), status: getStatus(weekFaces, 10, weekPace) },
-      { label: "Events", current: weekNetworking, goal: 2, pct: Math.min((weekNetworking / 2) * 100, 100), status: getStatus(weekNetworking, 2, weekPace) },
+      { label: "Parties", current: weekParties, goal: 2, pct: Math.min((weekParties / 2) * 100, 100), status: getStatus(weekParties, 2, weekPace) },
       { label: "Sharings", current: weekSharing, goal: 5, pct: Math.min((weekSharing / 5) * 100, 100), status: getStatus(weekSharing, 5, weekPace) },
     ];
 
     const monthly: ScoreItem[] = [
       { label: "Faces", current: monthFaces, goal: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
-      { label: "Events", current: monthNetworking, goal: 8, pct: Math.min((monthNetworking / 8) * 100, 100), status: getStatus(monthNetworking, 8, monthPace) },
+      { label: "Parties", current: monthParties, goal: 8, pct: Math.min((monthParties / 8) * 100, 100), status: getStatus(monthParties, 8, monthPace) },
       { label: "Sharings", current: monthSharing, goal: 20, pct: Math.min((monthSharing / 20) * 100, 100), status: getStatus(monthSharing, 20, monthPace) },
       { label: "New Team Members", current: monthNewTeam, goal: 3, pct: Math.min((monthNewTeam / 3) * 100, 100), status: getStatus(monthNewTeam, 3, monthPace) },
     ];
