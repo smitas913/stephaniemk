@@ -1500,6 +1500,7 @@ export default function FollowUps() {
                                       isPending={contactMutation.isPending}
                                        onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
                                        onQuickLog={(type) => handleQuickLog(item, type)}
+                                       onOpenQuickAction={() => openUniversalPanel(item)}
                                      />
                                   ))}
                                 </div>
@@ -1530,6 +1531,7 @@ export default function FollowUps() {
                                       isPending={contactMutation.isPending}
                                        onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
                                        onQuickLog={(type) => handleQuickLog(item, type)}
+                                       onOpenQuickAction={() => openUniversalPanel(item)}
                                      />
                                   ))}
                                 </div>
