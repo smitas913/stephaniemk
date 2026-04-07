@@ -2231,7 +2231,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         ? "Did not connect — retry scheduled"
         : followUpSource === "catalog" && catalogType
         ? `${catalogType} Catalog Follow-Up`
-        : followUpSource === "manual" ? "Manual follow-up" : autoInfo.label;
+        : followUpSource === "manual" ? "Manual follow-up" : `${followUpType} — ${autoInfo.label}`;
       await updateCustomer(item.id, { next_follow_up_date: nextFollowUp || null, follow_up_reason: reason } as any);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
