@@ -1245,7 +1245,8 @@ export default function FollowUps() {
                             <div className="space-y-4">
                               {renderUnifiedSection("Overdue", Clock, overdueItems, "text-destructive")}
                               {renderUnifiedSection("Due Today", CalendarCheck, dueTodayItems, "text-primary")}
-                              {highPriorityItems.length > 0 && renderUnifiedSection("High Priority (Event-Related)", CalendarCheck, highPriorityItems, "text-emerald-600")}
+                              {highPriorityItems.length > 0 && renderUnifiedSection("High Priority (Event-Related)", CalendarCheck, highPriorityItems, "text-accent-foreground")}
+                              {generalItems.length > 0 && renderUnifiedSection("General Follow-Ups", Users, generalItems, "text-muted-foreground")}
 
                               {reschedulingFollowUp.length > 0 && (
                                 <div>
