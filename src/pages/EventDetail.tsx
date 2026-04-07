@@ -63,7 +63,36 @@ export default function EventDetail() {
     },
   });
 
-  // Post-event prompt state
+  // Post-event completion dialog state
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [completionData, setCompletionData] = useState({ guest_count: "", bookings: "", sharings: "", sales: "" });
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+  const handleStatusChange = (val: string) => {
+    if (!event || val === (event.event_status || "Booked")) return;
+    if (val === "Held") {
+      setPendingStatus(val);
+      setCompletionData({ guest_count: "", bookings: "", sharings: "", sales: "" });
+      setShowCompletionDialog(true);
+    } else {
+      eventMutation.mutate({ event_id: event.event_id, event_status: val } as any);
+    }
+  };
+
+  const submitCompletion = () => {
+    if (!event || !pendingStatus) return;
+    eventMutation.mutate({
+      event_id: event.event_id,
+      event_status: pendingStatus,
+      guest_count: parseInt(completionData.guest_count) || 0,
+      future_bookings_count: parseInt(completionData.bookings) || 0,
+      sharing_appointments_count: parseInt(completionData.sharings) || 0,
+    } as any);
+    setShowCompletionDialog(false);
+    setPendingStatus(null);
+  };
+
+  // Legacy post-event prompt state (auto-prompt for past booked events)
   const [showPostEventPrompt, setShowPostEventPrompt] = useState(false);
   const isPastEvent = event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
 
@@ -287,11 +316,7 @@ export default function EventDetail() {
                   <label className="text-xs text-muted-foreground">Status</label>
                   <Select
                     value={event.event_status || "Booked"}
-                    onValueChange={(val) => {
-                      if (val !== (event.event_status || "Booked")) {
-                        eventMutation.mutate({ event_id: event.event_id, event_status: val } as any);
-                      }
-                    }}
+                    onValueChange={handleStatusChange}
                   >
                     <SelectTrigger className="h-8 text-sm">
                       <SelectValue />
@@ -678,8 +703,8 @@ export default function EventDetail() {
               <Button
                 className="flex-1"
                 onClick={() => {
-                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Held" } as any);
                   setShowPostEventPrompt(false);
+                  handleStatusChange("Held");
                 }}
               >
                 ✅ Held
@@ -694,6 +719,58 @@ export default function EventDetail() {
               >
                 ❌ Cancelled
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Event Completion Dialog */}
+        <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Event Results</DialogTitle>
+              <p className="text-sm text-muted-foreground">How did the event go? Enter the results below.</p>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="text-sm font-medium text-foreground">Guest Count (Faces)</label>
+                <Input
+                  type="number" min={0} placeholder="0"
+                  value={completionData.guest_count}
+                  onChange={(e) => setCompletionData(p => ({ ...p, guest_count: e.target.value }))}
+                  className="h-10 mt-1"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Bookings</label>
+                  <Input
+                    type="number" min={0} placeholder="0"
+                    value={completionData.bookings}
+                    onChange={(e) => setCompletionData(p => ({ ...p, bookings: e.target.value }))}
+                    className="h-10 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Sharings</label>
+                  <Input
+                    type="number" min={0} placeholder="0"
+                    value={completionData.sharings}
+                    onChange={(e) => setCompletionData(p => ({ ...p, sharings: e.target.value }))}
+                    className="h-10 mt-1"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button className="flex-1 h-10" onClick={submitCompletion}>
+                  Save Results
+                </Button>
+                <Button variant="outline" className="h-10" onClick={() => {
+                  setShowCompletionDialog(false);
+                  setPendingStatus(null);
+                }}>
+                  Skip
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
