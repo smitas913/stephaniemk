@@ -1258,8 +1258,9 @@ export default function FollowUps() {
                                 onInlineSave={() => handleInlineSave(item)}
                                 onOpenDetail={() => openDetailSheet(item)}
                                 isPending={contactMutation.isPending}
-                                onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                              />
+                                 onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                 onQuickLog={(type) => handleQuickLog(item, type)}
+                               />
                             ))}
                           </div>
                         </div>
