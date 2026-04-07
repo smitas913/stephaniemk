@@ -1,0 +1,1 @@
+ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS next_step text DEFAULT NULL;

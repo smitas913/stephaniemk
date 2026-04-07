@@ -493,6 +493,7 @@ export const createNote = async (note: {
   prospect_id?: string | null;
   note_body: string;
   note_type?: string;
+  next_step?: string | null;
   next_follow_up_date?: string | null;
 }) => {
   const userId = await getCurrentUserId();

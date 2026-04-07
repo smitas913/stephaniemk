@@ -89,6 +89,7 @@ type ActionItem = {
   daysOverdue?: number | null;
   followUpReason?: string;
   lastNotePreview?: string;
+  lastNextStep?: string;
   lastContacted?: string | null;
   actionLabel: string;
   allow_non_working_day?: boolean;
@@ -192,11 +193,13 @@ async function logCustomerActivity({
   customerId,
   noteType,
   noteText,
+  nextStep,
   nextFollowUpDate,
 }: {
   customerId: string;
   noteType: string;
   noteText?: string;
+  nextStep?: string;
   nextFollowUpDate?: string | null;
 }) {
   const fallbackNote = `${noteType} follow-up completed`;
@@ -209,6 +212,7 @@ async function logCustomerActivity({
       customer_id: customerId,
       note_body: noteBody,
       note_type: noteType,
+      next_step: nextStep?.trim() || null,
       next_follow_up_date: nextFollowUpDate ?? null,
     }),
   ]);
@@ -389,14 +393,17 @@ export default function FollowUps() {
   };
   const [actionItem, setActionItem] = useState<ActionItem | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [noteNextStep, setNoteNextStep] = useState("");
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
   const [inlineNoteId, setInlineNoteId] = useState<string | null>(null);
   const [inlineNoteText, setInlineNoteText] = useState("");
+  const [inlineNextStep, setInlineNextStep] = useState("");
   const [inlineNoteType, setInlineNoteType] = useState("Call");
   const [inlineFollowUpDate, setInlineFollowUpDate] = useState("");
   const [detailItem, setDetailItem] = useState<ActionItem | null>(null);
   const [detailNoteText, setDetailNoteText] = useState("");
+  const [detailNextStep, setDetailNextStep] = useState("");
   const [detailNoteType, setDetailNoteType] = useState("Call");
   const [detailFollowUpDate, setDetailFollowUpDate] = useState("");
   const [showDistribute, setShowDistribute] = useState(false);
@@ -452,6 +459,17 @@ export default function FollowUps() {
     return map;
   }, [allNotes]);
 
+  // Map latest unified note (with next_step) per customer
+  const unifiedNotesByCustomer = useMemo(() => {
+    const map = new Map<string, { note_body: string; next_step: string | null }>();
+    for (const n of unifiedNotes) {
+      if (n.entity_type === "Customer" && n.customer_id && !map.has(n.customer_id)) {
+        map.set(n.customer_id, { note_body: (n as any).note_body || "", next_step: (n as any).next_step || null });
+      }
+    }
+    return map;
+  }, [unifiedNotes]);
+
   const enrichedCustomers = useMemo(() => {
     return customers
       .filter((c) => c.is_active !== false && c.relationship_status !== "Consultant")
@@ -489,6 +507,8 @@ export default function FollowUps() {
       const notePreview = lastNote
         ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
         : undefined;
+      const unifiedNote = unifiedNotesByCustomer.get(c.id);
+      const lastNextStep = unifiedNote?.next_step || null;
       const fullAddress = [c.address_line_1, c.address_line_2, [c.city, c.state_territory, c.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
       return {
         id: c.id, itemType: "customer" as const, name: c.full_name,
@@ -500,7 +520,7 @@ export default function FollowUps() {
         birthday_mmdd: c.birthday_mmdd,
         birthday: c.birthday, daysOverdue,
         followUpReason: c.follow_up_reason || "Customer Follow-Up",
-        lastNotePreview: notePreview, lastContacted: c.last_contacted,
+        lastNotePreview: notePreview, lastNextStep: lastNextStep || undefined, lastContacted: c.last_contacted,
         actionLabel: "Follow-up",
         allow_non_working_day: !!(c as any).allow_non_working_day,
         _address: fullAddress || null,
@@ -739,18 +759,19 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, type, nextDate }: { item: ActionItem; note: string; type: string; nextDate?: string }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateCustomer(item.id, updates as any);
-        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextFollowUpDate: nextDate ?? null });
+        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: nextDate ?? null });
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         if (nextDate) updates.next_follow_up_date = nextDate;
         await updateProspect(item.id, updates as any);
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
+        await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: note.trim() || `${type} follow-up`, note_type: type, next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null });
       } else if (item.itemType === "consultant") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
@@ -782,14 +803,14 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
-      setActionItem(null); setNoteText(""); setNoteType("Call"); setFollowUpDate("");
-      setInlineNoteId(null); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
+      setActionItem(null); setNoteText(""); setNoteNextStep(""); setNoteType("Call"); setFollowUpDate("");
+      setInlineNoteId(null); setInlineNoteText(""); setInlineNextStep(""); setInlineNoteType("Call"); setInlineFollowUpDate("");
       toast.success("Marked as contacted");
     },
   });
 
   const handleInlineSave = (item: ActionItem) => {
-    contactMutation.mutate({ item, note: inlineNoteText, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
+    contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
   };
 
   const detailNoteMutation = useMutation({
@@ -800,17 +821,21 @@ export default function FollowUps() {
           customerId: detailItem.id,
           noteType: detailNoteType === "General" ? "Other" : detailNoteType,
           noteText: detailNoteText.trim(),
+          nextStep: detailNextStep.trim(),
           nextFollowUpDate: normalizeFollowUpDate(detailFollowUpDate),
         });
       }
-      else if (detailItem.itemType === "prospect") await createProspectNote({ prospect_id: detailItem.id, note_text: detailNoteText.trim() });
+      else if (detailItem.itemType === "prospect") {
+        await createProspectNote({ prospect_id: detailItem.id, note_text: detailNoteText.trim() });
+        await createNote({ entity_type: "Prospect", prospect_id: detailItem.id, note_body: detailNoteText.trim(), note_type: detailNoteType, next_step: detailNextStep.trim() || null, next_follow_up_date: normalizeFollowUpDate(detailFollowUpDate) ?? null });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
-      setDetailNoteText(""); setDetailNoteType("Call"); toast.success("Note added");
+      setDetailNoteText(""); setDetailNextStep(""); setDetailNoteType("Call"); toast.success("Note added");
     },
   });
 
@@ -899,9 +924,9 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const openContactDialog = (item: ActionItem, defaultType = "Call") => { setActionItem(item); setNoteText(""); setNoteType(defaultType); setFollowUpDate(""); };
-  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
-  const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
+  const openContactDialog = (item: ActionItem, defaultType = "Call") => { setActionItem(item); setNoteText(""); setNoteNextStep(""); setNoteType(defaultType); setFollowUpDate(""); };
+  const openDetailSheet = (item: ActionItem) => { setDetailItem(item); setDetailNoteText(""); setDetailNextStep(""); setDetailNoteType("General"); setDetailFollowUpDate(item.next_follow_up || ""); setScheduleDelivery(false); setDeliveryDate(toLocalDateKey(addDays(new Date(), 1))); setDeliveryNotes(""); };
+  const handleSubmitAction = () => { if (!actionItem) return; contactMutation.mutate({ item: actionItem, note: noteText, nextStep: noteNextStep, type: noteType, nextDate: normalizeFollowUpDate(followUpDate) || undefined }); };
 
   const deliveryCreateMut = useMutation({
     mutationFn: async () => {
@@ -1045,7 +1070,7 @@ export default function FollowUps() {
     },
   });
 
-  const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
+  const toggleInlineNote = (item: ActionItem) => { if (inlineNoteId === item.id) { setInlineNoteId(null); } else { setInlineNoteId(item.id); setInlineNoteText(""); setInlineNextStep(""); setInlineNoteType("Call"); setInlineFollowUpDate(""); } };
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
     else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`, { state: { from: "/follow-ups" } });
@@ -1230,9 +1255,11 @@ export default function FollowUps() {
                                 item={item}
                                 inlineNoteId={inlineNoteId}
                                 inlineNoteText={inlineNoteText}
+                                inlineNextStep={inlineNextStep}
                                 inlineNoteType={inlineNoteType}
                                 inlineFollowUpDate={inlineFollowUpDate}
                                 setInlineNoteText={setInlineNoteText}
+                                setInlineNextStep={setInlineNextStep}
                                 setInlineNoteType={setInlineNoteType}
                                 setInlineFollowUpDate={setInlineFollowUpDate}
                                 onToggleInline={() => toggleInlineNote(item)}
@@ -1360,9 +1387,11 @@ export default function FollowUps() {
                                       item={item}
                                       inlineNoteId={inlineNoteId}
                                       inlineNoteText={inlineNoteText}
+                                      inlineNextStep={inlineNextStep}
                                       inlineNoteType={inlineNoteType}
                                       inlineFollowUpDate={inlineFollowUpDate}
                                       setInlineNoteText={setInlineNoteText}
+                                      setInlineNextStep={setInlineNextStep}
                                       setInlineNoteType={setInlineNoteType}
                                       setInlineFollowUpDate={setInlineFollowUpDate}
                                       onToggleInline={() => toggleInlineNote(item)}
@@ -1387,9 +1416,11 @@ export default function FollowUps() {
                                       item={item}
                                       inlineNoteId={inlineNoteId}
                                       inlineNoteText={inlineNoteText}
+                                      inlineNextStep={inlineNextStep}
                                       inlineNoteType={inlineNoteType}
                                       inlineFollowUpDate={inlineFollowUpDate}
                                       setInlineNoteText={setInlineNoteText}
+                                      setInlineNextStep={setInlineNextStep}
                                       setInlineNoteType={setInlineNoteType}
                                       setInlineFollowUpDate={setInlineFollowUpDate}
                                       onToggleInline={() => toggleInlineNote(item)}
@@ -2283,6 +2314,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
+  const [nextStepText, setNextStepText] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
   const nextStepConfirmed = false;
@@ -2404,7 +2436,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       const noteText = isDidNotConnect
         ? (newNote.trim() || "Did not connect — attempted contact")
         : newNote.trim();
-      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextFollowUpDate: effectiveDate });
+      await logCustomerActivity({ customerId: item.id, noteType: activityType, noteText, nextStep: nextStepText.trim(), nextFollowUpDate: effectiveDate });
 
       setNextFollowUp(effectiveDate);
       setFollowUpSource(effectiveSource);
@@ -2579,14 +2611,26 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
+                <FileText className="w-3 h-3" /> What Happened <span className="text-destructive">*</span>
               </label>
               <Textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                placeholder="What happened? What was discussed?"
-                className="min-h-[80px]"
+                placeholder="Brief conversation summary — what was discussed?"
+                className="min-h-[70px]"
                 autoFocus
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                ➡️ Next Step
+              </label>
+              <Input
+                value={nextStepText}
+                onChange={(e) => setNextStepText(e.target.value)}
+                placeholder="e.g., Send samples, Follow up on reorder, Schedule facial..."
+                className="h-9"
               />
             </div>
 
@@ -2776,6 +2820,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const [status, setStatus] = useState(lead?.status || "New");
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
+  const [nextStepText, setNextStepText] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState(() => {
     if (lead?.next_follow_up_date) return lead.next_follow_up_date;
     const days = getAutoFollowUpDays(lead?.status || "New");
@@ -2904,14 +2949,26 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <FileText className="w-3 h-3" /> Notes <span className="text-destructive">*</span>
+            <FileText className="w-3 h-3" /> What Happened <span className="text-destructive">*</span>
           </label>
           <Textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="What happened? What was discussed?"
-            className="min-h-[80px]"
+            placeholder="Brief conversation summary — what was discussed?"
+            className="min-h-[70px]"
             autoFocus
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            ➡️ Next Step
+          </label>
+          <Input
+            value={nextStepText}
+            onChange={(e) => setNextStepText(e.target.value)}
+            placeholder="e.g., Book facial, Send info packet, Follow up next week..."
+            className="h-9"
           />
         </div>
 
@@ -2982,16 +3039,18 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 // ─── Action Row Component ───
 
 function ActionRow({
-  item, inlineNoteId, inlineNoteText, inlineNoteType, inlineFollowUpDate,
-  setInlineNoteText, setInlineNoteType, setInlineFollowUpDate,
+  item, inlineNoteId, inlineNoteText, inlineNextStep, inlineNoteType, inlineFollowUpDate,
+  setInlineNoteText, setInlineNextStep, setInlineNoteType, setInlineFollowUpDate,
   onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
   inlineNoteText: string;
+  inlineNextStep: string;
   inlineNoteType: string;
   inlineFollowUpDate: string;
   setInlineNoteText: (v: string) => void;
+  setInlineNextStep: (v: string) => void;
   setInlineNoteType: (v: string) => void;
   setInlineFollowUpDate: (v: string) => void;
   onToggleInline: () => void;
@@ -3055,6 +3114,7 @@ function ActionRow({
           </div>
         </div>
         {item.lastNotePreview && <p className="text-[11px] text-muted-foreground truncate mt-1 italic">📝 {item.lastNotePreview}</p>}
+        {item.lastNextStep && <p className="text-[11px] text-primary truncate mt-0.5">➡️ Next: {item.lastNextStep}</p>}
       </div>
       {inlineNoteId === item.id && (
         <div className="pb-3 space-y-2 border-t border-border/30 pt-2 bg-muted/20 rounded-b-md px-3">
@@ -3068,7 +3128,16 @@ function ActionRow({
             <Input type="date" value={inlineFollowUpDate} min={toLocalDateKey()} onChange={(e) => setInlineFollowUpDate(e.target.value)} className="h-8 w-[140px] text-xs" placeholder="Next FU" />
           </div>
           {item.itemType !== "consultant" && (
-            <Textarea placeholder="Quick note (optional)..." value={inlineNoteText} onChange={(e) => setInlineNoteText(e.target.value)} className="min-h-[50px] text-sm" autoFocus />
+            <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">What Happened</label>
+                <Textarea placeholder="Brief conversation summary..." value={inlineNoteText} onChange={(e) => setInlineNoteText(e.target.value)} className="min-h-[40px] text-sm" autoFocus />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Next Step</label>
+                <Input placeholder="e.g., Send samples, Follow up on reorder..." value={inlineNextStep} onChange={(e) => setInlineNextStep(e.target.value)} className="h-8 text-sm" />
+              </div>
+            </>
           )}
           <div className="flex gap-2">
             <Button size="sm" className="h-8 text-xs" onClick={onInlineSave} disabled={isPending}>

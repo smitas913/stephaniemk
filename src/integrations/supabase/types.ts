@@ -714,6 +714,7 @@ export type Database = {
           entity_type: string
           id: string
           next_follow_up_date: string | null
+          next_step: string | null
           note_body: string
           note_date: string
           note_type: string
@@ -726,6 +727,7 @@ export type Database = {
           entity_type: string
           id?: string
           next_follow_up_date?: string | null
+          next_step?: string | null
           note_body: string
           note_date?: string
           note_type?: string
@@ -738,6 +740,7 @@ export type Database = {
           entity_type?: string
           id?: string
           next_follow_up_date?: string | null
+          next_step?: string | null
           note_body?: string
           note_date?: string
           note_type?: string

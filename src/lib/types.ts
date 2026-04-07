@@ -166,6 +166,7 @@ export interface Note {
   note_date: string;
   note_type: string;
   note_body: string;
+  next_step: string | null;
   next_follow_up_date: string | null;
   owner_user_id: string | null;
   created_at: string;
