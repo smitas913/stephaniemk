@@ -16,7 +16,9 @@ export type Database = {
     Tables: {
       booking_leads: {
         Row: {
+          address_line_1: string | null
           allow_non_working_day: boolean
+          city: string | null
           converted_customer_id: string | null
           created_at: string
           email: string | null
@@ -29,11 +31,15 @@ export type Database = {
           notes: string | null
           owner_user_id: string | null
           phone: string | null
+          postal_code: string | null
+          state_territory: string | null
           status: Database["public"]["Enums"]["booking_lead_status"]
           updated_at: string | null
         }
         Insert: {
+          address_line_1?: string | null
           allow_non_working_day?: boolean
+          city?: string | null
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -46,11 +52,15 @@ export type Database = {
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          postal_code?: string | null
+          state_territory?: string | null
           status?: Database["public"]["Enums"]["booking_lead_status"]
           updated_at?: string | null
         }
         Update: {
+          address_line_1?: string | null
           allow_non_working_day?: boolean
+          city?: string | null
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -63,6 +73,8 @@ export type Database = {
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
+          postal_code?: string | null
+          state_territory?: string | null
           status?: Database["public"]["Enums"]["booking_lead_status"]
           updated_at?: string | null
         }
@@ -1063,7 +1075,9 @@ export type Database = {
       }
       prospects: {
         Row: {
+          address_line_1: string | null
           allow_non_working_day: boolean
+          city: string | null
           created_at: string
           customer_id: string | null
           date_shared: string | null
@@ -1079,10 +1093,14 @@ export type Database = {
           opportunity_status: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id: string | null
           phone: string | null
+          postal_code: string | null
+          state_territory: string | null
           updated_at: string | null
         }
         Insert: {
+          address_line_1?: string | null
           allow_non_working_day?: boolean
+          city?: string | null
           created_at?: string
           customer_id?: string | null
           date_shared?: string | null
@@ -1098,10 +1116,14 @@ export type Database = {
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
           phone?: string | null
+          postal_code?: string | null
+          state_territory?: string | null
           updated_at?: string | null
         }
         Update: {
+          address_line_1?: string | null
           allow_non_working_day?: boolean
+          city?: string | null
           created_at?: string
           customer_id?: string | null
           date_shared?: string | null
@@ -1117,6 +1139,8 @@ export type Database = {
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
           phone?: string | null
+          postal_code?: string | null
+          state_territory?: string | null
           updated_at?: string | null
         }
         Relationships: [

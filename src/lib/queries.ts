@@ -267,7 +267,6 @@ export const deleteEventGuest = async (id: string) => {
 
 export const convertGuestToCustomer = async (guest: EventGuest) => {
   const userId = await getCurrentUserId();
-  // Create customer
   const { data: customer, error: cErr } = await supabase
     .from("customers")
     .insert({
@@ -279,7 +278,6 @@ export const convertGuestToCustomer = async (guest: EventGuest) => {
     .select()
     .single();
   if (cErr) throw cErr;
-  // Link guest to customer
   const { error: gErr } = await supabase
     .from("event_guests")
     .update({ converted_customer_id: customer.id } as any)
@@ -587,6 +585,10 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
       full_name: lead.name,
       phone: lead.phone,
       email: lead.email,
+      address_line_1: (lead as any).address_line_1 || null,
+      city: (lead as any).city || null,
+      state_territory: (lead as any).state_territory || null,
+      postal_code: (lead as any).postal_code || null,
       notes: lead.notes,
       relationship_status: "Customer",
       owner_user_id: userId,
@@ -908,6 +910,10 @@ export const convertProspectToConsultant = async (
     name: prospect.name,
     phone: prospect.phone,
     email: prospect.email,
+    address_line_1: (prospect as any).address_line_1 || null,
+    city: (prospect as any).city || null,
+    state_territory: (prospect as any).state_territory || null,
+    postal_code: (prospect as any).postal_code || null,
     prospect_id: prospect.id,
     join_date: new Date().toISOString().split("T")[0],
     status: "Active",
@@ -1003,9 +1009,13 @@ export const convertConsultantToCustomer = async (
   }
 
   if (customerId) {
-    // Update existing customer record back to Former Consultant
+    // Update existing customer record back to Former Consultant, carry latest address
     await supabase.from("customers").update({
       relationship_status: "Former Consultant",
+      address_line_1: consultant.address_line_1 || undefined,
+      city: consultant.city || undefined,
+      state_territory: consultant.state_territory || undefined,
+      postal_code: consultant.postal_code || undefined,
     } as any).eq("id", customerId);
   } else {
     // Create a customer record if none exists
