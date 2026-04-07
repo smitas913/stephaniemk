@@ -2314,6 +2314,7 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
+  const [nextStepText, setNextStepText] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityLogged, setActivityLogged] = useState(false);
   const nextStepConfirmed = false;
