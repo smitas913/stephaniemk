@@ -16,6 +16,7 @@ const adminNavItems = [
   { to: "/customers", label: "Customers", icon: Users },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
   { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
+  { to: "/communications", label: "Comms", icon: MessageSquare },
   // Row 2: Analysis & reference
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/scoreboard", label: "Scoreboard", icon: Target },
