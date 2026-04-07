@@ -2404,6 +2404,24 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+            Follow-Up Type <span className="text-destructive">*</span>
+          </label>
+          <Select value={followUpType} onValueChange={(v) => { setFollowUpType(v as FollowUpType); setFollowUpSource("cadence"); }}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {FOLLOW_UP_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t === "Quick Follow-Up" ? "Quick Follow-Up (1–3 days)"
+                    : t === "Standard Follow-Up" ? "Standard Follow-Up (manual)"
+                    : `Reorder Cycle (${item.activity_status === "Warm" ? "45" : item.activity_status === "Active" ? "75" : "90"} days)`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
           </label>
           <Input
