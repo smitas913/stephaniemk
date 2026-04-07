@@ -19,12 +19,12 @@ interface FocusWeeklyViewProps {
   configs: FocusItemConfig[];
   weekData: WeeklyProgressRow[];
   onDayClick: (dateKey: string) => void;
+  weekStart: string;
 }
 
-export default function FocusWeeklyView({ configs, weekData, onDayClick }: FocusWeeklyViewProps) {
+export default function FocusWeeklyView({ configs, weekData, onDayClick, weekStart: weekStartKey }: FocusWeeklyViewProps) {
   const todayKey = toLocalDateKey();
-  const todayDate = new Date(todayKey + "T12:00:00");
-  const weekStart = startOfWeek(todayDate, { weekStartsOn: 1 });
+  const weekStart = new Date(weekStartKey + "T12:00:00");
 
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = addDays(weekStart, i);
