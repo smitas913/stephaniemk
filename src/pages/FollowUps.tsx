@@ -3090,12 +3090,16 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   );
 }
 
+// ─── Quick Activity Types ───
+const QUICK_ACTIVITY_TYPES = ["Call", "Text", "Email", "In Person"] as const;
+
 // ─── Action Row Component ───
 
 function ActionRow({
   item, inlineNoteId, inlineNoteText, inlineNextStep, inlineNoteType, inlineFollowUpDate,
   setInlineNoteText, setInlineNextStep, setInlineNoteType, setInlineFollowUpDate,
   onToggleInline, onInlineSave, onOpenDetail, isPending, onToggleWorkdayOverride,
+  onQuickLog,
 }: {
   item: ActionItem;
   inlineNoteId: string | null;
@@ -3112,8 +3116,15 @@ function ActionRow({
   onOpenDetail: () => void;
   isPending: boolean;
   onToggleWorkdayOverride?: (newValue: boolean) => void;
+  onQuickLog?: (activityType: string) => void;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const [tagFollowUp, setTagFollowUp] = useState(true);
+  const [tagBookingAttempt, setTagBookingAttempt] = useState(false);
+  const [tagHostessCoaching, setTagHostessCoaching] = useState(item.itemType === "hostess" || item.itemType === "event_task");
   const badge = TYPE_BADGE[item.itemType];
+  const isOpen = inlineNoteId === item.id;
+
   return (
     <div>
       <div className="py-2.5 group">
@@ -3163,39 +3174,114 @@ function ActionRow({
                 <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
               </>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleInline} title="Add Note"><FileText className="w-3.5 h-3.5 text-primary" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleInline} title="Log Activity"><FileText className="w-3.5 h-3.5 text-primary" /></Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenDetail}><ChevronRight className="w-4 h-4 text-muted-foreground" /></Button>
           </div>
         </div>
         {item.lastNotePreview && <p className="text-[11px] text-muted-foreground truncate mt-1 italic">📝 {item.lastNotePreview}</p>}
         {item.lastNextStep && <p className="text-[11px] text-primary truncate mt-0.5">➡️ Next: {item.lastNextStep}</p>}
       </div>
-      {inlineNoteId === item.id && (
+      {isOpen && (
         <div className="pb-3 space-y-2 border-t border-border/30 pt-2 bg-muted/20 rounded-b-md px-3">
-          <div className="flex gap-2">
-            {item.itemType === "customer" && (
-              <Select value={inlineNoteType} onValueChange={setInlineNoteType}>
-                <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>{NOTE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-            )}
-            <Input type="date" value={inlineFollowUpDate} min={toLocalDateKey()} onChange={(e) => setInlineFollowUpDate(e.target.value)} className="h-8 w-[140px] text-xs" placeholder="Next FU" />
+          {/* Quick-tap activity type chips */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Quick Log</label>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_ACTIVITY_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    setInlineNoteType(type);
+                    onQuickLog?.(type);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                    "border-border bg-background text-foreground hover:bg-primary hover:text-primary-foreground hover:border-primary",
+                    "active:scale-95"
+                  )}
+                >
+                  {type === "Call" && "📞 "}
+                  {type === "Text" && "💬 "}
+                  {type === "Email" && "✉️ "}
+                  {type === "In Person" && "🤝 "}
+                  {type}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground">Tap to log instantly · add details below (optional)</p>
           </div>
-          {item.itemType !== "consultant" && (
-            <>
+
+          {/* Optional tags */}
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTagFollowUp(!tagFollowUp)}
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors",
+                tagFollowUp ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              Follow-Up
+            </button>
+            <button
+              type="button"
+              onClick={() => setTagBookingAttempt(!tagBookingAttempt)}
+              className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors",
+                tagBookingAttempt ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              Booking Attempt
+            </button>
+            {(item.itemType === "hostess" || item.itemType === "event_task") && (
+              <button
+                type="button"
+                onClick={() => setTagHostessCoaching(!tagHostessCoaching)}
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors",
+                  tagHostessCoaching ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"
+                )}
+              >
+                Hostess Coaching
+              </button>
+            )}
+          </div>
+
+          {/* Expandable details section */}
+          <button
+            type="button"
+            onClick={() => setShowDetails(!showDetails)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className={cn("w-3 h-3 transition-transform", showDetails && "rotate-180")} />
+            {showDetails ? "Hide details" : "Add notes & next step (optional)"}
+          </button>
+
+          {showDetails && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Select value={inlineNoteType} onValueChange={setInlineNoteType}>
+                  <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{NOTE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                </Select>
+                <Input type="date" value={inlineFollowUpDate} min={toLocalDateKey()} onChange={(e) => setInlineFollowUpDate(e.target.value)} className="h-8 w-[140px] text-xs" placeholder="Next FU" />
+              </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">What Happened</label>
-                <Textarea placeholder="Brief conversation summary..." value={inlineNoteText} onChange={(e) => setInlineNoteText(e.target.value)} className="min-h-[40px] text-sm" autoFocus />
+                <Textarea placeholder="Brief summary (optional)..." value={inlineNoteText} onChange={(e) => setInlineNoteText(e.target.value)} className="min-h-[40px] text-sm" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Next Step</label>
-                <Input placeholder="e.g., Send samples, Follow up on reorder..." value={inlineNextStep} onChange={(e) => setInlineNextStep(e.target.value)} className="h-8 text-sm" />
+                <Input placeholder="e.g., Send samples, Follow up..." value={inlineNextStep} onChange={(e) => setInlineNextStep(e.target.value)} className="h-8 text-sm" />
               </div>
-            </>
+            </div>
           )}
+
           <div className="flex gap-2">
             <Button size="sm" className="h-8 text-xs" onClick={onInlineSave} disabled={isPending}>
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{isPending ? "Saving..." : "Mark Contacted"}
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{isPending ? "Saving..." : "Save with Details"}
             </Button>
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onToggleInline}>Cancel</Button>
           </div>
