@@ -43,7 +43,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         event_id: eventId,
         event_type: displayType,
         event_date: eventDate,
-        hostess_name: hostessName || undefined,
+        hostess_name: hostessName.trim() || null,
         guest_count: 0,
       });
       return eventId;

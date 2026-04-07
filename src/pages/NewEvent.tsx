@@ -60,7 +60,7 @@ export default function NewEvent() {
         event_date: eventDate || null,
         event_time: eventTime || null,
         event_location: eventLocation || null,
-        hostess_name: hostessName || undefined,
+        hostess_name: hostessName.trim() || null,
         guest_count: 0,
         notes: notes.trim() || null,
       });
