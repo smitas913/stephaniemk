@@ -36,7 +36,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -417,29 +417,62 @@ export default function FollowUps() {
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
 
-  // Top 6 Priorities (persisted per day)
-  const priorityStorageKey = `priorities-${toLocalDateKey()}`;
-  const [priorityIds, setPriorityIds] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(priorityStorageKey);
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
-  const [showPriorityPicker, setShowPriorityPicker] = useState(false);
-  const togglePriority = useCallback((id: string) => {
-    setPriorityIds(prev => {
-      const next = prev.includes(id) ? prev.filter(p => p !== id) : prev.length < 6 ? [...prev, id] : prev;
-      localStorage.setItem(priorityStorageKey, JSON.stringify(next));
-      return next;
-    });
-  }, [priorityStorageKey]);
-  const removePriority = useCallback((id: string) => {
-    setPriorityIds(prev => {
-      const next = prev.filter(p => p !== id);
-      localStorage.setItem(priorityStorageKey, JSON.stringify(next));
-      return next;
-    });
-  }, [priorityStorageKey]);
+   // ─── 6 Most Important Things (daily checklist) ───
+   const DEFAULT_SIX_ITEMS = [
+     "Booking Activity",
+     "Recruiting Conversations",
+     "Follow-Ups Completed",
+     "Personal Appointment (Held or Confirmed)",
+     "Team Building (Coach / Connect)",
+     "Relationship Building (Notes / Check-ins)",
+   ];
+   const labelsKey = "six-items-labels";
+   const checksKey = `six-items-checks-${toLocalDateKey()}`;
+   const [sixLabels, setSixLabels] = useState<string[]>(() => {
+     try {
+       const stored = localStorage.getItem(labelsKey);
+       return stored ? JSON.parse(stored) : [...DEFAULT_SIX_ITEMS];
+     } catch { return [...DEFAULT_SIX_ITEMS]; }
+   });
+   const [sixChecks, setSixChecks] = useState<boolean[]>(() => {
+     try {
+       const stored = localStorage.getItem(checksKey);
+       return stored ? JSON.parse(stored) : Array(6).fill(false);
+     } catch { return Array(6).fill(false); }
+   });
+   const [sixEditMode, setSixEditMode] = useState(false);
+   const [sixDraft, setSixDraft] = useState<string[]>([...sixLabels]);
+
+   const toggleSixCheck = useCallback((idx: number) => {
+     setSixChecks(prev => {
+       const next = [...prev];
+       next[idx] = !next[idx];
+       localStorage.setItem(checksKey, JSON.stringify(next));
+       return next;
+     });
+   }, [checksKey]);
+
+   const saveSixLabels = useCallback((labels: string[]) => {
+     setSixLabels(labels);
+     localStorage.setItem(labelsKey, JSON.stringify(labels));
+     setSixEditMode(false);
+   }, []);
+
+   const resetSixLabels = useCallback(() => {
+     const d = [...DEFAULT_SIX_ITEMS];
+     setSixDraft(d);
+     saveSixLabels(d);
+   }, [saveSixLabels]);
+
+   const moveSixItem = useCallback((from: number, dir: -1 | 1) => {
+     const to = from + dir;
+     if (to < 0 || to > 5) return;
+     setSixDraft(prev => {
+       const next = [...prev];
+       [next[from], next[to]] = [next[to], next[from]];
+       return next;
+     });
+   }, []);
 
   // Mobile detection
   const isMobile = useIsMobile();
