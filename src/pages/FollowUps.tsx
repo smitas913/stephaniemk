@@ -810,7 +810,7 @@ export default function FollowUps() {
   });
 
   const handleInlineSave = (item: ActionItem) => {
-    contactMutation.mutate({ item, note: inlineNoteText, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
+    contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
   };
 
   const detailNoteMutation = useMutation({
@@ -821,17 +821,21 @@ export default function FollowUps() {
           customerId: detailItem.id,
           noteType: detailNoteType === "General" ? "Other" : detailNoteType,
           noteText: detailNoteText.trim(),
+          nextStep: detailNextStep.trim(),
           nextFollowUpDate: normalizeFollowUpDate(detailFollowUpDate),
         });
       }
-      else if (detailItem.itemType === "prospect") await createProspectNote({ prospect_id: detailItem.id, note_text: detailNoteText.trim() });
+      else if (detailItem.itemType === "prospect") {
+        await createProspectNote({ prospect_id: detailItem.id, note_text: detailNoteText.trim() });
+        await createNote({ entity_type: "Prospect", prospect_id: detailItem.id, note_body: detailNoteText.trim(), note_type: detailNoteType, next_step: detailNextStep.trim() || null, next_follow_up_date: normalizeFollowUpDate(detailFollowUpDate) ?? null });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
-      setDetailNoteText(""); setDetailNoteType("Call"); toast.success("Note added");
+      setDetailNoteText(""); setDetailNextStep(""); setDetailNoteType("Call"); toast.success("Note added");
     },
   });
 
