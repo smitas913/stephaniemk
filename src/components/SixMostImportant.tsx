@@ -113,18 +113,22 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   const completedCount = items.filter((i) => i.isComplete || (i.current >= i.target && i.target > 0)).length;
 
   // Weekly data
-  const weekStart = useMemo(() => {
+  const currentWeekStart = useMemo(() => {
     const d = new Date(todayKey + "T12:00:00");
-    return startOfWeek(d, { weekStartsOn: 1 });
+    return toLocalDateKey(startOfWeek(d, { weekStartsOn: 1 }));
   }, [todayKey]);
 
+  const [selectedWeekStart, setSelectedWeekStart] = useState(currentWeekStart);
+
+  const weekEndKey = useMemo(() => {
+    return toLocalDateKey(addDays(new Date(selectedWeekStart + "T12:00:00"), 6));
+  }, [selectedWeekStart]);
+
   const { data: weekData = [] } = useQuery({
-    queryKey: ["focus-week-data", weekStart.toISOString()],
-    queryFn: () => fetchWeekProgress(
-      toLocalDateKey(weekStart),
-      toLocalDateKey(addDays(weekStart, 6))
-    ),
+    queryKey: ["focus-week-data", selectedWeekStart],
+    queryFn: () => fetchWeekProgress(selectedWeekStart, weekEndKey),
     enabled: viewMode === "weekly",
+    placeholderData: (prev) => prev,
   });
 
   // Handlers
@@ -248,6 +252,8 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
             isOOO={isOOO}
             onDateChange={(d) => { setSelectedDate(d); setViewMode("daily"); }}
             onViewModeChange={setViewMode}
+            selectedWeekStart={selectedWeekStart}
+            onWeekChange={setSelectedWeekStart}
           />
 
           {viewMode === "daily" && (
@@ -275,6 +281,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               configs={configs}
               weekData={weekData}
               onDayClick={(d) => { setSelectedDate(d); setViewMode("daily"); }}
+              weekStart={selectedWeekStart}
             />
           ) : (
             <div className="space-y-1.5">

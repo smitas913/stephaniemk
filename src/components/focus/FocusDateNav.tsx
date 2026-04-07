@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar, BarChart3, Palmtree } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, subDays } from "date-fns";
+import { format, subDays, startOfWeek, addDays } from "date-fns";
 import { toLocalDateKey } from "@/lib/dateOnly";
 
 interface FocusDateNavProps {
@@ -11,11 +11,14 @@ interface FocusDateNavProps {
   isOOO: boolean;
   onDateChange: (date: string) => void;
   onViewModeChange: (mode: "daily" | "weekly") => void;
+  selectedWeekStart: string;
+  onWeekChange: (weekStart: string) => void;
 }
 
 export default function FocusDateNav({
   selectedDate, todayKey, viewMode, isOOO,
   onDateChange, onViewModeChange,
+  selectedWeekStart, onWeekChange,
 }: FocusDateNavProps) {
   const isToday = selectedDate === todayKey;
 
@@ -37,6 +40,24 @@ export default function FocusDateNav({
     if (selectedDate === yesterday) return "Yesterday";
     return format(d, "MMM d, yyyy");
   })();
+
+  // Week navigation
+  const currentWeekStart = toLocalDateKey(startOfWeek(new Date(todayKey + "T12:00:00"), { weekStartsOn: 1 }));
+  const isCurrentWeek = selectedWeekStart === currentWeekStart;
+
+  const weekEnd = toLocalDateKey(addDays(new Date(selectedWeekStart + "T12:00:00"), 6));
+  const weekLabel = `Week of ${format(new Date(selectedWeekStart + "T12:00:00"), "MMM d")}–${format(new Date(weekEnd + "T12:00:00"), "d")}`;
+
+  const goWeekBack = () => {
+    const d = new Date(selectedWeekStart + "T12:00:00");
+    onWeekChange(toLocalDateKey(addDays(d, -7)));
+  };
+  const goWeekForward = () => {
+    if (isCurrentWeek) return;
+    const d = new Date(selectedWeekStart + "T12:00:00");
+    const next = toLocalDateKey(addDays(d, 7));
+    if (next <= currentWeekStart) onWeekChange(next);
+  };
 
   return (
     <div className="space-y-2">
@@ -65,13 +86,22 @@ export default function FocusDateNav({
           </button>
         </div>
 
-        {!isToday && viewMode === "daily" && (
+        {viewMode === "daily" && !isToday && (
           <button
             type="button"
             onClick={() => onDateChange(todayKey)}
             className="text-xs text-primary font-medium hover:underline"
           >
             Back to Today
+          </button>
+        )}
+        {viewMode === "weekly" && !isCurrentWeek && (
+          <button
+            type="button"
+            onClick={() => onWeekChange(currentWeekStart)}
+            className="text-xs text-primary font-medium hover:underline"
+          >
+            Current Week
           </button>
         )}
       </div>
@@ -96,6 +126,18 @@ export default function FocusDateNav({
             )}
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goForward} disabled={isToday}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {viewMode === "weekly" && (
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goWeekBack}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm font-medium text-foreground">{weekLabel}</span>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goWeekForward} disabled={isCurrentWeek}>
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
