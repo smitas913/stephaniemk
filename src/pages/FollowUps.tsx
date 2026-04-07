@@ -765,7 +765,12 @@ export default function FollowUps() {
     mutationFn: async (lead: BookingLead) => {
       await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New" ? "Contacted" : lead.status });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["booking-leads"] }); toast.success("Lead marked as contacted"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      toast.success("Lead marked as contacted");
+    },
   });
 
   const contactMutation = useMutation({
