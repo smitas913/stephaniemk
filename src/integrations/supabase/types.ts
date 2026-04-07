@@ -321,6 +321,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_focus_progress: {
+        Row: {
+          auto_count: number
+          created_at: string
+          focus_date: string
+          id: string
+          is_complete: boolean
+          manual_adjustment: number
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_count?: number
+          created_at?: string
+          focus_date?: string
+          id?: string
+          is_complete?: boolean
+          manual_adjustment?: number
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_count?: number
+          created_at?: string
+          focus_date?: string
+          id?: string
+          is_complete?: boolean
+          manual_adjustment?: number
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_plan_items: {
         Row: {
           address: string | null
@@ -636,6 +672,39 @@ export type Database = {
           owner_user_id?: string | null
           receipt_url?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      focus_item_configs: {
+        Row: {
+          auto_track_key: string | null
+          created_at: string
+          default_target: number
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_track_key?: string | null
+          created_at?: string
+          default_target?: number
+          id?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_track_key?: string | null
+          created_at?: string
+          default_target?: number
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
