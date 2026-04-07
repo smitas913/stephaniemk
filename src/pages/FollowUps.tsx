@@ -3088,6 +3088,7 @@ function ActionRow({
           </div>
         </div>
         {item.lastNotePreview && <p className="text-[11px] text-muted-foreground truncate mt-1 italic">📝 {item.lastNotePreview}</p>}
+        {item.lastNextStep && <p className="text-[11px] text-primary truncate mt-0.5">➡️ Next: {item.lastNextStep}</p>}
       </div>
       {inlineNoteId === item.id && (
         <div className="pb-3 space-y-2 border-t border-border/30 pt-2 bg-muted/20 rounded-b-md px-3">
@@ -3101,7 +3102,16 @@ function ActionRow({
             <Input type="date" value={inlineFollowUpDate} min={toLocalDateKey()} onChange={(e) => setInlineFollowUpDate(e.target.value)} className="h-8 w-[140px] text-xs" placeholder="Next FU" />
           </div>
           {item.itemType !== "consultant" && (
-            <Textarea placeholder="Quick note (optional)..." value={inlineNoteText} onChange={(e) => setInlineNoteText(e.target.value)} className="min-h-[50px] text-sm" autoFocus />
+            <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">What Happened</label>
+                <Textarea placeholder="Brief conversation summary..." value={inlineNoteText} onChange={(e) => setInlineNoteText(e.target.value)} className="min-h-[40px] text-sm" autoFocus />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Next Step</label>
+                <Input placeholder="e.g., Send samples, Follow up on reorder..." value={inlineNextStep} onChange={(e) => setInlineNextStep(e.target.value)} className="h-8 text-sm" />
+              </div>
+            </>
           )}
           <div className="flex gap-2">
             <Button size="sm" className="h-8 text-xs" onClick={onInlineSave} disabled={isPending}>
