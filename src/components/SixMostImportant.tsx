@@ -1,15 +1,25 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Star, Pencil, ArrowUp, ArrowDown, RotateCcw, Plus, Minus, Check, Zap } from "lucide-react";
-import { useFocusItems, DEFAULT_FOCUS_ITEMS } from "@/hooks/useFocusItems";
-import type { FocusItemConfig } from "@/hooks/useFocusItems";
+import { Star, Pencil } from "lucide-react";
+import { useFocusItems, DEFAULT_FOCUS_ITEMS, DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
+import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useQuery } from "@tanstack/react-query";
+import { startOfWeek, addDays, format, subDays } from "date-fns";
+import { computeMetricsForDate } from "@/lib/focusMetrics";
+import type { FocusRawData, FocusDetailItem } from "@/components/TodaysFocus";
+
+import FocusDateNav from "@/components/focus/FocusDateNav";
+import DayTypeSelector from "@/components/focus/DayTypeSelector";
+import FocusItemRow from "@/components/focus/FocusItemRow";
+import type { FocusItemData } from "@/components/focus/FocusItemRow";
+import FocusEditView from "@/components/focus/FocusEditView";
+import FocusDrillDown from "@/components/focus/FocusDrillDown";
+import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
 
 interface AutoCounts {
   followups: number;
@@ -20,13 +30,45 @@ interface AutoCounts {
 
 interface SixMostImportantProps {
   autoCounts?: AutoCounts;
+  rawData?: FocusRawData;
+  onDetailNavigate?: (type: string, id: string) => void;
+  suggestedDayType?: DayType | null;
 }
 
-export default function SixMostImportant({ autoCounts }: SixMostImportantProps) {
+// Map auto_track_key to the correct detail category
+const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsForDate>> = {
+  followups: "reachOutDetails",
+  recruiting: "sharingDetails",
+  appointments: "bookingDetails",
+  relationship: "reachOutDetails",
+};
+
+export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType }: SixMostImportantProps) {
   const isMobile = useIsMobile();
-  const { configs, progress, isLoading, seedDefaults, saveConfigs, upsertProgress } = useFocusItems();
+  const todayKey = toLocalDateKey();
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
   const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState<Omit<FocusItemConfig, "id">[]>([]);
+  const [dayTypeTargetsDraft, setDayTypeTargetsDraft] = useState<Record<DayType, number[]>>(DEFAULT_DAY_TYPE_TARGETS);
+  const [drillDownIndex, setDrillDownIndex] = useState<number | null>(null);
+
+  const isToday = selectedDate === todayKey;
+  const {
+    configs, progress, dayTypeTargets, isLoading, isOOO,
+    getTargetForItem, seedDefaults, saveConfigs, upsertProgress,
+    saveDayTypeTargets, fetchWeekProgress,
+  } = useFocusItems(selectedDate);
+
+  // Day type from progress or default
+  const currentDayType: DayType = progress[0]?.day_type || "power";
+  const [dayType, setDayTypeLocal] = useState<DayType>(currentDayType);
+
+  useEffect(() => {
+    if (progress.length > 0) {
+      setDayTypeLocal(progress[0].day_type || "power");
+    }
+  }, [progress]);
 
   // Seed defaults on first load
   useEffect(() => {
@@ -35,277 +77,241 @@ export default function SixMostImportant({ autoCounts }: SixMostImportantProps) 
     }
   }, [isLoading, configs.length, seedDefaults]);
 
-  // Sync auto-counts to progress
+  // Sync auto-counts to progress (today only)
   useEffect(() => {
-    if (!autoCounts || configs.length === 0) return;
+    if (!autoCounts || configs.length === 0 || !isToday) return;
     for (const config of configs) {
       if (!config.auto_track_key) continue;
       const autoVal = autoCounts[config.auto_track_key as keyof AutoCounts] ?? 0;
       const existing = progress.find((p) => p.sort_order === config.sort_order);
       if (!existing || existing.auto_count !== autoVal) {
-        upsertProgress({ sort_order: config.sort_order, auto_count: autoVal });
+        upsertProgress({ sort_order: config.sort_order, auto_count: autoVal, day_type: dayType });
       }
     }
-  }, [autoCounts, configs, progress, upsertProgress]);
+  }, [autoCounts, configs, progress, upsertProgress, isToday, dayType]);
 
-  const items = useMemo(() => {
+  // Historical metrics from rawData
+  const historicalMetrics = useMemo(() => {
+    if (isToday || !rawData) return null;
+    return computeMetricsForDate(selectedDate, rawData);
+  }, [selectedDate, isToday, rawData]);
+
+  // Build items array
+  const items: FocusItemData[] = useMemo(() => {
     return configs.map((config) => {
       const prog = progress.find((p) => p.sort_order === config.sort_order);
       const autoCount = prog?.auto_count ?? 0;
       const manualAdj = prog?.manual_adjustment ?? 0;
       const current = autoCount + manualAdj;
-      const target = config.default_target;
+      const target = isOOO ? 0 : getTargetForItem(config.sort_order, dayType);
       const isComplete = prog?.is_complete ?? false;
       const isAutoTracked = !!config.auto_track_key;
-      return { ...config, autoCount, manualAdj, current, target, isComplete, isAutoTracked };
+      return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
     });
-  }, [configs, progress]);
+  }, [configs, progress, dayType, getTargetForItem, isOOO]);
 
-  const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
+  const completedCount = items.filter((i) => i.isComplete || (i.current >= i.target && i.target > 0)).length;
+
+  // Weekly data
+  const weekStart = useMemo(() => {
+    const d = new Date(todayKey + "T12:00:00");
+    return startOfWeek(d, { weekStartsOn: 1 });
+  }, [todayKey]);
+
+  const { data: weekData = [] } = useQuery({
+    queryKey: ["focus-week-data", weekStart.toISOString()],
+    queryFn: () => fetchWeekProgress(
+      toLocalDateKey(weekStart),
+      toLocalDateKey(addDays(weekStart, 6))
+    ),
+    enabled: viewMode === "weekly",
+  });
+
+  // Handlers
+  const handleDayTypeChange = useCallback((type: DayType) => {
+    setDayTypeLocal(type);
+    if (isToday) {
+      // Update all progress rows with new day type
+      for (const config of configs) {
+        upsertProgress({ sort_order: config.sort_order, day_type: type });
+      }
+    }
+  }, [isToday, configs, upsertProgress]);
 
   const handleManualAdjust = useCallback(
     (sortOrder: number, delta: number) => {
       const existing = progress.find((p) => p.sort_order === sortOrder);
       const currentAdj = existing?.manual_adjustment ?? 0;
       const autoCount = existing?.auto_count ?? 0;
-      const newAdj = Math.max(-autoCount, currentAdj + delta); // Don't go below 0 total
-      upsertProgress({ sort_order: sortOrder, manual_adjustment: newAdj });
+      const newAdj = Math.max(-autoCount, currentAdj + delta);
+      upsertProgress({ sort_order: sortOrder, manual_adjustment: newAdj, day_type: dayType });
     },
-    [progress, upsertProgress]
+    [progress, upsertProgress, dayType]
   );
 
   const handleToggleComplete = useCallback(
     (sortOrder: number) => {
       const existing = progress.find((p) => p.sort_order === sortOrder);
-      upsertProgress({ sort_order: sortOrder, is_complete: !(existing?.is_complete ?? false) });
+      upsertProgress({ sort_order: sortOrder, is_complete: !(existing?.is_complete ?? false), day_type: dayType });
     },
-    [progress, upsertProgress]
+    [progress, upsertProgress, dayType]
   );
 
+  // Edit mode
   const startEdit = () => {
     setDraft(configs.map(({ id, ...rest }) => rest));
+    // Build dayTypeTargetsDraft from existing
+    const dtt: Record<DayType, number[]> = { power: [], appointment: [], flex: [] };
+    for (const dt of ["power", "appointment", "flex"] as DayType[]) {
+      dtt[dt] = configs.map((c) => {
+        const custom = dayTypeTargets.find(t => t.day_type === dt && t.sort_order === c.sort_order);
+        if (custom) return custom.target;
+        return DEFAULT_DAY_TYPE_TARGETS[dt]?.[c.sort_order] ?? c.default_target;
+      });
+    }
+    setDayTypeTargetsDraft(dtt);
     setEditMode(true);
   };
 
   const saveDraft = async () => {
     await saveConfigs(draft);
+    // Save day type targets
+    const targets: { day_type: DayType; sort_order: number; target: number }[] = [];
+    for (const dt of ["power", "appointment", "flex"] as DayType[]) {
+      const arr = dayTypeTargetsDraft[dt] || [];
+      arr.forEach((target, idx) => {
+        targets.push({ day_type: dt, sort_order: idx, target });
+      });
+    }
+    await saveDayTypeTargets(targets);
     setEditMode(false);
   };
 
-  const resetToDefaults = async () => {
-    setDraft([...DEFAULT_FOCUS_ITEMS]);
+  // Drill-down detail items
+  const getDrillDownItems = (sortOrder: number): FocusDetailItem[] => {
+    if (!rawData) return [];
+    const metrics = isToday ? computeMetricsForDate(todayKey, rawData) : historicalMetrics;
+    if (!metrics) return [];
+    const config = configs.find(c => c.sort_order === sortOrder);
+    if (!config) return [];
+    // Map by auto_track_key or label heuristic
+    switch (config.auto_track_key) {
+      case "followups": return metrics.reachOutDetails;
+      case "recruiting": return metrics.sharingDetails;
+      case "appointments": return metrics.bookingDetails;
+      case "relationship": return metrics.reachOutDetails.filter(d => ["General", "Gift", "Check-in", "Birthday"].includes(d.method || ""));
+      default:
+        if (config.label.toLowerCase().includes("booking")) return metrics.bookingDetails;
+        if (config.label.toLowerCase().includes("team")) return [];
+        return [];
+    }
   };
 
-  const moveDraftItem = (from: number, dir: -1 | 1) => {
-    const to = from + dir;
-    if (to < 0 || to >= draft.length) return;
-    setDraft((prev) => {
-      const next = [...prev];
-      [next[from], next[to]] = [next[to], next[from]];
-      return next.map((item, idx) => ({ ...item, sort_order: idx }));
-    });
-  };
+  const drillDownConfig = drillDownIndex !== null ? configs.find(c => c.sort_order === drillDownIndex) : null;
+  const drillDownItems = drillDownIndex !== null ? getDrillDownItems(drillDownIndex) : [];
+
+  const dateLabel = (() => {
+    if (isToday) return "Today";
+    const d = new Date(selectedDate + "T12:00:00");
+    const yesterday = toLocalDateKey(subDays(new Date(), 1));
+    if (selectedDate === yesterday) return "Yesterday";
+    return format(d, "MMM d, yyyy");
+  })();
 
   if (isLoading) return null;
 
   return (
-    <Card className="border-primary/20 shadow-md bg-primary/5">
-      <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10">
-              <Star className="w-4 h-4 text-primary" />
+    <>
+      <Card className="border-primary/20 shadow-md bg-primary/5">
+        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Star className="w-4 h-4 text-primary" />
+              </div>
+              <CardTitle className="text-sm font-semibold text-foreground">6 Most Important Things</CardTitle>
+              <Badge variant="secondary" className="text-xs">
+                {completedCount} / {items.length || 6}
+              </Badge>
             </div>
-            <CardTitle className="text-sm font-semibold text-foreground">6 Most Important Things</CardTitle>
-            <Badge variant="secondary" className="text-xs">
-              {completedCount} / {items.length || 6}
-            </Badge>
+            {!editMode && isToday && (
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEdit}>
+                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+              </Button>
+            )}
           </div>
-          {!editMode && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEdit}>
-              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-            </Button>
+
+          <FocusDateNav
+            selectedDate={selectedDate}
+            todayKey={todayKey}
+            viewMode={viewMode}
+            isOOO={isOOO}
+            onDateChange={(d) => { setSelectedDate(d); setViewMode("daily"); }}
+            onViewModeChange={setViewMode}
+          />
+
+          {viewMode === "daily" && (
+            <DayTypeSelector
+              value={dayType}
+              onChange={handleDayTypeChange}
+              suggestion={suggestedDayType}
+              disabled={!isToday}
+            />
           )}
-        </div>
-      </CardHeader>
-      <CardContent className={cn("pt-0", isMobile && "px-3")}>
-        {editMode ? (
-          <EditView
-            draft={draft}
-            setDraft={setDraft}
-            onSave={saveDraft}
-            onCancel={() => setEditMode(false)}
-            onReset={resetToDefaults}
-            onMove={moveDraftItem}
-          />
-        ) : (
-          <div className="space-y-1.5">
-            {items.map((item) => (
-              <FocusItemRow
-                key={item.sort_order}
-                item={item}
-                onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
-                onToggleComplete={() => handleToggleComplete(item.sort_order)}
-                isMobile={isMobile}
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+        </CardHeader>
 
-function FocusItemRow({
-  item,
-  onAdjust,
-  onToggleComplete,
-  isMobile,
-}: {
-  item: {
-    label: string;
-    current: number;
-    target: number;
-    isComplete: boolean;
-    isAutoTracked: boolean;
-    sort_order: number;
-  };
-  onAdjust: (delta: number) => void;
-  onToggleComplete: () => void;
-  isMobile: boolean;
-}) {
-  const met = item.current >= item.target;
-  const done = item.isComplete || met;
-  const pct = item.target > 0 ? Math.min(100, Math.round((item.current / item.target) * 100)) : 0;
+        <CardContent className={cn("pt-0", isMobile && "px-3")}>
+          {editMode ? (
+            <FocusEditView
+              draft={draft}
+              dayTypeTargetsDraft={dayTypeTargetsDraft}
+              setDraft={setDraft}
+              setDayTypeTargetsDraft={setDayTypeTargetsDraft}
+              onSave={saveDraft}
+              onCancel={() => setEditMode(false)}
+            />
+          ) : viewMode === "weekly" ? (
+            <FocusWeeklyView
+              configs={configs}
+              weekData={weekData}
+              onDayClick={(d) => { setSelectedDate(d); setViewMode("daily"); }}
+            />
+          ) : (
+            <div className="space-y-1.5">
+              {isOOO && (
+                <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1 font-medium">
+                  Out of Office — targets set to zero
+                </p>
+              )}
+              {items.map((item) => (
+                <FocusItemRow
+                  key={item.sort_order}
+                  item={item}
+                  onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
+                  onToggleComplete={() => handleToggleComplete(item.sort_order)}
+                  onDrillDown={() => setDrillDownIndex(item.sort_order)}
+                  readOnly={!isToday}
+                  isMobile={isMobile}
+                />
+              ))}
+              {!isToday && (
+                <p className="text-[10px] text-muted-foreground pt-1 text-center">
+                  Viewing {dateLabel} — read-only
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2 p-2 rounded-lg border transition-colors",
-        done
-          ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800/40 dark:bg-emerald-900/10"
-          : "border-border/50 bg-background/80"
-      )}
-    >
-      {/* Complete toggle */}
-      <button
-        type="button"
-        onClick={onToggleComplete}
-        className={cn(
-          "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-          done
-            ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-muted-foreground/30 hover:border-primary"
-        )}
-      >
-        {done && <Check className="w-3 h-3" />}
-      </button>
-
-      {/* Label + progress */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5">
-          <span
-            className={cn(
-              "text-sm truncate",
-              done ? "line-through text-muted-foreground" : "text-foreground font-medium"
-            )}
-          >
-            {item.label}
-          </span>
-          <div className="flex items-center gap-1 shrink-0 ml-2">
-            {item.isAutoTracked && (
-              <span title="Auto-tracked"><Zap className="w-3 h-3 text-amber-500" /></span>
-            )}
-            <span className={cn("text-xs font-medium", done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-              {item.current}/{item.target}
-            </span>
-          </div>
-        </div>
-        <Progress value={pct} className="h-1.5" />
-      </div>
-
-      {/* Manual +/- controls */}
-      <div className="flex items-center gap-0.5 shrink-0">
-        <button
-          type="button"
-          onClick={() => onAdjust(-1)}
-          className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-          disabled={item.current <= 0}
-        >
-          <Minus className="w-3 h-3" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onAdjust(1)}
-          className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-        >
-          <Plus className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function EditView({
-  draft,
-  setDraft,
-  onSave,
-  onCancel,
-  onReset,
-  onMove,
-}: {
-  draft: Omit<FocusItemConfig, "id">[];
-  setDraft: React.Dispatch<React.SetStateAction<Omit<FocusItemConfig, "id">[]>>;
-  onSave: () => void;
-  onCancel: () => void;
-  onReset: () => void;
-  onMove: (from: number, dir: -1 | 1) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      {draft.map((item, idx) => (
-        <div key={idx} className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
-          <Input
-            value={item.label}
-            onChange={(e) => {
-              const next = [...draft];
-              next[idx] = { ...next[idx], label: e.target.value };
-              setDraft(next);
-            }}
-            className="h-8 text-sm flex-1"
-          />
-          <Input
-            type="number"
-            value={item.default_target}
-            onChange={(e) => {
-              const next = [...draft];
-              next[idx] = { ...next[idx], default_target: Math.max(1, parseInt(e.target.value) || 1) };
-              setDraft(next);
-            }}
-            className="h-8 text-sm w-14 text-center"
-            min={1}
-            title="Daily target"
-          />
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onMove(idx, -1)} disabled={idx === 0}>
-            <ArrowUp className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onMove(idx, 1)} disabled={idx === draft.length - 1}>
-            <ArrowDown className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      ))}
-      <div className="flex items-center gap-2 pt-1">
-        <Button size="sm" className="h-7 text-xs" onClick={onSave}>
-          Save
-        </Button>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 ml-auto text-muted-foreground" onClick={onReset}>
-          <RotateCcw className="w-3 h-3" /> Reset
-        </Button>
-      </div>
-    </div>
+      <FocusDrillDown
+        open={drillDownIndex !== null}
+        onClose={() => setDrillDownIndex(null)}
+        title={drillDownConfig?.label || "Activity Detail"}
+        dateLabel={dateLabel}
+        items={drillDownItems}
+        onNavigate={onDetailNavigate}
+      />
+    </>
   );
 }

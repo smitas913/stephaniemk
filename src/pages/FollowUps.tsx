@@ -1151,8 +1151,22 @@ export default function FollowUps() {
                     );
                   })()}
 
-                  {/* ═══ SECTION 1: 6 Most Important Things ═══ */}
-                  <SixMostImportant autoCounts={focusAutoCounts} />
+                   {/* ═══ SECTION 1: 6 Most Important Things ═══ */}
+                   <SixMostImportant
+                     autoCounts={focusAutoCounts}
+                     rawData={{
+                       unifiedNotes, allNotes, customers, prospects,
+                       bookingLeads, consultants, events,
+                     }}
+                     onDetailNavigate={(type, id) => {
+                       if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                       else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                       else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                       else if (type === "Lead") navigate("/booking-leads");
+                       else if (type === "Consultant") navigate("/leadership");
+                     }}
+                     suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
+                   />
 
                   {/* ═══ SECTION 2: Follow-Ups (Unified View) ═══ */}
                   {(() => {

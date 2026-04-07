@@ -325,6 +325,7 @@ export type Database = {
         Row: {
           auto_count: number
           created_at: string
+          day_type: string
           focus_date: string
           id: string
           is_complete: boolean
@@ -336,6 +337,7 @@ export type Database = {
         Insert: {
           auto_count?: number
           created_at?: string
+          day_type?: string
           focus_date?: string
           id?: string
           is_complete?: boolean
@@ -347,6 +349,7 @@ export type Database = {
         Update: {
           auto_count?: number
           created_at?: string
+          day_type?: string
           focus_date?: string
           id?: string
           is_complete?: boolean
@@ -405,6 +408,36 @@ export type Database = {
           phone?: string | null
           plan_date?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      day_type_targets: {
+        Row: {
+          created_at: string
+          day_type: string
+          id: string
+          sort_order: number
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_type?: string
+          id?: string
+          sort_order?: number
+          target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_type?: string
+          id?: string
+          sort_order?: number
+          target?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
