@@ -1091,269 +1091,462 @@ export default function FollowUps() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* ===== TODAY TAB ===== */}
+              {/* ===== TODAY TAB — COMMAND CENTER ===== */}
               <TabsContent value="today" className="mt-4">
                 {isNonWorkday && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown. Other follow-ups have been moved to the next working day.</p>
+                    <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown.</p>
                   </div>
                 )}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Left Column (2/3) */}
-                  <div className="lg:col-span-2 space-y-4">
 
-                    {/* Grouped Actions for Today */}
-                    {(() => {
-                      const consultantActions = todayActions.filter((i) => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
-                      const customerActions = todayActions.filter((i) => i.itemType === "customer");
-                      const leadProspectActions = todayActions.filter((i) => i.itemType === "lead" || i.itemType === "prospect");
+                <div className="space-y-4">
 
-                      const renderSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string, bgColor: string) => {
-                        if (items.length === 0) return null;
-                        const Icon = icon;
-                        return (
-                          <Card key={title} className="border-border/50 shadow-sm">
-                            <CardHeader className="pb-2">
-                              <div className="flex items-center gap-2">
-                                <div className={cn("p-1.5 rounded-md", bgColor)}>
-                                  <Icon className={cn("w-4 h-4", iconColor)} />
-                                </div>
-                                <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
-                                <Badge variant="secondary" className="text-xs">{items.length}</Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="divide-y divide-border/40">
-                                {items.map((item) => (
-                                  <ActionRow
-                                    key={`${item.itemType}-${item.id}`}
-                                    item={item}
-                                    inlineNoteId={inlineNoteId}
-                                    inlineNoteText={inlineNoteText}
-                                    inlineNoteType={inlineNoteType}
-                                    inlineFollowUpDate={inlineFollowUpDate}
-                                    setInlineNoteText={setInlineNoteText}
-                                    setInlineNoteType={setInlineNoteType}
-                                    setInlineFollowUpDate={setInlineFollowUpDate}
-                                    onToggleInline={() => toggleInlineNote(item)}
-                                    onInlineSave={() => handleInlineSave(item)}
-                                    onOpenDetail={() => openDetailSheet(item)}
-                                    isPending={contactMutation.isPending}
-                                    onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                                  />
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      };
-
-                      const hasAny = todayActions.length > 0;
-                      return hasAny ? (
-                        <>
-                          {renderSection("Leads / Prospects", CalendarCheck, leadProspectActions, "text-amber-600", "bg-amber-50 dark:bg-amber-950/30")}
-                          {renderSection("Consultants (Coaching)", Crown, consultantActions, "text-violet-600", "bg-violet-50 dark:bg-violet-950/30")}
-                          {renderSection("Customers (Follow-Ups)", Users, customerActions, "text-blue-600", "bg-blue-50 dark:bg-blue-950/30")}
-                        </>
-                      ) : (
-                        <Card className="border-border/50 shadow-sm">
-                          <CardContent className="pt-6">
-                            <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Right Column (1/3) */}
-                  <div className="space-y-4">
-                    <TodaysFocus
-                      reachOutsToday={reachOutsToday}
-                      bookingsToday={bookingsToday}
-                      sharingToday={sharingToday}
-                      reachOutDetails={reachOutDetails}
-                      bookingDetails={bookingDetails}
-                      sharingDetails={sharingDetails}
-                      rawData={{
-                        unifiedNotes: unifiedNotes,
-                        allNotes: allNotes,
-                        customers: customers,
-                        prospects: prospects,
-                        bookingLeads: bookingLeads,
-                        consultants: consultants,
-                        events: events,
-                      }}
-                      onDetailNavigate={(type, id) => {
-                        if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                        else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                        else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                        else if (type === "Lead") navigate("/booking-leads");
-                        else if (type === "Consultant") navigate("/leadership");
-                      }}
-                    />
-                    
-
-                    {/* Today's Schedule — Events + Deliveries + Birthdays */}
-                    <Card className="border-border/50 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                              <Calendar className="w-4 h-4 text-emerald-600" />
-                            </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.length}</Badge>
+                  {/* ═══ SECTION 1: Top 6 Priorities ═══ */}
+                  <Card className="border-primary/20 shadow-md bg-primary/5">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-primary/10">
+                            <Star className="w-4 h-4 text-primary" />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
-                            <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
+                          <CardTitle className="text-sm font-semibold text-foreground">Top Priorities</CardTitle>
+                          <Badge variant="secondary" className="text-xs">{priorityIds.length} / 6</Badge>
+                        </div>
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowPriorityPicker(!showPriorityPicker)}>
+                          <Plus className="w-3.5 h-3.5" /> {showPriorityPicker ? "Done" : "Pick"}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {priorityIds.length === 0 && !showPriorityPicker ? (
+                        <p className="text-xs text-muted-foreground py-3 text-center">
+                          Select up to 6 priority tasks to focus on today
+                        </p>
+                      ) : (
+                        <div className="space-y-1">
+                          {priorityIds.map((pid, idx) => {
+                            const item = todayActions.find(a => a.id === pid);
+                            if (!item) return null;
+                            const badge = TYPE_BADGE[item.itemType];
+                            return (
+                              <div key={pid} className="flex items-center gap-2 p-2 rounded-lg border border-border/50 bg-background/80 group">
+                                <span className="text-xs font-bold text-primary w-5 text-center">{idx + 1}</span>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openDetailSheet(item)}>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                                    <span className={cn("text-[10px] px-1 py-0.5 rounded font-medium shrink-0", badge.className)}>{badge.label}</span>
+                                    {item.follow_up_status === "OVERDUE" && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold shrink-0">
+                                        {item.daysOverdue ? `${item.daysOverdue}d` : "Overdue"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground truncate">{item.followUpReason}</p>
+                                </div>
+                                {item.phone && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                                    <a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removePriority(pid)}>
+                                  <X className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {showPriorityPicker && (
+                        <div className="mt-2 border-t border-border/30 pt-2 max-h-48 overflow-y-auto space-y-0.5">
+                          <p className="text-[10px] text-muted-foreground mb-1">Tap to add/remove from priorities:</p>
+                          {todayActions.filter(a => !priorityIds.includes(a.id)).slice(0, 20).map(item => {
+                            const badge = TYPE_BADGE[item.itemType];
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 text-left transition-colors"
+                                onClick={() => togglePriority(item.id)}
+                                disabled={priorityIds.length >= 6}
+                              >
+                                <Plus className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <span className="text-sm text-foreground truncate">{item.name}</span>
+                                <span className={cn("text-[10px] px-1 py-0.5 rounded font-medium shrink-0 ml-auto", badge.className)}>{badge.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ SECTION 2: Follow-Ups (Unified View) ═══ */}
+                  {(() => {
+                    const teamTypes = new Set(["consultant"]);
+                    const followUpItems = todayActions.filter(i => !teamTypes.has(i.itemType));
+
+                    const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
+                    const dueTodayItems = followUpItems.filter(i => i.follow_up_status !== "OVERDUE" && i.itemType !== "event_task" && i.itemType !== "hostess");
+                    const highPriorityItems = followUpItems.filter(i => i.itemType === "event_task" || i.itemType === "hostess");
+
+                    const renderUnifiedSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string) => {
+                      if (items.length === 0) return null;
+                      const Icon = icon;
+                      return (
+                        <div key={title}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                            <Icon className={cn("w-3 h-3", iconColor)} /> {title} ({items.length})
+                          </p>
+                          <div className="divide-y divide-border/40">
+                            {items.map(item => (
+                              <ActionRow
+                                key={`${item.itemType}-${item.id}`}
+                                item={item}
+                                inlineNoteId={inlineNoteId}
+                                inlineNoteText={inlineNoteText}
+                                inlineNoteType={inlineNoteType}
+                                inlineFollowUpDate={inlineFollowUpDate}
+                                setInlineNoteText={setInlineNoteText}
+                                setInlineNoteType={setInlineNoteType}
+                                setInlineFollowUpDate={setInlineFollowUpDate}
+                                onToggleInline={() => toggleInlineNote(item)}
+                                onInlineSave={() => handleInlineSave(item)}
+                                onOpenDetail={() => openDetailSheet(item)}
+                                isPending={contactMutation.isPending}
+                                onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                              />
+                            ))}
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
-                          <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {/* Events */}
-                            {todayEvents.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
-                                </p>
-                                <div className="divide-y divide-border/40">
-                                  {todayEvents.map((evt) => (
-                                    <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                      onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                          {evt.event_type && <span>{evt.event_type}</span>}
-                                          {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                        </div>
-                                      </div>
-                                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                      );
+                    };
 
-                            {/* Reschedule Follow-Ups Due Today */}
-                            {reschedulingFollowUp.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <RefreshCw className="w-3 h-3" /> Reschedule Follow-Ups ({reschedulingFollowUp.length})
-                                </p>
-                                <div className="divide-y divide-border/40">
-                                  {reschedulingFollowUp.map((evt) => {
-                                    const todayKey = toLocalDateKey();
-                                    const fuDate = evt.reschedule_next_follow_up_date;
-                                    const isDueNow = !fuDate || fuDate <= todayKey;
-                                    return (
-                                      <div key={evt.id} className="py-2 px-1 space-y-1">
-                                        <div className="flex items-center gap-3">
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-foreground truncate">
-                                              {evt.hostess_name || evt.event_id}
-                                            </p>
-                                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                                              {evt.event_type && <span>{evt.event_type}</span>}
-                                              {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
-                                              <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
-                                              {evt.reschedule_last_contact_date && (
-                                                <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>
+                    return (
+                      <Card className="border-border/50 shadow-sm">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
+                              <Users className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <CardTitle className="text-sm font-semibold text-foreground">Follow-Ups</CardTitle>
+                            <Badge variant="secondary" className="text-xs">{followUpItems.length}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          {followUpItems.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {renderUnifiedSection("Overdue", Clock, overdueItems, "text-destructive")}
+                              {renderUnifiedSection("Due Today", CalendarCheck, dueTodayItems, "text-primary")}
+                              {highPriorityItems.length > 0 && renderUnifiedSection("High Priority (Event-Related)", CalendarCheck, highPriorityItems, "text-emerald-600")}
+
+                              {reschedulingFollowUp.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                    <RefreshCw className="w-3 h-3" /> Reschedule Follow-Ups ({reschedulingFollowUp.length})
+                                  </p>
+                                  <div className="divide-y divide-border/40">
+                                    {reschedulingFollowUp.map((evt) => {
+                                      const todayKey = toLocalDateKey();
+                                      const fuDate = evt.reschedule_next_follow_up_date;
+                                      const isDueNow = !fuDate || fuDate <= todayKey;
+                                      return (
+                                        <div key={evt.id} className="py-2 px-1 space-y-1">
+                                          <div className="flex items-center gap-3">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
+                                              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                                {evt.event_type && <span>{evt.event_type}</span>}
+                                                {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
+                                                <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
+                                                {evt.reschedule_last_contact_date && <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>}
+                                                {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
+                                                {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                              {evt.hostess_phone && (
+                                                <>
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                                  </Button>
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                                                  </Button>
+                                                </>
                                               )}
-                                              {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
-                                              {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            {evt.hostess_phone && (
-                                              <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                              </Button>
+                                          <div className="flex items-center gap-1.5 mt-1">
+                                            {evt.requires_manual_next_step ? (
+                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
+                                            ) : (
+                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRescheduleActivityEvent(evt); setRescheduleStep("log"); }}>Log Activity</Button>
                                             )}
-                                            {evt.hostess_phone && (
-                                              <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-                                              </Button>
-                                            )}
+                                            <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                                            </Button>
                                           </div>
                                         </div>
-                                        <div className="flex items-center gap-1.5 mt-1">
-                                          {evt.requires_manual_next_step ? (
-                                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>
-                                              Choose Next Step
-                                            </Button>
-                                          ) : (
-                                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRescheduleActivityEvent(evt); setRescheduleStep("log"); }}>
-                                              Log Activity
-                                            </Button>
-                                          )}
-                                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>
-                                            Set New Date
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                            <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
 
-                            {todayDeliveries.length > 0 && (
+                  {/* ═══ SECTION 3: Team Attention ═══ */}
+                  {(() => {
+                    const teamActions = todayActions.filter(i => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
+                    if (teamActions.length === 0) return null;
+                    const coachingItems = teamActions.filter(i => i.itemType === "consultant");
+                    const eventItems = teamActions.filter(i => i.itemType === "hostess" || i.itemType === "event_task");
+                    return (
+                      <Card className="border-border/50 shadow-sm">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-violet-50 dark:bg-violet-950/30">
+                              <Crown className="w-4 h-4 text-violet-600" />
+                            </div>
+                            <CardTitle className="text-sm font-semibold text-foreground">Team Attention</CardTitle>
+                            <Badge variant="secondary" className="text-xs">{teamActions.length}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="space-y-3">
+                            {coachingItems.length > 0 && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
+                                  <Crown className="w-3 h-3" /> Coaching ({coachingItems.length})
                                 </p>
                                 <div className="divide-y divide-border/40">
-                                  {todayDeliveries.map((del: any) => (
-                                    <div key={del.id} className="py-2 flex items-center gap-3 px-1">
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
-                                        {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
-                                        {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
-                                      </div>
-                                      {del.phone && (
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-                                          <a href={`tel:${phoneForLink(del.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                        </Button>
-                                      )}
-                                    </div>
+                                  {coachingItems.map(item => (
+                                    <ActionRow
+                                      key={`${item.itemType}-${item.id}`}
+                                      item={item}
+                                      inlineNoteId={inlineNoteId}
+                                      inlineNoteText={inlineNoteText}
+                                      inlineNoteType={inlineNoteType}
+                                      inlineFollowUpDate={inlineFollowUpDate}
+                                      setInlineNoteText={setInlineNoteText}
+                                      setInlineNoteType={setInlineNoteType}
+                                      setInlineFollowUpDate={setInlineFollowUpDate}
+                                      onToggleInline={() => toggleInlineNote(item)}
+                                      onInlineSave={() => handleInlineSave(item)}
+                                      onOpenDetail={() => openDetailSheet(item)}
+                                      isPending={contactMutation.isPending}
+                                      onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                    />
                                   ))}
                                 </div>
                               </div>
                             )}
-
-                            {/* Birthdays */}
-                            {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
+                            {eventItems.length > 0 && (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).length})
+                                  <CalendarCheck className="w-3 h-3" /> Event Tasks ({eventItems.length})
                                 </p>
-                                <div className="space-y-0.5">
-                                  {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
-                                    <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c.id)} />
-                                  ))}
-                                  {completedBirthdays.size > 0 && birthdaysToday.some((c) => completedBirthdays.has(c.id)) && (
-                                    <p className="text-[10px] text-muted-foreground italic px-2 py-1">✓ {birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length} birthday message{birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length > 1 ? "s" : ""} sent today</p>
-                                  )}
-                                  {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                                    <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                <div className="divide-y divide-border/40">
+                                  {eventItems.map(item => (
+                                    <ActionRow
+                                      key={`${item.itemType}-${item.id}`}
+                                      item={item}
+                                      inlineNoteId={inlineNoteId}
+                                      inlineNoteText={inlineNoteText}
+                                      inlineNoteType={inlineNoteType}
+                                      inlineFollowUpDate={inlineFollowUpDate}
+                                      setInlineNoteText={setInlineNoteText}
+                                      setInlineNoteType={setInlineNoteType}
+                                      setInlineFollowUpDate={setInlineFollowUpDate}
+                                      onToggleInline={() => toggleInlineNote(item)}
+                                      onInlineSave={() => handleInlineSave(item)}
+                                      onOpenDetail={() => openDetailSheet(item)}
+                                      isPending={contactMutation.isPending}
+                                      onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                    />
                                   ))}
                                 </div>
                               </div>
                             )}
                           </div>
-                        )}
-                      </CardContent>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+
+                  {/* ═══ SECTION 4: Today's Schedule ═══ */}
+                  <Card className="border-border/50 shadow-sm">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
+                            <Calendar className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
+                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.length}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
+                          <Switch id="upcoming-toggle" checked={showUpcoming7} onCheckedChange={setShowUpcoming7} />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                        <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {todayEvents.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
+                              </p>
+                              <div className="divide-y divide-border/40">
+                                {todayEvents.map((evt) => (
+                                  <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                    onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                        {evt.event_type && <span>{evt.event_type}</span>}
+                                        {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
+                                      </div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {todayDeliveries.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
+                              </p>
+                              <div className="divide-y divide-border/40">
+                                {todayDeliveries.map((del: any) => (
+                                  <div key={del.id} className="py-2 flex items-center gap-3 px-1">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
+                                      {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
+                                      {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
+                                    </div>
+                                    {del.phone && (
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                                        <a href={`tel:${phoneForLink(del.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).length})
+                              </p>
+                              <div className="space-y-0.5">
+                                {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
+                                  <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c.id)} />
+                                ))}
+                                {completedBirthdays.size > 0 && birthdaysToday.some((c) => completedBirthdays.has(c.id)) && (
+                                  <p className="text-[10px] text-muted-foreground italic px-2 py-1">✓ {birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length} birthday message{birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length > 1 ? "s" : ""} sent today</p>
+                                )}
+                                {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                                  <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* ═══ SECTION 5: Daily Scorecard ═══ */}
+                  <TodaysFocus
+                    reachOutsToday={reachOutsToday}
+                    bookingsToday={bookingsToday}
+                    sharingToday={sharingToday}
+                    reachOutDetails={reachOutDetails}
+                    bookingDetails={bookingDetails}
+                    sharingDetails={sharingDetails}
+                    rawData={{
+                      unifiedNotes: unifiedNotes,
+                      allNotes: allNotes,
+                      customers: customers,
+                      prospects: prospects,
+                      bookingLeads: bookingLeads,
+                      consultants: consultants,
+                      events: events,
+                    }}
+                    onDetailNavigate={(type, id) => {
+                      if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                      else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                      else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                      else if (type === "Lead") navigate("/booking-leads");
+                      else if (type === "Consultant") navigate("/leadership");
+                    }}
+                  />
+
+                  {/* ═══ SECTION 6: Relationship Touches (Collapsed) ═══ */}
+                  <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
+                    <Card className="border-border/50 shadow-sm">
+                      <CollapsibleTrigger className="w-full">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
+                                <Heart className="w-4 h-4 text-pink-600" />
+                              </div>
+                              <CardTitle className="text-sm font-semibold text-foreground">Relationship Touches</CardTitle>
+                            </div>
+                            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", touchesOpen && "rotate-180")} />
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="text-xs font-semibold text-foreground">Notes</span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">Send a personal note or thank-you card</p>
+                            </div>
+                            <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Gift className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="text-xs font-semibold text-foreground">Gifts</span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">Surprise a customer or team member with a small gift</p>
+                            </div>
+                            <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="text-xs font-semibold text-foreground">Check-ins</span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">Quick call or text just to say hi — no sales agenda</p>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground text-center italic">
+                            Coming soon: Track and log relationship touches to strengthen connections
+                          </p>
+                        </CardContent>
+                      </CollapsibleContent>
                     </Card>
-                  </div>
+                  </Collapsible>
+
                 </div>
               </TabsContent>
 
