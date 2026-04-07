@@ -493,6 +493,8 @@ export const createNote = async (note: {
   note_type?: string;
   next_step?: string | null;
   next_follow_up_date?: string | null;
+  is_booking_attempt?: boolean;
+  is_follow_up?: boolean;
 }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
