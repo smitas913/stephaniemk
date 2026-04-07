@@ -1,8 +1,8 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks, createNote, fetchAllLatestNotes } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { COACHING_STATUSES, EVENT_STATUSES, RESCHEDULE_STATUSES } from "@/lib/types";
@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EventGuestPanel from "@/components/EventGuestPanel";
 import Layout from "@/components/Layout";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +23,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink } from "lucide-react";
+import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -41,6 +43,7 @@ export default function EventDetail() {
     queryFn: () => fetchEventTasksByEventId(eventId!),
     enabled: !!eventId,
   });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
 
@@ -54,6 +57,81 @@ export default function EventDetail() {
   const guestCount = event?.guest_count || 0;
   const orderCount = linkedOrders.length;
   const convRate = guestCount > 0 ? ((orderCount / guestCount) * 100).toFixed(0) : null;
+
+  // ─── Universal Action Panel for Hostess ───
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
+  const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
+
+  const openHostessActionPanel = useCallback(() => {
+    if (!event?.hostess_name) return;
+    const recentNotes = unifiedNotes
+      .filter((n: any) => n.entity_type === "Hostess" && n.note_body?.includes(event.hostess_name!))
+      .slice(0, 5)
+      .map((n: any) => ({
+        date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+        actionType: n.note_type || "Note",
+        preview: (n.note_body || "").slice(0, 80),
+      }));
+
+    setActionPanelItem({
+      id: event.id,
+      personType: "hostess",
+      name: event.hostess_name,
+      phone: event.hostess_phone || null,
+      email: event.hostess_email || null,
+      statusLabel: `${event.event_type || "Event"} — ${event.event_status || "Booked"}`,
+      followUpReason: (event as any).hostess_next_action || "Hostess Coaching",
+      nextFollowUpDate: (event as any).hostess_next_action_date || null,
+      recentNotes,
+    });
+    setActionPanelOpen(true);
+  }, [event, unifiedNotes]);
+
+  const hostessActionMutation = useMutation({
+    mutationFn: async ({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+      item: UniversalActionItem;
+      actionType: string;
+      note: string;
+      isBookingAttempt: boolean;
+      isFollowUp: boolean;
+      nextFollowUpDate?: string | null;
+    }) => {
+      // Update event hostess follow-up date
+      const updates: Record<string, string | null> = {};
+      if (nextFollowUpDate) updates.hostess_next_action_date = nextFollowUpDate;
+      if (Object.keys(updates).length > 0) {
+        await upsertEvent({ event_id: event!.event_id, ...updates } as any);
+      }
+      // Create centralized activity log entry
+      await createNote({
+        entity_type: "Hostess",
+        note_body: note.trim() || `${actionType} hostess contact`,
+        note_type: actionType,
+        next_step: null,
+        next_follow_up_date: nextFollowUpDate ?? null,
+        is_booking_attempt: isBookingAttempt,
+        is_follow_up: isFollowUp,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      toast.success("Hostess activity logged");
+    },
+  });
+
+  const handleHostessAction = useCallback((params: {
+    item: UniversalActionItem;
+    actionType: string;
+    note: string;
+    isBookingAttempt: boolean;
+    isFollowUp: boolean;
+    nextFollowUpDate?: string | null;
+  }) => {
+    hostessActionMutation.mutate(params);
+  }, [hostessActionMutation]);
 
   const eventMutation = useMutation({
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
@@ -518,26 +596,29 @@ export default function EventDetail() {
                   />
                 </div>
               </div>
-              {/* Quick contact buttons */}
-              {(event.hostess_phone || event.hostess_email) && (
-                <div className="flex gap-1.5">
-                  {event.hostess_phone && (
-                    <>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                        <a href={`sms:${phoneForLink(event.hostess_phone)}`}>Text</a>
-                      </Button>
-                    </>
-                  )}
-                  {event.hostess_email && (
+              {/* Quick contact & Log Activity buttons */}
+              <div className="flex gap-1.5 flex-wrap">
+                {event.hostess_phone && (
+                  <>
                     <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                      <a href={`mailto:${event.hostess_email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                      <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                     </Button>
-                  )}
-                </div>
-              )}
+                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                      <a href={`sms:${phoneForLink(event.hostess_phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
+                    </Button>
+                  </>
+                )}
+                {event.hostess_email && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                    <a href={`mailto:${event.hostess_email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                  </Button>
+                )}
+                {event.hostess_name && (
+                  <Button size="sm" className="h-7 text-xs" onClick={openHostessActionPanel}>
+                    📋 Log Activity
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -792,6 +873,15 @@ export default function EventDetail() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Hostess Universal Action Panel */}
+      <UniversalActionPanel
+        item={actionPanelItem}
+        open={actionPanelOpen}
+        onClose={() => setActionPanelOpen(false)}
+        onLogAction={handleHostessAction}
+        isPending={hostessActionMutation.isPending}
+      />
     </Layout>
   );
 }
