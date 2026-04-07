@@ -504,6 +504,8 @@ export default function FollowUps() {
       const notePreview = lastNote
         ? `${lastNote.note_type}: ${lastNote.note_text.slice(0, 60)}${lastNote.note_text.length > 60 ? "…" : ""}`
         : undefined;
+      const unifiedNote = unifiedNotesByCustomer.get(c.id);
+      const lastNextStep = unifiedNote?.next_step || null;
       const fullAddress = [c.address_line_1, c.address_line_2, [c.city, c.state_territory, c.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
       return {
         id: c.id, itemType: "customer" as const, name: c.full_name,
@@ -515,7 +517,7 @@ export default function FollowUps() {
         birthday_mmdd: c.birthday_mmdd,
         birthday: c.birthday, daysOverdue,
         followUpReason: c.follow_up_reason || "Customer Follow-Up",
-        lastNotePreview: notePreview, lastContacted: c.last_contacted,
+        lastNotePreview: notePreview, lastNextStep: lastNextStep || undefined, lastContacted: c.last_contacted,
         actionLabel: "Follow-up",
         allow_non_working_day: !!(c as any).allow_non_working_day,
         _address: fullAddress || null,
