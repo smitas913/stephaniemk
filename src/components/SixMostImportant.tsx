@@ -57,18 +57,18 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   const {
     configs, progress, dayTypeTargets, isLoading, isOOO,
     getTargetForItem, seedDefaults, saveConfigs, upsertProgress,
-    saveDayTypeTargets, fetchWeekProgress,
+    saveDayTypeTargets, fetchWeekProgress, noHistoricalData, progressFetching,
   } = useFocusItems(selectedDate);
 
-  // Day type from progress or default
-  const currentDayType: DayType = progress[0]?.day_type || "power";
-  const [dayType, setDayTypeLocal] = useState<DayType>(currentDayType);
+  // For past days, use the day_type saved in progress; for today use local state
+  const savedDayType: DayType = progress.length > 0 ? (progress[0].day_type as DayType) || "power" : "power";
+  const [dayType, setDayTypeLocal] = useState<DayType>(savedDayType);
 
   useEffect(() => {
     if (progress.length > 0) {
-      setDayTypeLocal(progress[0].day_type || "power");
+      setDayTypeLocal(progress[0].day_type as DayType || "power");
     }
-  }, [progress]);
+  }, [progress, selectedDate]);
 
   // Seed defaults on first load
   useEffect(() => {
@@ -283,21 +283,29 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                   Out of Office — targets set to zero
                 </p>
               )}
-              {items.map((item) => (
-                <FocusItemRow
-                  key={item.sort_order}
-                  item={item}
-                  onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
-                  onToggleComplete={() => handleToggleComplete(item.sort_order)}
-                  onDrillDown={() => setDrillDownIndex(item.sort_order)}
-                  readOnly={!isToday}
-                  isMobile={isMobile}
-                />
-              ))}
-              {!isToday && (
-                <p className="text-[10px] text-muted-foreground pt-1 text-center">
-                  Viewing {dateLabel} — read-only
-                </p>
+              {noHistoricalData ? (
+                <div className="text-center py-6">
+                  <p className="text-sm text-muted-foreground">No activity recorded for this date</p>
+                </div>
+              ) : (
+                <>
+                  {items.map((item) => (
+                    <FocusItemRow
+                      key={item.sort_order}
+                      item={item}
+                      onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
+                      onToggleComplete={() => handleToggleComplete(item.sort_order)}
+                      onDrillDown={() => setDrillDownIndex(item.sort_order)}
+                      readOnly={!isToday}
+                      isMobile={isMobile}
+                    />
+                  ))}
+                  {!isToday && (
+                    <p className="text-[10px] text-muted-foreground pt-1 text-center">
+                      Viewing {dateLabel} — read-only
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
