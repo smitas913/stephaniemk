@@ -272,9 +272,9 @@ export default function FollowUps() {
       .filter((n) => {
         const noteDay = n.note_date || getTimestampDateKey(n.created_at);
         if (noteDay !== todayKey) return false;
-        return n.entity_type === "Customer"
-          ? CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type)
-          : contactTypes.has(n.note_type);
+        if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
+        if (n.entity_type === "Lead" || n.entity_type === "Consultant" || n.entity_type === "Hostess") return true;
+        return contactTypes.has(n.note_type);
       })
       .map((n) => {
         let name = "Unknown";
@@ -290,6 +290,12 @@ export default function FollowUps() {
           name = p?.name || "Prospect";
           id = n.prospect_id;
           type = "Prospect";
+        } else if (n.entity_type === "Lead") {
+          type = "Lead";
+        } else if (n.entity_type === "Consultant") {
+          type = "Consultant";
+        } else if (n.entity_type === "Hostess") {
+          type = "Hostess";
         }
         return { id, name, type, method: n.note_type, detail: undefined };
       });
@@ -427,10 +433,11 @@ export default function FollowUps() {
    // ─── Auto-counts for 6 Most Important Things ───
    const focusAutoCounts = useMemo(() => {
      const todayKey = toLocalDateKey();
-     // Follow-ups completed today: unified notes logged today
+     // Follow-ups completed today: unified notes logged today (all entity types)
+     const followUpEntityTypes = new Set(["Customer", "Prospect", "Lead", "Consultant", "Hostess"]);
      const followups = unifiedNotes.filter((n: any) => {
        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       return noteDay === todayKey && (n.entity_type === "Customer" || n.entity_type === "Prospect");
+       return noteDay === todayKey && followUpEntityTypes.has(n.entity_type);
      }).length;
      // Recruiting: prospects with "Shared" status updated today
      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
@@ -765,7 +772,12 @@ export default function FollowUps() {
     mutationFn: async (lead: BookingLead) => {
       await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New" ? "Contacted" : lead.status });
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["booking-leads"] }); toast.success("Lead marked as contacted"); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      toast.success("Lead marked as contacted");
+    },
   });
 
   const contactMutation = useMutation({
@@ -786,10 +798,26 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
+        // Create unified note for consultant coaching so it appears in Today metrics
+        await createNote({
+          entity_type: "Consultant",
+          note_body: note.trim() || `${type} coaching`,
+          note_type: type,
+          next_step: nextStep?.trim() || null,
+          next_follow_up_date: nextDate ?? null,
+        });
       } else if (item.itemType === "hostess") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
+        // Create unified note for hostess activity so it counts in Today metrics
+        await createNote({
+          entity_type: "Hostess",
+          note_body: note.trim() || `${type} hostess coaching`,
+          note_type: type,
+          next_step: nextStep?.trim() || null,
+          next_follow_up_date: nextDate ?? null,
+        });
       } else if (item.itemType === "lead") {
         const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
         const updates: Record<string, string | null> = {
@@ -798,6 +826,14 @@ export default function FollowUps() {
         };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
+        // Create unified note for lead activity
+        await createNote({
+          entity_type: "Lead",
+          note_body: note.trim() || `${type} follow-up`,
+          note_type: type,
+          next_step: nextStep?.trim() || null,
+          next_follow_up_date: nextDate || defaultNext,
+        });
       } else if (item.itemType === "event_task") {
         await completeEventTask(item.id);
       }
@@ -841,6 +877,7 @@ export default function FollowUps() {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
@@ -914,6 +951,8 @@ export default function FollowUps() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
@@ -2848,13 +2887,24 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const autoFollowUpDays = getAutoFollowUpDays(newStatus);
       const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
 
-      await updateBookingLead(item.id, {
-        last_contact_date: today,
-        next_follow_up_date: autoNextDate,
-        status: newStatus,
-        notes: updatedNotes,
-        lead_activity: activityType,
-      } as any);
+      await Promise.all([
+        updateBookingLead(item.id, {
+          last_contact_date: today,
+          next_follow_up_date: autoNextDate,
+          status: newStatus,
+          notes: updatedNotes,
+          lead_activity: activityType,
+        } as any),
+        createNote({
+          entity_type: "Lead",
+          note_body: newNote.trim(),
+          note_type: activityType,
+          next_step: nextStepText.trim() || null,
+          next_follow_up_date: autoNextDate,
+          is_booking_attempt: isBookingAttempt,
+          is_follow_up: isFollowUpFlag,
+        }),
+      ]);
 
       // Update local state immediately
       setNextFollowUp(autoNextDate);
@@ -2863,8 +2913,10 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       setActivityLogged(true);
       setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)}`);
 
-      // Refresh data but DON'T close
+      // Refresh data
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
 
       // Focus the next follow-up date input
       setTimeout(() => nextFollowUpRef.current?.focus(), 100);

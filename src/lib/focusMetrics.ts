@@ -28,9 +28,11 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((n: any) => {
       const noteDay = n.note_date || getTimestampDateKey(n.created_at);
       if (noteDay !== dateKey) return false;
-      return n.entity_type === "Customer"
-        ? CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type)
-        : contactTypes.has(n.note_type);
+      if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
+      if (n.entity_type === "Lead") return true; // All lead contacts count
+      if (n.entity_type === "Consultant") return true; // All consultant coaching counts
+      if (n.entity_type === "Hostess") return true; // All hostess activity counts
+      return contactTypes.has(n.note_type);
     })
     .map((n: any) => {
       let name = "Unknown";
@@ -46,6 +48,12 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
         name = p?.name || "Prospect";
         id = n.prospect_id;
         type = "Prospect";
+      } else if (n.entity_type === "Lead") {
+        type = "Lead";
+      } else if (n.entity_type === "Consultant") {
+        type = "Consultant";
+      } else if (n.entity_type === "Hostess") {
+        type = "Hostess";
       }
       return { id, name, type, method: n.note_type, detail: undefined };
     });

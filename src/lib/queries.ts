@@ -486,7 +486,7 @@ export const fetchAllLatestNotes = async (): Promise<Note[]> => {
 };
 
 export const createNote = async (note: {
-  entity_type: "Customer" | "Prospect";
+  entity_type: "Customer" | "Prospect" | "Lead" | "Consultant" | "Hostess";
   customer_id?: string | null;
   prospect_id?: string | null;
   note_body: string;
