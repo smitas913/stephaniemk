@@ -1878,6 +1878,19 @@ export default function FollowUps() {
           </DialogContent>
         </Dialog>
 
+        {/* Universal Action Panel */}
+        <UniversalActionPanel
+          item={universalPanelItem}
+          open={universalPanelOpen}
+          onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); }}
+          onLogAction={handleUniversalAction}
+          onNavigateToProfile={(uItem) => {
+            const ai: ActionItem = { id: uItem.id, itemType: uItem.personType, name: uItem.name, phone: uItem.phone, email: uItem.email, next_follow_up: null, follow_up_status: "", actionLabel: "" };
+            navigateToItem(ai);
+          }}
+          isPending={contactMutation.isPending}
+        />
+
         {/* Detail Sheet */}
         <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
           <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
