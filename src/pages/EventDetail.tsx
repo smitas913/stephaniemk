@@ -379,11 +379,11 @@ export default function EventDetail() {
                 </div>
                 <div className={cn("col-span-1 sm:col-span-3")}>
                   <label className="text-xs text-muted-foreground">
-                    {(event.event_format || "In-Person") === "Zoom" ? "Virtual Link" : "Location"}
+                    {(event.event_format || "In-Person") === "Virtual" ? "Virtual Link / Location" : "Location"}
                   </label>
                   <Input
                     className="h-8 text-sm"
-                    placeholder={(event.event_format || "In-Person") === "Zoom" ? "https://zoom.us/..." : "Address or venue"}
+                    placeholder={(event.event_format || "In-Person") === "Virtual" ? "Meeting link or venue" : "Address or venue"}
                     defaultValue={(event as any).event_location || ""}
                     key={`el-${(event as any).event_location}`}
                     onBlur={(e) => {
