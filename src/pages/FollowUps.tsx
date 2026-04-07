@@ -865,6 +865,7 @@ export default function FollowUps() {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", detailItem?.id] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
