@@ -197,12 +197,16 @@ async function logCustomerActivity({
   noteText,
   nextStep,
   nextFollowUpDate,
+  isBookingAttempt,
+  isFollowUp,
 }: {
   customerId: string;
   noteType: string;
   noteText?: string;
   nextStep?: string;
   nextFollowUpDate?: string | null;
+  isBookingAttempt?: boolean;
+  isFollowUp?: boolean;
 }) {
   const fallbackNote = `${noteType} follow-up completed`;
   const noteBody = noteText?.trim() || fallbackNote;
@@ -216,6 +220,8 @@ async function logCustomerActivity({
       note_type: noteType,
       next_step: nextStep?.trim() || null,
       next_follow_up_date: nextFollowUpDate ?? null,
+      is_booking_attempt: isBookingAttempt ?? false,
+      is_follow_up: isFollowUp ?? true,
     }),
   ]);
 }
