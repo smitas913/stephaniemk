@@ -703,8 +703,8 @@ export default function EventDetail() {
               <Button
                 className="flex-1"
                 onClick={() => {
-                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Held" } as any);
                   setShowPostEventPrompt(false);
+                  handleStatusChange("Held");
                 }}
               >
                 ✅ Held
