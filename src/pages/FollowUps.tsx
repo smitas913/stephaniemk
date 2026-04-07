@@ -2605,6 +2605,17 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
               />
             </div>
 
+            <div className="flex items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={isFollowUpFlag} onCheckedChange={(v) => setIsFollowUpFlag(!!v)} />
+                <span className="text-muted-foreground">Follow-Up</span>
+              </label>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox checked={isBookingAttempt} onCheckedChange={(v) => setIsBookingAttempt(!!v)} />
+                <span className="text-muted-foreground">Booking Attempt</span>
+              </label>
+            </div>
+
             <Button className="w-full" onClick={handleLogActivity} disabled={saving || (activityType !== "Did Not Connect" && !newNote.trim())}>
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
               {saving ? "Saving..." : activityType === "Did Not Connect" ? "Log Attempt" : "Log Activity"}
