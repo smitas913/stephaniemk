@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
-import { useFocusItems, DEFAULT_FOCUS_ITEMS, DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
+import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
 import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -30,6 +30,8 @@ interface AutoCounts {
   relationship: number;
 }
 
+type AutoCountKey = keyof AutoCounts;
+
 interface SixMostImportantProps {
   autoCounts?: AutoCounts;
   rawData?: FocusRawData;
@@ -44,6 +46,17 @@ const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsF
   appointments: "bookingDetails",
   relationship: "reachOutDetails",
 };
+
+function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key" | "label" | "sort_order">): AutoCountKey | null {
+  if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
+
+  const normalizedLabel = config.label.trim().toLowerCase();
+  if (config.sort_order === 4 || normalizedLabel.includes("team building") || normalizedLabel.includes("coach")) {
+    return "coaching";
+  }
+
+  return null;
+}
 
 export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType }: SixMostImportantProps) {
   const isMobile = useIsMobile();
@@ -83,8 +96,9 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   useEffect(() => {
     if (!autoCounts || configs.length === 0 || !isToday) return;
     for (const config of configs) {
-      if (!config.auto_track_key) continue;
-      const autoVal = autoCounts[config.auto_track_key as keyof AutoCounts] ?? 0;
+      const autoKey = getEffectiveAutoTrackKey(config);
+      if (!autoKey) continue;
+      const autoVal = autoCounts[autoKey] ?? 0;
       const existing = progress.find((p) => p.sort_order === config.sort_order);
       if (!existing || existing.auto_count !== autoVal) {
         upsertProgress({ sort_order: config.sort_order, auto_count: autoVal, day_type: dayType });
@@ -102,15 +116,18 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   const items: FocusItemData[] = useMemo(() => {
     return configs.map((config) => {
       const prog = progress.find((p) => p.sort_order === config.sort_order);
-      const autoCount = prog?.auto_count ?? 0;
+      const autoKey = getEffectiveAutoTrackKey(config);
+      const autoCount = isToday && autoCounts && autoKey
+        ? autoCounts[autoKey] ?? 0
+        : prog?.auto_count ?? 0;
       const manualAdj = prog?.manual_adjustment ?? 0;
       const current = autoCount + manualAdj;
       const target = isOOO ? 0 : getTargetForItem(config.sort_order, dayType);
       const isComplete = prog?.is_complete ?? false;
-      const isAutoTracked = !!config.auto_track_key;
+      const isAutoTracked = !!autoKey;
       return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
     });
-  }, [configs, progress, dayType, getTargetForItem, isOOO]);
+  }, [configs, progress, dayType, getTargetForItem, isOOO, isToday, autoCounts]);
 
   const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
@@ -207,8 +224,9 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     if (!metrics) return [];
     const config = configs.find(c => c.sort_order === sortOrder);
     if (!config) return [];
+    const autoKey = getEffectiveAutoTrackKey(config);
     // Map by auto_track_key or label heuristic
-    switch (config.auto_track_key) {
+    switch (autoKey) {
       case "followups": return metrics.reachOutDetails;
       case "recruiting": return metrics.sharingDetails;
       case "appointments": return metrics.bookingDetails;
