@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders } from "@/lib/queries";
+import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
@@ -16,10 +16,12 @@ import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
@@ -58,7 +60,7 @@ export default function CustomerDetail() {
   });
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
-
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
   useEffect(() => {
     if (customer) {
       setForm({
@@ -83,10 +85,90 @@ export default function CustomerDetail() {
     }
   }, [customer]);
 
+  // Unified notes for recent activity
+  const { data: recentUnifiedNotes = [] } = useQuery({
+    queryKey: ["customer-unified-notes", id],
+    queryFn: () => fetchNotes("Customer", id!),
+    enabled: !!id,
+  });
+
   const computed = useMemo(() => {
     if (!customer) return null;
     return computeCustomerFields(customer, orders);
   }, [customer, orders]);
+
+  // Build Universal Action Panel item
+  const actionPanelItem = useMemo<UniversalActionItem | null>(() => {
+    if (!customer || !computed) return null;
+    const recentNotes = recentUnifiedNotes.slice(0, 5).map((n: any) => ({
+      date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+      actionType: n.note_type || "Note",
+      preview: (n.note_body || "").slice(0, 80),
+    }));
+    return {
+      id: customer.id,
+      personType: "customer",
+      name: customer.full_name,
+      phone: customer.phone,
+      email: customer.email,
+      statusLabel: computed.activity_status || undefined,
+      vip: computed.vip || undefined,
+      followUpReason: customer.follow_up_reason || undefined,
+      daysOverdue: null,
+      followUpStatus: computed.follow_up_status || undefined,
+      nextFollowUpDate: customer.next_follow_up_date,
+      recentNotes,
+    };
+  }, [customer, computed, recentUnifiedNotes]);
+
+  // Centralized action handler — same logic as Today workflow
+  const actionMutation = useMutation({
+    mutationFn: async ({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp }: {
+      actionType: string; note: string; nextFollowUpDate?: string | null; isBookingAttempt: boolean; isFollowUp: boolean;
+    }) => {
+      const today = toLocalDateKey();
+      const updates: Record<string, string | null> = {
+        last_contacted: today,
+        next_follow_up_date: nextFollowUpDate || null,
+      };
+      await updateCustomer(id!, updates as any);
+      const noteBody = note.trim() || `${actionType} follow-up completed`;
+      await Promise.all([
+        createCustomerNote({ customer_id: id!, note_text: noteBody, note_type: actionType }),
+        createNote({
+          entity_type: "Customer",
+          customer_id: id!,
+          person_id: id!,
+          person_type: "customer",
+          note_body: noteBody,
+          note_type: actionType,
+          next_follow_up_date: nextFollowUpDate ?? null,
+          is_booking_attempt: isBookingAttempt,
+          is_follow_up: isFollowUp,
+        }),
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      toast.success("Activity logged — Follow-up count updated");
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to log activity: ${err.message || "Unknown error"}`);
+    },
+  });
+
+  const handleLogAction = useCallback(({ actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+    item: UniversalActionItem; actionType: string; note: string; isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
+  }) => {
+    actionMutation.mutate({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp });
+  }, [actionMutation]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, string>) => {
@@ -456,9 +538,48 @@ export default function CustomerDetail() {
             )}
           </CardContent>
         </Card>
+        {/* Activity — uses same Universal Action Panel as Today */}
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base">Notes & Activity ({recentUnifiedNotes.length})</CardTitle>
+            <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
+              <Plus className="w-3 h-3" />Log Activity
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {recentUnifiedNotes.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6">No activity yet — tap Log Activity to get started</p>
+            ) : (
+              <div className="space-y-2">
+                {recentUnifiedNotes.slice(0, 10).map((note: any) => (
+                  <div key={note.id} className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
+                      </span>
+                      {note.next_follow_up_date && (
+                        <span className="text-[11px] text-primary font-medium">
+                          → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Notes & Activity Timeline */}
-        <CustomerNotesTimeline customerId={id!} />
+        {/* Universal Action Panel */}
+        <UniversalActionPanel
+          item={actionPanelItem}
+          open={actionPanelOpen}
+          onClose={() => setActionPanelOpen(false)}
+          onLogAction={handleLogAction}
+          isPending={actionMutation.isPending}
+        />
 
         {/* Convert to Consultant */}
         {!isConsultant && customer.relationship_status !== "Former Consultant" && (
