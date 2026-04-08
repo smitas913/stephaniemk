@@ -102,10 +102,15 @@ export default function EventDetail() {
       if (Object.keys(updates).length > 0) {
         await upsertEvent({ event_id: event!.event_id, ...updates } as any);
       }
+      // Include hostess name in note_body for identity resolution in drill-downs
+      const hostessName = event!.hostess_name || "Hostess";
+      const hostessNoteBody = note.trim()
+        ? `[${hostessName}] ${note.trim()}`
+        : `[${hostessName}] ${actionType} hostess contact`;
       // Create centralized activity log entry
       await createNote({
         entity_type: "Hostess",
-        note_body: note.trim() || `${actionType} hostess contact`,
+        note_body: hostessNoteBody,
         note_type: actionType,
         next_step: null,
         next_follow_up_date: nextFollowUpDate ?? null,
@@ -792,24 +797,40 @@ export default function EventDetail() {
         <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-base">Was this event held?</DialogTitle>
+              <DialogTitle className="text-base">What happened with this event?</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This event's date has passed. Please confirm if it was held or cancelled.
+              This event's date has passed. Please select the current status.
             </p>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-2 pt-2">
               <Button
-                className="flex-1"
+                className="w-full"
                 onClick={() => {
                   setShowPostEventPrompt(false);
                   handleStatusChange("Held");
                 }}
               >
-                ✅ Held
+                ✅ Held — Enter Results
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  eventMutation.mutate({
+                    event_id: event!.event_id,
+                    reschedule_status: "In Process of Rescheduling",
+                    reschedule_attempt_number: 0,
+                    reschedule_next_follow_up_date: toLocalDateKey(addDays(new Date(), 1)),
+                  } as any);
+                  setShowPostEventPrompt(false);
+                  toast.success("Event moved to rescheduling workflow");
+                }}
+              >
+                🔄 Rescheduling in Progress
               </Button>
               <Button
                 variant="destructive"
-                className="flex-1"
+                className="w-full"
                 onClick={() => {
                   eventMutation.mutate({ event_id: event!.event_id, event_status: "Cancelled" } as any);
                   setShowPostEventPrompt(false);
