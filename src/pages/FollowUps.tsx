@@ -483,69 +483,40 @@ export default function FollowUps() {
    const focusAutoCounts = useMemo(() => {
      const todayKey = toLocalDateKey();
 
-     // Helper: check if a note resolves to a real person record
-     const isResolvable = (n: any): boolean => {
-       if (n.entity_type === "Customer" && n.customer_id) return customers.some((c: any) => c.id === n.customer_id);
-       if (n.entity_type === "Prospect" && n.prospect_id) return prospects.some((p: any) => p.id === n.prospect_id);
-       if (n.entity_type === "Lead") return bookingLeads.some((l: any) => n.note_body?.includes(l.name));
-       if (n.entity_type === "Consultant") return consultants.some((c: any) => n.note_body?.includes(c.name));
-       if (n.entity_type === "Hostess") return events.some((e: any) => e.hostess_name && n.note_body?.includes(e.hostess_name));
-       return false;
-     };
+      const metrics = computeMetricsForDate(todayKey, {
+        unifiedNotes,
+        allNotes,
+        customers,
+        prospects,
+        bookingLeads,
+        consultants,
+        events,
+      });
 
-     // Booking attempts: only resolvable notes
-     const seenBookingIds = new Set<string>();
-     let booking_attempts = 0;
-     for (const n of unifiedNotes) {
-       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       if (noteDay === todayKey && n.is_booking_attempt === true && isResolvable(n)) {
-         const key = n.customer_id || n.prospect_id || n.id;
-         if (!seenBookingIds.has(key)) { seenBookingIds.add(key); booking_attempts++; }
-       }
-     }
-     for (const l of bookingLeads) {
-       if (l.last_contact_date === todayKey && !l.converted_customer_id && !seenBookingIds.has(l.id)) {
-         seenBookingIds.add(l.id); booking_attempts++;
-       }
-     }
+      const booking_attempts = metrics.bookingAttempts;
 
-     // Follow-ups: exclude consultants and unresolvable entries
-     const followUpSeen = new Set<string>();
-     let followups = 0;
-     for (const n of unifiedNotes) {
-       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       if (noteDay !== todayKey) continue;
-       if (n.is_follow_up !== true) continue;
-       if (n.entity_type === "Consultant") continue;
-       if (!isResolvable(n)) continue;
-       const key = n.customer_id || n.prospect_id || n.id;
-       if (!followUpSeen.has(key)) { followUpSeen.add(key); followups++; }
-     }
+      const followupSeen = new Set<string>();
+      let followups = 0;
+      for (const n of unifiedNotes) {
+        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
+        if (noteDay !== todayKey) continue;
+        if (n.is_follow_up !== true) continue;
+        if (n.entity_type === "Consultant") continue;
+        if (n.person_type && !n.person_id) continue;
+        const key = n.person_id || n.customer_id || n.prospect_id || n.id;
+        if (!followupSeen.has(key)) { followupSeen.add(key); followups++; }
+      }
 
-     // Recruiting
-     const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
-     // Personal appointments
-     const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
+      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
+      const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
+      const coaching = metrics.coachingDetails.length;
 
-     // Consultant coaching: only resolvable consultant notes
-     const coachingSeen = new Set<string>();
-     let coaching = 0;
-     for (const n of unifiedNotes) {
-       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       if (noteDay !== todayKey || n.entity_type !== "Consultant") continue;
-       if (!isResolvable(n)) continue;
-       const matched = consultants.find((c: any) => n.note_body?.includes(c.name));
-       const key = matched ? matched.id : n.id;
-       if (!coachingSeen.has(key)) { coachingSeen.add(key); coaching++; }
-     }
-
-     // Relationship building
-     const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
-     const relationship = allNotes.filter((n: any) => {
-       const noteDay = n.created_at ? n.created_at.slice(0, 10) : null;
-       return noteDay === todayKey && relTypes.has(n.note_type);
-     }).length;
-     return { booking_attempts, followups, recruiting, appointments, coaching, relationship };
+      const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
+      const relationship = allNotes.filter((n: any) => {
+        const noteDay = n.created_at ? n.created_at.slice(0, 10) : null;
+        return noteDay === todayKey && relTypes.has(n.note_type);
+      }).length;
+      return { booking_attempts, followups, recruiting, appointments, coaching, relationship };
    }, [unifiedNotes, prospects, events, allNotes, bookingLeads, customers, consultants]);
 
   // Mobile detection
