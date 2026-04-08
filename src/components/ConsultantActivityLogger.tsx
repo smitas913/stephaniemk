@@ -33,13 +33,15 @@ interface Props {
   consultantName: string;
 }
 
+const CONSULTANT_REASONS = ["Coaching", "Accountability", "Training / Support"] as const;
+
 export default function ConsultantActivityLogger({ consultantId, consultantName }: Props) {
   const queryClient = useQueryClient();
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [nextOption, setNextOption] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
-
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
   // Fetch recent activity for this consultant
   const { data: unifiedNotes = [] } = useQuery({
     queryKey: ["unified-notes"],
