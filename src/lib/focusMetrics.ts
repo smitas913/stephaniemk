@@ -113,23 +113,20 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
       detail: l.lead_activity || undefined,
     }));
 
-  // ─── Consultant coaching items ───
+  // ─── Consultant coaching items (each activity counts separately) ───
   const consultantCoachingItems: FocusDetailItem[] = [];
-  const seenConsultantIds = new Set<string>();
   for (const n of unifiedNotes) {
     const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
     const hasCoachingTag = Array.isArray((n as any).tags) && (n as any).tags.includes("consultant_coaching");
     if (noteDay !== dateKey || !hasCoachingTag) continue;
     const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
     if (!resolved || resolved.type !== "Consultant") continue;
-    if (seenConsultantIds.has(resolved.id)) continue;
-    seenConsultantIds.add(resolved.id);
     consultantCoachingItems.push({
       id: resolved.id,
       name: resolved.name,
       type: "Consultant",
       method: (n as any).note_type || "Coaching",
-      detail: consultants.find((c: any) => c.id === resolved.id)?.coaching_focus || undefined,
+      detail: (n as any).note_body?.replace(`[${resolved.name}] `, '').slice(0, 60) || consultants.find((c: any) => c.id === resolved.id)?.coaching_focus || undefined,
     });
   }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
@@ -102,13 +102,17 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
   const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
 
-  // Auto-open consultant panel when navigated from drill-down
+  // Auto-open consultant panel when navigated from drill-down (only once)
+  const autoOpenHandled = useRef(false);
   useEffect(() => {
-    if (autoOpenId && consultants.length > 0 && !viewConsultant) {
+    if (autoOpenId && consultants.length > 0 && !autoOpenHandled.current) {
       const found = consultants.find(c => c.id === autoOpenId);
-      if (found) setViewConsultant(found);
+      if (found) {
+        setViewConsultant(found);
+        autoOpenHandled.current = true;
+      }
     }
-  }, [autoOpenId, consultants, viewConsultant]);
+  }, [autoOpenId, consultants]);
   const [focusFilter, setFocusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("coaching");

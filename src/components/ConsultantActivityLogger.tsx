@@ -19,7 +19,6 @@ const QUICK_ACTIONS = [
   { key: "Call", label: "Called", icon: Phone, emoji: "📞" },
   { key: "In Person", label: "Spoke", icon: Users, emoji: "🤝" },
   { key: "Email", label: "Emailed", icon: Mail, emoji: "📧" },
-  { key: "Did Not Connect", label: "No Response", icon: Phone, emoji: "📵" },
 ] as const;
 
 const WHATS_NEXT_OPTIONS = [
@@ -48,7 +47,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
   });
 
   const recentActivity = unifiedNotes
-    .filter((n: any) => n.entity_type === "Consultant" && n.note_body?.includes(consultantName))
+    .filter((n: any) => n.entity_type === "Consultant" && (n.person_id === consultantId || n.note_body?.includes(consultantName)))
     .slice(0, 5);
 
   const logMutation = useMutation({
@@ -175,7 +174,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
           }}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors",
-            "bg-muted border border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+            "bg-[hsl(0_0%_85%)] border border-[hsl(0_0%_75%)] text-[hsl(0_0%_30%)] hover:bg-[hsl(0_0%_80%)] hover:text-[hsl(0_0%_20%)]"
           )}
         >
           <SkipForward className="w-4 h-4" />
