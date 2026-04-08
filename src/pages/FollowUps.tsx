@@ -651,32 +651,42 @@ export default function FollowUps() {
         const effectiveDate = normalizeFollowUpDate(c.next_coaching_date);
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
         const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        // Find last contact date from unified notes
+        const lastConsultantNote = unifiedNotes.find((n: any) => n.entity_type === "Consultant" && n.note_body?.includes(c.name));
         return {
           id: c.id, itemType: "consultant" as const, name: c.name,
           phone: c.phone, email: c.email,
           next_follow_up: effectiveDate, follow_up_status: status,
           daysOverdue,
           followUpReason: (c as any).coaching_focus || "Coaching",
-          lastContacted: null,
+          lastContacted: lastConsultantNote?.note_date || null,
           actionLabel: "Coaching",
           allow_non_working_day: !!(c as any).allow_non_working_day,
         };
       });
 
     // Hostess coaching items (from events with hostess_next_action_date)
+    // EXCLUDE events that are in rescheduling flow — those appear in the separate reschedule section
     const hostessItems: ActionItem[] = events
-      .filter((e) => !e.is_archived && e.hostess_name && (e as any).hostess_next_action_date)
+      .filter((e) => {
+        if (e.is_archived || !e.hostess_name || !(e as any).hostess_next_action_date) return false;
+        const reschedule = e.reschedule_status || "None";
+        if (reschedule === "In Process of Rescheduling" || e.event_status === "Cancelled") return false;
+        return true;
+      })
       .map((e) => {
         const effectiveDate = normalizeFollowUpDate((e as any).hostess_next_action_date);
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
         const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
+        // Find last contact date from unified notes
+        const lastHostessNote = unifiedNotes.find((n: any) => n.entity_type === "Hostess" && n.note_body?.includes(e.hostess_name!));
         return {
           id: e.id, itemType: "hostess" as const, name: e.hostess_name!,
           phone: e.hostess_phone, email: e.hostess_email,
           next_follow_up: effectiveDate, follow_up_status: status,
           daysOverdue,
           followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
-          lastContacted: null,
+          lastContacted: lastHostessNote?.note_date || null,
           actionLabel: "Hostess Coaching",
           allow_non_working_day: !!(e as any).allow_non_working_day,
         };
@@ -878,9 +888,13 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
+        // Include consultant name in note_body for identity resolution in drill-downs
+        const consultantNoteBody = note.trim()
+          ? `[${item.name}] ${note.trim()}`
+          : `[${item.name}] ${type} coaching`;
         await createNote({
           entity_type: "Consultant",
-          note_body: note.trim() || `${type} coaching`,
+          note_body: consultantNoteBody,
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,
@@ -891,9 +905,13 @@ export default function FollowUps() {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
+        // Include hostess name in note_body for identity resolution in drill-downs
+        const hostessNoteBody = note.trim()
+          ? `[${item.name}] ${note.trim()}`
+          : `[${item.name}] ${type} hostess coaching`;
         await createNote({
           entity_type: "Hostess",
-          note_body: note.trim() || `${type} hostess coaching`,
+          note_body: hostessNoteBody,
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,

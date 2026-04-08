@@ -57,10 +57,13 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
       note: string;
       nextFollowUpDate: string | null;
     }) => {
-      // 1. Create centralized activity note
+      // 1. Create centralized activity note — include consultant name for identity resolution
+      const consultantNoteBody = note.trim()
+        ? `[${consultantName}] ${note.trim()}`
+        : `[${consultantName}] ${action} coaching`;
       await createNote({
         entity_type: "Consultant",
-        note_body: note.trim() || `${action} coaching`,
+        note_body: consultantNoteBody,
         note_type: action,
         next_follow_up_date: nextFollowUpDate,
         is_booking_attempt: false,

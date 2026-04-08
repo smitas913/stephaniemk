@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks, createNote, fetchAllLatestNotes } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
+import { addDays } from "date-fns";
 import { COACHING_STATUSES, EVENT_STATUSES, RESCHEDULE_STATUSES } from "@/lib/types";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
@@ -102,10 +103,15 @@ export default function EventDetail() {
       if (Object.keys(updates).length > 0) {
         await upsertEvent({ event_id: event!.event_id, ...updates } as any);
       }
+      // Include hostess name in note_body for identity resolution in drill-downs
+      const hostessName = event!.hostess_name || "Hostess";
+      const hostessNoteBody = note.trim()
+        ? `[${hostessName}] ${note.trim()}`
+        : `[${hostessName}] ${actionType} hostess contact`;
       // Create centralized activity log entry
       await createNote({
         entity_type: "Hostess",
-        note_body: note.trim() || `${actionType} hostess contact`,
+        note_body: hostessNoteBody,
         note_type: actionType,
         next_step: null,
         next_follow_up_date: nextFollowUpDate ?? null,
@@ -596,6 +602,37 @@ export default function EventDetail() {
                   />
                 </div>
               </div>
+
+              {/* Recent Activity History */}
+              {(() => {
+                const hostessNotes = unifiedNotes
+                  .filter((n: any) => n.entity_type === "Hostess" && event.hostess_name && n.note_body?.includes(event.hostess_name))
+                  .slice(0, 5);
+                if (hostessNotes.length === 0) return null;
+                return (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Activity</p>
+                    <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-2.5">
+                      {hostessNotes.map((note: any, i: number) => (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          <span className="text-muted-foreground whitespace-nowrap shrink-0">
+                            {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
+                          </span>
+                          <span className="text-muted-foreground">—</span>
+                          <span className="font-medium text-foreground shrink-0">{note.note_type || "Note"}</span>
+                          {note.note_body && (
+                            <>
+                              <span className="text-muted-foreground">—</span>
+                              <span className="text-muted-foreground truncate">{(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 80)}</span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Quick contact & Log Activity buttons */}
               <div className="flex gap-1.5 flex-wrap">
                 {event.hostess_phone && (
@@ -792,24 +829,40 @@ export default function EventDetail() {
         <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-base">Was this event held?</DialogTitle>
+              <DialogTitle className="text-base">What happened with this event?</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              This event's date has passed. Please confirm if it was held or cancelled.
+              This event's date has passed. Please select the current status.
             </p>
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-2 pt-2">
               <Button
-                className="flex-1"
+                className="w-full"
                 onClick={() => {
                   setShowPostEventPrompt(false);
                   handleStatusChange("Held");
                 }}
               >
-                ✅ Held
+                ✅ Held — Enter Results
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  eventMutation.mutate({
+                    event_id: event!.event_id,
+                    reschedule_status: "In Process of Rescheduling",
+                    reschedule_attempt_number: 0,
+                    reschedule_next_follow_up_date: toLocalDateKey(addDays(new Date(), 1)),
+                  } as any);
+                  setShowPostEventPrompt(false);
+                  toast.success("Event moved to rescheduling workflow");
+                }}
+              >
+                🔄 Rescheduling in Progress
               </Button>
               <Button
                 variant="destructive"
-                className="flex-1"
+                className="w-full"
                 onClick={() => {
                   eventMutation.mutate({ event_id: event!.event_id, event_status: "Cancelled" } as any);
                   setShowPostEventPrompt(false);
