@@ -26,7 +26,7 @@ type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
 };
 
-export default function CustomerList() {
+export default function CustomerList({ embedded = false }: { embedded?: boolean }) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -183,12 +183,11 @@ export default function CustomerList() {
 
   const customerHasOrders = (customerId: string) => allOrders.some((o) => o.customer_id === customerId);
 
-  return (
-    <Layout>
+  const content = (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Customers</h2>
+            {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Customers</h2>}
             <p className="text-sm text-muted-foreground">{enriched.filter(c => filterArchive === "active" ? c.is_active !== false : c.is_active === false).length} total · {filtered.length} shown</p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
@@ -619,6 +618,8 @@ export default function CustomerList() {
           </div>
         )}
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }
