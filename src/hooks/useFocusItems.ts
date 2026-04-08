@@ -37,18 +37,10 @@ export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 5, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
 ];
 
-// Targets use [min, max] ranges. Completion triggers at min value.
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
   power: [10, 8, 3, 2, 2, 3],
   appointment: [6, 4, 2, 1, 1, 2],
-  flex: [3, 3, 1, 0, 1, 1],
-};
-
-// Stretch targets (upper bound of range) for display purposes
-export const DEFAULT_DAY_TYPE_STRETCH: Record<DayType, number[]> = {
-  power: [10, 10, 4, 2, 3, 5],
-  appointment: [8, 5, 2, 1, 1, 2],
-  flex: [5, 5, 1, 1, 1, 2],
+  flex: [3, 3, 1, 1, 1, 1],
 };
 
 export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
