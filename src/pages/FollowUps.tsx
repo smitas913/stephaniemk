@@ -863,12 +863,13 @@ export default function FollowUps() {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
-        if (nextDate) updates.next_follow_up_date = nextDate;
+        // Always update next_follow_up_date: set it to the new date or clear it
+        updates.next_follow_up_date = nextDate || null;
         await updateCustomer(item.id, updates as any);
         await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: nextDate ?? null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: isFollowUp ?? true });
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
-        if (nextDate) updates.next_follow_up_date = nextDate;
+        updates.next_follow_up_date = nextDate || null;
         await updateProspect(item.id, updates as any);
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
         await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: note.trim() || `${type} follow-up`, note_type: type, next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null, is_booking_attempt: isBookingAttempt ?? false, is_follow_up: isFollowUp ?? true });
