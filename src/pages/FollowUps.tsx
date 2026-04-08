@@ -294,10 +294,17 @@ export default function FollowUps() {
           type = "Prospect";
         } else if (n.entity_type === "Lead") {
           type = "Lead";
+          // Match lead by note_body content or fallback
+          const matchedLead = bookingLeads.find((l) => n.note_body?.includes(l.name));
+          if (matchedLead) { name = matchedLead.name; id = matchedLead.id; }
         } else if (n.entity_type === "Consultant") {
           type = "Consultant";
+          const matchedConsultant = consultants.find((c) => n.note_body?.includes(c.name));
+          if (matchedConsultant) { name = matchedConsultant.name; id = matchedConsultant.id; }
         } else if (n.entity_type === "Hostess") {
           type = "Hostess";
+          const matchedEvent = events.find((e) => e.hostess_name && n.note_body?.includes(e.hostess_name));
+          if (matchedEvent) { name = matchedEvent.hostess_name!; id = matchedEvent.id; }
         }
         return { id, name, type, method: n.note_type, detail: undefined };
       });
@@ -496,14 +503,16 @@ export default function FollowUps() {
        }
      }
 
-     // Follow-ups completed today: unified notes flagged as is_follow_up today
-     const followUpEntityTypes = new Set(["Customer", "Prospect", "Lead", "Consultant", "Hostess"]);
-     const followups = unifiedNotes.filter((n: any) => {
-       const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-       if (noteDay !== todayKey) return false;
-       // Count if explicitly flagged as follow-up, or if it's a standard entity contact
-       return n.is_follow_up === true || followUpEntityTypes.has(n.entity_type);
-     }).length;
+      // Follow-ups completed today: ONLY count notes explicitly flagged as is_follow_up, deduplicated by person
+      const followUpSeen = new Set<string>();
+      let followups = 0;
+      for (const n of unifiedNotes) {
+        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
+        if (noteDay !== todayKey) continue;
+        if (n.is_follow_up !== true) continue;
+        const key = n.customer_id || n.prospect_id || n.id;
+        if (!followUpSeen.has(key)) { followUpSeen.add(key); followups++; }
+      }
      // Recruiting: prospects with "Shared" status updated today
      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
      // Personal appointments: events happening today

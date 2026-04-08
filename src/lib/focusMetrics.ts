@@ -50,10 +50,16 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
         type = "Prospect";
       } else if (n.entity_type === "Lead") {
         type = "Lead";
+        const matchedLead = bookingLeads.find((l: any) => n.note_body?.includes(l.name));
+        if (matchedLead) { name = matchedLead.name; id = matchedLead.id; }
       } else if (n.entity_type === "Consultant") {
         type = "Consultant";
+        const matchedConsultant = consultants.find((c: any) => n.note_body?.includes(c.name));
+        if (matchedConsultant) { name = matchedConsultant.name; id = matchedConsultant.id; }
       } else if (n.entity_type === "Hostess") {
         type = "Hostess";
+        const matchedEvent = events.find((e: any) => e.hostess_name && n.note_body?.includes(e.hostess_name));
+        if (matchedEvent) { name = matchedEvent.hostess_name; id = matchedEvent.id; }
       }
       return { id, name, type, method: n.note_type, detail: undefined };
     });
@@ -117,6 +123,18 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
         name = p?.name || "Prospect";
         id = n.prospect_id;
         type = "Prospect";
+      } else if (n.entity_type === "Lead") {
+        type = "Lead";
+        const matchedLead = bookingLeads.find((l: any) => n.note_body?.includes(l.name));
+        if (matchedLead) { name = matchedLead.name; id = matchedLead.id; }
+      } else if (n.entity_type === "Consultant") {
+        type = "Consultant";
+        const matchedConsultant = consultants.find((c: any) => n.note_body?.includes(c.name));
+        if (matchedConsultant) { name = matchedConsultant.name; id = matchedConsultant.id; }
+      } else if (n.entity_type === "Hostess") {
+        type = "Hostess";
+        const matchedEvent = events.find((e: any) => e.hostess_name && n.note_body?.includes(e.hostess_name));
+        if (matchedEvent) { name = matchedEvent.hostess_name; id = matchedEvent.id; }
       }
       return { id, name, type, method: n.note_type, detail: n.note_body?.slice(0, 60) || undefined, isBookingAttempt: true };
     });
