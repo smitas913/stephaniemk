@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Mail, Users,
   CheckCircle2, Calendar, ArrowRight, ExternalLink,
-  CalendarCheck, Clock,
+  CalendarCheck, Clock, SkipForward,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
@@ -283,6 +283,26 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                     </button>
                   ))}
                 </div>
+
+                {/* Skip / Did Not Reach Out */}
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    resetState();
+                    onClose();
+                    // No activity logged — just close
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-sm font-medium transition-all",
+                    "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/50",
+                    "active:scale-[0.97]",
+                    isPending && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <SkipForward className="w-4 h-4" />
+                  Skipped / Did Not Reach Out
+                </button>
 
                 {/* Auto-tag indicator */}
                 <div className="flex flex-wrap gap-1.5">
