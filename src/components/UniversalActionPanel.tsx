@@ -335,14 +335,17 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                 {/* Auto-tag indicator */}
                 <div className="flex flex-wrap gap-1.5">
                   <span className="text-[10px] text-muted-foreground">Auto-tags:</span>
-                  {getAutoTags(item.personType).isFollowUp && (
+                  {getAutoTags(item.personType, selectedReason).isFollowUp && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Follow-Up</Badge>
                   )}
-                  {getAutoTags(item.personType).isBookingAttempt && (
+                  {getAutoTags(item.personType, selectedReason).isBookingAttempt && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Booking Attempt</Badge>
                   )}
                   {item.personType === "consultant" && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Coaching</Badge>
+                  )}
+                  {(item.personType === "lead" || item.personType === "customer") && (
+                    <span className="text-[10px] text-muted-foreground italic">Select "Booking Ask" to count as Booking Attempt</span>
                   )}
                 </div>
               </div>
