@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Users, Mail, Calendar,
-  ArrowRight, CalendarCheck, CheckCircle2,
+  ArrowRight, CalendarCheck, CheckCircle2, SkipForward,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
@@ -159,6 +159,26 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
             </button>
           ))}
         </div>
+
+        {/* Skip / Did Not Reach Out */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedAction(null);
+            setNoteText("");
+            setNextOption(null);
+            setCustomDate("");
+            toast.info("Skipped — no activity logged");
+          }}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-sm font-medium transition-all",
+            "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/50",
+            "active:scale-[0.97]"
+          )}
+        >
+          <SkipForward className="w-4 h-4" />
+          Skipped / Did Not Reach Out
+        </button>
 
         {/* Note Input */}
         <div className="space-y-1.5">
