@@ -78,16 +78,23 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
       detail: l.lead_activity || undefined,
     }));
 
+  // Consultant coaching items: derive from unified notes with entity_type "Consultant" for this date
   const consultantReachOutItems: FocusDetailItem[] = [];
-  for (const c of consultants) {
-    const updatedThatDay = (c as any).updated_at?.startsWith(dateKey);
-    const coachingAdvanced = (c as any).next_coaching_date && (c as any).next_coaching_date > dateKey;
-    if (updatedThatDay && coachingAdvanced) {
-      consultantReachOutItems.push({
-        id: (c as any).id, name: (c as any).name, type: "Consultant",
-        method: "Coaching", detail: (c as any).coaching_focus || undefined,
-      });
-    }
+  const seenConsultantIds = new Set<string>();
+  for (const n of unifiedNotes) {
+    const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
+    if (noteDay !== dateKey || (n as any).entity_type !== "Consultant") continue;
+    const matchedConsultant = consultants.find((c: any) => (n as any).note_body?.includes(c.name));
+    const cId = matchedConsultant ? (matchedConsultant as any).id : (n as any).id;
+    if (seenConsultantIds.has(cId)) continue;
+    seenConsultantIds.add(cId);
+    consultantReachOutItems.push({
+      id: cId,
+      name: matchedConsultant ? (matchedConsultant as any).name : "Consultant",
+      type: "Consultant",
+      method: (n as any).note_type || "Coaching",
+      detail: matchedConsultant ? (matchedConsultant as any).coaching_focus || undefined : undefined,
+    });
   }
 
   const seenIds = new Set<string>();

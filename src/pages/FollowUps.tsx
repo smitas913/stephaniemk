@@ -517,11 +517,15 @@ export default function FollowUps() {
      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
      // Personal appointments: events happening today
      const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
-      // Consultant coaching: count unified notes with entity_type "Consultant" today
-      const coaching = unifiedNotes.filter((n: any) => {
+      // Consultant coaching: deduplicated unified notes with entity_type "Consultant" today
+      const coachingSeen = new Set<string>();
+      let coaching = 0;
+      for (const n of unifiedNotes) {
         const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-        return noteDay === todayKey && n.entity_type === "Consultant";
-      }).length;
+        if (noteDay !== todayKey || n.entity_type !== "Consultant") continue;
+        const key = n.id;
+        if (!coachingSeen.has(key)) { coachingSeen.add(key); coaching++; }
+      }
 
      // Relationship building: customer notes of relationship types today
      const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
