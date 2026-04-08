@@ -1157,19 +1157,26 @@ export default function FollowUps() {
         requires_manual_next_step: newAttempt >= 5,
       };
       await updateEvent(event.id, updates);
-      // Also log a note for traceability
-      if (text.trim()) {
-        const { data: userData } = await supabase.auth.getUser();
-        await supabase.from("customer_notes" as any).insert({
-          customer_id: event.id,
-          note_text: `[Reschedule ${nt}] ${text.trim()}`,
-          note_type: nt,
-          owner_user_id: userData.user?.id || null,
-        } as any).then(() => {});
-      }
+      // Log centralized note for traceability and 6 Important tracking
+      const hostessName = event.hostess_name || "Hostess";
+      const noteBody = text.trim()
+        ? `[${hostessName}] [Reschedule] ${text.trim()}`
+        : `[${hostessName}] [Reschedule] ${nt} contact`;
+      await createNote({
+        entity_type: "Hostess",
+        note_body: noteBody,
+        note_type: nt,
+        next_step: null,
+        next_follow_up_date: nextFollowUp,
+        is_booking_attempt: true,
+        is_follow_up: true,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
       setRescheduleActivityEvent(null);
       setRescheduleNoteText("");
       setRescheduleNoteType("Call");
@@ -1340,7 +1347,12 @@ export default function FollowUps() {
                        else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
                        else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
                        else if (type === "Lead") navigate("/booking-leads");
-                       else if (type === "Consultant") navigate("/leadership");
+                       else if (type === "Consultant") navigate("/leadership", { state: { from: "/follow-ups", tab: "consultants", consultantId: id } });
+                       else if (type === "Hostess") {
+                         const evt = events.find(e => e.id === id || (e.hostess_name && e.id === id));
+                         if (evt) navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } });
+                         else navigate("/events");
+                       }
                      }}
                      suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
                    />
