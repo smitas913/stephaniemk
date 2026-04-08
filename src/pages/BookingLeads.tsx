@@ -1,11 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant } from "@/lib/queries";
+import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant, createNote, fetchAllLatestNotes } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES, NEXT_STEP_TYPES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem, RecentNote } from "@/components/UniversalActionPanel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Phone, MessageSquare, Mail, Plus, UserCheck, Trash2, Search, Clock, Users, Briefcase } from "lucide-react";
+import { Phone, MessageSquare, Mail, Plus, UserCheck, Trash2, Search, Clock, Users, Briefcase, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -37,6 +38,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const navigate = useNavigate();
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -46,6 +48,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
   const [convertLead, setConvertLead] = useState<BookingLead | null>(null);
   const [convertType, setConvertType] = useState<"customer" | "consultant">("customer");
+
+  // Universal Action Panel state
+  const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
   // Quick Add form state
   const [form, setForm] = useState({
@@ -181,6 +187,72 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     });
   };
 
+  const openActionPanel = useCallback((lead: BookingLead) => {
+    // Build recent notes from unified notes for this lead
+    const leadNotes: RecentNote[] = (unifiedNotes as any[])
+      .filter((n) => n.entity_type === "Lead" && n.person_id === lead.id)
+      .slice(0, 3)
+      .map((n) => ({
+        date: formatDateOnly(n.note_date || n.created_at, "MMM d"),
+        actionType: n.note_type || "Note",
+        preview: n.note_body?.slice(0, 60) || "",
+      }));
+
+    const item: UniversalActionItem = {
+      id: lead.id,
+      personType: "lead",
+      name: lead.name,
+      phone: lead.phone ? phoneForLink(lead.phone) : null,
+      email: lead.email || null,
+      statusLabel: lead.status,
+      followUpReason: undefined,
+      nextFollowUpDate: lead.next_follow_up_date,
+      recentNotes: leadNotes,
+    };
+    setActionPanelItem(item);
+    setActionPanelOpen(true);
+  }, [unifiedNotes]);
+
+  const actionMutation = useMutation({
+    mutationFn: async ({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+      item: UniversalActionItem;
+      actionType: string;
+      note: string;
+      isBookingAttempt: boolean;
+      isFollowUp: boolean;
+      nextFollowUpDate?: string | null;
+    }) => {
+      const today = toLocalDateKey();
+      const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
+      const nextDate = nextFollowUpDate || defaultNext;
+
+      await updateBookingLead(item.id, {
+        last_contact_date: today,
+        next_follow_up_date: nextDate,
+        status: "Contacted",
+      } as any);
+
+      await createNote({
+        entity_type: "Lead",
+        person_id: item.id,
+        person_type: "lead",
+        note_body: note.trim() || `${actionType} follow-up`,
+        note_type: actionType,
+        next_follow_up_date: nextDate,
+        is_booking_attempt: isBookingAttempt,
+        is_follow_up: isFollowUp,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      toast.success("Activity logged");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const handleSaveEdit = () => {
     if (!editLead) return;
     updateMut.mutate({
@@ -262,7 +334,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
               <Card key={lead.id} className="border-border/50 shadow-sm hover:shadow transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openEdit(lead)}>
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openActionPanel(lead)}>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[lead.status] || "bg-muted text-muted-foreground")}>
@@ -309,6 +381,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                           <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(lead)} title="Edit">
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteLead(lead)} title="Delete">
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </Button>
@@ -391,89 +466,27 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           </DialogContent>
         </Dialog>
 
-        {/* ═══ Edit Lead Sheet ═══ */}
-        <Sheet open={!!editLead} onOpenChange={(open) => !open && setEditLead(null)}>
-          <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
-            <SheetHeader className="p-6 pb-4 border-b border-border">
-              <SheetTitle className="text-lg">{editLead?.name}</SheetTitle>
-              {editLead && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className={cn("text-[11px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[editLead.status])}>
-                    {editLead.status}
-                  </span>
-                  {editLead.lead_activity && editLead.lead_activity !== "No Activity Yet" && (
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{editLead.lead_activity}</span>
-                  )}
-                  {editLead.lead_source && (
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{editLead.lead_source}</span>
-                  )}
-                </div>
-              )}
-              {editLead && (
-                <div className="flex gap-2 mt-3">
-                  {editLead.phone && (
-                    <>
-                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                        <a href={`tel:${phoneForLink(editLead.phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                        <a href={`sms:${phoneForLink(editLead.phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
-                      </Button>
-                    </>
-                  )}
-                  {editLead.email && (
-                    <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                      <a href={`mailto:${editLead.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
-                    </Button>
-                  )}
-                  {!editLead.converted_customer_id && editLead.status !== "Not Interested" && (
-                    <Button variant="outline" size="sm" className="h-8 text-xs text-emerald-600 border-emerald-200" onClick={() => { setEditLead(null); setConvertType("customer"); setConvertLead(editLead); }}>
-                      <UserCheck className="w-3 h-3 mr-1" />Convert
-                    </Button>
-                  )}
-                </div>
-              )}
-            </SheetHeader>
-
-            <ScrollArea className="flex-1 p-6">
-              <div className="space-y-4">
-                {/* Status */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
-                  <Select value={editLead?.status || "New"} onValueChange={(v) => updateMut.mutate({ status: v })}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {BOOKING_LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Lead Activity */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Lead Activity</label>
-                  <Select value={editForm.lead_activity} onValueChange={(v) => setEditForm({ ...editForm, lead_activity: v })}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Mark Contacted */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => updateMut.mutate({ last_contact_date: toLocalDateKey(), status: editLead?.status === "New" ? "Contacted" : editLead?.status })}
-                >
-                  <Phone className="w-3.5 h-3.5 mr-1" />Mark Contacted Today
-                </Button>
-
-                {/* Form fields */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
-                  <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="h-9" />
-                </div>
+        {/* ═══ Edit Lead Dialog ═══ */}
+        <Dialog open={!!editLead} onOpenChange={(open) => !open && setEditLead(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Lead</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
+                <Select value={editLead?.status || "New"} onValueChange={(v) => updateMut.mutate({ status: v })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BOOKING_LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Name</label>
+                <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="h-9" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
                   <Input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="h-9" />
@@ -482,32 +495,37 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
                   <Input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="h-9" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Lead Source</label>
-                  <Select value={editForm.lead_source} onValueChange={(v) => setEditForm({ ...editForm, lead_source: v })}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Select source" /></SelectTrigger>
-                    <SelectContent>
-                      {BOOKING_LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> Next Follow-Up Date
-                  </label>
-                  <Input type="date" value={editForm.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setEditForm({ ...editForm, next_follow_up_date: e.target.value })} className="h-9" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
-                  <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="min-h-[80px]" />
-                </div>
-                <Button className="w-full" onClick={handleSaveEdit} disabled={!editForm.name.trim() || updateMut.isPending}>
-                  {updateMut.isPending ? "Saving..." : "Save Changes"}
-                </Button>
               </div>
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Lead Source</label>
+                <Select value={editForm.lead_source} onValueChange={(v) => setEditForm({ ...editForm, lead_source: v })}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Select source" /></SelectTrigger>
+                  <SelectContent>
+                    {BOOKING_LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
+                <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="min-h-[60px]" />
+              </div>
+              <Button className="w-full" onClick={handleSaveEdit} disabled={!editForm.name.trim() || updateMut.isPending}>
+                {updateMut.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ═══ Universal Action Panel ═══ */}
+        <UniversalActionPanel
+          item={actionPanelItem}
+          open={actionPanelOpen}
+          onClose={() => { setActionPanelOpen(false); setActionPanelItem(null); }}
+          onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }) =>
+            actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate })
+          }
+          isPending={actionMutation.isPending}
+        />
 
         {/* ═══ Delete Confirmation ═══ */}
         <AlertDialog open={!!deleteLead} onOpenChange={(open) => !open && setDeleteLead(null)}>
