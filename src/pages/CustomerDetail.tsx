@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders } from "@/lib/queries";
+import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
@@ -16,10 +16,12 @@ import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
