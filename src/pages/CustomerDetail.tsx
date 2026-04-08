@@ -85,10 +85,90 @@ export default function CustomerDetail() {
     }
   }, [customer]);
 
+  // Unified notes for recent activity
+  const { data: recentUnifiedNotes = [] } = useQuery({
+    queryKey: ["customer-unified-notes", id],
+    queryFn: () => fetchNotes("Customer", id!),
+    enabled: !!id,
+  });
+
   const computed = useMemo(() => {
     if (!customer) return null;
     return computeCustomerFields(customer, orders);
   }, [customer, orders]);
+
+  // Build Universal Action Panel item
+  const actionPanelItem = useMemo<UniversalActionItem | null>(() => {
+    if (!customer || !computed) return null;
+    const recentNotes = recentUnifiedNotes.slice(0, 5).map((n: any) => ({
+      date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+      actionType: n.note_type || "Note",
+      preview: (n.note_body || "").slice(0, 80),
+    }));
+    return {
+      id: customer.id,
+      personType: "customer",
+      name: customer.full_name,
+      phone: customer.phone,
+      email: customer.email,
+      statusLabel: computed.activity_status || undefined,
+      vip: computed.vip || undefined,
+      followUpReason: customer.follow_up_reason || undefined,
+      daysOverdue: computed.follow_up_status === "OVERDUE" ? computed.days_overdue : null,
+      followUpStatus: computed.follow_up_status || undefined,
+      nextFollowUpDate: customer.next_follow_up_date,
+      recentNotes,
+    };
+  }, [customer, computed, recentUnifiedNotes]);
+
+  // Centralized action handler — same logic as Today workflow
+  const actionMutation = useMutation({
+    mutationFn: async ({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp }: {
+      actionType: string; note: string; nextFollowUpDate?: string | null; isBookingAttempt: boolean; isFollowUp: boolean;
+    }) => {
+      const today = toLocalDateKey();
+      const updates: Record<string, string | null> = {
+        last_contacted: today,
+        next_follow_up_date: nextFollowUpDate || null,
+      };
+      await updateCustomer(id!, updates as any);
+      const noteBody = note.trim() || `${actionType} follow-up completed`;
+      await Promise.all([
+        createCustomerNote({ customer_id: id!, note_text: noteBody, note_type: actionType }),
+        createNote({
+          entity_type: "Customer",
+          customer_id: id!,
+          person_id: id!,
+          person_type: "customer",
+          note_body: noteBody,
+          note_type: actionType,
+          next_follow_up_date: nextFollowUpDate ?? null,
+          is_booking_attempt: isBookingAttempt,
+          is_follow_up: isFollowUp,
+        }),
+      ]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      toast.success("Activity logged — Follow-up count updated");
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to log activity: ${err.message || "Unknown error"}`);
+    },
+  });
+
+  const handleLogAction = useCallback(({ actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+    item: UniversalActionItem; actionType: string; note: string; isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
+  }) => {
+    actionMutation.mutate({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp });
+  }, [actionMutation]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, string>) => {
