@@ -67,7 +67,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
         note_type: action,
         next_follow_up_date: nextFollowUpDate,
         is_booking_attempt: false,
-        is_follow_up: true,
+        is_follow_up: false, // consultant activity counts under coaching, not follow-ups
       });
 
       // 2. Update consultant's next coaching date if provided
