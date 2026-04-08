@@ -504,15 +504,17 @@ export default function FollowUps() {
      }
 
       // Follow-ups completed today: ONLY count notes explicitly flagged as is_follow_up, deduplicated by person
-      const followUpSeen = new Set<string>();
-      let followups = 0;
-      for (const n of unifiedNotes) {
-        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-        if (noteDay !== todayKey) continue;
-        if (n.is_follow_up !== true) continue;
-        const key = n.customer_id || n.prospect_id || n.id;
-        if (!followUpSeen.has(key)) { followUpSeen.add(key); followups++; }
-      }
+       // Exclude consultant activity — those count under coaching, not follow-ups
+       const followUpSeen = new Set<string>();
+       let followups = 0;
+       for (const n of unifiedNotes) {
+         const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
+         if (noteDay !== todayKey) continue;
+         if (n.is_follow_up !== true) continue;
+         if (n.entity_type === "Consultant") continue; // consultant activity goes to coaching only
+         const key = n.customer_id || n.prospect_id || n.id;
+         if (!followUpSeen.has(key)) { followUpSeen.add(key); followups++; }
+       }
      // Recruiting: prospects with "Shared" status updated today
      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
      // Personal appointments: events happening today
