@@ -7,7 +7,6 @@ export interface FocusItemData {
   label: string;
   current: number;
   target: number;
-  stretchTarget?: number;
   isComplete: boolean;
   isAutoTracked: boolean;
 }
@@ -25,11 +24,8 @@ export default function FocusItemRow({
   item, onAdjust, onToggleComplete, onDrillDown, readOnly, isMobile,
 }: FocusItemRowProps) {
   const met = item.current >= item.target;
-  const stretch = item.stretchTarget && item.stretchTarget > item.target ? item.stretchTarget : null;
-  const stretchMet = stretch ? item.current >= stretch : false;
   const done = item.isComplete || met;
   const pct = item.target > 0 ? Math.min(100, Math.round((item.current / item.target) * 100)) : 0;
-  const targetDisplay = stretch ? `${item.target}–${stretch}` : `${item.target}`;
 
   return (
     <div
@@ -87,11 +83,8 @@ export default function FocusItemRow({
               <span title="Auto-tracked"><Zap className="w-3 h-3 text-amber-500" /></span>
             )}
             <span className={cn("text-xs font-medium", done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-              {item.current}/{targetDisplay}
+              {item.current}/{item.target}
             </span>
-            {stretch && met && !stretchMet && (
-              <span className="text-[10px] text-amber-500 font-medium">→{stretch}</span>
-            )}
             <ChevronRight className="w-3 h-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
