@@ -904,8 +904,8 @@ export default function FollowUps() {
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,
-          is_booking_attempt: isBookingAttempt ?? false,
-          is_follow_up: isFollowUp ?? true,
+          is_booking_attempt: false,
+          is_follow_up: false, // consultant activity counts under coaching, not follow-ups
         });
       } else if (item.itemType === "hostess") {
         const updates: Record<string, string | null> = {};

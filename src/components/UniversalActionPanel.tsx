@@ -71,6 +71,8 @@ function getAutoTags(personType: PersonType): { isFollowUp: boolean; isBookingAt
     case "lead":
     case "hostess":
       return { isFollowUp: true, isBookingAttempt: true };
+    case "consultant":
+      return { isFollowUp: false, isBookingAttempt: false }; // coaching only, not follow-ups
     default:
       return { isFollowUp: true, isBookingAttempt: false };
   }
