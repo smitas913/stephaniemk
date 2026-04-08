@@ -1,11 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant } from "@/lib/queries";
+import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant, createNote, fetchAllLatestNotes } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES, NEXT_STEP_TYPES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { BookingLead } from "@/lib/types";
 import Layout from "@/components/Layout";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem, RecentNote } from "@/components/UniversalActionPanel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Phone, MessageSquare, Mail, Plus, UserCheck, Trash2, Search, Clock, Users, Briefcase } from "lucide-react";
+import { Phone, MessageSquare, Mail, Plus, UserCheck, Trash2, Search, Clock, Users, Briefcase, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
