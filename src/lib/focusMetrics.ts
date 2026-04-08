@@ -73,6 +73,10 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   sharingDetails: FocusDetailItem[];
   bookingAttemptDetails: FocusDetailItem[];
   coachingDetails: FocusDetailItem[];
+  clientFollowUpDetails: FocusDetailItem[];
+  hostessCoachingDetails: FocusDetailItem[];
+  recruitingFollowUpDetails: FocusDetailItem[];
+  relationshipDetails: FocusDetailItem[];
 } {
   const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
