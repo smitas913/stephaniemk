@@ -1,7 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, fetchOrders, deleteEvent } from "@/lib/queries";
+import { fetchEvents, fetchOrders, deleteEvent, upsertEvent, createNote, fetchAllLatestNotes } from "@/lib/queries";
 import Layout from "@/components/Layout";
+import UniversalActionPanel from "@/components/UniversalActionPanel";
+import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, Calendar, Users, DollarSign, Plus, Trash2 } from "lucide-react";
+import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,82 @@ export default function Events() {
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+
+  // ─── Universal Action Panel for Hostess ───
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
+  const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
+
+  const openHostessPanel = useCallback((e: EventRecord) => {
+    if (!e.hostess_name) return;
+    const recentNotes = unifiedNotes
+      .filter((n: any) => n.entity_type === "Hostess" && n.note_body?.includes(e.hostess_name!))
+      .slice(0, 5)
+      .map((n: any) => ({
+        date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+        actionType: n.note_type || "Note",
+        preview: (n.note_body || "").slice(0, 80),
+      }));
+
+    setActionPanelItem({
+      id: e.id,
+      personType: "hostess",
+      name: e.hostess_name,
+      phone: e.hostess_phone || null,
+      email: e.hostess_email || null,
+      statusLabel: `${e.event_type || "Event"} — ${e.event_status || "Booked"}`,
+      followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
+      nextFollowUpDate: (e as any).hostess_next_action_date || null,
+      recentNotes,
+    });
+    setActionPanelOpen(true);
+  }, [unifiedNotes]);
+
+  const hostessActionMutation = useMutation({
+    mutationFn: async ({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+      item: UniversalActionItem;
+      actionType: string;
+      note: string;
+      isBookingAttempt: boolean;
+      isFollowUp: boolean;
+      nextFollowUpDate?: string | null;
+    }) => {
+      // Find the event to update
+      const ev = events.find((e) => e.id === uItem.id);
+      if (ev && nextFollowUpDate) {
+        await upsertEvent({ event_id: ev.event_id, hostess_next_action_date: nextFollowUpDate } as any);
+      }
+      // Create centralized activity log entry
+      await createNote({
+        entity_type: "Hostess",
+        note_body: note.trim() || `${actionType} hostess contact`,
+        note_type: actionType,
+        next_step: null,
+        next_follow_up_date: nextFollowUpDate ?? null,
+        is_booking_attempt: isBookingAttempt,
+        is_follow_up: isFollowUp,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      setActionPanelOpen(false);
+      toast.success("Hostess activity logged");
+    },
+  });
+
+  const handleHostessAction = useCallback((params: {
+    item: UniversalActionItem;
+    actionType: string;
+    note: string;
+    isBookingAttempt: boolean;
+    isFollowUp: boolean;
+    nextFollowUpDate?: string | null;
+  }) => {
+    hostessActionMutation.mutate(params);
+  }, [hostessActionMutation]);
 
   const deleteMutation = useMutation({
     mutationFn: (eventId: string) => deleteEvent(eventId),
@@ -220,7 +298,7 @@ export default function Events() {
                   <TableHead className="text-xs text-right">Total Sales</TableHead>
                   <TableHead className="text-xs text-center">Bookings</TableHead>
                   <TableHead className="text-xs text-center">Conv %</TableHead>
-                  <TableHead className="text-xs w-10"></TableHead>
+                  <TableHead className="text-xs w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -274,17 +352,33 @@ export default function Events() {
                         ) : "—"}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            setDeleteTarget(e);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-0.5">
+                          {e.hostess_name && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-primary"
+                              title="Log hostess activity"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                openHostessPanel(e);
+                              }}
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setDeleteTarget(e);
+                            }}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -294,6 +388,19 @@ export default function Events() {
           </div>
         )}
       </div>
+
+      {/* Hostess Universal Action Panel */}
+      <UniversalActionPanel
+        item={actionPanelItem}
+        open={actionPanelOpen}
+        onClose={() => setActionPanelOpen(false)}
+        onLogAction={handleHostessAction}
+        onNavigateToProfile={(item) => {
+          const ev = events.find((e) => e.id === item.id);
+          if (ev) navigate(`/events/${ev.event_id}`);
+        }}
+        isPending={hostessActionMutation.isPending}
+      />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
