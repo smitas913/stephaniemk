@@ -30,7 +30,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
       if (noteDay !== dateKey) return false;
       if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
       if (n.entity_type === "Lead") return true; // All lead contacts count
-      if (n.entity_type === "Consultant") return true; // All consultant coaching counts
+      if (n.entity_type === "Consultant") return false; // Consultant activity counts under coaching only, not reach-outs
       if (n.entity_type === "Hostess") return true; // All hostess activity counts
       return contactTypes.has(n.note_type);
     })
