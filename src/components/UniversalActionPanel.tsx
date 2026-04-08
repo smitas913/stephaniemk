@@ -157,7 +157,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     if (optionKey === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (optionKey === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
-    const tags = getAutoTags(item.personType);
+    const tags = getAutoTags(item.personType, selectedReason);
     onLogAction({
       item,
       actionType: selectedAction || "Call",
@@ -172,7 +172,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
-    const tags = getAutoTags(item.personType);
+    const tags = getAutoTags(item.personType, selectedReason);
     onLogAction({
       item,
       actionType: selectedAction || "Call",
