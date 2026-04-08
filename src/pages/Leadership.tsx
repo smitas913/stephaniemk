@@ -78,7 +78,7 @@ export default function Leadership() {
           </TabsContent>
 
           <TabsContent value="consultants" className="mt-4">
-            <ConsultantsTab />
+            <ConsultantsTab autoOpenId={locationState?.consultantId || null} />
           </TabsContent>
 
           <TabsContent value="leadership" className="mt-4">
