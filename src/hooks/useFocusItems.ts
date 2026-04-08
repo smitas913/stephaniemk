@@ -29,18 +29,26 @@ export interface DayTypeTarget {
 }
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
-  { sort_order: 0, label: "Booking Attempts", default_target: 5, auto_track_key: "booking_attempts" },
-  { sort_order: 1, label: "Client/Lead Follow-Up", default_target: 10, auto_track_key: "client_followup" },
+  { sort_order: 0, label: "Booking Attempts", default_target: 10, auto_track_key: "booking_attempts" },
+  { sort_order: 1, label: "Client/Lead Follow-Up", default_target: 8, auto_track_key: "client_followup" },
   { sort_order: 2, label: "Hostess/Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
   { sort_order: 3, label: "Recruiting Follow-Up", default_target: 2, auto_track_key: "recruiting_followup" },
   { sort_order: 4, label: "Consultant Coaching (Team Building)", default_target: 2, auto_track_key: "consultant_coaching" },
-  { sort_order: 5, label: "Relationship Building", default_target: 2, auto_track_key: "relationship" },
+  { sort_order: 5, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
 ];
 
+// Targets use [min, max] ranges. Completion triggers at min value.
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
-  power: [5, 10, 3, 2, 2, 2],
-  appointment: [3, 6, 2, 1, 1, 1],
-  flex: [1, 3, 1, 0, 0, 1],
+  power: [10, 8, 3, 2, 2, 3],
+  appointment: [6, 4, 2, 1, 1, 2],
+  flex: [3, 3, 1, 0, 1, 1],
+};
+
+// Stretch targets (upper bound of range) for display purposes
+export const DEFAULT_DAY_TYPE_STRETCH: Record<DayType, number[]> = {
+  power: [10, 10, 4, 2, 3, 5],
+  appointment: [8, 5, 2, 1, 1, 2],
+  flex: [5, 5, 1, 1, 1, 2],
 };
 
 export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
