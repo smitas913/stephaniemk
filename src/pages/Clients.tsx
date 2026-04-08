@@ -1,11 +1,17 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CustomerList from "./CustomerList";
 import BookingLeads from "./BookingLeads";
 
 export default function Clients() {
-  const [tab, setTab] = useState("customers");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "customers";
+
+  const setTab = (value: string) => {
+    setSearchParams({ tab: value }, { replace: true });
+  };
 
   return (
     <Layout>
@@ -19,31 +25,13 @@ export default function Clients() {
             <TabsTrigger value="leads">Leads</TabsTrigger>
           </TabsList>
           <TabsContent value="customers">
-            <CustomerListInline />
+            <CustomerList embedded />
           </TabsContent>
           <TabsContent value="leads">
-            <BookingLeadsInline />
+            <BookingLeads embedded />
           </TabsContent>
         </Tabs>
       </div>
     </Layout>
   );
 }
-
-// Inline wrappers that render content without the Layout wrapper
-// We need to refactor CustomerList and BookingLeads to support embedded mode
-import { useSearchParams } from "react-router-dom";
-
-function CustomerListInline() {
-  // Render the full customer list page - it already includes Layout,
-  // so we'll need to update it. For now, redirect approach:
-  return <CustomerListContent />;
-}
-
-function BookingLeadsInline() {
-  return <BookingLeadsContent />;
-}
-
-// We'll import the content-only versions
-import CustomerListContent from "./CustomerListContent";
-import BookingLeadsContent from "./BookingLeadsContent";

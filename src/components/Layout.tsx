@@ -1,27 +1,33 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, UserPlus, Receipt, Calendar, Target, CalendarCheck, Crown, TrendingUp, BookOpen, Mail, MessageSquare } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, Calendar, Target, Crown, TrendingUp, Receipt, Mail, MessageSquare, BookOpen, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const adminNavItems = [
-  // Row 1: Daily workflow & income-producing
+const primaryNavItems = [
   { to: "/follow-ups", label: "Today", icon: Clock },
+  { to: "/clients", label: "Clients", icon: Users },
   { to: "/events", label: "Events", icon: Calendar },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/leadership", label: "Leadership", icon: Crown },
-  { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
-  { to: "/customers", label: "Customers", icon: Users },
+];
+
+const secondaryNavItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/scoreboard", label: "Scoreboard", icon: Target },
+  { to: "/analytics", label: "Analytics", icon: TrendingUp },
+  { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
   { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
   { to: "/communications", label: "Comms", icon: MessageSquare },
-  // Row 2: Analysis & reference
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/scoreboard", label: "Scoreboard", icon: Target },
-  { to: "/expenses", label: "Expenses", icon: Receipt },
-  { to: "/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
 
@@ -30,9 +36,9 @@ const consultantNavItems = [
 ];
 
 function getNavItems(role?: string) {
-  if (role === "owner" || role === "admin") return adminNavItems;
-  if (role === "consultant") return consultantNavItems;
-  return [];
+  if (role === "owner" || role === "admin") return { primary: primaryNavItems, secondary: secondaryNavItems };
+  if (role === "consultant") return { primary: consultantNavItems, secondary: [] };
+  return { primary: [], secondary: [] };
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
