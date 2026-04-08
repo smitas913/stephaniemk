@@ -910,7 +910,7 @@ export default function FollowUps() {
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate || defaultNext,
-          is_booking_attempt: isBookingAttempt ?? true,
+          is_booking_attempt: isBookingAttempt ?? false,
           is_follow_up: isFollowUp ?? true,
         });
       } else if (item.itemType === "event_task") {
@@ -3052,6 +3052,8 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
         } as any),
         createNote({
           entity_type: "Lead",
+          person_id: item.id,
+          person_type: "lead",
           note_body: newNote.trim(),
           note_type: activityType,
           next_step: nextStepText.trim() || null,

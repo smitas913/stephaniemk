@@ -76,15 +76,19 @@ const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> =
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" },
 };
 
-function getAutoTags(personType: PersonType): { isFollowUp: boolean; isBookingAttempt: boolean } {
+function getAutoTags(personType: PersonType, followUpReason?: string | null): { isFollowUp: boolean; isBookingAttempt: boolean } {
+  // Booking Attempt is inferred from "Booking Ask" reason, not auto-tagged by person type
+  const isBookingAsk = followUpReason === "Booking Ask";
   switch (personType) {
-    case "lead":
     case "hostess":
       return { isFollowUp: true, isBookingAttempt: true };
     case "consultant":
       return { isFollowUp: false, isBookingAttempt: false };
+    case "lead":
+    case "customer":
+      return { isFollowUp: true, isBookingAttempt: isBookingAsk };
     default:
-      return { isFollowUp: true, isBookingAttempt: false };
+      return { isFollowUp: true, isBookingAttempt: isBookingAsk };
   }
 }
 
@@ -153,7 +157,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     if (optionKey === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (optionKey === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
-    const tags = getAutoTags(item.personType);
+    const tags = getAutoTags(item.personType, selectedReason);
     onLogAction({
       item,
       actionType: selectedAction || "Call",
@@ -168,7 +172,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
-    const tags = getAutoTags(item.personType);
+    const tags = getAutoTags(item.personType, selectedReason);
     onLogAction({
       item,
       actionType: selectedAction || "Call",
@@ -331,14 +335,17 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                 {/* Auto-tag indicator */}
                 <div className="flex flex-wrap gap-1.5">
                   <span className="text-[10px] text-muted-foreground">Auto-tags:</span>
-                  {getAutoTags(item.personType).isFollowUp && (
+                  {getAutoTags(item.personType, selectedReason).isFollowUp && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Follow-Up</Badge>
                   )}
-                  {getAutoTags(item.personType).isBookingAttempt && (
+                  {getAutoTags(item.personType, selectedReason).isBookingAttempt && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Booking Attempt</Badge>
                   )}
                   {item.personType === "consultant" && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Coaching</Badge>
+                  )}
+                  {(item.personType === "lead" || item.personType === "customer") && (
+                    <span className="text-[10px] text-muted-foreground italic">Select "Booking Ask" to count as Booking Attempt</span>
                   )}
                 </div>
               </div>
