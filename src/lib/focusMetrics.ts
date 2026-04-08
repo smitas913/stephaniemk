@@ -193,6 +193,71 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((e: any) => e.event_date === dateKey)
     .reduce((sum: number, e: any) => sum + ((e as any).sharing_appointments_count || 0), 0);
 
+  // ─── Client/Lead Follow-Up details (customer + lead activities, deduplicated) ───
+  const clientFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Customer" || item.type === "Lead"
+  );
+
+  // ─── Hostess/Event Coaching details ───
+  const hostessCoachingItems: FocusDetailItem[] = [];
+  // From unified notes with Hostess entity type
+  for (const item of allReachOutItems) {
+    if (item.type === "Hostess") hostessCoachingItems.push(item);
+  }
+  // Also include event-related coaching/prep notes
+  for (const n of unifiedNotes) {
+    const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
+    if (noteDay !== dateKey) continue;
+    if ((n as any).entity_type !== "Hostess") continue;
+    const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
+    if (!resolved) continue;
+    if (!hostessCoachingItems.some(h => h.id === resolved.id)) {
+      hostessCoachingItems.push({
+        id: resolved.id, name: resolved.name, type: "Hostess",
+        method: (n as any).note_type, detail: undefined,
+      });
+    }
+  }
+
+  // ─── Recruiting Follow-Up details (prospect activities) ───
+  const recruitingFollowUpItems: FocusDetailItem[] = [];
+  for (const n of unifiedNotes) {
+    const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
+    if (noteDay !== dateKey) continue;
+    if ((n as any).entity_type !== "Prospect") continue;
+    const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
+    if (!resolved) continue;
+    if (!recruitingFollowUpItems.some(r => r.id === resolved.id)) {
+      recruitingFollowUpItems.push({
+        id: resolved.id, name: resolved.name, type: "Prospect",
+        method: (n as any).note_type, detail: undefined,
+      });
+    }
+  }
+  // Also include prospects with last_contact_date = dateKey
+  for (const p of prospects) {
+    if ((p as any).last_contact_date === dateKey && !recruitingFollowUpItems.some(r => r.id === p.id)) {
+      recruitingFollowUpItems.push({ id: p.id, name: p.name, type: "Prospect", detail: (p as any).opportunity_status || undefined });
+    }
+  }
+
+  // ─── Relationship Building details (general touches not in other categories) ───
+  const relTypes = new Set(["General", "Gift", "Check-in", "Birthday", "Other"]);
+  const relationshipItems: FocusDetailItem[] = allNotes
+    .filter((n: any) => getTimestampDateKey(n.created_at) === dateKey && relTypes.has(n.note_type))
+    .map((n: any) => {
+      const c = customers.find((c: any) => c.id === n.customer_id);
+      if (!c) return null;
+      return { id: n.customer_id, name: c.full_name, type: "Customer", method: n.note_type } as FocusDetailItem;
+    })
+    .filter((item): item is FocusDetailItem => item !== null);
+  // Deduplicate
+  const relSeen = new Set<string>();
+  const dedupedRelationship: FocusDetailItem[] = [];
+  for (const item of relationshipItems) {
+    if (!relSeen.has(item.id)) { relSeen.add(item.id); dedupedRelationship.push(item); }
+  }
+
   const bookingAttemptsCount = allBookingAttemptItems.length;
   const bookingsCount = bookingItems.length;
   const conversionRate = bookingAttemptsCount > 0 ? Math.round((bookingsCount / bookingAttemptsCount) * 100) : 0;
@@ -208,5 +273,9 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     sharingDetails: sharingItems,
     bookingAttemptDetails: allBookingAttemptItems,
     coachingDetails: consultantCoachingItems,
+    clientFollowUpDetails: clientFollowUpItems,
+    hostessCoachingDetails: hostessCoachingItems,
+    recruitingFollowUpDetails: recruitingFollowUpItems,
+    relationshipDetails: dedupedRelationship,
   };
 }
