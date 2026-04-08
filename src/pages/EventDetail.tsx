@@ -602,6 +602,37 @@ export default function EventDetail() {
                   />
                 </div>
               </div>
+
+              {/* Recent Activity History */}
+              {(() => {
+                const hostessNotes = unifiedNotes
+                  .filter((n: any) => n.entity_type === "Hostess" && event.hostess_name && n.note_body?.includes(event.hostess_name))
+                  .slice(0, 5);
+                if (hostessNotes.length === 0) return null;
+                return (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Activity</p>
+                    <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-2.5">
+                      {hostessNotes.map((note: any, i: number) => (
+                        <div key={i} className="flex items-start gap-2 text-xs">
+                          <span className="text-muted-foreground whitespace-nowrap shrink-0">
+                            {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
+                          </span>
+                          <span className="text-muted-foreground">—</span>
+                          <span className="font-medium text-foreground shrink-0">{note.note_type || "Note"}</span>
+                          {note.note_body && (
+                            <>
+                              <span className="text-muted-foreground">—</span>
+                              <span className="text-muted-foreground truncate">{(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 80)}</span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Quick contact & Log Activity buttons */}
               <div className="flex gap-1.5 flex-wrap">
                 {event.hostess_phone && (
