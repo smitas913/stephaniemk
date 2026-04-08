@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
-import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
+import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS, configsAreCanonical } from "@/hooks/useFocusItems";
 import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -90,12 +90,12 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     }
   }, [progress, selectedDate]);
 
-  // Seed defaults on first load
+  // Seed defaults on first load OR when configs are legacy/stale
   useEffect(() => {
-    if (!isLoading && configs.length === 0) {
+    if (!isLoading && (configs.length === 0 || !configsAreCanonical(configs))) {
       seedDefaults();
     }
-  }, [isLoading, configs.length, seedDefaults]);
+  }, [isLoading, configs, seedDefaults]);
 
   // Sync auto-counts to progress (today only)
   useEffect(() => {
