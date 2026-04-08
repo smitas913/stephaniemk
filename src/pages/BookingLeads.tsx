@@ -39,6 +39,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const navigate = useNavigate();
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -48,6 +49,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
   const [convertLead, setConvertLead] = useState<BookingLead | null>(null);
   const [convertType, setConvertType] = useState<"customer" | "consultant">("customer");
+
+  // Universal Action Panel state
+  const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
 
   // Quick Add form state
   const [form, setForm] = useState({
