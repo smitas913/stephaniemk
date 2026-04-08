@@ -76,15 +76,19 @@ const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> =
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" },
 };
 
-function getAutoTags(personType: PersonType): { isFollowUp: boolean; isBookingAttempt: boolean } {
+function getAutoTags(personType: PersonType, followUpReason?: string | null): { isFollowUp: boolean; isBookingAttempt: boolean } {
+  // Booking Attempt is inferred from "Booking Ask" reason, not auto-tagged by person type
+  const isBookingAsk = followUpReason === "Booking Ask";
   switch (personType) {
-    case "lead":
     case "hostess":
       return { isFollowUp: true, isBookingAttempt: true };
     case "consultant":
       return { isFollowUp: false, isBookingAttempt: false };
+    case "lead":
+    case "customer":
+      return { isFollowUp: true, isBookingAttempt: isBookingAsk };
     default:
-      return { isFollowUp: true, isBookingAttempt: false };
+      return { isFollowUp: true, isBookingAttempt: isBookingAsk };
   }
 }
 
