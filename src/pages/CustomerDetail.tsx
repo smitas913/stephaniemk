@@ -114,7 +114,7 @@ export default function CustomerDetail() {
       statusLabel: computed.activity_status || undefined,
       vip: computed.vip || undefined,
       followUpReason: customer.follow_up_reason || undefined,
-      daysOverdue: computed.follow_up_status === "OVERDUE" ? computed.days_overdue : null,
+      daysOverdue: null,
       followUpStatus: computed.follow_up_status || undefined,
       nextFollowUpDate: customer.next_follow_up_date,
       recentNotes,
