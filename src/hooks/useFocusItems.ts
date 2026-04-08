@@ -28,6 +28,12 @@ export interface DayTypeTarget {
   target: number;
 }
 
+// Canonical category auto_track_keys — used to detect stale/legacy configs
+const CANONICAL_AUTO_KEYS = new Set([
+  "booking_attempts", "client_followup", "hostess_coaching",
+  "recruiting_followup", "consultant_coaching", "relationship",
+]);
+
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 0, label: "Booking Attempts", default_target: 10, auto_track_key: "booking_attempts" },
   { sort_order: 1, label: "Client/Lead Follow-Up", default_target: 8, auto_track_key: "client_followup" },
@@ -36,6 +42,12 @@ export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 4, label: "Consultant Coaching (Team Building)", default_target: 2, auto_track_key: "consultant_coaching" },
   { sort_order: 5, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
 ];
+
+/** Returns true if saved configs match the canonical 6-category structure */
+export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
+  if (configs.length !== 6) return false;
+  return configs.every(c => c.auto_track_key && CANONICAL_AUTO_KEYS.has(c.auto_track_key));
+}
 
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
   power: [10, 8, 3, 2, 2, 3],
