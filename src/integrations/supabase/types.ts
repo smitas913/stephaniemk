@@ -853,7 +853,10 @@ export type Database = {
           note_date: string
           note_type: string
           owner_user_id: string | null
+          person_id: string | null
+          person_type: string | null
           prospect_id: string | null
+          tags: string[]
         }
         Insert: {
           created_at?: string
@@ -868,7 +871,10 @@ export type Database = {
           note_date?: string
           note_type?: string
           owner_user_id?: string | null
+          person_id?: string | null
+          person_type?: string | null
           prospect_id?: string | null
+          tags?: string[]
         }
         Update: {
           created_at?: string
@@ -883,7 +889,10 @@ export type Database = {
           note_date?: string
           note_type?: string
           owner_user_id?: string | null
+          person_id?: string | null
+          person_type?: string | null
           prospect_id?: string | null
+          tags?: string[]
         }
         Relationships: [
           {
