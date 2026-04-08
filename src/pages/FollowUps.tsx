@@ -482,43 +482,27 @@ export default function FollowUps() {
 
    // ─── Auto-counts for 6 Most Important Things ───
    const focusAutoCounts = useMemo(() => {
-     const todayKey = toLocalDateKey();
+      const todayKey = toLocalDateKey();
 
-      const metrics = computeMetricsForDate(todayKey, {
-        unifiedNotes,
-        allNotes,
-        customers,
-        prospects,
-        bookingLeads,
-        consultants,
-        events,
-      });
+       const metrics = computeMetricsForDate(todayKey, {
+         unifiedNotes,
+         allNotes,
+         customers,
+         prospects,
+         bookingLeads,
+         consultants,
+         events,
+       });
 
-      const booking_attempts = metrics.bookingAttempts;
+       const booking_attempts = metrics.bookingAttempts;
+       const client_followup = metrics.clientFollowUpDetails.length;
+       const hostess_coaching = metrics.hostessCoachingDetails.length;
+       const recruiting_followup = metrics.recruitingFollowUpDetails.length;
+       const consultant_coaching = metrics.coachingDetails.length;
+       const relationship = metrics.relationshipDetails.length;
 
-      const followupSeen = new Set<string>();
-      let followups = 0;
-      for (const n of unifiedNotes) {
-        const noteDay = n.note_date || (n.created_at ? n.created_at.slice(0, 10) : null);
-        if (noteDay !== todayKey) continue;
-        if (n.is_follow_up !== true) continue;
-        if (n.entity_type === "Consultant") continue;
-        if (n.person_type && !n.person_id) continue;
-        const key = n.person_id || n.customer_id || n.prospect_id || n.id;
-        if (!followupSeen.has(key)) { followupSeen.add(key); followups++; }
-      }
-
-      const recruiting = prospects.filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey)).length;
-      const appointments = events.filter((e: any) => e.event_date === todayKey && e.event_status === "Booked").length;
-      const coaching = metrics.coachingDetails.length;
-
-      const relTypes = new Set(["General", "Gift", "Check-in", "Birthday"]);
-      const relationship = allNotes.filter((n: any) => {
-        const noteDay = n.created_at ? n.created_at.slice(0, 10) : null;
-        return noteDay === todayKey && relTypes.has(n.note_type);
-      }).length;
-      return { booking_attempts, followups, recruiting, appointments, coaching, relationship };
-   }, [unifiedNotes, prospects, events, allNotes, bookingLeads, customers, consultants]);
+       return { booking_attempts, client_followup, hostess_coaching, recruiting_followup, consultant_coaching, relationship };
+    }, [unifiedNotes, prospects, events, allNotes, bookingLeads, customers, consultants]);
 
   // Mobile detection
   const isMobile = useIsMobile();

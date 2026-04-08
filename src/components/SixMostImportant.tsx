@@ -23,10 +23,10 @@ import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
 
 interface AutoCounts {
   booking_attempts: number;
-  followups: number;
-  recruiting: number;
-  appointments: number;
-  coaching: number;
+  client_followup: number;
+  hostess_coaching: number;
+  recruiting_followup: number;
+  consultant_coaching: number;
   relationship: number;
 }
 
@@ -41,19 +41,24 @@ interface SixMostImportantProps {
 
 // Map auto_track_key to the correct detail category
 const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsForDate>> = {
-  followups: "reachOutDetails",
-  recruiting: "sharingDetails",
-  appointments: "bookingDetails",
-  relationship: "reachOutDetails",
+  booking_attempts: "bookingAttemptDetails",
+  client_followup: "clientFollowUpDetails",
+  hostess_coaching: "hostessCoachingDetails",
+  recruiting_followup: "recruitingFollowUpDetails",
+  consultant_coaching: "coachingDetails",
+  relationship: "relationshipDetails",
 };
 
 function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key" | "label" | "sort_order">): AutoCountKey | null {
   if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
 
   const normalizedLabel = config.label.trim().toLowerCase();
-  if (config.sort_order === 4 || normalizedLabel.includes("team building") || normalizedLabel.includes("coach")) {
-    return "coaching";
-  }
+  if (normalizedLabel.includes("booking attempt")) return "booking_attempts";
+  if (normalizedLabel.includes("client") || normalizedLabel.includes("lead follow")) return "client_followup";
+  if (normalizedLabel.includes("hostess") || normalizedLabel.includes("event coach")) return "hostess_coaching";
+  if (normalizedLabel.includes("recruiting")) return "recruiting_followup";
+  if (normalizedLabel.includes("consultant") || normalizedLabel.includes("team building")) return "consultant_coaching";
+  if (normalizedLabel.includes("relationship")) return "relationship";
 
   return null;
 }
@@ -225,19 +230,20 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     const config = configs.find(c => c.sort_order === sortOrder);
     if (!config) return [];
     const autoKey = getEffectiveAutoTrackKey(config);
-    // Map by auto_track_key or label heuristic
-    switch (autoKey) {
-      case "followups": return metrics.reachOutDetails;
-      case "recruiting": return metrics.sharingDetails;
-      case "appointments": return metrics.bookingDetails;
-      case "booking_attempts": return metrics.bookingAttemptDetails;
-      case "coaching": return metrics.coachingDetails;
-      case "relationship": return metrics.reachOutDetails.filter(d => ["General", "Gift", "Check-in", "Birthday"].includes(d.method || ""));
-      default:
-        if (config.label.toLowerCase().includes("booking")) return metrics.bookingAttemptDetails.length > 0 ? metrics.bookingAttemptDetails : metrics.bookingDetails;
-        if (config.label.toLowerCase().includes("team") || config.label.toLowerCase().includes("coach")) return metrics.coachingDetails;
-        return [];
+    // Map by auto_track_key
+    const detailKey = autoKey ? AUTO_KEY_TO_DETAIL[autoKey] : null;
+    if (detailKey && detailKey in metrics) {
+      return metrics[detailKey] as FocusDetailItem[];
     }
+    // Fallback by label
+    const label = config.label.toLowerCase();
+    if (label.includes("booking")) return metrics.bookingAttemptDetails;
+    if (label.includes("client") || label.includes("lead")) return metrics.clientFollowUpDetails;
+    if (label.includes("hostess") || label.includes("event")) return metrics.hostessCoachingDetails;
+    if (label.includes("recruiting") || label.includes("prospect")) return metrics.recruitingFollowUpDetails;
+    if (label.includes("consultant") || label.includes("team") || label.includes("coach")) return metrics.coachingDetails;
+    if (label.includes("relationship")) return metrics.relationshipDetails;
+    return [];
   };
 
   const drillDownConfig = drillDownIndex !== null ? configs.find(c => c.sort_order === drillDownIndex) : null;
