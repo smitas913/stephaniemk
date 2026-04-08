@@ -904,6 +904,8 @@ export default function FollowUps() {
         await updateBookingLead(item.id, updates as any);
         await createNote({
           entity_type: "Lead",
+          person_id: item.id,
+          person_type: "lead",
           note_body: note.trim() || `${type} follow-up`,
           note_type: type,
           next_step: nextStep?.trim() || null,
