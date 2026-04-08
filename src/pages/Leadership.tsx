@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
@@ -41,7 +41,16 @@ const ONBOARDING_STAGE_COLORS: Record<string, string> = {
 
 export default function Leadership() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState("prospects");
+  const location = useLocation();
+  const locationState = location.state as any;
+  const [tab, setTab] = useState(locationState?.tab || "prospects");
+
+  // Auto-navigate to consultant tab if directed from drill-down
+  useEffect(() => {
+    if (locationState?.tab) {
+      setTab(locationState.tab);
+    }
+  }, [locationState?.tab]);
 
   return (
     <Layout>

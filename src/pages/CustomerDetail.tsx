@@ -174,8 +174,15 @@ export default function CustomerDetail() {
   const formatDateRelative = (d: string | null | undefined) => {
     if (!d) return null;
     try {
+      // Use date-only parsing to avoid timezone-induced "hours ago" confusion
+      const dateKey = d.slice(0, 10);
+      const todayKey = toLocalDateKey();
+      if (dateKey === todayKey) return "Today";
       const parsed = parseISO(d);
-      return `${format(parsed, "MMM d")} (${formatDistanceToNowStrict(parsed, { addSuffix: true })})`;
+      const daysDiff = Math.floor((new Date().getTime() - parsed.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff === 1) return "Yesterday";
+      if (daysDiff < 7) return `${daysDiff} days ago`;
+      return format(parsed, "MMM d, yyyy");
     } catch { return d; }
   };
 
