@@ -91,7 +91,7 @@ export default function Leadership() {
 }
 
 /* ─── Consultants Tab ─── */
-function ConsultantsTab() {
+function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const queryClient = useQueryClient();
   const { data: consultants = [], isLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
@@ -101,6 +101,14 @@ function ConsultantsTab() {
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
   const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
   const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
+
+  // Auto-open consultant panel when navigated from drill-down
+  useEffect(() => {
+    if (autoOpenId && consultants.length > 0 && !viewConsultant) {
+      const found = consultants.find(c => c.id === autoOpenId);
+      if (found) setViewConsultant(found);
+    }
+  }, [autoOpenId, consultants, viewConsultant]);
   const [focusFilter, setFocusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("coaching");
