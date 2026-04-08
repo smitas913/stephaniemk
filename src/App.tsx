@@ -124,7 +124,9 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
     <Route path="/scoreboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Scoreboard /></ProtectedRoute>} />
     <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
-    <Route path="/customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerList /></ProtectedRoute>} />
+    <Route path="/clients" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Clients /></ProtectedRoute>} />
+    <Route path="/customers" element={<Navigate to="/clients?tab=customers" replace />} />
+    <Route path="/booking-leads" element={<Navigate to="/clients?tab=leads" replace />} />
     <Route path="/customers/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddCustomer /></ProtectedRoute>} />
     <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerDetail /></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Orders /></ProtectedRoute>} />
@@ -141,7 +143,6 @@ const AppRoutes = () => (
     <Route path="/prospects/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ProspectDetail /></ProtectedRoute>} />
     <Route path="/leadership" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Leadership /></ProtectedRoute>} />
     <Route path="/consultants/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddConsultant /></ProtectedRoute>} />
-    <Route path="/booking-leads" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><BookingLeads /></ProtectedRoute>} />
     <Route path="/campaigns" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Campaigns /></ProtectedRoute>} />
     <Route path="/mailing-lists" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><MailingLists /></ProtectedRoute>} />
     <Route path="/communications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Communications /></ProtectedRoute>} />
