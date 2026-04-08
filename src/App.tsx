@@ -139,7 +139,7 @@ const AppRoutes = () => (
     <Route path="/restore-contact-dates" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><RestoreContactDates /></ProtectedRoute>} />
     
     <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
-    <Route path="/prospects" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Prospects /></ProtectedRoute>} />
+    <Route path="/prospects" element={<Navigate to="/clients?tab=prospects" replace />} />
     <Route path="/prospects/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ProspectDetail /></ProtectedRoute>} />
     <Route path="/leadership" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Leadership /></ProtectedRoute>} />
     <Route path="/consultants/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddConsultant /></ProtectedRoute>} />
