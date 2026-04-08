@@ -171,9 +171,8 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
             toast.info("Skipped — no activity logged");
           }}
           className={cn(
-            "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed text-sm font-medium transition-all",
-            "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/50",
-            "active:scale-[0.97]"
+            "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-normal transition-colors",
+            "bg-muted/40 text-muted-foreground hover:bg-muted/70"
           )}
         >
           <SkipForward className="w-4 h-4" />
