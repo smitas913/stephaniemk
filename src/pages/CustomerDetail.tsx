@@ -60,7 +60,7 @@ export default function CustomerDetail() {
   });
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
-
+  const [actionPanelOpen, setActionPanelOpen] = useState(false);
   useEffect(() => {
     if (customer) {
       setForm({
