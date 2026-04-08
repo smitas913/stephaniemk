@@ -69,6 +69,7 @@ const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> =
 function getAutoTags(personType: PersonType): { isFollowUp: boolean; isBookingAttempt: boolean } {
   switch (personType) {
     case "lead":
+    case "hostess":
       return { isFollowUp: true, isBookingAttempt: true };
     default:
       return { isFollowUp: true, isBookingAttempt: false };
