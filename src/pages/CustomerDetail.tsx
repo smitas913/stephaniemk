@@ -538,9 +538,48 @@ export default function CustomerDetail() {
             )}
           </CardContent>
         </Card>
+        {/* Activity — uses same Universal Action Panel as Today */}
+        <Card className="border-border/50 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base">Notes & Activity ({recentUnifiedNotes.length})</CardTitle>
+            <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
+              <Plus className="w-3 h-3" />Log Activity
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {recentUnifiedNotes.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6">No activity yet — tap Log Activity to get started</p>
+            ) : (
+              <div className="space-y-2">
+                {recentUnifiedNotes.slice(0, 10).map((note: any) => (
+                  <div key={note.id} className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
+                      </span>
+                      {note.next_follow_up_date && (
+                        <span className="text-[11px] text-primary font-medium">
+                          → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Notes & Activity Timeline */}
-        <CustomerNotesTimeline customerId={id!} />
+        {/* Universal Action Panel */}
+        <UniversalActionPanel
+          item={actionPanelItem}
+          open={actionPanelOpen}
+          onClose={() => setActionPanelOpen(false)}
+          onLogAction={handleLogAction}
+          isPending={actionMutation.isPending}
+        />
 
         {/* Convert to Consultant */}
         {!isConsultant && customer.relationship_status !== "Former Consultant" && (
