@@ -335,7 +335,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
               <Card key={lead.id} className="border-border/50 shadow-sm hover:shadow transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openEdit(lead)}>
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openActionPanel(lead)}>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[lead.status] || "bg-muted text-muted-foreground")}>
