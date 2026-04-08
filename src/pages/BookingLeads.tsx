@@ -382,6 +382,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                           <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(lead)} title="Edit">
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteLead(lead)} title="Delete">
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
                       </Button>
