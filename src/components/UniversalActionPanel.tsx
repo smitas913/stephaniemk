@@ -296,8 +296,8 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                     // No activity logged — just close
                   }}
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-normal transition-colors",
-                    "bg-muted/40 text-muted-foreground hover:bg-muted/70",
+                    "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors",
+                    "bg-muted border border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                     isPending && "opacity-50 cursor-not-allowed"
                   )}
                 >
