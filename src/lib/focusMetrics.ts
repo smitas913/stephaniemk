@@ -23,32 +23,43 @@ function resolveNoteIdentity(
   consultants: any[],
   events: any[],
 ): { id: string; name: string; type: string } | null {
-  if (n.entity_type === "Customer" && n.customer_id) {
-    const c = customers.find((c: any) => c.id === n.customer_id);
+  if (n.entity_type === "Customer" && (n.person_id || n.customer_id)) {
+    const resolvedId = n.person_id || n.customer_id;
+    const c = customers.find((c: any) => c.id === resolvedId);
     if (!c) return null;
-    return { id: n.customer_id, name: c.full_name, type: "Customer" };
+    return { id: resolvedId, name: c.full_name, type: "Customer" };
   }
-  if (n.entity_type === "Prospect" && n.prospect_id) {
-    const p = prospects.find((p: any) => p.id === n.prospect_id);
+  if (n.entity_type === "Prospect" && (n.person_id || n.prospect_id)) {
+    const resolvedId = n.person_id || n.prospect_id;
+    const p = prospects.find((p: any) => p.id === resolvedId);
     if (!p) return null;
-    return { id: n.prospect_id, name: p.name, type: "Prospect" };
+    return { id: resolvedId, name: p.name, type: "Prospect" };
   }
   if (n.entity_type === "Lead") {
-    const matchedLead = bookingLeads.find((l: any) => n.note_body?.includes(l.name));
+    const resolvedId = n.person_id;
+    const matchedLead = resolvedId
+      ? bookingLeads.find((l: any) => l.id === resolvedId)
+      : bookingLeads.find((l: any) => n.note_body?.includes(l.name));
     if (!matchedLead) return null;
     return { id: matchedLead.id, name: matchedLead.name, type: "Lead" };
   }
   if (n.entity_type === "Consultant") {
-    const matchedConsultant = consultants.find((c: any) => n.note_body?.includes(c.name));
+    const resolvedId = n.person_id;
+    const matchedConsultant = resolvedId
+      ? consultants.find((c: any) => c.id === resolvedId)
+      : consultants.find((c: any) => n.note_body?.includes(c.name));
     if (!matchedConsultant) return null;
     return { id: matchedConsultant.id, name: matchedConsultant.name, type: "Consultant" };
   }
   if (n.entity_type === "Hostess") {
-    const matchedEvent = events.find((e: any) => e.hostess_name && n.note_body?.includes(e.hostess_name));
-    if (!matchedEvent) return null;
+    const resolvedId = n.person_id;
+    const matchedEvent = resolvedId
+      ? events.find((e: any) => e.id === resolvedId)
+      : events.find((e: any) => e.hostess_name && n.note_body?.includes(e.hostess_name));
+    if (!matchedEvent || !matchedEvent.hostess_name) return null;
     return { id: matchedEvent.id, name: matchedEvent.hostess_name, type: "Hostess" };
   }
-  return null; // Unresolvable
+  return null;
 }
 
 export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
@@ -61,6 +72,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   bookingDetails: FocusDetailItem[];
   sharingDetails: FocusDetailItem[];
   bookingAttemptDetails: FocusDetailItem[];
+  coachingDetails: FocusDetailItem[];
 } {
   const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
@@ -106,18 +118,18 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const seenConsultantIds = new Set<string>();
   for (const n of unifiedNotes) {
     const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
-    if (noteDay !== dateKey || (n as any).entity_type !== "Consultant") continue;
-    const matchedConsultant = consultants.find((c: any) => (n as any).note_body?.includes(c.name));
-    if (!matchedConsultant) continue; // Skip unresolvable
-    const cId = (matchedConsultant as any).id;
-    if (seenConsultantIds.has(cId)) continue;
-    seenConsultantIds.add(cId);
+    const hasCoachingTag = Array.isArray((n as any).tags) && (n as any).tags.includes("consultant_coaching");
+    if (noteDay !== dateKey || !hasCoachingTag) continue;
+    const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
+    if (!resolved || resolved.type !== "Consultant") continue;
+    if (seenConsultantIds.has(resolved.id)) continue;
+    seenConsultantIds.add(resolved.id);
     consultantCoachingItems.push({
-      id: cId,
-      name: (matchedConsultant as any).name,
+      id: resolved.id,
+      name: resolved.name,
       type: "Consultant",
       method: (n as any).note_type || "Coaching",
-      detail: (matchedConsultant as any).coaching_focus || undefined,
+      detail: consultants.find((c: any) => c.id === resolved.id)?.coaching_focus || undefined,
     });
   }
 
@@ -194,5 +206,6 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     bookingDetails: bookingItems,
     sharingDetails: sharingItems,
     bookingAttemptDetails: allBookingAttemptItems,
+    coachingDetails: consultantCoachingItems,
   };
 }

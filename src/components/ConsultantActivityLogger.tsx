@@ -63,6 +63,9 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
         : `[${consultantName}] ${action} coaching`;
       await createNote({
         entity_type: "Consultant",
+        person_type: "consultant",
+        person_id: consultantId,
+        tags: ["consultant_coaching"],
         note_body: consultantNoteBody,
         note_type: action,
         next_follow_up_date: nextFollowUpDate,

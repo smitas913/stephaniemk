@@ -487,6 +487,9 @@ export const createNote = async (note: {
   entity_type: "Customer" | "Prospect" | "Lead" | "Consultant" | "Hostess";
   customer_id?: string | null;
   prospect_id?: string | null;
+  person_type?: "customer" | "prospect" | "lead" | "consultant" | "hostess" | null;
+  person_id?: string | null;
+  tags?: string[];
   note_body: string;
   note_type?: string;
   next_step?: string | null;

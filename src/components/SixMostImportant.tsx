@@ -213,11 +213,11 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
       case "recruiting": return metrics.sharingDetails;
       case "appointments": return metrics.bookingDetails;
       case "booking_attempts": return metrics.bookingAttemptDetails;
-      case "coaching": return metrics.reachOutDetails.filter(d => d.type === "Consultant");
+      case "coaching": return metrics.coachingDetails;
       case "relationship": return metrics.reachOutDetails.filter(d => ["General", "Gift", "Check-in", "Birthday"].includes(d.method || ""));
       default:
         if (config.label.toLowerCase().includes("booking")) return metrics.bookingAttemptDetails.length > 0 ? metrics.bookingAttemptDetails : metrics.bookingDetails;
-        if (config.label.toLowerCase().includes("team") || config.label.toLowerCase().includes("coach")) return metrics.reachOutDetails.filter(d => d.type === "Consultant");
+        if (config.label.toLowerCase().includes("team") || config.label.toLowerCase().includes("coach")) return metrics.coachingDetails;
         return [];
     }
   };

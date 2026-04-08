@@ -180,6 +180,9 @@ export interface Note {
   entity_type: "Customer" | "Prospect" | "Lead" | "Consultant" | "Hostess";
   customer_id: string | null;
   prospect_id: string | null;
+  person_type?: "customer" | "prospect" | "lead" | "consultant" | "hostess" | null;
+  person_id?: string | null;
+  tags?: string[] | null;
   note_date: string;
   note_type: string;
   note_body: string;
