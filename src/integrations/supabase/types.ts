@@ -1194,6 +1194,7 @@ export type Database = {
         Row: {
           address_line_1: string | null
           allow_non_working_day: boolean
+          assigned_consultant_id: string | null
           city: string | null
           created_at: string
           customer_id: string | null
@@ -1209,6 +1210,7 @@ export type Database = {
           notes: string | null
           opportunity_status: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id: string | null
+          ownership_type: string
           phone: string | null
           postal_code: string | null
           state_territory: string | null
@@ -1217,6 +1219,7 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           allow_non_working_day?: boolean
+          assigned_consultant_id?: string | null
           city?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1232,6 +1235,7 @@ export type Database = {
           notes?: string | null
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
+          ownership_type?: string
           phone?: string | null
           postal_code?: string | null
           state_territory?: string | null
@@ -1240,6 +1244,7 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           allow_non_working_day?: boolean
+          assigned_consultant_id?: string | null
           city?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1255,12 +1260,20 @@ export type Database = {
           notes?: string | null
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
+          ownership_type?: string
           phone?: string | null
           postal_code?: string | null
           state_territory?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prospects_assigned_consultant_id_fkey"
+            columns: ["assigned_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prospects_customer_id_fkey"
             columns: ["customer_id"]
