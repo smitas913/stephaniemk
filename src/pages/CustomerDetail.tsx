@@ -19,7 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, parseISO, formatDistanceToNowStrict } from "date-fns";
+import { format, parseISO } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
