@@ -40,6 +40,7 @@ import NotFound from "./pages/NotFound";
 import Campaigns from "./pages/Campaigns";
 import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
+import Clients from "./pages/Clients";
 
 const queryClient = new QueryClient();
 
