@@ -230,19 +230,20 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     const config = configs.find(c => c.sort_order === sortOrder);
     if (!config) return [];
     const autoKey = getEffectiveAutoTrackKey(config);
-    // Map by auto_track_key or label heuristic
-    switch (autoKey) {
-      case "followups": return metrics.reachOutDetails;
-      case "recruiting": return metrics.sharingDetails;
-      case "appointments": return metrics.bookingDetails;
-      case "booking_attempts": return metrics.bookingAttemptDetails;
-      case "coaching": return metrics.coachingDetails;
-      case "relationship": return metrics.reachOutDetails.filter(d => ["General", "Gift", "Check-in", "Birthday"].includes(d.method || ""));
-      default:
-        if (config.label.toLowerCase().includes("booking")) return metrics.bookingAttemptDetails.length > 0 ? metrics.bookingAttemptDetails : metrics.bookingDetails;
-        if (config.label.toLowerCase().includes("team") || config.label.toLowerCase().includes("coach")) return metrics.coachingDetails;
-        return [];
+    // Map by auto_track_key
+    const detailKey = autoKey ? AUTO_KEY_TO_DETAIL[autoKey] : null;
+    if (detailKey && detailKey in metrics) {
+      return metrics[detailKey] as FocusDetailItem[];
     }
+    // Fallback by label
+    const label = config.label.toLowerCase();
+    if (label.includes("booking")) return metrics.bookingAttemptDetails;
+    if (label.includes("client") || label.includes("lead")) return metrics.clientFollowUpDetails;
+    if (label.includes("hostess") || label.includes("event")) return metrics.hostessCoachingDetails;
+    if (label.includes("recruiting") || label.includes("prospect")) return metrics.recruitingFollowUpDetails;
+    if (label.includes("consultant") || label.includes("team") || label.includes("coach")) return metrics.coachingDetails;
+    if (label.includes("relationship")) return metrics.relationshipDetails;
+    return [];
   };
 
   const drillDownConfig = drillDownIndex !== null ? configs.find(c => c.sort_order === drillDownIndex) : null;
