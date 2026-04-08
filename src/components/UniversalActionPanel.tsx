@@ -57,6 +57,16 @@ const WHATS_NEXT_OPTIONS = [
   { key: "none", label: "No follow-up needed", icon: CheckCircle2 },
 ] as const;
 
+// ─── Follow-Up Reason Options by Person Type ───
+const FOLLOW_UP_REASONS: Record<string, string[]> = {
+  customer: ["Booking Ask", "Trial / Sample Follow-Up", "Product Check-In", "Post-Appointment Follow-Up", "General Check-In"],
+  lead: ["Booking Ask", "Trial / Sample Follow-Up", "Product Check-In", "Post-Appointment Follow-Up", "General Check-In"],
+  hostess: ["Event Prep", "Event Reminder", "Rescheduling", "Post-Event Follow-Up"],
+  event_task: ["Event Prep", "Event Reminder", "Rescheduling", "Post-Event Follow-Up"],
+  prospect: ["Initial Outreach", "Follow-Up", "Interview / Info Shared"],
+  consultant: ["Coaching", "Accountability", "Training / Support"],
+};
+
 const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> = {
   customer: { label: "Customer", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
   prospect: { label: "Prospect", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
@@ -72,7 +82,7 @@ function getAutoTags(personType: PersonType): { isFollowUp: boolean; isBookingAt
     case "hostess":
       return { isFollowUp: true, isBookingAttempt: true };
     case "consultant":
-      return { isFollowUp: false, isBookingAttempt: false }; // coaching only, not follow-ups
+      return { isFollowUp: false, isBookingAttempt: false };
     default:
       return { isFollowUp: true, isBookingAttempt: false };
   }
@@ -89,6 +99,7 @@ interface Props {
     isBookingAttempt: boolean;
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
+    followUpReason?: string | null;
   }) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
@@ -101,6 +112,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const [nextOption, setNextOption] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [actionLogged, setActionLogged] = useState(false);
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setStep("action");
@@ -109,6 +121,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setNextOption(null);
     setCustomDate("");
     setActionLogged(false);
+    setSelectedReason(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -123,6 +136,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setStep("whats-next");
   }, [item]);
 
+  const buildNote = useCallback(() => {
+    const parts: string[] = [];
+    if (selectedReason) parts.push(`[${selectedReason}]`);
+    if (noteText.trim()) parts.push(noteText.trim());
+    if (parts.length === 0) parts.push(`${selectedAction || "Call"} contact`);
+    return parts.join(" ");
+  }, [selectedReason, noteText, selectedAction]);
+
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
     setNextOption(optionKey);
@@ -136,13 +157,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     onLogAction({
       item,
       actionType: selectedAction || "Call",
-      note: noteText.trim() || `${selectedAction || "Call"} contact`,
+      note: buildNote(),
       isBookingAttempt: tags.isBookingAttempt,
       isFollowUp: tags.isFollowUp,
       nextFollowUpDate: nextDate ?? undefined,
+      followUpReason: selectedReason,
     });
     handleClose();
-  }, [item, selectedAction, noteText, onLogAction, handleClose]);
+  }, [item, selectedAction, buildNote, selectedReason, onLogAction, handleClose]);
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
@@ -150,18 +172,20 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     onLogAction({
       item,
       actionType: selectedAction || "Call",
-      note: noteText.trim() || `${selectedAction || "Call"} contact`,
+      note: buildNote(),
       isBookingAttempt: tags.isBookingAttempt,
       isFollowUp: tags.isFollowUp,
       nextFollowUpDate: customDate,
+      followUpReason: selectedReason,
     });
     handleClose();
-  }, [item, customDate, selectedAction, noteText, onLogAction, handleClose]);
+  }, [item, customDate, selectedAction, buildNote, selectedReason, onLogAction, handleClose]);
 
   if (!item) return null;
 
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
+  const reasonOptions = FOLLOW_UP_REASONS[item.personType] || [];
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -293,7 +317,6 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   onClick={() => {
                     resetState();
                     onClose();
-                    // No activity logged — just close
                   }}
                   className={cn(
                     "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors",
@@ -321,9 +344,33 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
               </div>
             )}
 
-            {/* ── Step 2: What's Next? (with optional notes) ── */}
+            {/* ── Step 2: What's Next? (with reason + notes) ── */}
             {step === "whats-next" && (
               <div className="space-y-4">
+                {/* Follow-Up Reason chips */}
+                {reasonOptions.length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Reason (optional)</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {reasonOptions.map((reason) => (
+                        <button
+                          key={reason}
+                          type="button"
+                          onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                            selectedReason === reason
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          )}
+                        >
+                          {reason}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* New Note */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">New Note (optional)</label>

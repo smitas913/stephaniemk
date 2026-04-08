@@ -33,13 +33,15 @@ interface Props {
   consultantName: string;
 }
 
+const CONSULTANT_REASONS = ["Coaching", "Accountability", "Training / Support"] as const;
+
 export default function ConsultantActivityLogger({ consultantId, consultantName }: Props) {
   const queryClient = useQueryClient();
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [nextOption, setNextOption] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
-
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
   // Fetch recent activity for this consultant
   const { data: unifiedNotes = [] } = useQuery({
     queryKey: ["unified-notes"],
@@ -57,9 +59,10 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
       nextFollowUpDate: string | null;
     }) => {
       // 1. Create centralized activity note — include consultant name for identity resolution
+      const reasonPrefix = selectedReason ? `[${selectedReason}] ` : "";
       const consultantNoteBody = note.trim()
-        ? `[${consultantName}] ${note.trim()}`
-        : `[${consultantName}] ${action} coaching`;
+        ? `${reasonPrefix}[${consultantName}] ${note.trim()}`
+        : `${reasonPrefix}[${consultantName}] ${action} coaching`;
       await createNote({
         entity_type: "Consultant",
         person_type: "consultant",
@@ -86,6 +89,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
       setNoteText("");
       setNextOption(null);
       setCustomDate("");
+      setSelectedReason(null);
       toast.success("Activity logged!");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -180,6 +184,28 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
           <SkipForward className="w-4 h-4" />
           Skipped / Did Not Reach Out
         </button>
+
+        {/* Follow-Up Reason chips */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Reason (optional)</label>
+          <div className="flex flex-wrap gap-1.5">
+            {CONSULTANT_REASONS.map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                  selectedReason === reason
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                )}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Note Input */}
         <div className="space-y-1.5">
