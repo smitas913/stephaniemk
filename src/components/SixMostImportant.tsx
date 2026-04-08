@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
-import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
+import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS, DEFAULT_DAY_TYPE_STRETCH } from "@/hooks/useFocusItems";
 import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -117,7 +117,12 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     return computeMetricsForDate(selectedDate, rawData);
   }, [selectedDate, isToday, rawData]);
 
-  // Build items array
+  const getStretchForItem = (sortOrder: number, dt: DayType): number | undefined => {
+    const stretch = DEFAULT_DAY_TYPE_STRETCH[dt];
+    if (stretch && sortOrder < stretch.length) return stretch[sortOrder];
+    return undefined;
+  };
+
   const items: FocusItemData[] = useMemo(() => {
     return configs.map((config) => {
       const prog = progress.find((p) => p.sort_order === config.sort_order);
@@ -128,9 +133,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
       const manualAdj = prog?.manual_adjustment ?? 0;
       const current = autoCount + manualAdj;
       const target = isOOO ? 0 : getTargetForItem(config.sort_order, dayType);
+      const stretchTarget = isOOO ? undefined : getStretchForItem(config.sort_order, dayType);
       const isComplete = prog?.is_complete ?? false;
       const isAutoTracked = !!autoKey;
-      return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
+      return { sort_order: config.sort_order, label: config.label, current, target, stretchTarget, isComplete, isAutoTracked };
     });
   }, [configs, progress, dayType, getTargetForItem, isOOO, isToday, autoCounts]);
 
