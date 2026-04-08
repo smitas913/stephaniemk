@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CustomerList from "./CustomerList";
 import BookingLeads from "./BookingLeads";
+import Prospects from "./Prospects";
 
 export default function Clients() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -23,12 +24,16 @@ export default function Clients() {
           <TabsList>
             <TabsTrigger value="customers">Customers</TabsTrigger>
             <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="prospects">Prospects</TabsTrigger>
           </TabsList>
           <TabsContent value="customers">
             <CustomerList embedded />
           </TabsContent>
           <TabsContent value="leads">
             <BookingLeads embedded />
+          </TabsContent>
+          <TabsContent value="prospects">
+            <Prospects embedded />
           </TabsContent>
         </Tabs>
       </div>

@@ -223,6 +223,8 @@ export interface Prospect {
   next_step_type: string | null;
   next_step_date: string | null;
   next_step_notes: string | null;
+  ownership_type: string;
+  assigned_consultant_id: string | null;
 }
 
 export interface ProspectNote {
