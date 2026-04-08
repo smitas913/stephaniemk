@@ -188,6 +188,72 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     });
   };
 
+  const openActionPanel = useCallback((lead: BookingLead) => {
+    // Build recent notes from unified notes for this lead
+    const leadNotes: RecentNote[] = (unifiedNotes as any[])
+      .filter((n) => n.entity_type === "Lead" && n.person_id === lead.id)
+      .slice(0, 3)
+      .map((n) => ({
+        date: formatDateOnly(n.note_date || n.created_at, "MMM d"),
+        actionType: n.note_type || "Note",
+        preview: n.note_body?.slice(0, 60) || "",
+      }));
+
+    const item: UniversalActionItem = {
+      id: lead.id,
+      personType: "lead",
+      name: lead.name,
+      phone: lead.phone ? phoneForLink(lead.phone) : null,
+      email: lead.email || null,
+      statusLabel: lead.status,
+      followUpReason: undefined,
+      nextFollowUpDate: lead.next_follow_up_date,
+      recentNotes: leadNotes,
+    };
+    setActionPanelItem(item);
+    setActionPanelOpen(true);
+  }, [unifiedNotes]);
+
+  const actionMutation = useMutation({
+    mutationFn: async ({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+      item: UniversalActionItem;
+      actionType: string;
+      note: string;
+      isBookingAttempt: boolean;
+      isFollowUp: boolean;
+      nextFollowUpDate?: string | null;
+    }) => {
+      const today = toLocalDateKey();
+      const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
+      const nextDate = nextFollowUpDate || defaultNext;
+
+      await updateBookingLead(item.id, {
+        last_contact_date: today,
+        next_follow_up_date: nextDate,
+        status: "Contacted",
+      } as any);
+
+      await createNote({
+        entity_type: "Lead",
+        person_id: item.id,
+        person_type: "lead",
+        note_body: note.trim() || `${actionType} follow-up`,
+        note_type: actionType,
+        next_follow_up_date: nextDate,
+        is_booking_attempt: isBookingAttempt,
+        is_follow_up: isFollowUp,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      toast.success("Activity logged");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const handleSaveEdit = () => {
     if (!editLead) return;
     updateMut.mutate({
