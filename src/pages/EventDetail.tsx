@@ -586,22 +586,12 @@ export default function EventDetail() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="col-span-1 sm:col-span-3">
-                  <label className="text-xs text-muted-foreground">Coaching Notes</label>
-                  <Input
-                    className="h-8 text-sm"
-                    placeholder="Notes about coaching..."
-                    defaultValue={event.coaching_notes || ""}
-                    key={`cn-${event.coaching_notes}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.coaching_notes || "")) {
-                        updateField("coaching_notes", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+              {/* Coaching Notes - collapsed/de-emphasized */}
+              {event.coaching_notes && (
+                <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-2">
+                  {event.coaching_notes}
+                </p>
+              )}
 
               {/* Recent Activity History */}
               {(() => {
