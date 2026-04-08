@@ -910,6 +910,9 @@ export default function FollowUps() {
           : `[${item.name}] ${type} coaching`;
         await createNote({
           entity_type: "Consultant",
+          person_type: "consultant",
+          person_id: item.id,
+          tags: ["consultant_coaching"],
           note_body: consultantNoteBody,
           note_type: type,
           next_step: nextStep?.trim() || null,
