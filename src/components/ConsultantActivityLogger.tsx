@@ -185,6 +185,28 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
           Skipped / Did Not Reach Out
         </button>
 
+        {/* Follow-Up Reason chips */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Reason (optional)</label>
+          <div className="flex flex-wrap gap-1.5">
+            {CONSULTANT_REASONS.map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+                  selectedReason === reason
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                )}
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Note Input */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
