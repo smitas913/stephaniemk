@@ -1,27 +1,33 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, UserPlus, Receipt, Calendar, Target, CalendarCheck, Crown, TrendingUp, BookOpen, Mail, MessageSquare } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, Calendar, Target, Crown, TrendingUp, Receipt, Mail, MessageSquare, BookOpen, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const adminNavItems = [
-  // Row 1: Daily workflow & income-producing
+const primaryNavItems = [
   { to: "/follow-ups", label: "Today", icon: Clock },
+  { to: "/clients", label: "Clients", icon: Users },
   { to: "/events", label: "Events", icon: Calendar },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/leadership", label: "Leadership", icon: Crown },
-  { to: "/booking-leads", label: "Leads", icon: CalendarCheck },
-  { to: "/customers", label: "Customers", icon: Users },
+];
+
+const secondaryNavItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/scoreboard", label: "Scoreboard", icon: Target },
+  { to: "/analytics", label: "Analytics", icon: TrendingUp },
+  { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
   { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
   { to: "/communications", label: "Comms", icon: MessageSquare },
-  // Row 2: Analysis & reference
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/scoreboard", label: "Scoreboard", icon: Target },
-  { to: "/expenses", label: "Expenses", icon: Receipt },
-  { to: "/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
 
@@ -30,14 +36,15 @@ const consultantNavItems = [
 ];
 
 function getNavItems(role?: string) {
-  if (role === "owner" || role === "admin") return adminNavItems;
-  if (role === "consultant") return consultantNavItems;
-  return [];
+  if (role === "owner" || role === "admin") return { primary: primaryNavItems, secondary: secondaryNavItems };
+  if (role === "consultant") return { primary: consultantNavItems, secondary: [] };
+  return { primary: [], secondary: [] };
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { signOut, profile } = useAuth();
-  const navItems = getNavItems(profile?.role);
+  const { primary: primaryNav, secondary: secondaryNav } = getNavItems(profile?.role);
+  const allNavItems = [...primaryNav, ...secondaryNav];
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
@@ -56,6 +63,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  const isSecondaryActive = secondaryNav.some(item => location.pathname.startsWith(item.to));
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card sticky top-0 z-50">
@@ -63,8 +72,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1 className="text-lg font-bold tracking-tight text-primary shrink-0">✨ MK CRM</h1>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex flex-wrap gap-0.5 flex-1 min-w-0">
-            {navItems.map(({ to, label, icon: Icon }) => (
+          <nav className="hidden md:flex items-center gap-0.5 flex-1 min-w-0">
+            {primaryNav.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -79,6 +88,43 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <span>{label}</span>
               </NavLink>
             ))}
+
+            {secondaryNav.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0",
+                      isSecondaryActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                    <span>More</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {secondaryNav.map(({ to, label, icon: Icon }) => (
+                    <DropdownMenuItem key={to} asChild>
+                      <NavLink
+                        to={to}
+                        end={to === "/dashboard"}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-2 w-full cursor-pointer",
+                            isActive && "font-semibold text-primary"
+                          )
+                        }
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </NavLink>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
 
           <div className="flex items-center gap-1 shrink-0 ml-auto">
@@ -129,9 +175,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </Button>
             </div>
 
-            {/* Nav items */}
+            {/* Nav items - primary */}
             <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-              {navItems.map(({ to, label, icon: Icon }) => (
+              {primaryNav.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -150,6 +196,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <span>{label}</span>
                 </NavLink>
               ))}
+
+              {secondaryNav.length > 0 && (
+                <>
+                  <div className="pt-3 pb-1 px-4">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">More</span>
+                  </div>
+                  {secondaryNav.map(({ to, label, icon: Icon }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      end={to === "/dashboard"}
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )
+                      }
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{label}</span>
+                    </NavLink>
+                  ))}
+                </>
+              )}
             </nav>
 
             {/* Footer */}

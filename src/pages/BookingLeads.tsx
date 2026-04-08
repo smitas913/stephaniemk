@@ -32,7 +32,7 @@ function getDefaultFollowUp(): string {
   return format(addDays(new Date(), 2), "yyyy-MM-dd");
 }
 
-export default function BookingLeads() {
+export default function BookingLeads({ embedded = false }: { embedded?: boolean }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
@@ -203,13 +203,12 @@ export default function BookingLeads() {
 
   const isConverting = convertToCustomerMut.isPending || convertToConsultantMut.isPending;
 
-  return (
-    <Layout>
+  const content = (
       <div className="space-y-4 pb-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>
+            {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">
               {activeLeads.length} active · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
             </p>
@@ -593,6 +592,8 @@ export default function BookingLeads() {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
   );
+
+  if (embedded) return content;
+  return <Layout>{content}</Layout>;
 }
