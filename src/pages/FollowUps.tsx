@@ -25,6 +25,8 @@ import type { FocusDetailItem } from "@/components/TodaysFocus";
 import SixMostImportant from "@/components/SixMostImportant";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
+import MobileTodayView from "@/components/mobile/MobileTodayView";
+import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
