@@ -3625,39 +3625,74 @@ function getBirthdayAge(item: ActionItem): number | null {
   return age > 0 && age < 120 ? age : null;
 }
 
-function BirthdayRow({ item, label, onNavigate, onAction, onDone }: { item: ActionItem; label: string; onNavigate: () => void; onAction: (type: string) => void; onDone?: () => void }) {
+function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
+  item: ActionItem;
+  label: string;
+  isOverdue?: boolean;
+  onNavigate: () => void;
+  onAction: (type: string) => void;
+  onDone?: () => void;
+}) {
   const age = getBirthdayAge(item);
   return (
-    <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE[item.itemType].className)}>
-            {TYPE_BADGE[item.itemType].label}
-          </span>
-          {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""} — <span className="font-medium text-pink-600">{label}</span>
-        </p>
+    <div className={cn(
+      "rounded-xl border p-3 space-y-2",
+      isOverdue
+        ? "border-destructive/30 bg-destructive/5"
+        : "border-border/50 bg-card"
+    )}>
+      {/* Line 1: Name + type badge */}
+      <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigate}>
+        <span className="text-sm font-bold text-foreground truncate flex-1">{item.name}</span>
+        <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", TYPE_BADGE[item.itemType].className)}>
+          {TYPE_BADGE[item.itemType].label}
+        </span>
+        {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 font-medium shrink-0">VIP</span>}
       </div>
-      <div className="flex gap-0.5 items-center shrink-0">
+
+      {/* Line 2: Date + status */}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">
+          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""}
+        </span>
+        <span className="text-border">·</span>
+        <span className={cn(
+          "font-semibold",
+          isOverdue ? "text-destructive" : "text-pink-600"
+        )}>
+          {label}
+        </span>
+      </div>
+
+      {/* Actions row */}
+      <div className="flex items-center gap-1.5">
         {onDone && (
-          <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 opacity-100" onClick={onDone}>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Done
+          <Button
+            variant={isOverdue ? "destructive" : "default"}
+            size="sm"
+            className="h-10 px-4 text-xs font-semibold rounded-lg"
+            onClick={onDone}
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1" /> Done
           </Button>
         )}
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex-1" />
+        <div className="flex gap-0.5">
           {item.phone && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+                <a href={`tel:${item.phone}`}><Phone className="w-4 h-4 text-primary" /></a>
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+                <a href={`sms:${item.phone}`}><MessageSquare className="w-4 h-4 text-primary" /></a>
+              </Button>
             </>
           )}
           {item.email && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`mailto:${item.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a></Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+              <a href={`mailto:${item.email}`}><Mail className="w-4 h-4 text-primary" /></a>
+            </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}><FileText className="w-3.5 h-3.5 text-primary" /></Button>
         </div>
       </div>
     </div>
