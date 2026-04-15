@@ -1681,7 +1681,7 @@ export default function FollowUps() {
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
@@ -1690,7 +1690,7 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
@@ -1739,24 +1739,64 @@ export default function FollowUps() {
                               </div>
                             </div>
                           )}
-                          {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
-                            <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).length})
-                              </p>
-                              <div className="space-y-0.5">
-                                {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
-                                  <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c.id)} />
-                                ))}
-                                {completedBirthdays.size > 0 && birthdaysToday.some((c) => completedBirthdays.has(c.id)) && (
-                                  <p className="text-[10px] text-muted-foreground italic px-2 py-1">✓ {birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length} birthday message{birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length > 1 ? "s" : ""} sent today</p>
-                                )}
-                                {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                                  <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                                ))}
+                          {/* Birthdays: overdue + today + upcoming */}
+                          {(() => {
+                            const activeOverdue = birthdaysOverdue.filter(c => !completedBirthdays.has(c.id));
+                            const activeToday = birthdaysToday.filter(c => !completedBirthdays.has(c.id));
+                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => completedBirthdays.has(c.id)).length;
+                            const totalActive = activeOverdue.length + activeToday.length;
+
+                            if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
+
+                            return (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Cake className="w-3 h-3" /> Birthdays ({totalActive})
+                                </p>
+                                <div className="space-y-1.5">
+                                  {/* Overdue birthdays */}
+                                  {activeOverdue.map((c) => (
+                                    <BirthdayRow
+                                      key={c.id}
+                                      item={c}
+                                      label={`Missed by ${Math.abs(c._daysUntil)}d`}
+                                      isOverdue
+                                      onNavigate={() => navigateToItem(c)}
+                                      onAction={(type) => openContactDialog(c, type)}
+                                      onDone={() => markBirthdayDone(c.id)}
+                                    />
+                                  ))}
+                                  {/* Today birthdays */}
+                                  {activeToday.map((c) => (
+                                    <BirthdayRow
+                                      key={c.id}
+                                      item={c}
+                                      label="Today 🎉"
+                                      onNavigate={() => navigateToItem(c)}
+                                      onAction={(type) => openContactDialog(c, type)}
+                                      onDone={() => markBirthdayDone(c.id)}
+                                    />
+                                  ))}
+                                  {/* Completed summary */}
+                                  {completedCount > 0 && (
+                                    <p className="text-[10px] text-muted-foreground italic px-2 py-1">
+                                      ✓ {completedCount} birthday message{completedCount > 1 ? "s" : ""} sent
+                                    </p>
+                                  )}
+                                  {/* Upcoming */}
+                                  {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                                    <BirthdayRow
+                                      key={c.id}
+                                      item={c}
+                                      label={`in ${c._daysUntil}d`}
+                                      onNavigate={() => navigateToItem(c)}
+                                      onAction={(type) => openContactDialog(c, type)}
+                                    />
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       )}
                     </CardContent>
