@@ -410,8 +410,8 @@ export default function FollowUps() {
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
 
-  // Birthday completion tracking (daily, resets each day via localStorage key)
-  const bdayStorageKey = `bday-done-${toLocalDateKey()}`;
+  // Birthday completion tracking — persists for the entire year so past birthdays stay dismissed
+  const bdayStorageKey = `bday-done-${new Date().getFullYear()}`;
   const [completedBirthdays, setCompletedBirthdays] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem(bdayStorageKey);
