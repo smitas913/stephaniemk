@@ -27,6 +27,8 @@ import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
+import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
+import type { MobileTeamItem } from "@/components/mobile/MobileTeamAttention";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1529,6 +1531,52 @@ export default function FollowUps() {
                   {(() => {
                     const teamActions = todayActions.filter(i => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
                     if (teamActions.length === 0) return null;
+
+                    // Mobile: use card-based layout
+                    if (isMobile) {
+                      const toTeamItem = (item: ActionItem): MobileTeamItem => ({
+                        id: item.id,
+                        itemType: item.itemType as MobileTeamItem["itemType"],
+                        name: item.name,
+                        phone: item.phone,
+                        follow_up_status: item.follow_up_status,
+                        daysOverdue: item.daysOverdue,
+                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
+                        followUpReason: item.followUpReason,
+                        actionLabel: item.actionLabel,
+                        focusGroup: item.itemType === "consultant"
+                          ? (consultants.find(c => c.id === item.id)?.focus_group || undefined)
+                          : undefined,
+                      });
+
+                      return (
+                        <MobileTeamAttention
+                          items={teamActions.map(toTeamItem)}
+                          onSchedule={(mi) => {
+                            const original = todayActions.find(i => i.id === mi.id);
+                            if (original) openDetailSheet(original);
+                          }}
+                          onCall={(mi) => {
+                            const original = todayActions.find(i => i.id === mi.id);
+                            if (original) openUniversalPanel(original);
+                          }}
+                          onText={(mi) => {
+                            const original = todayActions.find(i => i.id === mi.id);
+                            if (original) openUniversalPanel(original);
+                          }}
+                          onNote={(mi) => {
+                            const original = todayActions.find(i => i.id === mi.id);
+                            if (original) openUniversalPanel(original);
+                          }}
+                          onOpen={(mi) => {
+                            const original = todayActions.find(i => i.id === mi.id);
+                            if (original) navigateToItem(original);
+                          }}
+                        />
+                      );
+                    }
+
+                    // Desktop: existing layout
                     const coachingItems = teamActions.filter(i => i.itemType === "consultant");
                     const eventItems = teamActions.filter(i => i.itemType === "hostess" || i.itemType === "event_task");
                     return (
