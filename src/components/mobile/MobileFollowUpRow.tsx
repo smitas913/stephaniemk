@@ -152,20 +152,22 @@ export default function MobileFollowUpRow({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="flex items-center gap-2.5">
-          {/* Main content area - tappable */}
+        <div className="flex items-start gap-2">
+          {/* Main content area - tappable, takes all available space */}
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onTap}>
-            {/* Row 1: Name + urgency */}
-            <div className="flex items-center gap-2 mb-0.5">
-              <p className="text-[15px] font-semibold text-foreground truncate leading-tight">
+            {/* Row 1: Name + badges */}
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-0.5">
+              <p className="text-[15px] font-semibold text-foreground leading-snug break-words">
                 {item.name}
               </p>
-              {item.vip === "VIP" && (
-                <span className="text-[9px] px-1 py-px rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-semibold shrink-0">
-                  VIP
-                </span>
-              )}
-              {urgencyBadge}
+              <div className="flex items-center gap-1 shrink-0">
+                {item.vip === "VIP" && (
+                  <span className="text-[9px] px-1 py-px rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-semibold">
+                    VIP
+                  </span>
+                )}
+                {urgencyBadge}
+              </div>
             </div>
 
             {/* Row 2: Type + reason + detail */}
@@ -188,7 +190,7 @@ export default function MobileFollowUpRow({
           </div>
 
           {/* Quick actions */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex flex-col items-center gap-0 shrink-0 w-10">
             {item.phone && (
               <>
                 <Button
