@@ -156,10 +156,18 @@ function daysToBirthday(customer: { birthday?: string | null; birthday_mmdd?: st
   const parsed = getBirthdayMonthDay(customer);
   if (!parsed) return null;
   const today = getLocalToday();
-  let bday = new Date(today.getFullYear(), parsed.month - 1, parsed.day);
-  bday.setHours(0, 0, 0, 0);
-  if (bday < today) bday = new Date(today.getFullYear() + 1, parsed.month - 1, parsed.day);
-  return Math.floor((bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const thisYearBday = new Date(today.getFullYear(), parsed.month - 1, parsed.day);
+  thisYearBday.setHours(0, 0, 0, 0);
+  const diff = Math.floor((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  // Return negative for past birthdays (up to 30 days ago), 0 for today, positive for upcoming
+  if (diff >= -30 && diff <= 365) return diff;
+  // If birthday is >30 days ago this year, check next year
+  if (diff < -30) {
+    const nextYearBday = new Date(today.getFullYear() + 1, parsed.month - 1, parsed.day);
+    nextYearBday.setHours(0, 0, 0, 0);
+    return Math.floor((nextYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+  return diff;
 }
 
 function formatBirthday(customer: { birthday?: string | null; birthday_mmdd?: string | null }): string {
@@ -402,8 +410,8 @@ export default function FollowUps() {
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
 
-  // Birthday completion tracking (daily, resets each day via localStorage key)
-  const bdayStorageKey = `bday-done-${toLocalDateKey()}`;
+  // Birthday completion tracking — persists for the entire year so past birthdays stay dismissed
+  const bdayStorageKey = `bday-done-${new Date().getFullYear()}`;
   const [completedBirthdays, setCompletedBirthdays] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem(bdayStorageKey);
@@ -566,7 +574,7 @@ export default function FollowUps() {
   });
 
   // ─── Build unified action items ───
-  const { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming } = useMemo(() => {
+  const { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysOverdue, birthdaysUpcoming } = useMemo(() => {
     const todayDate = getLocalToday();
     const todayKey = toLocalDateKey(todayDate);
     const upcoming7Key = toLocalDateKey(addDays(todayDate, 7));
@@ -779,14 +787,16 @@ export default function FollowUps() {
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
 
-    // Birthdays (customers + consultants)
+    // Birthdays (customers + consultants) — includes overdue (past) birthdays
     const birthdaysToday: (ActionItem & { _daysUntil?: number })[] = [];
+    const birthdaysOverdue: (ActionItem & { _daysUntil: number })[] = [];
     const birthdaysUpcoming: (ActionItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
       const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
-      else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
+      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
     }
     for (const c of consultantItems) {
       const consultant = consultants.find((tc) => tc.id === c.id);
@@ -794,11 +804,13 @@ export default function FollowUps() {
       const days = daysToBirthday({ birthday: consultant.birthday });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
-      else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
+      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
     }
+    birthdaysOverdue.sort((a, b) => b._daysUntil - a._daysUntil); // most recent first
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming };
+    return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysOverdue, birthdaysUpcoming };
   }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday]);
 
   // Distribution candidates
@@ -1263,7 +1275,7 @@ export default function FollowUps() {
           <div>
             <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.length} birthday{birthdaysToday.length !== 1 ? "s" : ""}
+              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length} birthday{(birthdaysToday.length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length) !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
@@ -1669,7 +1681,7 @@ export default function FollowUps() {
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
@@ -1678,7 +1690,7 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
@@ -1727,24 +1739,64 @@ export default function FollowUps() {
                               </div>
                             </div>
                           )}
-                          {(birthdaysToday.length > 0 || (showUpcoming7 && birthdaysUpcoming.length > 0)) && (
-                            <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                <Cake className="w-3 h-3" /> Birthdays ({birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).length})
-                              </p>
-                              <div className="space-y-0.5">
-                                {birthdaysToday.filter((c) => !completedBirthdays.has(c.id)).map((c) => (
-                                  <BirthdayRow key={c.id} item={c} label="Today 🎉" onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c.id)} />
-                                ))}
-                                {completedBirthdays.size > 0 && birthdaysToday.some((c) => completedBirthdays.has(c.id)) && (
-                                  <p className="text-[10px] text-muted-foreground italic px-2 py-1">✓ {birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length} birthday message{birthdaysToday.filter((c) => completedBirthdays.has(c.id)).length > 1 ? "s" : ""} sent today</p>
-                                )}
-                                {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                                  <BirthdayRow key={c.id} item={c} label={`in ${c._daysUntil}d`} onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                                ))}
+                          {/* Birthdays: overdue + today + upcoming */}
+                          {(() => {
+                            const activeOverdue = birthdaysOverdue.filter(c => !completedBirthdays.has(c.id));
+                            const activeToday = birthdaysToday.filter(c => !completedBirthdays.has(c.id));
+                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => completedBirthdays.has(c.id)).length;
+                            const totalActive = activeOverdue.length + activeToday.length;
+
+                            if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
+
+                            return (
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Cake className="w-3 h-3" /> Birthdays ({totalActive})
+                                </p>
+                                <div className="space-y-1.5">
+                                  {/* Overdue birthdays */}
+                                  {activeOverdue.map((c) => (
+                                    <BirthdayRow
+                                      key={c.id}
+                                      item={c}
+                                      label={`Missed by ${Math.abs(c._daysUntil)}d`}
+                                      isOverdue
+                                      onNavigate={() => navigateToItem(c)}
+                                      onAction={(type) => openContactDialog(c, type)}
+                                      onDone={() => markBirthdayDone(c.id)}
+                                    />
+                                  ))}
+                                  {/* Today birthdays */}
+                                  {activeToday.map((c) => (
+                                    <BirthdayRow
+                                      key={c.id}
+                                      item={c}
+                                      label="Today 🎉"
+                                      onNavigate={() => navigateToItem(c)}
+                                      onAction={(type) => openContactDialog(c, type)}
+                                      onDone={() => markBirthdayDone(c.id)}
+                                    />
+                                  ))}
+                                  {/* Completed summary */}
+                                  {completedCount > 0 && (
+                                    <p className="text-[10px] text-muted-foreground italic px-2 py-1">
+                                      ✓ {completedCount} birthday message{completedCount > 1 ? "s" : ""} sent
+                                    </p>
+                                  )}
+                                  {/* Upcoming */}
+                                  {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                                    <BirthdayRow
+                                      key={c.id}
+                                      item={c}
+                                      label={`in ${c._daysUntil}d`}
+                                      onNavigate={() => navigateToItem(c)}
+                                      onAction={(type) => openContactDialog(c, type)}
+                                    />
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       )}
                     </CardContent>
@@ -3573,39 +3625,74 @@ function getBirthdayAge(item: ActionItem): number | null {
   return age > 0 && age < 120 ? age : null;
 }
 
-function BirthdayRow({ item, label, onNavigate, onAction, onDone }: { item: ActionItem; label: string; onNavigate: () => void; onAction: (type: string) => void; onDone?: () => void }) {
+function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
+  item: ActionItem;
+  label: string;
+  isOverdue?: boolean;
+  onNavigate: () => void;
+  onAction: (type: string) => void;
+  onDone?: () => void;
+}) {
   const age = getBirthdayAge(item);
   return (
-    <div className="flex items-center gap-2 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group">
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE[item.itemType].className)}>
-            {TYPE_BADGE[item.itemType].label}
-          </span>
-          {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">VIP</span>}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""} — <span className="font-medium text-pink-600">{label}</span>
-        </p>
+    <div className={cn(
+      "rounded-xl border p-3 space-y-2",
+      isOverdue
+        ? "border-destructive/30 bg-destructive/5"
+        : "border-border/50 bg-card"
+    )}>
+      {/* Line 1: Name + type badge */}
+      <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigate}>
+        <span className="text-sm font-bold text-foreground truncate flex-1">{item.name}</span>
+        <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", TYPE_BADGE[item.itemType].className)}>
+          {TYPE_BADGE[item.itemType].label}
+        </span>
+        {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 font-medium shrink-0">VIP</span>}
       </div>
-      <div className="flex gap-0.5 items-center shrink-0">
+
+      {/* Line 2: Date + status */}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">
+          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""}
+        </span>
+        <span className="text-border">·</span>
+        <span className={cn(
+          "font-semibold",
+          isOverdue ? "text-destructive" : "text-pink-600"
+        )}>
+          {label}
+        </span>
+      </div>
+
+      {/* Actions row */}
+      <div className="flex items-center gap-1.5">
         {onDone && (
-          <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 opacity-100" onClick={onDone}>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Done
+          <Button
+            variant={isOverdue ? "destructive" : "default"}
+            size="sm"
+            className="h-10 px-4 text-xs font-semibold rounded-lg"
+            onClick={onDone}
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1" /> Done
           </Button>
         )}
-        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex-1" />
+        <div className="flex gap-0.5">
           {item.phone && (
             <>
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+                <a href={`tel:${item.phone}`}><Phone className="w-4 h-4 text-primary" /></a>
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+                <a href={`sms:${item.phone}`}><MessageSquare className="w-4 h-4 text-primary" /></a>
+              </Button>
             </>
           )}
           {item.email && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" asChild><a href={`mailto:${item.email}`}><Mail className="w-3.5 h-3.5 text-primary" /></a></Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+              <a href={`mailto:${item.email}`}><Mail className="w-4 h-4 text-primary" /></a>
+            </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onAction("General")}><FileText className="w-3.5 h-3.5 text-primary" /></Button>
         </div>
       </div>
     </div>
