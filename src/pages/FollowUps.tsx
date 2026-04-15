@@ -25,6 +25,8 @@ import type { FocusDetailItem } from "@/components/TodaysFocus";
 import SixMostImportant from "@/components/SixMostImportant";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
+import MobileTodayView from "@/components/mobile/MobileTodayView";
+import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1349,6 +1351,60 @@ export default function FollowUps() {
                     const usedIds = new Set([...overdueIds, ...dueTodayIds, ...highPriorityItems.map(i => i.id)]);
                     const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
 
+                    // Mobile: use new compact mobile view
+                    if (isMobile) {
+                      const toMobileItem = (item: ActionItem): MobileActionItem => ({
+                        id: item.id,
+                        itemType: item.itemType,
+                        name: item.name,
+                        phone: item.phone,
+                        email: item.email,
+                        follow_up_status: item.follow_up_status,
+                        daysOverdue: item.daysOverdue,
+                        followUpReason: item.followUpReason,
+                        actionLabel: item.actionLabel,
+                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
+                        days_since_last_order: item.days_since_last_order,
+                        vip: item.vip,
+                        lastNotePreview: item.lastNotePreview,
+                        activity_status: item.activity_status,
+                      });
+
+                      return (
+                        <MobileTodayView
+                          overdueItems={overdueItems.map(toMobileItem)}
+                          dueTodayItems={dueTodayItems.map(toMobileItem)}
+                          highPriorityItems={highPriorityItems.map(toMobileItem)}
+                          generalItems={generalItems.map(toMobileItem)}
+                          onTapItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) openUniversalPanel(original);
+                          }}
+                          onCompleteItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) markFollowUpCompleteMutation.mutate({ item: original, noteText: "Follow-up complete", noteType: "Call" });
+                          }}
+                          onRescheduleItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) openDetailSheet(original);
+                          }}
+                          onSkipItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) contactMutation.mutate({ item: original, note: "Skipped", type: "Other" });
+                          }}
+                          onAddNoteItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) toggleInlineNote(original);
+                          }}
+                          onDidNotConnect={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) contactMutation.mutate({ item: original, note: "Did not connect", type: "Did Not Connect" });
+                          }}
+                        />
+                      );
+                    }
+
+                    // Desktop: existing card view
                     const renderUnifiedSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string) => {
                       if (items.length === 0) return null;
                       const Icon = icon;
@@ -1387,7 +1443,7 @@ export default function FollowUps() {
 
                     return (
                       <Card className="border-border/50 shadow-sm">
-                        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
+                        <CardHeader className="pb-2">
                           <div className="flex items-center gap-2">
                             <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
                               <Users className="w-4 h-4 text-blue-600" />
@@ -1396,7 +1452,7 @@ export default function FollowUps() {
                             <Badge variant="secondary" className="text-xs">{followUpItems.length}</Badge>
                           </div>
                         </CardHeader>
-                        <CardContent className={cn("pt-0", isMobile && "px-3")}>
+                        <CardContent className="pt-0">
                           {followUpItems.length === 0 ? (
                             <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
                           ) : (
@@ -1466,6 +1522,8 @@ export default function FollowUps() {
                       </Card>
                     );
                   })()}
+
+
 
                   {/* ═══ SECTION 3: Team Attention ═══ */}
                   {(() => {
