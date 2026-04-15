@@ -156,10 +156,18 @@ function daysToBirthday(customer: { birthday?: string | null; birthday_mmdd?: st
   const parsed = getBirthdayMonthDay(customer);
   if (!parsed) return null;
   const today = getLocalToday();
-  let bday = new Date(today.getFullYear(), parsed.month - 1, parsed.day);
-  bday.setHours(0, 0, 0, 0);
-  if (bday < today) bday = new Date(today.getFullYear() + 1, parsed.month - 1, parsed.day);
-  return Math.floor((bday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const thisYearBday = new Date(today.getFullYear(), parsed.month - 1, parsed.day);
+  thisYearBday.setHours(0, 0, 0, 0);
+  const diff = Math.floor((thisYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  // Return negative for past birthdays (up to 30 days ago), 0 for today, positive for upcoming
+  if (diff >= -30 && diff <= 365) return diff;
+  // If birthday is >30 days ago this year, check next year
+  if (diff < -30) {
+    const nextYearBday = new Date(today.getFullYear() + 1, parsed.month - 1, parsed.day);
+    nextYearBday.setHours(0, 0, 0, 0);
+    return Math.floor((nextYearBday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+  return diff;
 }
 
 function formatBirthday(customer: { birthday?: string | null; birthday_mmdd?: string | null }): string {
