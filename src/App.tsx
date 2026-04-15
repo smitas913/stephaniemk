@@ -41,6 +41,7 @@ import Campaigns from "./pages/Campaigns";
 import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
+import Scripts from "./pages/Scripts";
 
 const queryClient = new QueryClient();
 
@@ -146,6 +147,7 @@ const AppRoutes = () => (
     <Route path="/campaigns" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Campaigns /></ProtectedRoute>} />
     <Route path="/mailing-lists" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><MailingLists /></ProtectedRoute>} />
     <Route path="/communications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Communications /></ProtectedRoute>} />
+    <Route path="/scripts" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Scripts /></ProtectedRoute>} />
     <Route path="/expenses" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Expenses /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminTools /></ProtectedRoute>} />
     <Route path="/users" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><UserManagement /></ProtectedRoute>} />

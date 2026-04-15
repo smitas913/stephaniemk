@@ -1290,6 +1290,45 @@ export type Database = {
           },
         ]
       }
+      scripts: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_favorite: boolean
+          owner_user_id: string | null
+          script_text: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_favorite?: boolean
+          owner_user_id?: string | null
+          script_text?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_favorite?: boolean
+          owner_user_id?: string | null
+          script_text?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_consultants: {
         Row: {
           address_line_1: string | null
