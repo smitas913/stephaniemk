@@ -169,7 +169,14 @@ export default function MobileFollowUpRow({
               </div>
             </div>
 
-            {/* Row 2: Type + reason + detail */}
+            {/* Row 2: Note preview */}
+            {item.lastNotePreview && (
+              <p className="text-[11px] text-muted-foreground leading-tight truncate mb-0.5">
+                {item.lastNotePreview}
+              </p>
+            )}
+
+            {/* Row 3: Type + reason + detail */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE_STYLES[item.itemType])}>
                 {TYPE_LABELS[item.itemType]}
@@ -181,9 +188,6 @@ export default function MobileFollowUpRow({
                 <span className="text-[10px] text-muted-foreground">
                   · {detailLine}
                 </span>
-              )}
-              {hasNote && (
-                <FileText className="w-3 h-3 text-muted-foreground/50 shrink-0" />
               )}
             </div>
           </div>
