@@ -787,14 +787,16 @@ export default function FollowUps() {
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
 
-    // Birthdays (customers + consultants)
+    // Birthdays (customers + consultants) — includes overdue (past) birthdays
     const birthdaysToday: (ActionItem & { _daysUntil?: number })[] = [];
+    const birthdaysOverdue: (ActionItem & { _daysUntil: number })[] = [];
     const birthdaysUpcoming: (ActionItem & { _daysUntil: number })[] = [];
     for (const c of customerItems) {
       const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
-      else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
+      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
     }
     for (const c of consultantItems) {
       const consultant = consultants.find((tc) => tc.id === c.id);
@@ -802,8 +804,10 @@ export default function FollowUps() {
       const days = daysToBirthday({ birthday: consultant.birthday });
       if (days === null) continue;
       if (days === 0) birthdaysToday.push(c);
-      else if (days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
+      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
     }
+    birthdaysOverdue.sort((a, b) => b._daysUntil - a._daysUntil); // most recent first
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
     return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysUpcoming };
