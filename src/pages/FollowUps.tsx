@@ -1351,7 +1351,177 @@ export default function FollowUps() {
                     const usedIds = new Set([...overdueIds, ...dueTodayIds, ...highPriorityItems.map(i => i.id)]);
                     const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
 
+                    // Mobile: use new compact mobile view
+                    if (isMobile) {
+                      const toMobileItem = (item: ActionItem): MobileActionItem => ({
+                        id: item.id,
+                        itemType: item.itemType,
+                        name: item.name,
+                        phone: item.phone,
+                        email: item.email,
+                        follow_up_status: item.follow_up_status,
+                        daysOverdue: item.daysOverdue,
+                        followUpReason: item.followUpReason,
+                        actionLabel: item.actionLabel,
+                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
+                        days_since_last_order: item.days_since_last_order,
+                        vip: item.vip,
+                        lastNotePreview: item.lastNotePreview,
+                        activity_status: item.activity_status,
+                      });
+
+                      return (
+                        <MobileTodayView
+                          overdueItems={overdueItems.map(toMobileItem)}
+                          dueTodayItems={dueTodayItems.map(toMobileItem)}
+                          highPriorityItems={highPriorityItems.map(toMobileItem)}
+                          generalItems={generalItems.map(toMobileItem)}
+                          onTapItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) openUniversalPanel(original);
+                          }}
+                          onCompleteItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) markFollowUpCompleteMutation.mutate({ item: original, noteText: "Follow-up complete", noteType: "Call" });
+                          }}
+                          onRescheduleItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) openDetailSheet(original);
+                          }}
+                          onSkipItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) contactMutation.mutate({ item: original, note: "Skipped", type: "Other" });
+                          }}
+                          onAddNoteItem={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) toggleInlineNote(original);
+                          }}
+                          onDidNotConnect={(mi) => {
+                            const original = followUpItems.find(i => i.id === mi.id);
+                            if (original) contactMutation.mutate({ item: original, note: "Did not connect", type: "Did Not Connect" });
+                          }}
+                        />
+                      );
+                    }
+
+                    // Desktop: existing card view
                     const renderUnifiedSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string) => {
+                      if (items.length === 0) return null;
+                      const Icon = icon;
+                      return (
+                        <div key={title}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                            <Icon className={cn("w-3 h-3", iconColor)} /> {title} ({items.length})
+                          </p>
+                          <div className="divide-y divide-border/40">
+                            {items.map(item => (
+                              <ActionRow
+                                key={`${item.itemType}-${item.id}`}
+                                item={item}
+                                inlineNoteId={inlineNoteId}
+                                inlineNoteText={inlineNoteText}
+                                inlineNextStep={inlineNextStep}
+                                inlineNoteType={inlineNoteType}
+                                inlineFollowUpDate={inlineFollowUpDate}
+                                setInlineNoteText={setInlineNoteText}
+                                setInlineNextStep={setInlineNextStep}
+                                setInlineNoteType={setInlineNoteType}
+                                setInlineFollowUpDate={setInlineFollowUpDate}
+                                onToggleInline={() => toggleInlineNote(item)}
+                                onInlineSave={() => handleInlineSave(item)}
+                                onOpenDetail={() => openDetailSheet(item)}
+                                isPending={contactMutation.isPending}
+                                 onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                 onQuickLog={(type) => handleQuickLog(item, type)}
+                                 onOpenQuickAction={() => openUniversalPanel(item)}
+                                />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <Card className="border-border/50 shadow-sm">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
+                              <Users className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <CardTitle className="text-sm font-semibold text-foreground">Follow-Ups</CardTitle>
+                            <Badge variant="secondary" className="text-xs">{followUpItems.length}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          {followUpItems.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {renderUnifiedSection("Overdue", Clock, overdueItems, "text-destructive")}
+                              {renderUnifiedSection("Due Today", CalendarCheck, dueTodayItems, "text-primary")}
+                              {highPriorityItems.length > 0 && renderUnifiedSection("High Priority (Event-Related)", CalendarCheck, highPriorityItems, "text-accent-foreground")}
+                              {generalItems.length > 0 && renderUnifiedSection("General Follow-Ups", Users, generalItems, "text-muted-foreground")}
+
+                              {reschedulingFollowUp.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                    <RefreshCw className="w-3 h-3" /> Reschedule Follow-Ups ({reschedulingFollowUp.length})
+                                  </p>
+                                  <div className="divide-y divide-border/40">
+                                    {reschedulingFollowUp.map((evt) => {
+                                      const todayKey = toLocalDateKey();
+                                      const fuDate = evt.reschedule_next_follow_up_date;
+                                      const isDueNow = !fuDate || fuDate <= todayKey;
+                                      return (
+                                        <div key={evt.id} className="py-2 px-1 space-y-1">
+                                          <div className="flex items-center gap-3">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
+                                              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                                {evt.event_type && <span>{evt.event_type}</span>}
+                                                {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
+                                                <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
+                                                {evt.reschedule_last_contact_date && <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>}
+                                                {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
+                                                {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                              {evt.hostess_phone && (
+                                                <>
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                                  </Button>
+                                                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                    <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                                                  </Button>
+                                                </>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 mt-1">
+                                            {evt.requires_manual_next_step ? (
+                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
+                                            ) : (
+                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRescheduleActivityEvent(evt); setRescheduleStep("log"); }}>Log Activity</Button>
+                                            )}
+                                            <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
                       if (items.length === 0) return null;
                       const Icon = icon;
                       return (
