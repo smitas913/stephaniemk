@@ -1,5 +1,24 @@
 import { toLocalDateKey } from "@/lib/dateOnly";
-import type { FocusDetailItem, FocusRawData } from "@/components/TodaysFocus";
+
+export interface FocusDetailItem {
+  id: string;
+  name: string;
+  type: string;
+  method?: string;
+  detail?: string;
+  isBookingAttempt?: boolean;
+  isFollowUp?: boolean;
+}
+
+export interface FocusRawData {
+  unifiedNotes: any[];
+  allNotes: any[];
+  customers: any[];
+  prospects: any[];
+  bookingLeads: any[];
+  consultants: any[];
+  events: any[];
+}
 
 const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation", "Did Not Connect"]);
 

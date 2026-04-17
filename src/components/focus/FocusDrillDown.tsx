@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ChevronRight, User, TrendingUp, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { FocusDetailItem } from "@/components/TodaysFocus";
+import type { FocusDetailItem } from "@/lib/focusMetrics";
 
 const TYPE_COLORS: Record<string, string> = {
   Customer: "bg-primary/10 text-primary",

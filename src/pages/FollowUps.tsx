@@ -20,8 +20,6 @@ import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
-import TodaysFocus from "@/components/TodaysFocus";
-import type { FocusDetailItem } from "@/components/TodaysFocus";
 import SixMostImportant from "@/components/SixMostImportant";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
@@ -44,7 +42,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -197,14 +195,7 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: CalendarCheck },
 };
 
-const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation", "Did Not Connect"]);
 
-function getTimestampDateKey(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return toLocalDateKey(parsed);
-}
 
 async function logCustomerActivity({
   customerId,
@@ -306,135 +297,9 @@ export default function FollowUps() {
   });
   const isLoading = cLoading || oLoading;
 
-  // ─── Compute Today's Focus metrics from completed actions ───
-  const { reachOutsToday, bookingsToday, sharingToday, reachOutDetails, bookingDetails, sharingDetails } = useMemo(() => {
-    const todayKey = toLocalDateKey();
-    const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
+  // Daily Scorecard removed — per-metric reach-out / booking / sharing aggregation no longer computed.
+  // The 6 Most Important Things uses `focusAutoCounts` (below) sourced directly from `computeMetricsForDate`.
 
-    // Reach-out details from unified notes (covers customers & prospects)
-    const reachOutItems: FocusDetailItem[] = unifiedNotes
-      .filter((n) => {
-        const noteDay = n.note_date || getTimestampDateKey(n.created_at);
-        if (noteDay !== todayKey) return false;
-        if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
-        if (n.entity_type === "Lead" || n.entity_type === "Consultant" || n.entity_type === "Hostess") return true;
-        return contactTypes.has(n.note_type);
-      })
-      .map((n) => {
-        let name = "Unknown";
-        let type = n.entity_type || "Customer";
-        let id = n.customer_id || n.prospect_id || n.id;
-        if (n.entity_type === "Customer" && n.customer_id) {
-          const c = customers.find((c) => c.id === n.customer_id);
-          name = c?.full_name || "Customer";
-          id = n.customer_id;
-          type = "Customer";
-        } else if (n.entity_type === "Prospect" && n.prospect_id) {
-          const p = prospects.find((p) => p.id === n.prospect_id);
-          name = p?.name || "Prospect";
-          id = n.prospect_id;
-          type = "Prospect";
-        } else if (n.entity_type === "Lead") {
-          type = "Lead";
-          // Match lead by note_body content or fallback
-          const matchedLead = bookingLeads.find((l) => n.note_body?.includes(l.name));
-          if (matchedLead) { name = matchedLead.name; id = matchedLead.id; }
-        } else if (n.entity_type === "Consultant") {
-          type = "Consultant";
-          const matchedConsultant = consultants.find((c) => n.note_body?.includes(c.name));
-          if (matchedConsultant) { name = matchedConsultant.name; id = matchedConsultant.id; }
-        } else if (n.entity_type === "Hostess") {
-          type = "Hostess";
-          const matchedEvent = events.find((e) => e.hostess_name && n.note_body?.includes(e.hostess_name));
-          if (matchedEvent) { name = matchedEvent.hostess_name!; id = matchedEvent.id; }
-        }
-        return { id, name, type, method: n.note_type, detail: undefined };
-      });
-
-    // Also include customer_notes logged today (legacy table — ensures customer activities always count)
-    const customerNoteItems: FocusDetailItem[] = allNotes
-      .filter((n) => getTimestampDateKey(n.created_at) === todayKey && CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type))
-      .map((n) => {
-        const c = customers.find((c) => c.id === n.customer_id);
-        return { id: n.customer_id || n.id, name: c?.full_name || "Customer", type: "Customer", method: n.note_type };
-      });
-
-    // Booking Leads contacted today
-    const leadReachOutItems: FocusDetailItem[] = bookingLeads
-      .filter((l) => l.last_contact_date === todayKey && !l.converted_customer_id)
-      .map((l) => ({
-        id: l.id,
-        name: l.name,
-        type: "Lead",
-        method: "Call",
-        detail: l.lead_activity || undefined,
-      }));
-
-    // Consultants coached/contacted today
-    const consultantReachOutItems: FocusDetailItem[] = [];
-    for (const c of consultants) {
-      const updatedToday = c.updated_at?.startsWith(todayKey);
-      const coachingAdvanced = c.next_coaching_date && c.next_coaching_date > todayKey;
-      if (updatedToday && coachingAdvanced) {
-        consultantReachOutItems.push({
-          id: c.id,
-          name: c.name,
-          type: "Consultant",
-          method: "Coaching",
-          detail: c.coaching_focus || undefined,
-        });
-      }
-    }
-
-    // Deduplicate by id across all sources
-    const seenIds = new Set<string>();
-    const allReachOutItems: FocusDetailItem[] = [];
-    for (const item of [...reachOutItems, ...customerNoteItems, ...leadReachOutItems, ...consultantReachOutItems]) {
-      if (!seenIds.has(item.id)) {
-        seenIds.add(item.id);
-        allReachOutItems.push(item);
-      }
-    }
-    const finalReachOutItems = allReachOutItems;
-
-    // Bookings: events created today
-    const bookingItems: FocusDetailItem[] = events
-      .filter((e) => e.created_at.startsWith(todayKey))
-      .map((e) => ({
-        id: e.event_id,
-        name: e.hostess_name || e.event_id,
-        type: "Event",
-        detail: e.event_type || undefined,
-      }));
-
-    // Sharing
-    const sharingItems: FocusDetailItem[] = [
-      ...prospects
-        .filter((p) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(todayKey))
-        .map((p) => ({ id: p.id, name: p.name, type: "Prospect" as const, detail: "Shared Opportunity" })),
-      ...events
-        .filter((e) => e.event_date === todayKey && (e.sharing_appointments_count || 0) > 0)
-        .map((e) => ({
-          id: e.event_id,
-          name: e.hostess_name || e.event_id,
-          type: "Event" as const,
-          detail: `${e.sharing_appointments_count} sharing appt${(e.sharing_appointments_count || 0) > 1 ? "s" : ""}`,
-        })),
-    ];
-
-    const sharingFromEvents = events
-      .filter((e) => e.event_date === todayKey)
-      .reduce((sum, e) => sum + (e.sharing_appointments_count || 0), 0);
-
-    return {
-      reachOutsToday: finalReachOutItems.length,
-      bookingsToday: bookingItems.length,
-      sharingToday: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
-      reachOutDetails: finalReachOutItems,
-      bookingDetails: bookingItems,
-      sharingDetails: sharingItems,
-    };
-  }, [allNotes, unifiedNotes, events, prospects, customers, bookingLeads, consultants]);
 
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
@@ -550,8 +415,6 @@ export default function FollowUps() {
 
   // Relationship Touches collapsed state
   const [touchesOpen, setTouchesOpen] = useState(false);
-  // Scorecard collapsed on mobile by default
-  const [scorecardOpen, setScorecardOpen] = useState(true);
 
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
@@ -1854,52 +1717,7 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
 
-                  {/* ═══ SECTION 5: Daily Scorecard (Collapsed on mobile) ═══ */}
-                  <Collapsible open={isMobile ? scorecardOpen : true} onOpenChange={setScorecardOpen}>
-                    <Card className="border-border/50 shadow-sm">
-                      <CollapsibleTrigger className="w-full" disabled={!isMobile}>
-                        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-primary/10">
-                                <Target className="w-4 h-4 text-primary" />
-                              </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Daily Scorecard</CardTitle>
-                            </div>
-                            {isMobile && <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", scorecardOpen && "rotate-180")} />}
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className={cn(isMobile ? "px-3 pt-0" : "pt-0")}>
-                          <TodaysFocus
-                            reachOutsToday={reachOutsToday}
-                            bookingsToday={bookingsToday}
-                            sharingToday={sharingToday}
-                            reachOutDetails={reachOutDetails}
-                            bookingDetails={bookingDetails}
-                            sharingDetails={sharingDetails}
-                            rawData={{
-                              unifiedNotes: unifiedNotes,
-                              allNotes: allNotes,
-                              customers: customers,
-                              prospects: prospects,
-                              bookingLeads: bookingLeads,
-                              consultants: consultants,
-                              events: events,
-                            }}
-                            onDetailNavigate={(type, id) => {
-                              if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                              else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                              else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                              else if (type === "Lead") navigate("/booking-leads");
-                              else if (type === "Consultant") navigate("/leadership");
-                            }}
-                          />
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
+                  {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
                   {/* ═══ SECTION 6: Relationship Touches (Collapsed) ═══ */}
                   <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
