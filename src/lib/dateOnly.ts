@@ -71,9 +71,9 @@ export function getDaysOverdue(dateStr: string | null | undefined, today = getLo
   const dueTime = getDateOnlyTime(dateStr);
   if (dueTime === null) return null;
 
-  const todayTime = getLocalToday().getTime();
+  const todayTime = today.getTime();
   if (dueTime >= todayTime) return null;
-  return Math.floor((today.getTime() - dueTime) / (1000 * 60 * 60 * 24));
+  return Math.floor((todayTime - dueTime) / (1000 * 60 * 60 * 24));
 }
 
 export function formatDateOnly(dateStr: string | null | undefined, pattern = "M/d/yyyy"): string {
