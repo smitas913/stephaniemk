@@ -16,7 +16,7 @@ import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/c
 import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
 import type { DormantStage } from "@/lib/dormantCadence";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
-import { computeMetricsForDate, type FocusDetailItem } from "@/lib/focusMetrics";
+import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -195,14 +195,7 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: CalendarCheck },
 };
 
-const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation", "Did Not Connect"]);
 
-function getTimestampDateKey(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return toLocalDateKey(parsed);
-}
 
 async function logCustomerActivity({
   customerId,
