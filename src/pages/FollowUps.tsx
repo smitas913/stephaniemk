@@ -1314,7 +1314,27 @@ export default function FollowUps() {
 
               {/* ===== TODAY TAB — COMMAND CENTER ===== */}
               <TabsContent value="today" className="mt-4">
-                {isNonWorkday && (
+                {isOOOActive && (
+                  <div className="mb-4 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 p-3 flex items-center gap-3 flex-wrap">
+                    <Palmtree className="w-5 h-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Out of Office Mode ON</p>
+                      <p className="text-xs text-muted-foreground">
+                        Workflow paused — birthdays still shown. Follow-ups remain frozen{showFollowUpsOverride ? " (temporarily revealed)" : ""}.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={showFollowUpsOverride ? "secondary" : "default"}
+                      className="h-8 text-xs gap-1.5"
+                      onClick={() => setShowFollowUpsOverride((v) => !v)}
+                    >
+                      {showFollowUpsOverride ? (<><EyeOff className="w-3.5 h-3.5" /> Hide Follow-Ups</>) : (<><Eye className="w-3.5 h-3.5" /> Show Follow-Ups Anyway</>)}
+                    </Button>
+                  </div>
+                )}
+
+                {isNonWorkday && !isOOOActive && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
                     <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown.</p>
