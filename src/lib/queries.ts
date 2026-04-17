@@ -904,6 +904,72 @@ export const deleteBlackoutDay = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
+// ─── Follow-Up Backlog Cleanup (post Out of Office) ───
+
+/**
+ * Find all follow-ups (customers, prospects, booking_leads) whose
+ * next_follow_up_date is on/before `cutoffDate` (i.e. became due/overdue
+ * during or before the cutoff). Counts are per-table.
+ */
+export const countOverdueFollowUps = async (cutoffDate: string): Promise<{
+  customers: number;
+  prospects: number;
+  booking_leads: number;
+  total: number;
+}> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return { customers: 0, prospects: 0, booking_leads: 0, total: 0 };
+
+  const [c, p, b] = await Promise.all([
+    supabase.from("customers").select("id", { count: "exact", head: true })
+      .not("next_follow_up_date", "is", null)
+      .lte("next_follow_up_date", cutoffDate),
+    supabase.from("prospects").select("id", { count: "exact", head: true })
+      .not("next_follow_up_date", "is", null)
+      .lte("next_follow_up_date", cutoffDate),
+    supabase.from("booking_leads").select("id", { count: "exact", head: true })
+      .not("next_follow_up_date", "is", null)
+      .lte("next_follow_up_date", cutoffDate),
+  ]);
+
+  const customers = c.count ?? 0;
+  const prospects = p.count ?? 0;
+  const booking_leads = b.count ?? 0;
+  return { customers, prospects, booking_leads, total: customers + prospects + booking_leads };
+};
+
+/**
+ * Reset all overdue/due follow-ups (next_follow_up_date <= cutoffDate).
+ * mode "today"  → set next_follow_up_date to today
+ * mode "clear"  → set next_follow_up_date to null (no follow-up needed)
+ */
+export const resetOverdueFollowUps = async (
+  cutoffDate: string,
+  mode: "today" | "clear"
+): Promise<{ customers: number; prospects: number; booking_leads: number }> => {
+  const today = new Date().toISOString().split("T")[0];
+  const newDate: string | null = mode === "today" ? today : null;
+
+  const updateTable = async (table: "customers" | "prospects" | "booking_leads") => {
+    const { data, error } = await supabase
+      .from(table)
+      .update({ next_follow_up_date: newDate } as any)
+      .not("next_follow_up_date", "is", null)
+      .lte("next_follow_up_date", cutoffDate)
+      .select("id");
+    if (error) throw error;
+    return data?.length ?? 0;
+  };
+
+  const [customers, prospects, booking_leads] = await Promise.all([
+    updateTable("customers"),
+    updateTable("prospects"),
+    updateTable("booking_leads"),
+  ]);
+
+  return { customers, prospects, booking_leads };
+};
+
 export const convertProspectToConsultant = async (
   prospect: Prospect,
   extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
