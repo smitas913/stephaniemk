@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchScheduleSettings, upsertScheduleSettings, fetchBlackoutDays, createBlackoutDay, deleteBlackoutDay } from "@/lib/queries";
+import { fetchScheduleSettings, upsertScheduleSettings, fetchBlackoutDays, createBlackoutDay, deleteBlackoutDay, countOverdueFollowUps, resetOverdueFollowUps } from "@/lib/queries";
 import { getHolidayList } from "@/lib/smartSchedule";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarOff, Palmtree, Zap, Plus, X, CalendarDays } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CalendarOff, Palmtree, Zap, Plus, X, CalendarDays, RotateCcw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 const DAY_LABELS = [
@@ -133,6 +137,46 @@ export default function ScheduleSettings() {
   const currentYear = new Date().getFullYear();
   const holidays = getHolidayList(currentYear);
   const isOOOActive = oooStart && oooEnd;
+
+  // ─── Reset Follow-Ups After Out of Office ───
+  const today = new Date().toISOString().split("T")[0];
+  // Cutoff: if OOO end is in the past, use it; else use today.
+  const cutoffDate = settings?.ooo_end_date && settings.ooo_end_date < today
+    ? settings.ooo_end_date
+    : today;
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetMode, setResetMode] = useState<"today" | "clear" | null>(null);
+
+  const { data: backlogCounts, refetch: refetchBacklog } = useQuery({
+    queryKey: ["overdue-followups", cutoffDate],
+    queryFn: () => countOverdueFollowUps(cutoffDate),
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: (mode: "today" | "clear") => resetOverdueFollowUps(cutoffDate, mode),
+    onSuccess: (res, mode) => {
+      const total = res.customers + res.prospects + res.booking_leads;
+      toast.success(
+        mode === "today"
+          ? `Moved ${total} follow-up${total === 1 ? "" : "s"} to today`
+          : `Cleared ${total} follow-up${total === 1 ? "" : "s"}`
+      );
+      setResetOpen(false);
+      setResetMode(null);
+      refetchBacklog();
+      queryClient.invalidateQueries({ queryKey: ["follow-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+    },
+    onError: () => toast.error("Failed to reset follow-ups"),
+  });
+
+  const openReset = (mode: "today" | "clear") => {
+    setResetMode(mode);
+    setResetOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -270,7 +314,81 @@ export default function ScheduleSettings() {
             )}
           </div>
 
-          {/* Holidays */}
+          {/* Reset Follow-Ups After OOO */}
+          <div className="pt-2 border-t border-border/50 space-y-2">
+            <div className="flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Reset Follow-Ups After Out of Office</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cleans backlog of follow-ups that became due on or before{" "}
+              <span className="font-medium text-foreground">{formatDateOnly(cutoffDate)}</span>.
+              Choose to bring them all forward to today, or clear them entirely.
+            </p>
+            <div className="flex items-center justify-between bg-muted/40 rounded px-2 py-1.5">
+              <span className="text-xs text-muted-foreground">Backlog found</span>
+              <Badge variant={backlogCounts && backlogCounts.total > 0 ? "secondary" : "outline"} className="text-xs">
+                {backlogCounts?.total ?? 0} follow-up{(backlogCounts?.total ?? 0) === 1 ? "" : "s"}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={!backlogCounts || backlogCounts.total === 0 || resetMutation.isPending}
+                onClick={() => openReset("today")}
+              >
+                <CalendarDays className="w-3.5 h-3.5 mr-1" />
+                Move to Today
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                disabled={!backlogCounts || backlogCounts.total === 0 || resetMutation.isPending}
+                onClick={() => openReset("clear")}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                Clear All
+              </Button>
+            </div>
+          </div>
+
+          <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {resetMode === "today" ? "Move all to today?" : "Clear all follow-ups?"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will affect <span className="font-medium">{backlogCounts?.total ?? 0}</span> overdue follow-up
+                  {(backlogCounts?.total ?? 0) === 1 ? "" : "s"}
+                  {backlogCounts && backlogCounts.total > 0 && (
+                    <>
+                      {" "}({backlogCounts.customers} customer{backlogCounts.customers === 1 ? "" : "s"},{" "}
+                      {backlogCounts.prospects} prospect{backlogCounts.prospects === 1 ? "" : "s"},{" "}
+                      {backlogCounts.booking_leads} lead{backlogCounts.booking_leads === 1 ? "" : "s"})
+                    </>
+                  )}
+                  . {resetMode === "today"
+                    ? "Their next follow-up date will be set to today."
+                    : "Their next follow-up date will be cleared (no follow-up needed)."}
+                  {" "}No new activities or overdue counts will be created.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => resetMode && resetMutation.mutate(resetMode)}
+                  disabled={resetMutation.isPending}
+                >
+                  {resetMutation.isPending ? "Resetting..." : "Confirm"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <div className="pt-2 border-t border-border/50">
             <p className="text-xs font-medium text-muted-foreground mb-1">
               Auto-calculated holidays ({currentYear})
