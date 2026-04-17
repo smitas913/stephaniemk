@@ -270,6 +270,21 @@ export default function FollowUps() {
     return today >= scheduleSettings.ooo_start_date && today <= scheduleSettings.ooo_end_date;
   }, [scheduleSettings]);
 
+  // TRUE TIME FREEZE: while OOO is active, all follow-up status calculations use
+  // the day BEFORE OOO started as "today". This ensures:
+  //   • Overdue counts don't grow during OOO
+  //   • Items scheduled mid-OOO stay in "Upcoming" (don't slide into Due Today)
+  //   • No backlog accrues — when OOO ends, real today resumes naturally and only
+  //     items already past-due at OOO start remain overdue (by their original delta).
+  const frozenToday = useMemo(() => {
+    if (!isOOOActive || !scheduleSettings?.ooo_start_date) return getLocalToday();
+    // Day before OOO start
+    const start = parseLocalDate(scheduleSettings.ooo_start_date);
+    start.setDate(start.getDate() - 1);
+    return start;
+  }, [isOOOActive, scheduleSettings?.ooo_start_date]);
+  const frozenTodayKey = useMemo(() => toLocalDateKey(frozenToday), [frozenToday]);
+
   // Override is session-only — resets on navigation away or refresh (component unmount).
   const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
   // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
@@ -589,8 +604,10 @@ export default function FollowUps() {
 
   // ─── Build unified action items ───
   const { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysOverdue, birthdaysUpcoming } = useMemo(() => {
-    const todayDate = getLocalToday();
-    const todayKey = toLocalDateKey(todayDate);
+    // When OOO is active, freeze "today" to the day before OOO started so follow-up
+    // timers do not progress (no new overdue, no new due-today, no backlog).
+    const todayDate = frozenToday;
+    const todayKey = frozenTodayKey;
     const upcoming7Key = toLocalDateKey(addDays(todayDate, 7));
 
     // Customer items
