@@ -138,6 +138,46 @@ export default function ScheduleSettings() {
   const holidays = getHolidayList(currentYear);
   const isOOOActive = oooStart && oooEnd;
 
+  // ─── Reset Follow-Ups After Out of Office ───
+  const today = new Date().toISOString().split("T")[0];
+  // Cutoff: if OOO end is in the past, use it; else use today.
+  const cutoffDate = settings?.ooo_end_date && settings.ooo_end_date < today
+    ? settings.ooo_end_date
+    : today;
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetMode, setResetMode] = useState<"today" | "clear" | null>(null);
+
+  const { data: backlogCounts, refetch: refetchBacklog } = useQuery({
+    queryKey: ["overdue-followups", cutoffDate],
+    queryFn: () => countOverdueFollowUps(cutoffDate),
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: (mode: "today" | "clear") => resetOverdueFollowUps(cutoffDate, mode),
+    onSuccess: (res, mode) => {
+      const total = res.customers + res.prospects + res.booking_leads;
+      toast.success(
+        mode === "today"
+          ? `Moved ${total} follow-up${total === 1 ? "" : "s"} to today`
+          : `Cleared ${total} follow-up${total === 1 ? "" : "s"}`
+      );
+      setResetOpen(false);
+      setResetMode(null);
+      refetchBacklog();
+      queryClient.invalidateQueries({ queryKey: ["follow-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+    },
+    onError: () => toast.error("Failed to reset follow-ups"),
+  });
+
+  const openReset = (mode: "today" | "clear") => {
+    setResetMode(mode);
+    setResetOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       {/* Workdays Card */}
