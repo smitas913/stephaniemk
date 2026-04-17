@@ -44,7 +44,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -261,6 +261,20 @@ export default function FollowUps() {
   const { data: scheduleSettings } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
+
+  // ─── Out of Office Mode ───
+  // Active when today's date falls within the configured OOO window.
+  const isOOOActive = useMemo(() => {
+    if (!scheduleSettings?.ooo_start_date || !scheduleSettings?.ooo_end_date) return false;
+    const today = toLocalDateKey();
+    return today >= scheduleSettings.ooo_start_date && today <= scheduleSettings.ooo_end_date;
+  }, [scheduleSettings]);
+
+  // Override is session-only — resets on navigation away or refresh (component unmount).
+  const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
+  // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
+  // Birthdays (in Today's Schedule) and 6 Most Important always remain visible.
+  const hideWorkflow = isOOOActive && !showFollowUpsOverride;
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
