@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchScheduleSettings, upsertScheduleSettings, fetchBlackoutDays, createBlackoutDay, deleteBlackoutDay } from "@/lib/queries";
+import { fetchScheduleSettings, upsertScheduleSettings, fetchBlackoutDays, createBlackoutDay, deleteBlackoutDay, countOverdueFollowUps, resetOverdueFollowUps } from "@/lib/queries";
 import { getHolidayList } from "@/lib/smartSchedule";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarOff, Palmtree, Zap, Plus, X, CalendarDays } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CalendarOff, Palmtree, Zap, Plus, X, CalendarDays, RotateCcw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 const DAY_LABELS = [
