@@ -1573,8 +1573,8 @@ export default function FollowUps() {
 
 
 
-                  {/* ═══ SECTION 3: Team Attention ═══ */}
-                  {(() => {
+                  {/* ═══ SECTION 3: Team Attention — hidden in OOO unless overridden ═══ */}
+                  {!hideWorkflow && (() => {
                     const teamActions = todayActions.filter(i => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
                     if (teamActions.length === 0) return null;
 
