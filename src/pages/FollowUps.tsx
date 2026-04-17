@@ -16,12 +16,10 @@ import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/c
 import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
 import type { DormantStage } from "@/lib/dormantCadence";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
-import { computeMetricsForDate } from "@/lib/focusMetrics";
+import { computeMetricsForDate, type FocusDetailItem } from "@/lib/focusMetrics";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
-import TodaysFocus from "@/components/TodaysFocus";
-import type { FocusDetailItem } from "@/components/TodaysFocus";
 import SixMostImportant from "@/components/SixMostImportant";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
@@ -44,7 +42,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -550,8 +548,6 @@ export default function FollowUps() {
 
   // Relationship Touches collapsed state
   const [touchesOpen, setTouchesOpen] = useState(false);
-  // Scorecard collapsed on mobile by default
-  const [scorecardOpen, setScorecardOpen] = useState(true);
 
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
@@ -1854,52 +1850,7 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
 
-                  {/* ═══ SECTION 5: Daily Scorecard (Collapsed on mobile) ═══ */}
-                  <Collapsible open={isMobile ? scorecardOpen : true} onOpenChange={setScorecardOpen}>
-                    <Card className="border-border/50 shadow-sm">
-                      <CollapsibleTrigger className="w-full" disabled={!isMobile}>
-                        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-primary/10">
-                                <Target className="w-4 h-4 text-primary" />
-                              </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Daily Scorecard</CardTitle>
-                            </div>
-                            {isMobile && <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", scorecardOpen && "rotate-180")} />}
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className={cn(isMobile ? "px-3 pt-0" : "pt-0")}>
-                          <TodaysFocus
-                            reachOutsToday={reachOutsToday}
-                            bookingsToday={bookingsToday}
-                            sharingToday={sharingToday}
-                            reachOutDetails={reachOutDetails}
-                            bookingDetails={bookingDetails}
-                            sharingDetails={sharingDetails}
-                            rawData={{
-                              unifiedNotes: unifiedNotes,
-                              allNotes: allNotes,
-                              customers: customers,
-                              prospects: prospects,
-                              bookingLeads: bookingLeads,
-                              consultants: consultants,
-                              events: events,
-                            }}
-                            onDetailNavigate={(type, id) => {
-                              if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                              else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                              else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                              else if (type === "Lead") navigate("/booking-leads");
-                              else if (type === "Consultant") navigate("/leadership");
-                            }}
-                          />
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
+                  {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
                   {/* ═══ SECTION 6: Relationship Touches (Collapsed) ═══ */}
                   <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>

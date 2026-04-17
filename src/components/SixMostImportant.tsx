@@ -10,8 +10,7 @@ import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { startOfWeek, addDays, format, subDays } from "date-fns";
-import { computeMetricsForDate } from "@/lib/focusMetrics";
-import type { FocusRawData, FocusDetailItem } from "@/components/TodaysFocus";
+import { computeMetricsForDate, type FocusRawData, type FocusDetailItem } from "@/lib/focusMetrics";
 
 import FocusDateNav from "@/components/focus/FocusDateNav";
 import DayTypeSelector from "@/components/focus/DayTypeSelector";
