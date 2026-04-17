@@ -1385,8 +1385,8 @@ export default function FollowUps() {
                      suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
                    />
 
-                  {/* ═══ SECTION 2: Follow-Ups (Unified View) ═══ */}
-                  {(() => {
+                  {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
+                  {!hideWorkflow && (() => {
                     const teamTypes = new Set(["consultant"]);
                     const followUpItems = todayActions.filter(i => !teamTypes.has(i.itemType));
 
