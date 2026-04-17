@@ -44,7 +44,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Target, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -261,6 +261,20 @@ export default function FollowUps() {
   const { data: scheduleSettings } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
+
+  // ─── Out of Office Mode ───
+  // Active when today's date falls within the configured OOO window.
+  const isOOOActive = useMemo(() => {
+    if (!scheduleSettings?.ooo_start_date || !scheduleSettings?.ooo_end_date) return false;
+    const today = toLocalDateKey();
+    return today >= scheduleSettings.ooo_start_date && today <= scheduleSettings.ooo_end_date;
+  }, [scheduleSettings]);
+
+  // Override is session-only — resets on navigation away or refresh (component unmount).
+  const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
+  // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
+  // Birthdays (in Today's Schedule) and 6 Most Important always remain visible.
+  const hideWorkflow = isOOOActive && !showFollowUpsOverride;
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
@@ -1300,7 +1314,27 @@ export default function FollowUps() {
 
               {/* ===== TODAY TAB — COMMAND CENTER ===== */}
               <TabsContent value="today" className="mt-4">
-                {isNonWorkday && (
+                {isOOOActive && (
+                  <div className="mb-4 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 p-3 flex items-center gap-3 flex-wrap">
+                    <Palmtree className="w-5 h-5 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Out of Office Mode ON</p>
+                      <p className="text-xs text-muted-foreground">
+                        Workflow paused — birthdays still shown. Follow-ups remain frozen{showFollowUpsOverride ? " (temporarily revealed)" : ""}.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={showFollowUpsOverride ? "secondary" : "default"}
+                      className="h-8 text-xs gap-1.5"
+                      onClick={() => setShowFollowUpsOverride((v) => !v)}
+                    >
+                      {showFollowUpsOverride ? (<><EyeOff className="w-3.5 h-3.5" /> Hide Follow-Ups</>) : (<><Eye className="w-3.5 h-3.5" /> Show Follow-Ups Anyway</>)}
+                    </Button>
+                  </div>
+                )}
+
+                {isNonWorkday && !isOOOActive && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
                     <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown.</p>
@@ -1351,8 +1385,8 @@ export default function FollowUps() {
                      suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
                    />
 
-                  {/* ═══ SECTION 2: Follow-Ups (Unified View) ═══ */}
-                  {(() => {
+                  {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
+                  {!hideWorkflow && (() => {
                     const teamTypes = new Set(["consultant"]);
                     const followUpItems = todayActions.filter(i => !teamTypes.has(i.itemType));
 
@@ -1539,8 +1573,8 @@ export default function FollowUps() {
 
 
 
-                  {/* ═══ SECTION 3: Team Attention ═══ */}
-                  {(() => {
+                  {/* ═══ SECTION 3: Team Attention — hidden in OOO unless overridden ═══ */}
+                  {!hideWorkflow && (() => {
                     const teamActions = todayActions.filter(i => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
                     if (teamActions.length === 0) return null;
 
