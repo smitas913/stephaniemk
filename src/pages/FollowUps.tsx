@@ -1315,21 +1315,22 @@ export default function FollowUps() {
               {/* ===== TODAY TAB — COMMAND CENTER ===== */}
               <TabsContent value="today" className="mt-4">
                 {isOOOActive && (
-                  <div className="mb-4 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 p-3 flex items-center gap-3 flex-wrap">
-                    <Palmtree className="w-5 h-5 text-primary shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">Out of Office Mode ON</p>
-                      <p className="text-xs text-muted-foreground">
-                        Workflow paused — birthdays still shown. Follow-ups remain frozen{showFollowUpsOverride ? " (temporarily revealed)" : ""}.
-                      </p>
+                  <div className="mb-3 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 px-3 py-2 sm:flex sm:items-center sm:gap-3">
+                    {/* Mobile: stacked compact rows. Desktop (sm+): single row. */}
+                    <div className="flex items-center gap-2 sm:flex-1 sm:min-w-0">
+                      <Palmtree className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-sm font-semibold text-foreground leading-tight">Out of Office ON</p>
                     </div>
+                    <p className="text-[11px] text-muted-foreground leading-tight mt-0.5 sm:mt-0 sm:text-xs sm:flex-1">
+                      Workflow paused • Birthdays still show{showFollowUpsOverride ? " • Revealed" : ""}
+                    </p>
                     <Button
                       size="sm"
                       variant={showFollowUpsOverride ? "secondary" : "default"}
-                      className="h-8 text-xs gap-1.5"
+                      className="mt-2 sm:mt-0 h-7 w-full sm:w-auto text-xs gap-1.5"
                       onClick={() => setShowFollowUpsOverride((v) => !v)}
                     >
-                      {showFollowUpsOverride ? (<><EyeOff className="w-3.5 h-3.5" /> Hide Follow-Ups</>) : (<><Eye className="w-3.5 h-3.5" /> Show Follow-Ups Anyway</>)}
+                      {showFollowUpsOverride ? (<><EyeOff className="w-3.5 h-3.5" /> Hide Follow-Ups</>) : (<><Eye className="w-3.5 h-3.5" /> Show Follow-Ups</>)}
                     </Button>
                   </div>
                 )}
