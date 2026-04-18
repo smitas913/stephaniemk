@@ -1244,27 +1244,29 @@ export default function FollowUps() {
                     );
                   })()}
 
-                   {/* ═══ SECTION 1: 6 Most Important Things ═══ */}
-                   <SixMostImportant
-                     autoCounts={focusAutoCounts}
-                     rawData={{
-                       unifiedNotes, allNotes, customers, prospects,
-                       bookingLeads, consultants, events,
-                     }}
-                     onDetailNavigate={(type, id) => {
-                       if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                       else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                       else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                       else if (type === "Lead") navigate("/booking-leads");
-                       else if (type === "Consultant") navigate("/leadership", { state: { from: "/follow-ups", tab: "consultants", consultantId: id } });
-                       else if (type === "Hostess") {
-                         const evt = events.find(e => e.id === id || (e.hostess_name && e.id === id));
-                         if (evt) navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } });
-                         else navigate("/events");
-                       }
-                     }}
-                     suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
-                   />
+                   {/* ═══ SECTION 1: 6 Most Important Things — hidden in OOO unless overridden ═══ */}
+                   {!hideWorkflow && (
+                     <SixMostImportant
+                       autoCounts={focusAutoCounts}
+                       rawData={{
+                         unifiedNotes, allNotes, customers, prospects,
+                         bookingLeads, consultants, events,
+                       }}
+                       onDetailNavigate={(type, id) => {
+                         if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
+                         else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
+                         else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
+                         else if (type === "Lead") navigate("/booking-leads");
+                         else if (type === "Consultant") navigate("/leadership", { state: { from: "/follow-ups", tab: "consultants", consultantId: id } });
+                         else if (type === "Hostess") {
+                           const evt = events.find(e => e.id === id || (e.hostess_name && e.id === id));
+                           if (evt) navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } });
+                           else navigate("/events");
+                         }
+                       }}
+                       suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
+                     />
+                   )}
 
                   {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
                   {!hideWorkflow && (() => {
@@ -1596,7 +1598,7 @@ export default function FollowUps() {
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
@@ -1605,11 +1607,11 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
-                          {todayEvents.length > 0 && (
+                          {!hideWorkflow && todayEvents.length > 0 && (
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
@@ -1631,7 +1633,7 @@ export default function FollowUps() {
                               </div>
                             </div>
                           )}
-                          {todayDeliveries.length > 0 && (
+                          {!hideWorkflow && todayDeliveries.length > 0 && (
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                 <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
@@ -1719,55 +1721,56 @@ export default function FollowUps() {
 
                   {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
-                  {/* ═══ SECTION 6: Relationship Touches (Collapsed) ═══ */}
-                  <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
-                    <Card className="border-border/50 shadow-sm">
-                      <CollapsibleTrigger className="w-full">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
-                                <Heart className="w-4 h-4 text-pink-600" />
+                  {/* ═══ SECTION 6: Relationship Touches (Collapsed) — hidden in OOO unless overridden ═══ */}
+                  {!hideWorkflow && (
+                    <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
+                      <Card className="border-border/50 shadow-sm">
+                        <CollapsibleTrigger className="w-full">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
+                                  <Heart className="w-4 h-4 text-pink-600" />
+                                </div>
+                                <CardTitle className="text-sm font-semibold text-foreground">Relationship Touches</CardTitle>
                               </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Relationship Touches</CardTitle>
+                              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", touchesOpen && "rotate-180")} />
                             </div>
-                            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", touchesOpen && "rotate-180")} />
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className="pt-0 space-y-3">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="text-xs font-semibold text-foreground">Notes</span>
+                          </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="pt-0 space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-semibold text-foreground">Notes</span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">Send a personal note or thank-you card</p>
                               </div>
-                              <p className="text-[11px] text-muted-foreground">Send a personal note or thank-you card</p>
-                            </div>
-                            <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <Gift className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="text-xs font-semibold text-foreground">Gifts</span>
+                              <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Gift className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-semibold text-foreground">Gifts</span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">Surprise a customer or team member with a small gift</p>
                               </div>
-                              <p className="text-[11px] text-muted-foreground">Surprise a customer or team member with a small gift</p>
-                            </div>
-                            <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                              <div className="flex items-center gap-1.5">
-                                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="text-xs font-semibold text-foreground">Check-ins</span>
+                              <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-semibold text-foreground">Check-ins</span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">Quick call or text just to say hi — no sales agenda</p>
                               </div>
-                              <p className="text-[11px] text-muted-foreground">Quick call or text just to say hi — no sales agenda</p>
                             </div>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground text-center italic">
-                            Coming soon: Track and log relationship touches to strengthen connections
-                          </p>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Card>
-                  </Collapsible>
-
+                            <p className="text-[10px] text-muted-foreground text-center italic">
+                              Coming soon: Track and log relationship touches to strengthen connections
+                            </p>
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  )}
                 </div>
               </TabsContent>
 
