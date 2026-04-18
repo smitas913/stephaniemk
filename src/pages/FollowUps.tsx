@@ -444,14 +444,17 @@ export default function FollowUps() {
   }, [unifiedNotes]);
 
   const enrichedCustomers = useMemo(() => {
+    // During Out of Office, anchor all time-based customer derivations to the frozen date.
+    // This prevents activity-status drift, days-since-last-order growth, and auto follow-up
+    // dates from sliding into the past while the user is away.
     return customers
       .filter((c) => c.is_active !== false && c.relationship_status !== "Consultant")
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
-        const computed = computeCustomerFields(c, custOrders);
+        const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined);
         return { ...c, ...computed };
       });
-  }, [customers, allOrders]);
+  }, [customers, allOrders, isOOOActive, frozenToday]);
 
   // Detail sheet queries
   const { data: detailNotes = [] } = useQuery({
