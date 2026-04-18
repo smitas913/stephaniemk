@@ -116,7 +116,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[], refer
   // --- Follow-up status ---
   let followUpStatus = "";
   if (nextFollowUp) {
-    followUpStatus = getFollowUpStatus(format(nextFollowUp, "yyyy-MM-dd"));
+    followUpStatus = getFollowUpStatus(format(nextFollowUp, "yyyy-MM-dd"), format(today, "yyyy-MM-dd"));
   }
 
   // --- Follow-up reason (priority order) ---
