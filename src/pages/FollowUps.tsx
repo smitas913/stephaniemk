@@ -1598,7 +1598,7 @@ export default function FollowUps() {
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{todayEvents.length + todayDeliveries.length + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
@@ -1607,11 +1607,11 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {todayEvents.length === 0 && todayDeliveries.length === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
-                          {todayEvents.length > 0 && (
+                          {!hideWorkflow && todayEvents.length > 0 && (
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
@@ -1633,7 +1633,7 @@ export default function FollowUps() {
                               </div>
                             </div>
                           )}
-                          {todayDeliveries.length > 0 && (
+                          {!hideWorkflow && todayDeliveries.length > 0 && (
                             <div>
                               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                 <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
