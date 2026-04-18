@@ -14,9 +14,16 @@ function toBusinessDay(d: Date): Date {
 
 const RECENT_CONTACT_DAYS = 7;
 
-export function computeCustomerFields(customer: Customer, orders: Order[]): CustomerComputed {
+/**
+ * Compute derived customer fields.
+ * @param referenceDate Optional "today" override. When provided (e.g., during Out of Office freeze),
+ *   all time-based calculations (activity status, days-since-last-order, auto follow-up dates,
+ *   follow-up status) are anchored to this date instead of the real-time clock. This prevents
+ *   workflow accumulation while OOO is active.
+ */
+export function computeCustomerFields(customer: Customer, orders: Order[], referenceDate?: Date): CustomerComputed {
   const isConsultant = customer.relationship_status === "Consultant";
-  const today = new Date();
+  const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(0, 0, 0, 0);
   const yearStart = startOfYear(today);
 
@@ -109,7 +116,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[]): Cust
   // --- Follow-up status ---
   let followUpStatus = "";
   if (nextFollowUp) {
-    followUpStatus = getFollowUpStatus(format(nextFollowUp, "yyyy-MM-dd"));
+    followUpStatus = getFollowUpStatus(format(nextFollowUp, "yyyy-MM-dd"), format(today, "yyyy-MM-dd"));
   }
 
   // --- Follow-up reason (priority order) ---
