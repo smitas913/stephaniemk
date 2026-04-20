@@ -260,13 +260,13 @@ export default function FollowUps() {
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
-  const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
-  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
-  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
-  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: prospects = [], isLoading: pLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const { data: bookingLeads = [], isLoading: blLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const { data: consultants = [], isLoading: tcLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const { data: events = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
-  const { data: eventTasksRaw = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
-  const { data: scheduleSettings } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
+  const { data: eventTasksRaw = [], isLoading: etLoading } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const { data: scheduleSettings, isLoading: ssLoading } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
 
@@ -311,7 +311,7 @@ export default function FollowUps() {
       return (data as any[]) || [];
     },
   });
-  const isLoading = cLoading || oLoading;
+  const isLoading = cLoading || oLoading || pLoading || blLoading || tcLoading || eLoading || etLoading || ssLoading;
 
   // Daily Scorecard removed — per-metric reach-out / booking / sharing aggregation no longer computed.
   // The 6 Most Important Things uses `focusAutoCounts` (below) sourced directly from `computeMetricsForDate`.
