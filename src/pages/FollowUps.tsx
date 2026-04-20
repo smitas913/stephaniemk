@@ -291,6 +291,10 @@ export default function FollowUps() {
     return parseLocalDate(scheduleSettings.ooo_start_date);
   }, [isOOOActive, scheduleSettings?.ooo_start_date]);
   const frozenTodayKey = useMemo(() => toLocalDateKey(frozenToday), [frozenToday]);
+  const followUpSnapshot = useMemo(
+    () => parseFollowUpSnapshot(scheduleSettings?.ooo_followup_snapshot),
+    [scheduleSettings?.ooo_followup_snapshot]
+  );
 
   // Override is session-only — resets on navigation away or refresh (component unmount).
   const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
@@ -723,8 +727,80 @@ export default function FollowUps() {
     birthdaysOverdue.sort((a, b) => b._daysUntil - a._daysUntil); // most recent first
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysOverdue, birthdaysUpcoming };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey]);
+    const liveTodayActions = todayActions;
+    const liveUpcomingActions = upcomingActions;
+
+    if (isOOOActive && followUpSnapshot) {
+      const itemMap = new Map(allItems.map((item) => [getActionItemKey(item), item]));
+      const frozenTodayActions = followUpSnapshot.today
+        .map((key) => itemMap.get(key))
+        .filter((item): item is ActionItem => Boolean(item));
+      const frozenUpcomingActions = followUpSnapshot.upcoming
+        .map((key) => itemMap.get(key))
+        .filter((item): item is ActionItem => Boolean(item));
+
+      return {
+        todayActions: sortItems(frozenTodayActions),
+        upcomingActions: sortItems(frozenUpcomingActions),
+        todayEvents,
+        upcomingEvents,
+        reschedulingFollowUp,
+        birthdaysToday,
+        birthdaysOverdue,
+        birthdaysUpcoming,
+      };
+    }
+
+    return {
+      todayActions: liveTodayActions,
+      upcomingActions: liveUpcomingActions,
+      todayEvents,
+      upcomingEvents,
+      reschedulingFollowUp,
+      birthdaysToday,
+      birthdaysOverdue,
+      birthdaysUpcoming,
+    };
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot]);
+
+  useEffect(() => {
+    const activeStartDate = scheduleSettings?.ooo_start_date || null;
+    const snapshotIsCurrent = !!followUpSnapshot && scheduleSettings?.ooo_followup_frozen_on === activeStartDate;
+
+    if (isLoading) return;
+
+    if (isOOOActive && activeStartDate && !snapshotIsCurrent) {
+      void upsertScheduleSettings({
+        ooo_followup_snapshot: {
+          today: todayActions.map(getActionItemKey),
+          upcoming: upcomingActions.map(getActionItemKey),
+        },
+        ooo_followup_frozen_on: activeStartDate,
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
+      });
+      return;
+    }
+
+    if (!isOOOActive && (scheduleSettings?.ooo_followup_snapshot || scheduleSettings?.ooo_followup_frozen_on)) {
+      void upsertScheduleSettings({
+        ooo_followup_snapshot: null,
+        ooo_followup_frozen_on: null,
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
+      });
+    }
+  }, [
+    isLoading,
+    isOOOActive,
+    scheduleSettings?.ooo_start_date,
+    scheduleSettings?.ooo_followup_snapshot,
+    scheduleSettings?.ooo_followup_frozen_on,
+    followUpSnapshot,
+    todayActions,
+    upcomingActions,
+    queryClient,
+  ]);
 
   // Distribution candidates
   const distributeCandidates = useMemo(() => {
