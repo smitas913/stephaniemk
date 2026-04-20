@@ -7,7 +7,7 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings,
+  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings, upsertScheduleSettings,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { buildWorkdayFlags, isTodayNonWorkday } from "@/lib/smartSchedule";
@@ -104,6 +104,23 @@ type ActionItem = {
   _address?: string | null;
   _relationship_status?: string | null;
 };
+
+type FollowUpSnapshot = {
+  today: string[];
+  upcoming: string[];
+};
+
+const getActionItemKey = (item: Pick<ActionItem, "itemType" | "id">) => `${item.itemType}:${item.id}`;
+
+function parseFollowUpSnapshot(value: unknown): FollowUpSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const snapshot = value as Record<string, unknown>;
+  const normalize = (input: unknown) => Array.isArray(input) ? input.filter((entry): entry is string => typeof entry === "string") : [];
+  return {
+    today: normalize(snapshot.today),
+    upcoming: normalize(snapshot.upcoming),
+  };
+}
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
   if (!mmdd) return null;
