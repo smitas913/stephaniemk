@@ -823,6 +823,8 @@ export interface ScheduleSettings {
   user_id?: string;
   ooo_start_date: string | null;
   ooo_end_date: string | null;
+  ooo_followup_snapshot?: unknown | null;
+  ooo_followup_frozen_on?: string | null;
   light_schedule_mode: boolean;
   workday_monday: boolean;
   workday_tuesday: boolean;
