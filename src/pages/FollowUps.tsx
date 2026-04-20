@@ -7,7 +7,7 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings,
+  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings, upsertScheduleSettings,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { buildWorkdayFlags, isTodayNonWorkday } from "@/lib/smartSchedule";
@@ -104,6 +104,23 @@ type ActionItem = {
   _address?: string | null;
   _relationship_status?: string | null;
 };
+
+type FollowUpSnapshot = {
+  today: string[];
+  upcoming: string[];
+};
+
+const getActionItemKey = (item: Pick<ActionItem, "itemType" | "id">) => `${item.itemType}:${item.id}`;
+
+function parseFollowUpSnapshot(value: unknown): FollowUpSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const snapshot = value as Record<string, unknown>;
+  const normalize = (input: unknown) => Array.isArray(input) ? input.filter((entry): entry is string => typeof entry === "string") : [];
+  return {
+    today: normalize(snapshot.today),
+    upcoming: normalize(snapshot.upcoming),
+  };
+}
 
 function parseBirthdayMMDD(mmdd: string | null): { month: number; day: number } | null {
   if (!mmdd) return null;
@@ -243,13 +260,13 @@ export default function FollowUps() {
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
-  const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
-  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
-  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
-  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: prospects = [], isLoading: pLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const { data: bookingLeads = [], isLoading: blLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const { data: consultants = [], isLoading: tcLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const { data: events = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
-  const { data: eventTasksRaw = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
-  const { data: scheduleSettings } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
+  const { data: eventTasksRaw = [], isLoading: etLoading } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const { data: scheduleSettings, isLoading: ssLoading } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
 
@@ -274,6 +291,10 @@ export default function FollowUps() {
     return parseLocalDate(scheduleSettings.ooo_start_date);
   }, [isOOOActive, scheduleSettings?.ooo_start_date]);
   const frozenTodayKey = useMemo(() => toLocalDateKey(frozenToday), [frozenToday]);
+  const followUpSnapshot = useMemo(
+    () => parseFollowUpSnapshot(scheduleSettings?.ooo_followup_snapshot),
+    [scheduleSettings?.ooo_followup_snapshot]
+  );
 
   // Override is session-only — resets on navigation away or refresh (component unmount).
   const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
@@ -294,7 +315,7 @@ export default function FollowUps() {
       return (data as any[]) || [];
     },
   });
-  const isLoading = cLoading || oLoading;
+  const isLoading = cLoading || oLoading || pLoading || blLoading || tcLoading || eLoading || etLoading || ssLoading;
 
   // Daily Scorecard removed — per-metric reach-out / booking / sharing aggregation no longer computed.
   // The 6 Most Important Things uses `focusAutoCounts` (below) sourced directly from `computeMetricsForDate`.
@@ -706,8 +727,80 @@ export default function FollowUps() {
     birthdaysOverdue.sort((a, b) => b._daysUntil - a._daysUntil); // most recent first
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
 
-    return { todayActions, upcomingActions, todayEvents, upcomingEvents, reschedulingFollowUp, birthdaysToday, birthdaysOverdue, birthdaysUpcoming };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey]);
+    const liveTodayActions = todayActions;
+    const liveUpcomingActions = upcomingActions;
+
+    if (isOOOActive && followUpSnapshot) {
+      const itemMap = new Map(allItems.map((item) => [getActionItemKey(item), item]));
+      const frozenTodayActions = followUpSnapshot.today
+        .map((key) => itemMap.get(key))
+        .filter((item): item is ActionItem => Boolean(item));
+      const frozenUpcomingActions = followUpSnapshot.upcoming
+        .map((key) => itemMap.get(key))
+        .filter((item): item is ActionItem => Boolean(item));
+
+      return {
+        todayActions: sortItems(frozenTodayActions),
+        upcomingActions: sortItems(frozenUpcomingActions),
+        todayEvents,
+        upcomingEvents,
+        reschedulingFollowUp,
+        birthdaysToday,
+        birthdaysOverdue,
+        birthdaysUpcoming,
+      };
+    }
+
+    return {
+      todayActions: liveTodayActions,
+      upcomingActions: liveUpcomingActions,
+      todayEvents,
+      upcomingEvents,
+      reschedulingFollowUp,
+      birthdaysToday,
+      birthdaysOverdue,
+      birthdaysUpcoming,
+    };
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot]);
+
+  useEffect(() => {
+    const activeStartDate = scheduleSettings?.ooo_start_date || null;
+    const snapshotIsCurrent = !!followUpSnapshot && scheduleSettings?.ooo_followup_frozen_on === activeStartDate;
+
+    if (isLoading) return;
+
+    if (isOOOActive && activeStartDate && !snapshotIsCurrent) {
+      void upsertScheduleSettings({
+        ooo_followup_snapshot: {
+          today: todayActions.map(getActionItemKey),
+          upcoming: upcomingActions.map(getActionItemKey),
+        },
+        ooo_followup_frozen_on: activeStartDate,
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
+      });
+      return;
+    }
+
+    if (!isOOOActive && (scheduleSettings?.ooo_followup_snapshot || scheduleSettings?.ooo_followup_frozen_on)) {
+      void upsertScheduleSettings({
+        ooo_followup_snapshot: null,
+        ooo_followup_frozen_on: null,
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
+      });
+    }
+  }, [
+    isLoading,
+    isOOOActive,
+    scheduleSettings?.ooo_start_date,
+    scheduleSettings?.ooo_followup_snapshot,
+    scheduleSettings?.ooo_followup_frozen_on,
+    followUpSnapshot,
+    todayActions,
+    upcomingActions,
+    queryClient,
+  ]);
 
   // Distribution candidates
   const distributeCandidates = useMemo(() => {

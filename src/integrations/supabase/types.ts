@@ -1442,6 +1442,8 @@ export type Database = {
           id: string
           light_schedule_mode: boolean
           ooo_end_date: string | null
+          ooo_followup_frozen_on: string | null
+          ooo_followup_snapshot: Json | null
           ooo_start_date: string | null
           updated_at: string
           user_id: string
@@ -1458,6 +1460,8 @@ export type Database = {
           id?: string
           light_schedule_mode?: boolean
           ooo_end_date?: string | null
+          ooo_followup_frozen_on?: string | null
+          ooo_followup_snapshot?: Json | null
           ooo_start_date?: string | null
           updated_at?: string
           user_id: string
@@ -1474,6 +1478,8 @@ export type Database = {
           id?: string
           light_schedule_mode?: boolean
           ooo_end_date?: string | null
+          ooo_followup_frozen_on?: string | null
+          ooo_followup_snapshot?: Json | null
           ooo_start_date?: string | null
           updated_at?: string
           user_id?: string
