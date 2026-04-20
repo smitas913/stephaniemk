@@ -269,10 +269,9 @@ export default function FollowUps() {
   //     items already past-due at OOO start remain overdue (by their original delta).
   const frozenToday = useMemo(() => {
     if (!isOOOActive || !scheduleSettings?.ooo_start_date) return getLocalToday();
-    // Day before OOO start
-    const start = parseLocalDate(scheduleSettings.ooo_start_date);
-    start.setDate(start.getDate() - 1);
-    return start;
+    // Anchor to the OOO start date itself so any item that was due on or before that day
+    // remains in its original Today/Overdue bucket (no items get pushed forward or disappear).
+    return parseLocalDate(scheduleSettings.ooo_start_date);
   }, [isOOOActive, scheduleSettings?.ooo_start_date]);
   const frozenTodayKey = useMemo(() => toLocalDateKey(frozenToday), [frozenToday]);
 
@@ -1172,7 +1171,7 @@ export default function FollowUps() {
           <div>
             <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length} birthday{(birthdaysToday.length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length) !== 1 ? "s" : ""}
+              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length} birthday{(birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length) !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
@@ -1610,7 +1609,7 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
