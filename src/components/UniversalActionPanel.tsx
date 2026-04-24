@@ -54,8 +54,11 @@ const WHATS_NEXT_OPTIONS = [
   { key: "schedule", label: "Schedule a date", icon: Calendar },
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
   { key: "next-week", label: "Move to next week", icon: CalendarCheck },
-  { key: "none", label: "No follow-up needed", icon: CheckCircle2 },
+  { key: "none", label: "No follow-up needed (long-term touch)", icon: CheckCircle2 },
 ] as const;
+
+// Long-term maintenance touch interval in days (midpoint of 60–90 day window)
+const LONG_TERM_TOUCH_DAYS = 75;
 
 // ─── Follow-Up Reason Options by Person Type ───
 const FOLLOW_UP_REASONS: Record<string, string[]> = {
