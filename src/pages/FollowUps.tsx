@@ -324,14 +324,15 @@ export default function FollowUps() {
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
 
-  // Birthday completion tracking — persists in DB per user/person/year so past birthdays stay dismissed
+  // Relationship-touch completion tracking — persists in DB per user/person/year/event_type
+  // so past birthdays AND anniversaries stay dismissed for the cycle.
   const currentBirthdayYear = new Date().getFullYear();
   const { data: completedBirthdayRows = [] } = useQuery({
     queryKey: ["completed-birthdays", currentBirthdayYear],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("completed_birthdays" as any)
-        .select("person_id")
+        .select("person_id, event_type")
         .eq("birthday_year", currentBirthdayYear);
       if (error) throw error;
       return (data as any[]) || [];
