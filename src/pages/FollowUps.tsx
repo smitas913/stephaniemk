@@ -375,13 +375,33 @@ export default function FollowUps() {
   // Birthday "Done" — atomic flow:
   //   1) Log a "Birthday Reach-Out" activity (relationship-building touch)
   //   2) Update last_contacted = today
-  //   3) Auto-set next_follow_up_date = today + 75 days, UNLESS a sooner
-  //      higher-priority follow-up is already scheduled (PCP, sample, etc.)
-  //   4) Mark the birthday completed for the current cycle so it disappears
+  //   3) RESET next_follow_up_date = today + 75 days (override existing date)
+  //   4) Priority override: if the existing follow-up is a HIGH-PRIORITY type
+  //      (PCP reorder, booking ask, sample/post-appointment), keep it instead.
+  //   5) Mark the birthday completed for the current cycle so it disappears.
   //
-  // Note: birthday touches do not count toward booking attempts and are not
-  // tagged as a generic follow-up — they're a relationship signal.
+  // Birthday touches are relationship signals — not booking attempts and not
+  // tagged as a generic follow-up.
   const BIRTHDAY_LONG_TERM_DAYS = 75;
+  // Substrings (case-insensitive) on `follow_up_reason` that mark a follow-up
+  // as higher-priority than a birthday touch and should NOT be overridden.
+  const HIGH_PRIORITY_REASON_PATTERNS = [
+    "booking ask",
+    "booking",
+    "reorder",      // PCP / product reorder cycles
+    "pcp",
+    "sample",
+    "trial",
+    "post-appointment",
+    "post appointment",
+    "appointment follow",
+  ];
+  const isHighPriorityReason = (reason?: string | null) => {
+    if (!reason) return false;
+    const r = reason.toLowerCase();
+    return HIGH_PRIORITY_REASON_PATTERNS.some((p) => r.includes(p));
+  };
+
   const markBirthdayDoneMutation = useMutation({
     mutationFn: async (personId: string) => {
       const { data: userData } = await supabase.auth.getUser();
@@ -391,13 +411,18 @@ export default function FollowUps() {
       const today = format(new Date(), "yyyy-MM-dd");
       const longTermDate = format(addDays(new Date(), BIRTHDAY_LONG_TERM_DAYS), "yyyy-MM-dd");
 
-      // Priority override: keep an existing sooner future date if one exists
       const existing = customers.find((c) => c.id === personId);
-      const existingNext = existing?.next_follow_up_date as string | null | undefined;
-      const nextDate =
-        existingNext && existingNext > today && existingNext < longTermDate
-          ? existingNext
-          : longTermDate;
+      const existingNext = (existing?.next_follow_up_date as string | null | undefined) || null;
+      const existingReason = (existing as any)?.follow_up_reason as string | null | undefined;
+
+      // Priority override: keep the existing date ONLY if it's a future,
+      // sooner, high-priority follow-up. Otherwise reset to +75 days.
+      const keepExisting =
+        !!existingNext &&
+        existingNext > today &&
+        existingNext < longTermDate &&
+        isHighPriorityReason(existingReason);
+      const nextDate = keepExisting ? existingNext! : longTermDate;
 
       // 1) Log activity FIRST (atomic — if this fails nothing else runs)
       await createNote({
@@ -420,11 +445,18 @@ export default function FollowUps() {
         });
       } catch { /* non-critical */ }
 
-      // 2 + 3) Update last_contacted and next_follow_up_date
-      await updateCustomer(personId, {
+      // 2 + 3) Update last_contacted and reset next_follow_up_date.
+      // When resetting, also clear any stale follow_up_reason so the new
+      // long-term touch isn't mislabeled. When preserving a high-priority
+      // follow-up, leave the reason intact.
+      const updates: Record<string, string | null> = {
         last_contacted: today,
         next_follow_up_date: nextDate,
-      } as any);
+      };
+      if (!keepExisting) {
+        updates.follow_up_reason = "Birthday touch — long-term cycle";
+      }
+      await updateCustomer(personId, updates as any);
 
       // 4) Mark birthday completed for this cycle
       const { error } = await supabase
@@ -435,7 +467,7 @@ export default function FollowUps() {
         );
       if (error) throw error;
 
-      return { nextDate, usedExisting: nextDate === existingNext };
+      return { nextDate, keepExisting, existingReason };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["completed-birthdays", currentBirthdayYear] });
@@ -444,9 +476,9 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
-      const msg = result?.usedExisting
-        ? `Birthday logged — kept existing follow-up on ${formatDateOnly(result.nextDate)}`
-        : `Birthday logged — next touch ${formatDateOnly(result?.nextDate || "")}`;
+      const msg = result?.keepExisting
+        ? `Birthday logged — kept higher-priority follow-up (${result.existingReason}) on ${formatDateOnly(result.nextDate)}`
+        : `Birthday logged — next touch ${formatDateOnly(result?.nextDate || "")} (75-day cycle)`;
       toast.success(msg);
     },
     onError: (e: any) => {
