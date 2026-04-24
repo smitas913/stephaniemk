@@ -103,6 +103,10 @@ type ActionItem = {
   // Extra customer fields for enhanced panel
   _address?: string | null;
   _relationship_status?: string | null;
+  // Relationship event metadata (used by the Birthdays/Anniversaries section)
+  _eventType?: "birthday" | "anniversary";
+  _anniversaryYears?: number;
+  _anniversaryDate?: string | null; // YYYY-MM-DD anchor (join_date)
 };
 
 type FollowUpSnapshot = {
@@ -324,14 +328,15 @@ export default function FollowUps() {
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
 
-  // Birthday completion tracking — persists in DB per user/person/year so past birthdays stay dismissed
+  // Relationship-touch completion tracking — persists in DB per user/person/year/event_type
+  // so past birthdays AND anniversaries stay dismissed for the cycle.
   const currentBirthdayYear = new Date().getFullYear();
   const { data: completedBirthdayRows = [] } = useQuery({
     queryKey: ["completed-birthdays", currentBirthdayYear],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("completed_birthdays" as any)
-        .select("person_id")
+        .select("person_id, event_type")
         .eq("birthday_year", currentBirthdayYear);
       if (error) throw error;
       return (data as any[]) || [];
@@ -368,9 +373,16 @@ export default function FollowUps() {
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Keys formatted as `${person_id}:${event_type}` so birthday + anniversary
+  // for the same person are tracked independently for the cycle.
   const completedBirthdays = useMemo(
-    () => new Set<string>((completedBirthdayRows as any[]).map((r) => r.person_id)),
+    () => new Set<string>((completedBirthdayRows as any[]).map((r) => `${r.person_id}:${r.event_type || "birthday"}`)),
     [completedBirthdayRows]
+  );
+  const isRelationshipDone = useCallback(
+    (item: { id: string; _eventType?: "birthday" | "anniversary" }) =>
+      completedBirthdays.has(`${item.id}:${item._eventType || "birthday"}`),
+    [completedBirthdays]
   );
   // Birthday "Done" — atomic flow:
   //   1) Log a "Birthday Reach-Out" activity (relationship-building touch)
@@ -402,8 +414,16 @@ export default function FollowUps() {
     return HIGH_PRIORITY_REASON_PATTERNS.some((p) => r.includes(p));
   };
 
+  type RelationshipDoneArgs = {
+    personId: string;
+    personType: "customer" | "consultant";
+    eventType: "birthday" | "anniversary";
+    personName?: string;
+    anniversaryYears?: number;
+  };
+
   const markBirthdayDoneMutation = useMutation({
-    mutationFn: async (personId: string) => {
+    mutationFn: async ({ personId, personType, eventType, personName, anniversaryYears }: RelationshipDoneArgs) => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData?.user?.id;
       if (!uid) throw new Error("Not authenticated");
@@ -411,12 +431,41 @@ export default function FollowUps() {
       const today = format(new Date(), "yyyy-MM-dd");
       const longTermDate = format(addDays(new Date(), BIRTHDAY_LONG_TERM_DAYS), "yyyy-MM-dd");
 
+      const noteType = eventType === "anniversary" ? "Anniversary Reach-Out" : "Birthday Reach-Out";
+      const noteBody = eventType === "anniversary"
+        ? `Anniversary reach-out${anniversaryYears ? ` — year ${anniversaryYears}` : ""} — relationship building`
+        : "Birthday reach-out — relationship building";
+
+      // ── CONSULTANT branch (birthday or anniversary) ───────────────────────
+      if (personType === "consultant") {
+        // 1) Log activity (Consultant entity); failure aborts everything else.
+        await createNote({
+          entity_type: "Consultant",
+          person_id: personId,
+          person_type: "consultant",
+          note_body: noteBody,
+          note_type: noteType,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+
+        // 2) Mark completion for this cycle
+        const { error } = await supabase
+          .from("completed_birthdays" as any)
+          .upsert(
+            { user_id: uid, person_id: personId, person_type: "consultant", event_type: eventType, birthday_year: currentBirthdayYear },
+            { onConflict: "user_id,person_id,birthday_year,event_type", ignoreDuplicates: true }
+          );
+        if (error) throw error;
+
+        return { eventType, personType, nextDate: null as string | null, keepExisting: false, existingReason: null as string | null };
+      }
+
+      // ── CUSTOMER branch (birthday only — customers have no anniversary) ──
       const existing = customers.find((c) => c.id === personId);
       const existingNext = (existing?.next_follow_up_date as string | null | undefined) || null;
       const existingReason = (existing as any)?.follow_up_reason as string | null | undefined;
 
-      // Priority override: keep the existing date ONLY if it's a future,
-      // sooner, high-priority follow-up. Otherwise reset to +75 days.
       const keepExisting =
         !!existingNext &&
         existingNext > today &&
@@ -430,8 +479,8 @@ export default function FollowUps() {
         customer_id: personId,
         person_id: personId,
         person_type: "customer",
-        note_body: "Birthday reach-out — relationship building",
-        note_type: "Birthday Reach-Out",
+        note_body: noteBody,
+        note_type: noteType,
         next_follow_up_date: nextDate,
         is_booking_attempt: false,
         is_follow_up: false,
@@ -440,15 +489,12 @@ export default function FollowUps() {
       try {
         await createCustomerNote({
           customer_id: personId,
-          note_text: "Birthday reach-out — relationship building",
-          note_type: "Birthday Reach-Out",
+          note_text: noteBody,
+          note_type: noteType,
         });
       } catch { /* non-critical */ }
 
       // 2 + 3) Update last_contacted and reset next_follow_up_date.
-      // When resetting, also clear any stale follow_up_reason so the new
-      // long-term touch isn't mislabeled. When preserving a high-priority
-      // follow-up, leave the reason intact.
       const updates: Record<string, string | null> = {
         last_contacted: today,
         next_follow_up_date: nextDate,
@@ -462,12 +508,12 @@ export default function FollowUps() {
       const { error } = await supabase
         .from("completed_birthdays" as any)
         .upsert(
-          { user_id: uid, person_id: personId, person_type: "customer", birthday_year: currentBirthdayYear },
-          { onConflict: "user_id,person_id,birthday_year", ignoreDuplicates: true }
+          { user_id: uid, person_id: personId, person_type: "customer", event_type: eventType, birthday_year: currentBirthdayYear },
+          { onConflict: "user_id,person_id,birthday_year,event_type", ignoreDuplicates: true }
         );
       if (error) throw error;
 
-      return { nextDate, keepExisting, existingReason };
+      return { eventType, personType, nextDate, keepExisting, existingReason };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["completed-birthdays", currentBirthdayYear] });
@@ -476,17 +522,29 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
-      const msg = result?.keepExisting
-        ? `Birthday logged — kept higher-priority follow-up (${result.existingReason}) on ${formatDateOnly(result.nextDate)}`
-        : `Birthday logged — next touch ${formatDateOnly(result?.nextDate || "")} (75-day cycle)`;
+      const eventLabel = result?.eventType === "anniversary" ? "Anniversary" : "Birthday";
+      let msg: string;
+      if (result?.personType === "consultant") {
+        msg = `${eventLabel} logged for consultant`;
+      } else if (result?.keepExisting) {
+        msg = `${eventLabel} logged — kept higher-priority follow-up (${result.existingReason}) on ${formatDateOnly(result.nextDate)}`;
+      } else {
+        msg = `${eventLabel} logged — next touch ${formatDateOnly(result?.nextDate || "")} (75-day cycle)`;
+      }
       toast.success(msg);
     },
     onError: (e: any) => {
-      toast.error(`Failed to log birthday: ${e?.message || "unknown error"}`);
+      toast.error(`Failed to log relationship touch: ${e?.message || "unknown error"}`);
     },
   });
-  const markBirthdayDone = (id: string) => {
-    markBirthdayDoneMutation.mutate(id);
+  const markBirthdayDone = (item: ActionItem) => {
+    markBirthdayDoneMutation.mutate({
+      personId: item.id,
+      personType: item.itemType === "consultant" ? "consultant" : "customer",
+      eventType: item._eventType || "birthday",
+      personName: item.name,
+      anniversaryYears: item._anniversaryYears,
+    });
   };
   // Universal Action Panel state
   const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
@@ -851,25 +909,78 @@ export default function FollowUps() {
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
 
-    // Birthdays (customers + consultants) — includes overdue (past) birthdays
+    // Relationship touches: customer birthdays + consultant birthdays + consultant anniversaries.
+    // Includes overdue (past) events up to 30 days back, today, and upcoming 7d.
     const birthdaysToday: (ActionItem & { _daysUntil?: number })[] = [];
     const birthdaysOverdue: (ActionItem & { _daysUntil: number })[] = [];
     const birthdaysUpcoming: (ActionItem & { _daysUntil: number })[] = [];
+
+    const pushByOffset = (item: ActionItem & { _daysUntil?: number }, days: number) => {
+      if (days === 0) birthdaysToday.push({ ...item, _daysUntil: 0 });
+      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...item, _daysUntil: days });
+      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...item, _daysUntil: days });
+    };
+
+    // Customer birthdays
     for (const c of customerItems) {
       const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
       if (days === null) continue;
-      if (days === 0) birthdaysToday.push(c);
-      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
-      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+      pushByOffset({ ...c, _eventType: "birthday" }, days);
     }
-    for (const c of consultantItems) {
-      const consultant = consultants.find((tc) => tc.id === c.id);
-      if (!consultant?.birthday) continue;
-      const days = daysToBirthday({ birthday: consultant.birthday });
-      if (days === null) continue;
-      if (days === 0) birthdaysToday.push(c);
-      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
-      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+
+    // Consultant birthdays + anniversaries — iterate ALL consultants, not just
+    // those with a coaching date. Anniversaries are based on join_date (start date).
+    const todayYear = new Date().getFullYear();
+    for (const tc of consultants) {
+      if (tc.status === "Inactive") continue;
+      const baseItem: ActionItem = {
+        id: tc.id,
+        itemType: "consultant" as const,
+        name: tc.name,
+        phone: tc.phone || null,
+        email: tc.email || null,
+        next_follow_up: null,
+        follow_up_status: "",
+        followUpReason: "Relationship Touch",
+        lastContacted: null,
+        actionLabel: "Relationship",
+        allow_non_working_day: !!(tc as any).allow_non_working_day,
+        birthday: tc.birthday || null,
+      };
+
+      // Birthday
+      if (tc.birthday) {
+        const days = daysToBirthday({ birthday: tc.birthday });
+        if (days !== null) {
+          pushByOffset({ ...baseItem, _eventType: "birthday" }, days);
+        }
+      }
+
+      // Anniversary (yearly recurrence of join_date)
+      if (tc.join_date) {
+        const joinParts = tc.join_date.slice(0, 10).split("-");
+        if (joinParts.length === 3) {
+          const joinYear = parseInt(joinParts[0], 10);
+          const joinMonth = parseInt(joinParts[1], 10);
+          const joinDay = parseInt(joinParts[2], 10);
+          if (joinYear && joinMonth >= 1 && joinMonth <= 12 && joinDay >= 1 && joinDay <= 31) {
+            // Skip the same calendar year they joined (no 0-year anniversary)
+            if (todayYear > joinYear) {
+              // Reuse daysToBirthday-style logic by passing as YYYY-MM-DD synth
+              const days = daysToBirthday({
+                birthday: `${joinYear}-${String(joinMonth).padStart(2, "0")}-${String(joinDay).padStart(2, "0")}`,
+              });
+              if (days !== null) {
+                const years = todayYear - joinYear;
+                pushByOffset(
+                  { ...baseItem, _eventType: "anniversary", _anniversaryYears: years, _anniversaryDate: tc.join_date },
+                  days
+                );
+              }
+            }
+          }
+        }
+      }
     }
     birthdaysOverdue.sort((a, b) => b._daysUntil - a._daysUntil); // most recent first
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
@@ -1536,7 +1647,7 @@ export default function FollowUps() {
           <div>
             <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length} birthday{(birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length) !== 1 ? "s" : ""}
+              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
           </div>
         </div>
@@ -1965,7 +2076,7 @@ export default function FollowUps() {
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
@@ -1974,7 +2085,7 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !isRelationshipDone(c)).length === 0 && birthdaysOverdue.filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
@@ -2023,54 +2134,56 @@ export default function FollowUps() {
                               </div>
                             </div>
                           )}
-                          {/* Birthdays: overdue + today + upcoming */}
+                          {/* Relationship touches: birthdays + anniversaries (overdue + today + upcoming) */}
                           {(() => {
-                            const activeOverdue = birthdaysOverdue.filter(c => !completedBirthdays.has(c.id));
-                            const activeToday = birthdaysToday.filter(c => !completedBirthdays.has(c.id));
-                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => completedBirthdays.has(c.id)).length;
+                            const activeOverdue = birthdaysOverdue.filter(c => !isRelationshipDone(c));
+                            const activeToday = birthdaysToday.filter(c => !isRelationshipDone(c));
+                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => isRelationshipDone(c)).length;
                             const totalActive = activeOverdue.length + activeToday.length;
 
                             if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
 
+                            const rowKey = (c: ActionItem & { _eventType?: string }) => `${c.itemType}-${c.id}-${c._eventType || "birthday"}`;
+
                             return (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Cake className="w-3 h-3" /> Birthdays ({totalActive})
+                                  <Cake className="w-3 h-3" /> Birthdays & Anniversaries ({totalActive})
                                 </p>
                                 <div className="space-y-1.5">
-                                  {/* Overdue birthdays */}
+                                  {/* Overdue */}
                                   {activeOverdue.map((c) => (
                                     <BirthdayRow
-                                      key={c.id}
+                                      key={rowKey(c)}
                                       item={c}
                                       label={`Missed by ${Math.abs(c._daysUntil)}d`}
                                       isOverdue
                                       onNavigate={() => navigateToItem(c)}
                                       onAction={(type) => openContactDialog(c, type)}
-                                      onDone={() => markBirthdayDone(c.id)}
+                                      onDone={() => markBirthdayDone(c)}
                                     />
                                   ))}
-                                  {/* Today birthdays */}
+                                  {/* Today */}
                                   {activeToday.map((c) => (
                                     <BirthdayRow
-                                      key={c.id}
+                                      key={rowKey(c)}
                                       item={c}
-                                      label="Today 🎉"
+                                      label={c._eventType === "anniversary" ? "Today 🎉" : "Today 🎉"}
                                       onNavigate={() => navigateToItem(c)}
                                       onAction={(type) => openContactDialog(c, type)}
-                                      onDone={() => markBirthdayDone(c.id)}
+                                      onDone={() => markBirthdayDone(c)}
                                     />
                                   ))}
                                   {/* Completed summary */}
                                   {completedCount > 0 && (
                                     <p className="text-[10px] text-muted-foreground italic px-2 py-1">
-                                      ✓ {completedCount} birthday message{completedCount > 1 ? "s" : ""} sent
+                                      ✓ {completedCount} relationship touch{completedCount > 1 ? "es" : ""} sent
                                     </p>
                                   )}
                                   {/* Upcoming */}
                                   {showUpcoming7 && birthdaysUpcoming.map((c) => (
                                     <BirthdayRow
-                                      key={c.id}
+                                      key={rowKey(c)}
                                       item={c}
                                       label={`in ${c._daysUntil}d`}
                                       onNavigate={() => navigateToItem(c)}
@@ -3874,7 +3987,14 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
   onAction: (type: string) => void;
   onDone?: () => void;
 }) {
-  const age = getBirthdayAge(item);
+  const isAnniversary = item._eventType === "anniversary";
+  const age = isAnniversary ? null : getBirthdayAge(item);
+  const eventLabel = isAnniversary
+    ? `🎉 Anniversary${item._anniversaryYears ? ` — Year ${item._anniversaryYears}` : ""}`
+    : `🎂 Birthday`;
+  const dateText = isAnniversary && item._anniversaryDate
+    ? formatDateOnly(item._anniversaryDate, "MMMM d")
+    : formatBirthday(item);
   return (
     <div className={cn(
       "rounded-xl border p-3 space-y-2",
@@ -3882,9 +4002,17 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
         ? "border-destructive/30 bg-destructive/5"
         : "border-border/50 bg-card"
     )}>
-      {/* Line 1: Name + type badge */}
+      {/* Line 1: Name + event-type badge + person-type badge */}
       <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigate}>
         <span className="text-sm font-bold text-foreground truncate flex-1">{item.name}</span>
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0",
+          isAnniversary
+            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+            : "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300"
+        )}>
+          {isAnniversary ? "🎉 Anniversary" : "🎂 Birthday"}
+        </span>
         <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", TYPE_BADGE[item.itemType].className)}>
           {TYPE_BADGE[item.itemType].label}
         </span>
@@ -3894,7 +4022,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
       {/* Line 2: Date + status */}
       <div className="flex items-center gap-2 text-xs">
         <span className="text-muted-foreground">
-          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""}
+          {eventLabel} · {dateText}{age ? ` (${age})` : ""}
         </span>
         <span className="text-border">·</span>
         <span className={cn(
