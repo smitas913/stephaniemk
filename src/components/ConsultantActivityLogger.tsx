@@ -166,20 +166,26 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
           ))}
         </div>
 
-        {/* Skip / Did Not Reach Out */}
+        {/* Skip / Did Not Reach Out — defers without counting as activity */}
         <button
           type="button"
+          disabled={logMutation.isPending}
           onClick={() => {
-            setSelectedAction(null);
-            setNoteText("");
-            setNextOption(null);
-            setCustomDate("");
-            toast.info("Skipped — no activity logged");
+            // Consultants default: +3 days
+            const nextDate = format(addDays(new Date(), 3), "yyyy-MM-dd");
+            logMutation.mutate({
+              action: "Skipped",
+              note: "Skipped — did not reach out",
+              nextFollowUpDate: nextDate,
+            }, {
+              onSuccess: () => toast.info(`Skipped — next coaching set to ${formatDateOnly(nextDate)}`),
+            });
           }}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors",
             "bg-[hsl(0_0%_85%)] border border-[hsl(0_0%_75%)] text-[hsl(0_0%_30%)] hover:bg-[hsl(0_0%_80%)] hover:text-[hsl(0_0%_20%)]"
           )}
+          title="Reschedules automatically and does not count toward activity metrics"
         >
           <SkipForward className="w-4 h-4" />
           Skipped / Did Not Reach Out
