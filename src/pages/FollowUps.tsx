@@ -103,6 +103,10 @@ type ActionItem = {
   // Extra customer fields for enhanced panel
   _address?: string | null;
   _relationship_status?: string | null;
+  // Relationship event metadata (used by the Birthdays/Anniversaries section)
+  _eventType?: "birthday" | "anniversary";
+  _anniversaryYears?: number;
+  _anniversaryDate?: string | null; // YYYY-MM-DD anchor (join_date)
 };
 
 type FollowUpSnapshot = {
