@@ -1199,13 +1199,19 @@ export default function FollowUps() {
   });
 
   // ─── Skip / Did Not Reach Out mutation ──────────────────────────
-  // Defers the follow-up without counting as activity. No last_contacted update.
-  // Logs a "Skipped" note for activity history (is_follow_up:false, is_booking_attempt:false)
+  // Skip means "not today" — the PRIMARY job is to clear the person from the
+  // current workload by rescheduling the next follow-up. Activity logging is
+  // secondary (and intentionally does NOT count as outreach: trigger ignores
+  // last_contacted for note_type='Skipped'; is_follow_up:false, is_booking_attempt:false).
+  //
+  // Order of operations (revised — clearance first):
+  //   1) Reschedule next_follow_up_date FIRST so the person disappears from Today
+  //      even if activity logging later fails. This prevents the "still due" bug.
+  //   2) Optimistically update the React Query cache so the UI reflects the change
+  //      immediately (no flicker / no waiting for refetch).
+  //   3) Log the skip note (best-effort timeline + structured note).
+  //
   // Default reschedule: customer/lead/prospect/hostess +2 days, consultant +3 days.
-  // Atomic skip: log the "Skipped" activity FIRST. If — and only if — that
-  // succeeds, update the follow-up/coaching date. This prevents the
-  // partial-execution bug where the date moved forward but no activity was
-  // logged (or vice versa), leaving the record in an inconsistent state.
   const skipFollowUpMutation = useMutation({
     mutationFn: async ({ item, nextDate, noFollowUp, note }: {
       item: ActionItem;
@@ -1218,75 +1224,86 @@ export default function FollowUps() {
       const skipNoteBody = note?.trim() || "Skipped — did not reach out";
 
       if (item.itemType === "customer") {
-        // 1) Log activity first (will throw and abort if it fails)
-        await createNote({
-          entity_type: "Customer",
-          customer_id: item.id,
-          person_id: item.id,
-          person_type: "customer",
-          note_body: skipNoteBody,
-          note_type: "Skipped",
-          next_follow_up_date: computed,
-          is_booking_attempt: false,
-          is_follow_up: false,
-        });
-        // 2) Best-effort companion entry in customer_notes timeline
-        try {
-          await createCustomerNote({ customer_id: item.id, note_text: skipNoteBody, note_type: "Skipped" });
-        } catch { /* non-critical: timeline mirror */ }
-        // 3) Now update the follow-up date
+        // 1) Reschedule FIRST — this is what clears the person from Today.
         await updateCustomer(item.id, {
           next_follow_up_date: computed,
           follow_up_reason: noFollowUp ? "No follow-up needed" : "Skipped — rescheduled",
         } as any);
+        // 2) Log activity (best-effort — failure here must NOT leave person stuck on Today).
+        try {
+          await createNote({
+            entity_type: "Customer",
+            customer_id: item.id,
+            person_id: item.id,
+            person_type: "customer",
+            note_body: skipNoteBody,
+            note_type: "Skipped",
+            next_follow_up_date: computed,
+            is_booking_attempt: false,
+            is_follow_up: false,
+          });
+        } catch (e) {
+          console.warn("[skip] note insert failed (date already rescheduled):", e);
+        }
+        try {
+          await createCustomerNote({ customer_id: item.id, note_text: skipNoteBody, note_type: "Skipped" });
+        } catch { /* non-critical timeline mirror */ }
       } else if (item.itemType === "prospect") {
-        await createNote({
-          entity_type: "Prospect",
-          prospect_id: item.id,
-          person_id: item.id,
-          person_type: "prospect",
-          note_body: skipNoteBody,
-          note_type: "Skipped",
-          next_follow_up_date: computed,
-          is_booking_attempt: false,
-          is_follow_up: false,
-        });
         await updateProspect(item.id, { next_follow_up_date: computed } as any);
+        try {
+          await createNote({
+            entity_type: "Prospect",
+            prospect_id: item.id,
+            person_id: item.id,
+            person_type: "prospect",
+            note_body: skipNoteBody,
+            note_type: "Skipped",
+            next_follow_up_date: computed,
+            is_booking_attempt: false,
+            is_follow_up: false,
+          });
+        } catch (e) { console.warn("[skip] prospect note failed:", e); }
       } else if (item.itemType === "consultant") {
-        await createNote({
-          entity_type: "Consultant",
-          person_type: "consultant",
-          person_id: item.id,
-          tags: ["consultant_coaching"],
-          note_body: `[${item.name}] ${skipNoteBody}`,
-          note_type: "Skipped",
-          next_follow_up_date: computed,
-          is_booking_attempt: false,
-          is_follow_up: false,
-        });
         if (computed) await updateTeamConsultant(item.id, { next_coaching_date: computed } as any);
+        try {
+          await createNote({
+            entity_type: "Consultant",
+            person_type: "consultant",
+            person_id: item.id,
+            tags: ["consultant_coaching"],
+            note_body: `[${item.name}] ${skipNoteBody}`,
+            note_type: "Skipped",
+            next_follow_up_date: computed,
+            is_booking_attempt: false,
+            is_follow_up: false,
+          });
+        } catch (e) { console.warn("[skip] consultant note failed:", e); }
       } else if (item.itemType === "hostess") {
-        await createNote({
-          entity_type: "Hostess",
-          note_body: `[${item.name}] ${skipNoteBody}`,
-          note_type: "Skipped",
-          next_follow_up_date: computed,
-          is_booking_attempt: false,
-          is_follow_up: false,
-        });
         if (computed) await updateEvent(item.id, { hostess_next_action_date: computed } as any);
+        try {
+          await createNote({
+            entity_type: "Hostess",
+            note_body: `[${item.name}] ${skipNoteBody}`,
+            note_type: "Skipped",
+            next_follow_up_date: computed,
+            is_booking_attempt: false,
+            is_follow_up: false,
+          });
+        } catch (e) { console.warn("[skip] hostess note failed:", e); }
       } else if (item.itemType === "lead") {
-        await createNote({
-          entity_type: "Lead",
-          person_id: item.id,
-          person_type: "lead",
-          note_body: skipNoteBody,
-          note_type: "Skipped",
-          next_follow_up_date: computed,
-          is_booking_attempt: false,
-          is_follow_up: false,
-        });
         await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
+        try {
+          await createNote({
+            entity_type: "Lead",
+            person_id: item.id,
+            person_type: "lead",
+            note_body: skipNoteBody,
+            note_type: "Skipped",
+            next_follow_up_date: computed,
+            is_booking_attempt: false,
+            is_follow_up: false,
+          });
+        } catch (e) { console.warn("[skip] lead note failed:", e); }
       } else if (item.itemType === "event_task") {
         // Event tasks: just push the due date out (no separate activity log)
         if (computed) {
@@ -1294,6 +1311,53 @@ export default function FollowUps() {
           if (error) throw error;
         }
       }
+    },
+    // Optimistic clearance: immediately patch the relevant React Query cache so the
+    // person disappears from Today before the network round-trip completes.
+    onMutate: async ({ item, nextDate, noFollowUp }) => {
+      const defaultDays = item.itemType === "consultant" ? 3 : 2;
+      const computed = noFollowUp ? null : (nextDate || format(addDays(new Date(), defaultDays), "yyyy-MM-dd"));
+      if (item.itemType === "customer") {
+        await queryClient.cancelQueries({ queryKey: ["customers"] });
+        const prev = queryClient.getQueryData<any[]>(["customers"]);
+        queryClient.setQueryData<any[]>(["customers"], (old) =>
+          (old || []).map((c) => c.id === item.id ? { ...c, next_follow_up_date: computed, follow_up_reason: noFollowUp ? "No follow-up needed" : "Skipped — rescheduled" } : c)
+        );
+        return { prev, key: ["customers"] };
+      }
+      if (item.itemType === "prospect") {
+        await queryClient.cancelQueries({ queryKey: ["prospects"] });
+        const prev = queryClient.getQueryData<any[]>(["prospects"]);
+        queryClient.setQueryData<any[]>(["prospects"], (old) =>
+          (old || []).map((p) => p.id === item.id ? { ...p, next_follow_up_date: computed, next_step_date: computed } : p)
+        );
+        return { prev, key: ["prospects"] };
+      }
+      if (item.itemType === "consultant") {
+        await queryClient.cancelQueries({ queryKey: ["team-consultants"] });
+        const prev = queryClient.getQueryData<any[]>(["team-consultants"]);
+        queryClient.setQueryData<any[]>(["team-consultants"], (old) =>
+          (old || []).map((c) => c.id === item.id ? { ...c, next_coaching_date: computed } : c)
+        );
+        return { prev, key: ["team-consultants"] };
+      }
+      if (item.itemType === "lead") {
+        await queryClient.cancelQueries({ queryKey: ["booking-leads"] });
+        const prev = queryClient.getQueryData<any[]>(["booking-leads"]);
+        queryClient.setQueryData<any[]>(["booking-leads"], (old) =>
+          (old || []).map((l) => l.id === item.id ? { ...l, next_follow_up_date: computed } : l)
+        );
+        return { prev, key: ["booking-leads"] };
+      }
+      if (item.itemType === "hostess") {
+        await queryClient.cancelQueries({ queryKey: ["events"] });
+        const prev = queryClient.getQueryData<any[]>(["events"]);
+        queryClient.setQueryData<any[]>(["events"], (old) =>
+          (old || []).map((e) => e.id === item.id ? { ...e, hostess_next_action_date: computed } : e)
+        );
+        return { prev, key: ["events"] };
+      }
+      return undefined;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -1311,7 +1375,13 @@ export default function FollowUps() {
         : "Skipped — rescheduled";
       toast.success(msg);
     },
-    onError: (err: any) => toast.error(`Failed to skip: ${err?.message || "unknown error"}`),
+    onError: (err: any, _vars, context: any) => {
+      // Roll back optimistic update on hard failure (the reschedule itself failed).
+      if (context?.prev && context?.key) {
+        queryClient.setQueryData(context.key, context.prev);
+      }
+      toast.error(`Failed to skip: ${err?.message || "unknown error"}`);
+    },
   });
 
   // Universal Action Panel handler (placed after contactMutation)
