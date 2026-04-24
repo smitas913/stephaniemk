@@ -372,11 +372,61 @@ export default function FollowUps() {
     () => new Set<string>((completedBirthdayRows as any[]).map((r) => r.person_id)),
     [completedBirthdayRows]
   );
+  // Birthday "Done" — atomic flow:
+  //   1) Log a "Birthday Reach-Out" activity (relationship-building touch)
+  //   2) Update last_contacted = today
+  //   3) Auto-set next_follow_up_date = today + 75 days, UNLESS a sooner
+  //      higher-priority follow-up is already scheduled (PCP, sample, etc.)
+  //   4) Mark the birthday completed for the current cycle so it disappears
+  //
+  // Note: birthday touches do not count toward booking attempts and are not
+  // tagged as a generic follow-up — they're a relationship signal.
+  const BIRTHDAY_LONG_TERM_DAYS = 75;
   const markBirthdayDoneMutation = useMutation({
     mutationFn: async (personId: string) => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData?.user?.id;
       if (!uid) throw new Error("Not authenticated");
+
+      const today = format(new Date(), "yyyy-MM-dd");
+      const longTermDate = format(addDays(new Date(), BIRTHDAY_LONG_TERM_DAYS), "yyyy-MM-dd");
+
+      // Priority override: keep an existing sooner future date if one exists
+      const existing = customers.find((c) => c.id === personId);
+      const existingNext = existing?.next_follow_up_date as string | null | undefined;
+      const nextDate =
+        existingNext && existingNext > today && existingNext < longTermDate
+          ? existingNext
+          : longTermDate;
+
+      // 1) Log activity FIRST (atomic — if this fails nothing else runs)
+      await createNote({
+        entity_type: "Customer",
+        customer_id: personId,
+        person_id: personId,
+        person_type: "customer",
+        note_body: "Birthday reach-out — relationship building",
+        note_type: "Birthday Reach-Out",
+        next_follow_up_date: nextDate,
+        is_booking_attempt: false,
+        is_follow_up: false,
+      });
+      // Best-effort timeline mirror
+      try {
+        await createCustomerNote({
+          customer_id: personId,
+          note_text: "Birthday reach-out — relationship building",
+          note_type: "Birthday Reach-Out",
+        });
+      } catch { /* non-critical */ }
+
+      // 2 + 3) Update last_contacted and next_follow_up_date
+      await updateCustomer(personId, {
+        last_contacted: today,
+        next_follow_up_date: nextDate,
+      } as any);
+
+      // 4) Mark birthday completed for this cycle
       const { error } = await supabase
         .from("completed_birthdays" as any)
         .upsert(
@@ -384,13 +434,23 @@ export default function FollowUps() {
           { onConflict: "user_id,person_id,birthday_year", ignoreDuplicates: true }
         );
       if (error) throw error;
+
+      return { nextDate, usedExisting: nextDate === existingNext };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["completed-birthdays", currentBirthdayYear] });
-      toast.success("Birthday message marked complete!");
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      const msg = result?.usedExisting
+        ? `Birthday logged — kept existing follow-up on ${formatDateOnly(result.nextDate)}`
+        : `Birthday logged — next touch ${formatDateOnly(result?.nextDate || "")}`;
+      toast.success(msg);
     },
     onError: (e: any) => {
-      toast.error(e?.message || "Failed to mark birthday complete");
+      toast.error(`Failed to log birthday: ${e?.message || "unknown error"}`);
     },
   });
   const markBirthdayDone = (id: string) => {
