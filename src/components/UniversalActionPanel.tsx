@@ -54,8 +54,11 @@ const WHATS_NEXT_OPTIONS = [
   { key: "schedule", label: "Schedule a date", icon: Calendar },
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
   { key: "next-week", label: "Move to next week", icon: CalendarCheck },
-  { key: "none", label: "No follow-up needed", icon: CheckCircle2 },
+  { key: "none", label: "No follow-up needed (long-term touch)", icon: CheckCircle2 },
 ] as const;
+
+// Long-term maintenance touch interval in days (midpoint of 60–90 day window)
+const LONG_TERM_TOUCH_DAYS = 75;
 
 // ─── Follow-Up Reason Options by Person Type ───
 const FOLLOW_UP_REASONS: Record<string, string[]> = {
@@ -155,8 +158,22 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     if (optionKey === "schedule") return;
 
     let nextDate: string | null = null;
+    let reasonForLog = selectedReason;
     if (optionKey === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (optionKey === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
+    else if (optionKey === "none") {
+      // Long-term maintenance touch — keep customer in lifecycle, push out ~75 days.
+      // Priority override: if a higher-priority (sooner) follow-up already exists, keep it.
+      const longTermDate = format(addDays(new Date(), LONG_TERM_TOUCH_DAYS), "yyyy-MM-dd");
+      const existing = item.nextFollowUpDate;
+      const today = format(new Date(), "yyyy-MM-dd");
+      if (existing && existing > today && existing < longTermDate) {
+        nextDate = existing; // preserve sooner priority follow-up (PCP, sample, post-appt, etc.)
+      } else {
+        nextDate = longTermDate;
+      }
+      reasonForLog = selectedReason || "No Follow-Up Needed (Long-Term Touch)";
+    }
 
     const tags = getAutoTags(item.personType, selectedReason);
     onLogAction({
@@ -166,7 +183,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       isBookingAttempt: tags.isBookingAttempt,
       isFollowUp: tags.isFollowUp,
       nextFollowUpDate: nextDate ?? undefined,
-      followUpReason: selectedReason,
+      followUpReason: reasonForLog,
     });
     handleClose();
   }, [item, selectedAction, buildNote, selectedReason, onLogAction, handleClose]);
