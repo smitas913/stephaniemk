@@ -324,22 +324,77 @@ export default function FollowUps() {
   // UI state
   const [showUpcoming7, setShowUpcoming7] = useState(false);
 
-  // Birthday completion tracking — persists for the entire year so past birthdays stay dismissed
-  const bdayStorageKey = `bday-done-${new Date().getFullYear()}`;
-  const [completedBirthdays, setCompletedBirthdays] = useState<Set<string>>(() => {
+  // Birthday completion tracking — persists in DB per user/person/year so past birthdays stay dismissed
+  const currentBirthdayYear = new Date().getFullYear();
+  const { data: completedBirthdayRows = [] } = useQuery({
+    queryKey: ["completed-birthdays", currentBirthdayYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("completed_birthdays" as any)
+        .select("person_id")
+        .eq("birthday_year", currentBirthdayYear);
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+  });
+  // Migrate any legacy localStorage entries into the DB once
+  useEffect(() => {
+    const legacyKey = `bday-done-${currentBirthdayYear}`;
     try {
-      const stored = localStorage.getItem(bdayStorageKey);
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch { return new Set(); }
+      const stored = localStorage.getItem(legacyKey);
+      if (!stored) return;
+      const ids: string[] = JSON.parse(stored);
+      if (!Array.isArray(ids) || ids.length === 0) {
+        localStorage.removeItem(legacyKey);
+        return;
+      }
+      (async () => {
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData?.user?.id;
+        if (!uid) return;
+        const rows = ids.map((person_id) => ({
+          user_id: uid,
+          person_id,
+          person_type: "customer",
+          birthday_year: currentBirthdayYear,
+        }));
+        await supabase.from("completed_birthdays" as any).upsert(rows, {
+          onConflict: "user_id,person_id,birthday_year",
+          ignoreDuplicates: true,
+        });
+        localStorage.removeItem(legacyKey);
+        queryClient.invalidateQueries({ queryKey: ["completed-birthdays", currentBirthdayYear] });
+      })();
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const completedBirthdays = useMemo(
+    () => new Set<string>((completedBirthdayRows as any[]).map((r) => r.person_id)),
+    [completedBirthdayRows]
+  );
+  const markBirthdayDoneMutation = useMutation({
+    mutationFn: async (personId: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) throw new Error("Not authenticated");
+      const { error } = await supabase
+        .from("completed_birthdays" as any)
+        .upsert(
+          { user_id: uid, person_id: personId, person_type: "customer", birthday_year: currentBirthdayYear },
+          { onConflict: "user_id,person_id,birthday_year", ignoreDuplicates: true }
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["completed-birthdays", currentBirthdayYear] });
+      toast.success("Birthday message marked complete!");
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || "Failed to mark birthday complete");
+    },
   });
   const markBirthdayDone = (id: string) => {
-    setCompletedBirthdays((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      localStorage.setItem(bdayStorageKey, JSON.stringify([...next]));
-      return next;
-    });
-    toast.success("Birthday message marked complete!");
+    markBirthdayDoneMutation.mutate(id);
   };
   // Universal Action Panel state
   const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
