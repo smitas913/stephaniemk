@@ -989,13 +989,29 @@ export default function FollowUps() {
     const liveUpcomingActions = upcomingActions;
 
     if (isOOOActive && followUpSnapshot) {
+      // OOO snapshot pinning + manual-action override:
+      //   • The snapshot pins WHICH items are visible (no auto-backlog growth).
+      //   • But manual actions taken DURING OOO (mark done, skip, log activity,
+      //     set next date, no follow-up needed, etc.) update the underlying
+      //     record's next_follow_up_date. We honor those by intersecting the
+      //     frozen snapshot with the LIVE Today set — items the user has
+      //     manually rescheduled out of Today simply drop out of the frozen list.
+      //   • Result: Today count starts at the snapshot size and decreases as the
+      //     user clears items, then stays frozen at that level (no new items
+      //     can sneak in because we never expand beyond the snapshot).
       const itemMap = new Map(allItems.map((item) => [getActionItemKey(item), item]));
+      const liveTodayKeys = new Set(liveTodayActions.map(getActionItemKey));
+      const liveUpcomingKeys = new Set(liveUpcomingActions.map(getActionItemKey));
+
       const frozenTodayActions = followUpSnapshot.today
         .map((key) => itemMap.get(key))
-        .filter((item): item is ActionItem => Boolean(item));
+        .filter((item): item is ActionItem => Boolean(item))
+        // Drop items the user has manually rescheduled out of Today.
+        .filter((item) => liveTodayKeys.has(getActionItemKey(item)));
       const frozenUpcomingActions = followUpSnapshot.upcoming
         .map((key) => itemMap.get(key))
-        .filter((item): item is ActionItem => Boolean(item));
+        .filter((item): item is ActionItem => Boolean(item))
+        .filter((item) => liveUpcomingKeys.has(getActionItemKey(item)) || liveTodayKeys.has(getActionItemKey(item)));
 
       return {
         todayActions: sortItems(frozenTodayActions),
