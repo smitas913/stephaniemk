@@ -379,6 +379,11 @@ export default function FollowUps() {
     () => new Set<string>((completedBirthdayRows as any[]).map((r) => `${r.person_id}:${r.event_type || "birthday"}`)),
     [completedBirthdayRows]
   );
+  const isRelationshipDone = useCallback(
+    (item: { id: string; _eventType?: "birthday" | "anniversary" }) =>
+      completedBirthdays.has(`${item.id}:${item._eventType || "birthday"}`),
+    [completedBirthdays]
+  );
   // Birthday "Done" — atomic flow:
   //   1) Log a "Birthday Reach-Out" activity (relationship-building touch)
   //   2) Update last_contacted = today
