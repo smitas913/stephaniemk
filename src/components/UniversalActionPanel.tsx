@@ -57,7 +57,8 @@ const WHATS_NEXT_OPTIONS = [
   { key: "none", label: "No follow-up needed (long-term touch)", icon: CheckCircle2 },
 ] as const;
 
-// Long-term maintenance touch interval in days (midpoint of 60–90 day window)
+// Long-term maintenance touch interval — fixed 75 days for a predictable cadence.
+// Do not randomize or infer; users can manually override via "Schedule a date".
 const LONG_TERM_TOUCH_DAYS = 75;
 
 // ─── Follow-Up Reason Options by Person Type ───
