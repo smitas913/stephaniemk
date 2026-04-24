@@ -999,6 +999,10 @@ export default function FollowUps() {
   // Defers the follow-up without counting as activity. No last_contacted update.
   // Logs a "Skipped" note for activity history (is_follow_up:false, is_booking_attempt:false)
   // Default reschedule: customer/lead/prospect/hostess +2 days, consultant +3 days.
+  // Atomic skip: log the "Skipped" activity FIRST. If — and only if — that
+  // succeeds, update the follow-up/coaching date. This prevents the
+  // partial-execution bug where the date moved forward but no activity was
+  // logged (or vice versa), leaving the record in an inconsistent state.
   const skipFollowUpMutation = useMutation({
     mutationFn: async ({ item, nextDate, noFollowUp, note }: {
       item: ActionItem;
@@ -1011,20 +1015,28 @@ export default function FollowUps() {
       const skipNoteBody = note?.trim() || "Skipped — did not reach out";
 
       if (item.itemType === "customer") {
+        // 1) Log activity first (will throw and abort if it fails)
+        await createNote({
+          entity_type: "Customer",
+          customer_id: item.id,
+          person_id: item.id,
+          person_type: "customer",
+          note_body: skipNoteBody,
+          note_type: "Skipped",
+          next_follow_up_date: computed,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+        // 2) Best-effort companion entry in customer_notes timeline
+        try {
+          await createCustomerNote({ customer_id: item.id, note_text: skipNoteBody, note_type: "Skipped" });
+        } catch { /* non-critical: timeline mirror */ }
+        // 3) Now update the follow-up date
         await updateCustomer(item.id, {
           next_follow_up_date: computed,
           follow_up_reason: noFollowUp ? "No follow-up needed" : "Skipped — rescheduled",
         } as any);
-        await logCustomerActivity({
-          customerId: item.id,
-          noteType: "Skipped",
-          noteText: skipNoteBody,
-          nextFollowUpDate: computed,
-          isBookingAttempt: false,
-          isFollowUp: false,
-        });
       } else if (item.itemType === "prospect") {
-        await updateProspect(item.id, { next_follow_up_date: computed } as any);
         await createNote({
           entity_type: "Prospect",
           prospect_id: item.id,
@@ -1036,8 +1048,8 @@ export default function FollowUps() {
           is_booking_attempt: false,
           is_follow_up: false,
         });
+        await updateProspect(item.id, { next_follow_up_date: computed } as any);
       } else if (item.itemType === "consultant") {
-        if (computed) await updateTeamConsultant(item.id, { next_coaching_date: computed } as any);
         await createNote({
           entity_type: "Consultant",
           person_type: "consultant",
@@ -1049,8 +1061,8 @@ export default function FollowUps() {
           is_booking_attempt: false,
           is_follow_up: false,
         });
+        if (computed) await updateTeamConsultant(item.id, { next_coaching_date: computed } as any);
       } else if (item.itemType === "hostess") {
-        if (computed) await updateEvent(item.id, { hostess_next_action_date: computed } as any);
         await createNote({
           entity_type: "Hostess",
           note_body: `[${item.name}] ${skipNoteBody}`,
@@ -1059,8 +1071,8 @@ export default function FollowUps() {
           is_booking_attempt: false,
           is_follow_up: false,
         });
+        if (computed) await updateEvent(item.id, { hostess_next_action_date: computed } as any);
       } else if (item.itemType === "lead") {
-        await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
         await createNote({
           entity_type: "Lead",
           person_id: item.id,
@@ -1071,10 +1083,12 @@ export default function FollowUps() {
           is_booking_attempt: false,
           is_follow_up: false,
         });
+        await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
       } else if (item.itemType === "event_task") {
-        // Event tasks: just push the due date out
+        // Event tasks: just push the due date out (no separate activity log)
         if (computed) {
-          await supabase.from("event_tasks").update({ due_date: computed }).eq("id", item.id);
+          const { error } = await supabase.from("event_tasks").update({ due_date: computed }).eq("id", item.id);
+          if (error) throw error;
         }
       }
     },
@@ -1094,7 +1108,7 @@ export default function FollowUps() {
         : "Skipped — rescheduled";
       toast.success(msg);
     },
-    onError: () => toast.error("Failed to skip follow-up"),
+    onError: (err: any) => toast.error(`Failed to skip: ${err?.message || "unknown error"}`),
   });
 
   // Universal Action Panel handler (placed after contactMutation)
