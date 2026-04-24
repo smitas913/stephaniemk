@@ -2076,7 +2076,7 @@ export default function FollowUps() {
                             <Calendar className="w-4 h-4 text-emerald-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
