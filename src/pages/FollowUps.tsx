@@ -2134,54 +2134,56 @@ export default function FollowUps() {
                               </div>
                             </div>
                           )}
-                          {/* Birthdays: overdue + today + upcoming */}
+                          {/* Relationship touches: birthdays + anniversaries (overdue + today + upcoming) */}
                           {(() => {
-                            const activeOverdue = birthdaysOverdue.filter(c => !completedBirthdays.has(c.id));
-                            const activeToday = birthdaysToday.filter(c => !completedBirthdays.has(c.id));
-                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => completedBirthdays.has(c.id)).length;
+                            const activeOverdue = birthdaysOverdue.filter(c => !isRelationshipDone(c));
+                            const activeToday = birthdaysToday.filter(c => !isRelationshipDone(c));
+                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => isRelationshipDone(c)).length;
                             const totalActive = activeOverdue.length + activeToday.length;
 
                             if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
 
+                            const rowKey = (c: ActionItem & { _eventType?: string }) => `${c.itemType}-${c.id}-${c._eventType || "birthday"}`;
+
                             return (
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Cake className="w-3 h-3" /> Birthdays ({totalActive})
+                                  <Cake className="w-3 h-3" /> Birthdays & Anniversaries ({totalActive})
                                 </p>
                                 <div className="space-y-1.5">
-                                  {/* Overdue birthdays */}
+                                  {/* Overdue */}
                                   {activeOverdue.map((c) => (
                                     <BirthdayRow
-                                      key={c.id}
+                                      key={rowKey(c)}
                                       item={c}
                                       label={`Missed by ${Math.abs(c._daysUntil)}d`}
                                       isOverdue
                                       onNavigate={() => navigateToItem(c)}
                                       onAction={(type) => openContactDialog(c, type)}
-                                      onDone={() => markBirthdayDone(c.id)}
+                                      onDone={() => markBirthdayDone(c)}
                                     />
                                   ))}
-                                  {/* Today birthdays */}
+                                  {/* Today */}
                                   {activeToday.map((c) => (
                                     <BirthdayRow
-                                      key={c.id}
+                                      key={rowKey(c)}
                                       item={c}
-                                      label="Today 🎉"
+                                      label={c._eventType === "anniversary" ? "Today 🎉" : "Today 🎉"}
                                       onNavigate={() => navigateToItem(c)}
                                       onAction={(type) => openContactDialog(c, type)}
-                                      onDone={() => markBirthdayDone(c.id)}
+                                      onDone={() => markBirthdayDone(c)}
                                     />
                                   ))}
                                   {/* Completed summary */}
                                   {completedCount > 0 && (
                                     <p className="text-[10px] text-muted-foreground italic px-2 py-1">
-                                      ✓ {completedCount} birthday message{completedCount > 1 ? "s" : ""} sent
+                                      ✓ {completedCount} relationship touch{completedCount > 1 ? "es" : ""} sent
                                     </p>
                                   )}
                                   {/* Upcoming */}
                                   {showUpcoming7 && birthdaysUpcoming.map((c) => (
                                     <BirthdayRow
-                                      key={c.id}
+                                      key={rowKey(c)}
                                       item={c}
                                       label={`in ${c._daysUntil}d`}
                                       onNavigate={() => navigateToItem(c)}
