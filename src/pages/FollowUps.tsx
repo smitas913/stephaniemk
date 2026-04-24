@@ -548,7 +548,11 @@ export default function FollowUps() {
       }
       toast.success(msg);
     },
-    onError: (e: any) => {
+    onError: (e: any, _vars, context: any) => {
+      // Roll back optimistic completion on hard failure.
+      if (context?.prev && context?.cacheKey) {
+        queryClient.setQueryData(context.cacheKey, context.prev);
+      }
       toast.error(`Failed to log relationship touch: ${e?.message || "unknown error"}`);
     },
   });
