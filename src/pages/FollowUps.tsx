@@ -369,8 +369,10 @@ export default function FollowUps() {
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Keys formatted as `${person_id}:${event_type}` so birthday + anniversary
+  // for the same person are tracked independently for the cycle.
   const completedBirthdays = useMemo(
-    () => new Set<string>((completedBirthdayRows as any[]).map((r) => r.person_id)),
+    () => new Set<string>((completedBirthdayRows as any[]).map((r) => `${r.person_id}:${r.event_type || "birthday"}`)),
     [completedBirthdayRows]
   );
   // Birthday "Done" — atomic flow:
