@@ -170,6 +170,59 @@ export default function CustomerDetail() {
     actionMutation.mutate({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp });
   }, [actionMutation]);
 
+  // Atomic Skip / Did Not Contact: log the activity FIRST, then move the date.
+  // Default: customers reschedule +2 days. Does not count toward Daily Reach Outs
+  // (is_follow_up:false, is_booking_attempt:false) and does not update last_contacted.
+  const skipMutation = useMutation({
+    mutationFn: async () => {
+      const today = toLocalDateKey();
+      const nextDateObj = new Date();
+      nextDateObj.setDate(nextDateObj.getDate() + 2);
+      const nextDate = format(nextDateObj, "yyyy-MM-dd");
+      const noteBody = "Skipped — did not reach out";
+
+      // 1) Log activity first. If this fails, nothing else runs.
+      await createNote({
+        entity_type: "Customer",
+        customer_id: id!,
+        person_id: id!,
+        person_type: "customer",
+        note_body: noteBody,
+        note_type: "Skipped",
+        next_follow_up_date: nextDate,
+        is_booking_attempt: false,
+        is_follow_up: false,
+      });
+      // 2) Best-effort timeline mirror (non-critical)
+      try {
+        await createCustomerNote({ customer_id: id!, note_text: noteBody, note_type: "Skipped" });
+      } catch { /* non-critical */ }
+      // 3) Move follow-up date forward (last_contacted intentionally NOT updated)
+      await updateCustomer(id!, {
+        next_follow_up_date: nextDate,
+        follow_up_reason: "Skipped — rescheduled",
+      } as any);
+      return nextDate;
+    },
+    onSuccess: (nextDate) => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      toast.success(`Skipped — rescheduled to ${formatDateOnly(nextDate as string)}`);
+    },
+    onError: (err: any) => {
+      toast.error(`Failed to skip: ${err?.message || "unknown error"}`);
+    },
+  });
+
+  const handleSkip = useCallback(() => {
+    skipMutation.mutate();
+  }, [skipMutation]);
+
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, string>) => {
       const cleaned: Record<string, any> = {};
