@@ -163,6 +163,7 @@ export type Database = {
         Row: {
           birthday_year: number
           completed_at: string
+          event_type: string
           id: string
           person_id: string
           person_type: string
@@ -171,6 +172,7 @@ export type Database = {
         Insert: {
           birthday_year: number
           completed_at?: string
+          event_type?: string
           id?: string
           person_id: string
           person_type?: string
@@ -179,6 +181,7 @@ export type Database = {
         Update: {
           birthday_year?: number
           completed_at?: string
+          event_type?: string
           id?: string
           person_id?: string
           person_type?: string
