@@ -3987,7 +3987,14 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
   onAction: (type: string) => void;
   onDone?: () => void;
 }) {
-  const age = getBirthdayAge(item);
+  const isAnniversary = item._eventType === "anniversary";
+  const age = isAnniversary ? null : getBirthdayAge(item);
+  const eventLabel = isAnniversary
+    ? `🎉 Anniversary${item._anniversaryYears ? ` — Year ${item._anniversaryYears}` : ""}`
+    : `🎂 Birthday`;
+  const dateText = isAnniversary && item._anniversaryDate
+    ? formatDateOnly(item._anniversaryDate, "MMMM d")
+    : formatBirthday(item);
   return (
     <div className={cn(
       "rounded-xl border p-3 space-y-2",
@@ -3995,9 +4002,17 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
         ? "border-destructive/30 bg-destructive/5"
         : "border-border/50 bg-card"
     )}>
-      {/* Line 1: Name + type badge */}
+      {/* Line 1: Name + event-type badge + person-type badge */}
       <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigate}>
         <span className="text-sm font-bold text-foreground truncate flex-1">{item.name}</span>
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0",
+          isAnniversary
+            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+            : "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300"
+        )}>
+          {isAnniversary ? "🎉 Anniversary" : "🎂 Birthday"}
+        </span>
         <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", TYPE_BADGE[item.itemType].className)}>
           {TYPE_BADGE[item.itemType].label}
         </span>
@@ -4007,7 +4022,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
       {/* Line 2: Date + status */}
       <div className="flex items-center gap-2 text-xs">
         <span className="text-muted-foreground">
-          🎂 {formatBirthday(item)}{age ? ` (${age})` : ""}
+          {eventLabel} · {dateText}{age ? ` (${age})` : ""}
         </span>
         <span className="text-border">·</span>
         <span className={cn(
