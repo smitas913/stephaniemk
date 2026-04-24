@@ -105,6 +105,7 @@ interface Props {
     nextFollowUpDate?: string | null;
     followUpReason?: string | null;
   }) => void;
+  onSkip?: (item: UniversalActionItem) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
 }
