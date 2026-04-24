@@ -995,6 +995,108 @@ export default function FollowUps() {
     },
   });
 
+  // ─── Skip / Did Not Reach Out mutation ──────────────────────────
+  // Defers the follow-up without counting as activity. No last_contacted update.
+  // Logs a "Skipped" note for activity history (is_follow_up:false, is_booking_attempt:false)
+  // Default reschedule: customer/lead/prospect/hostess +2 days, consultant +3 days.
+  const skipFollowUpMutation = useMutation({
+    mutationFn: async ({ item, nextDate, noFollowUp, note }: {
+      item: ActionItem;
+      nextDate?: string | null;
+      noFollowUp?: boolean;
+      note?: string;
+    }) => {
+      const defaultDays = item.itemType === "consultant" ? 3 : 2;
+      const computed = noFollowUp ? null : (nextDate || format(addDays(new Date(), defaultDays), "yyyy-MM-dd"));
+      const skipNoteBody = note?.trim() || "Skipped — did not reach out";
+
+      if (item.itemType === "customer") {
+        await updateCustomer(item.id, {
+          next_follow_up_date: computed,
+          follow_up_reason: noFollowUp ? "No follow-up needed" : "Skipped — rescheduled",
+        } as any);
+        await logCustomerActivity({
+          customerId: item.id,
+          noteType: "Skipped",
+          noteText: skipNoteBody,
+          nextFollowUpDate: computed,
+          isBookingAttempt: false,
+          isFollowUp: false,
+        });
+      } else if (item.itemType === "prospect") {
+        await updateProspect(item.id, { next_follow_up_date: computed } as any);
+        await createNote({
+          entity_type: "Prospect",
+          prospect_id: item.id,
+          person_id: item.id,
+          person_type: "prospect",
+          note_body: skipNoteBody,
+          note_type: "Skipped",
+          next_follow_up_date: computed,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+      } else if (item.itemType === "consultant") {
+        if (computed) await updateTeamConsultant(item.id, { next_coaching_date: computed } as any);
+        await createNote({
+          entity_type: "Consultant",
+          person_type: "consultant",
+          person_id: item.id,
+          tags: ["consultant_coaching"],
+          note_body: `[${item.name}] ${skipNoteBody}`,
+          note_type: "Skipped",
+          next_follow_up_date: computed,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+      } else if (item.itemType === "hostess") {
+        if (computed) await updateEvent(item.id, { hostess_next_action_date: computed } as any);
+        await createNote({
+          entity_type: "Hostess",
+          note_body: `[${item.name}] ${skipNoteBody}`,
+          note_type: "Skipped",
+          next_follow_up_date: computed,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+      } else if (item.itemType === "lead") {
+        await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
+        await createNote({
+          entity_type: "Lead",
+          person_id: item.id,
+          person_type: "lead",
+          note_body: skipNoteBody,
+          note_type: "Skipped",
+          next_follow_up_date: computed,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+      } else if (item.itemType === "event_task") {
+        // Event tasks: just push the due date out
+        if (computed) {
+          await supabase.from("event_tasks").update({ due_date: computed }).eq("id", item.id);
+        }
+      }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["prospect-notes"] });
+      const msg = variables.noFollowUp
+        ? "Skipped — no follow-up scheduled"
+        : "Skipped — rescheduled";
+      toast.success(msg);
+    },
+    onError: () => toast.error("Failed to skip follow-up"),
+  });
+
   // Universal Action Panel handler (placed after contactMutation)
   const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
     item: UniversalActionItem;
