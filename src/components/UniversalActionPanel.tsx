@@ -315,11 +315,12 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   ))}
                 </div>
 
-                {/* Skip / Did Not Reach Out */}
+                {/* Skip / Did Not Reach Out — defers without counting as activity */}
                 <button
                   type="button"
                   disabled={isPending}
                   onClick={() => {
+                    if (onSkip && item) onSkip(item);
                     resetState();
                     onClose();
                   }}
@@ -328,6 +329,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                     "bg-[hsl(0_0%_85%)] border border-[hsl(0_0%_75%)] text-[hsl(0_0%_30%)] hover:bg-[hsl(0_0%_80%)] hover:text-[hsl(0_0%_20%)]",
                     isPending && "opacity-50 cursor-not-allowed"
                   )}
+                  title="Reschedules automatically and does not count toward activity metrics"
                 >
                   <SkipForward className="w-4 h-4" />
                   Skipped / Did Not Reach Out
