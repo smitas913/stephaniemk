@@ -1121,6 +1121,15 @@ export default function FollowUps() {
     });
   }, [contactMutation]);
 
+  const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
+    const ai: ActionItem = {
+      id: uItem.id, itemType: uItem.personType, name: uItem.name,
+      phone: uItem.phone, email: uItem.email,
+      next_follow_up: null, follow_up_status: uItem.followUpStatus || "", actionLabel: "",
+    };
+    skipFollowUpMutation.mutate({ item: ai });
+  }, [skipFollowUpMutation]);
+
   const handleInlineSave = (item: ActionItem) => {
     contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
   };
