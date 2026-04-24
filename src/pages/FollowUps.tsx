@@ -1647,7 +1647,7 @@ export default function FollowUps() {
           <div>
             <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length} birthday{(birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length + birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length) !== 1 ? "s" : ""}
+              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
           </div>
         </div>
