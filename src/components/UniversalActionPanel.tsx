@@ -158,8 +158,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     if (optionKey === "schedule") return;
 
     let nextDate: string | null = null;
+    let reasonForLog = selectedReason;
     if (optionKey === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (optionKey === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
+    else if (optionKey === "none") {
+      // Long-term maintenance touch — keep customer in lifecycle, push out ~75 days
+      nextDate = format(addDays(new Date(), LONG_TERM_TOUCH_DAYS), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "No Follow-Up Needed (Long-Term Touch)";
+    }
 
     const tags = getAutoTags(item.personType, selectedReason);
     onLogAction({
@@ -169,7 +175,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       isBookingAttempt: tags.isBookingAttempt,
       isFollowUp: tags.isFollowUp,
       nextFollowUpDate: nextDate ?? undefined,
-      followUpReason: selectedReason,
+      followUpReason: reasonForLog,
     });
     handleClose();
   }, [item, selectedAction, buildNote, selectedReason, onLogAction, handleClose]);
