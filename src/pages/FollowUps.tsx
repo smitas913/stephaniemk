@@ -423,6 +423,21 @@ export default function FollowUps() {
   };
 
   const markBirthdayDoneMutation = useMutation({
+    // Optimistically mark the relationship touch as completed in the cache so the
+    // person disappears from the Today birthday list IMMEDIATELY — no waiting for
+    // the network round-trip or query invalidation. This also works during OOO,
+    // where the person should never repopulate once the user has manually
+    // dismissed the touch.
+    onMutate: async ({ personId, personType, eventType }) => {
+      const cacheKey = ["completed-birthdays", currentBirthdayYear];
+      await queryClient.cancelQueries({ queryKey: cacheKey });
+      const prev = queryClient.getQueryData<any[]>(cacheKey) || [];
+      queryClient.setQueryData<any[]>(cacheKey, [
+        ...prev,
+        { person_id: personId, person_type: personType, event_type: eventType },
+      ]);
+      return { prev, cacheKey };
+    },
     mutationFn: async ({ personId, personType, eventType, personName, anniversaryYears }: RelationshipDoneArgs) => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData?.user?.id;
