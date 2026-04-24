@@ -1582,7 +1582,7 @@ export default function FollowUps() {
                           }}
                           onSkipItem={(mi) => {
                             const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) contactMutation.mutate({ item: original, note: "Skipped", type: "Other" });
+                            if (original) skipFollowUpMutation.mutate({ item: original });
                           }}
                           onAddNoteItem={(mi) => {
                             const original = followUpItems.find(i => i.id === mi.id);
