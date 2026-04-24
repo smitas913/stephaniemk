@@ -2085,7 +2085,7 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !completedBirthdays.has(c.id)).length === 0 && birthdaysOverdue.filter(c => !completedBirthdays.has(c.id)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
+                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !isRelationshipDone(c)).length === 0 && birthdaysOverdue.filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
                         <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
                       ) : (
                         <div className="space-y-3">
