@@ -2187,11 +2187,12 @@ export default function FollowUps() {
           open={universalPanelOpen}
           onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); }}
           onLogAction={handleUniversalAction}
+          onSkip={handleUniversalSkip}
           onNavigateToProfile={(uItem) => {
             const ai: ActionItem = { id: uItem.id, itemType: uItem.personType, name: uItem.name, phone: uItem.phone, email: uItem.email, next_follow_up: null, follow_up_status: "", actionLabel: "" };
             navigateToItem(ai);
           }}
-          isPending={contactMutation.isPending}
+          isPending={contactMutation.isPending || skipFollowUpMutation.isPending}
         />
 
         {/* Detail Sheet */}
