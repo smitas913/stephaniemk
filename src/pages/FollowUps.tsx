@@ -904,25 +904,78 @@ export default function FollowUps() {
       return normalized && normalized > todayKey && normalized! <= upcoming7Key;
     }).sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
 
-    // Birthdays (customers + consultants) — includes overdue (past) birthdays
+    // Relationship touches: customer birthdays + consultant birthdays + consultant anniversaries.
+    // Includes overdue (past) events up to 30 days back, today, and upcoming 7d.
     const birthdaysToday: (ActionItem & { _daysUntil?: number })[] = [];
     const birthdaysOverdue: (ActionItem & { _daysUntil: number })[] = [];
     const birthdaysUpcoming: (ActionItem & { _daysUntil: number })[] = [];
+
+    const pushByOffset = (item: ActionItem & { _daysUntil?: number }, days: number) => {
+      if (days === 0) birthdaysToday.push({ ...item, _daysUntil: 0 });
+      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...item, _daysUntil: days });
+      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...item, _daysUntil: days });
+    };
+
+    // Customer birthdays
     for (const c of customerItems) {
       const days = daysToBirthday({ birthday: c.birthday, birthday_mmdd: c.birthday_mmdd });
       if (days === null) continue;
-      if (days === 0) birthdaysToday.push(c);
-      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
-      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+      pushByOffset({ ...c, _eventType: "birthday" }, days);
     }
-    for (const c of consultantItems) {
-      const consultant = consultants.find((tc) => tc.id === c.id);
-      if (!consultant?.birthday) continue;
-      const days = daysToBirthday({ birthday: consultant.birthday });
-      if (days === null) continue;
-      if (days === 0) birthdaysToday.push(c);
-      else if (days < 0 && days >= -30) birthdaysOverdue.push({ ...c, _daysUntil: days });
-      else if (days > 0 && days <= 7) birthdaysUpcoming.push({ ...c, _daysUntil: days });
+
+    // Consultant birthdays + anniversaries — iterate ALL consultants, not just
+    // those with a coaching date. Anniversaries are based on join_date (start date).
+    const todayYear = new Date().getFullYear();
+    for (const tc of consultants) {
+      if (tc.status === "Inactive") continue;
+      const baseItem: ActionItem = {
+        id: tc.id,
+        itemType: "consultant" as const,
+        name: tc.name,
+        phone: tc.phone || null,
+        email: tc.email || null,
+        next_follow_up: null,
+        follow_up_status: "",
+        followUpReason: "Relationship Touch",
+        lastContacted: null,
+        actionLabel: "Relationship",
+        allow_non_working_day: !!(tc as any).allow_non_working_day,
+        birthday: tc.birthday || null,
+      };
+
+      // Birthday
+      if (tc.birthday) {
+        const days = daysToBirthday({ birthday: tc.birthday });
+        if (days !== null) {
+          pushByOffset({ ...baseItem, _eventType: "birthday" }, days);
+        }
+      }
+
+      // Anniversary (yearly recurrence of join_date)
+      if (tc.join_date) {
+        const joinParts = tc.join_date.slice(0, 10).split("-");
+        if (joinParts.length === 3) {
+          const joinYear = parseInt(joinParts[0], 10);
+          const joinMonth = parseInt(joinParts[1], 10);
+          const joinDay = parseInt(joinParts[2], 10);
+          if (joinYear && joinMonth >= 1 && joinMonth <= 12 && joinDay >= 1 && joinDay <= 31) {
+            // Skip the same calendar year they joined (no 0-year anniversary)
+            if (todayYear > joinYear) {
+              // Reuse daysToBirthday-style logic by passing as YYYY-MM-DD synth
+              const days = daysToBirthday({
+                birthday: `${joinYear}-${String(joinMonth).padStart(2, "0")}-${String(joinDay).padStart(2, "0")}`,
+              });
+              if (days !== null) {
+                const years = todayYear - joinYear;
+                pushByOffset(
+                  { ...baseItem, _eventType: "anniversary", _anniversaryYears: years, _anniversaryDate: tc.join_date },
+                  days
+                );
+              }
+            }
+          }
+        }
+      }
     }
     birthdaysOverdue.sort((a, b) => b._daysUntil - a._daysUntil); // most recent first
     birthdaysUpcoming.sort((a, b) => a._daysUntil - b._daysUntil);
