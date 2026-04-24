@@ -159,6 +159,33 @@ export type Database = {
         }
         Relationships: []
       }
+      completed_birthdays: {
+        Row: {
+          birthday_year: number
+          completed_at: string
+          id: string
+          person_id: string
+          person_type: string
+          user_id: string
+        }
+        Insert: {
+          birthday_year: number
+          completed_at?: string
+          id?: string
+          person_id: string
+          person_type?: string
+          user_id: string
+        }
+        Update: {
+          birthday_year?: number
+          completed_at?: string
+          id?: string
+          person_id?: string
+          person_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_blackout_days: {
         Row: {
           blackout_date: string
