@@ -409,8 +409,16 @@ export default function FollowUps() {
     return HIGH_PRIORITY_REASON_PATTERNS.some((p) => r.includes(p));
   };
 
+  type RelationshipDoneArgs = {
+    personId: string;
+    personType: "customer" | "consultant";
+    eventType: "birthday" | "anniversary";
+    personName?: string;
+    anniversaryYears?: number;
+  };
+
   const markBirthdayDoneMutation = useMutation({
-    mutationFn: async (personId: string) => {
+    mutationFn: async ({ personId, personType, eventType, personName, anniversaryYears }: RelationshipDoneArgs) => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData?.user?.id;
       if (!uid) throw new Error("Not authenticated");
@@ -418,12 +426,41 @@ export default function FollowUps() {
       const today = format(new Date(), "yyyy-MM-dd");
       const longTermDate = format(addDays(new Date(), BIRTHDAY_LONG_TERM_DAYS), "yyyy-MM-dd");
 
+      const noteType = eventType === "anniversary" ? "Anniversary Reach-Out" : "Birthday Reach-Out";
+      const noteBody = eventType === "anniversary"
+        ? `Anniversary reach-out${anniversaryYears ? ` — year ${anniversaryYears}` : ""} — relationship building`
+        : "Birthday reach-out — relationship building";
+
+      // ── CONSULTANT branch (birthday or anniversary) ───────────────────────
+      if (personType === "consultant") {
+        // 1) Log activity (Consultant entity); failure aborts everything else.
+        await createNote({
+          entity_type: "Consultant",
+          person_id: personId,
+          person_type: "consultant",
+          note_body: noteBody,
+          note_type: noteType,
+          is_booking_attempt: false,
+          is_follow_up: false,
+        });
+
+        // 2) Mark completion for this cycle
+        const { error } = await supabase
+          .from("completed_birthdays" as any)
+          .upsert(
+            { user_id: uid, person_id: personId, person_type: "consultant", event_type: eventType, birthday_year: currentBirthdayYear },
+            { onConflict: "user_id,person_id,birthday_year,event_type", ignoreDuplicates: true }
+          );
+        if (error) throw error;
+
+        return { eventType, personType, nextDate: null as string | null, keepExisting: false, existingReason: null as string | null };
+      }
+
+      // ── CUSTOMER branch (birthday only — customers have no anniversary) ──
       const existing = customers.find((c) => c.id === personId);
       const existingNext = (existing?.next_follow_up_date as string | null | undefined) || null;
       const existingReason = (existing as any)?.follow_up_reason as string | null | undefined;
 
-      // Priority override: keep the existing date ONLY if it's a future,
-      // sooner, high-priority follow-up. Otherwise reset to +75 days.
       const keepExisting =
         !!existingNext &&
         existingNext > today &&
@@ -437,8 +474,8 @@ export default function FollowUps() {
         customer_id: personId,
         person_id: personId,
         person_type: "customer",
-        note_body: "Birthday reach-out — relationship building",
-        note_type: "Birthday Reach-Out",
+        note_body: noteBody,
+        note_type: noteType,
         next_follow_up_date: nextDate,
         is_booking_attempt: false,
         is_follow_up: false,
@@ -447,15 +484,12 @@ export default function FollowUps() {
       try {
         await createCustomerNote({
           customer_id: personId,
-          note_text: "Birthday reach-out — relationship building",
-          note_type: "Birthday Reach-Out",
+          note_text: noteBody,
+          note_type: noteType,
         });
       } catch { /* non-critical */ }
 
       // 2 + 3) Update last_contacted and reset next_follow_up_date.
-      // When resetting, also clear any stale follow_up_reason so the new
-      // long-term touch isn't mislabeled. When preserving a high-priority
-      // follow-up, leave the reason intact.
       const updates: Record<string, string | null> = {
         last_contacted: today,
         next_follow_up_date: nextDate,
@@ -469,12 +503,12 @@ export default function FollowUps() {
       const { error } = await supabase
         .from("completed_birthdays" as any)
         .upsert(
-          { user_id: uid, person_id: personId, person_type: "customer", birthday_year: currentBirthdayYear },
-          { onConflict: "user_id,person_id,birthday_year", ignoreDuplicates: true }
+          { user_id: uid, person_id: personId, person_type: "customer", event_type: eventType, birthday_year: currentBirthdayYear },
+          { onConflict: "user_id,person_id,birthday_year,event_type", ignoreDuplicates: true }
         );
       if (error) throw error;
 
-      return { nextDate, keepExisting, existingReason };
+      return { eventType, personType, nextDate, keepExisting, existingReason };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["completed-birthdays", currentBirthdayYear] });
@@ -483,17 +517,29 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
       queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
-      const msg = result?.keepExisting
-        ? `Birthday logged — kept higher-priority follow-up (${result.existingReason}) on ${formatDateOnly(result.nextDate)}`
-        : `Birthday logged — next touch ${formatDateOnly(result?.nextDate || "")} (75-day cycle)`;
+      const eventLabel = result?.eventType === "anniversary" ? "Anniversary" : "Birthday";
+      let msg: string;
+      if (result?.personType === "consultant") {
+        msg = `${eventLabel} logged for consultant`;
+      } else if (result?.keepExisting) {
+        msg = `${eventLabel} logged — kept higher-priority follow-up (${result.existingReason}) on ${formatDateOnly(result.nextDate)}`;
+      } else {
+        msg = `${eventLabel} logged — next touch ${formatDateOnly(result?.nextDate || "")} (75-day cycle)`;
+      }
       toast.success(msg);
     },
     onError: (e: any) => {
-      toast.error(`Failed to log birthday: ${e?.message || "unknown error"}`);
+      toast.error(`Failed to log relationship touch: ${e?.message || "unknown error"}`);
     },
   });
-  const markBirthdayDone = (id: string) => {
-    markBirthdayDoneMutation.mutate(id);
+  const markBirthdayDone = (item: ActionItem) => {
+    markBirthdayDoneMutation.mutate({
+      personId: item.id,
+      personType: item.itemType === "consultant" ? "consultant" : "customer",
+      eventType: item._eventType || "birthday",
+      personName: item.name,
+      anniversaryYears: item._anniversaryYears,
+    });
   };
   // Universal Action Panel state
   const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
