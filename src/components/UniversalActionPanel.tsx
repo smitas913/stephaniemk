@@ -110,7 +110,7 @@ interface Props {
   isPending?: boolean;
 }
 
-export default function UniversalActionPanel({ item, open, onClose, onLogAction, onNavigateToProfile, isPending }: Props) {
+export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
   const [step, setStep] = useState<ActionStep>("action");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
