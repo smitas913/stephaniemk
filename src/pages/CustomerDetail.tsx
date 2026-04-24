@@ -631,7 +631,8 @@ export default function CustomerDetail() {
           open={actionPanelOpen}
           onClose={() => setActionPanelOpen(false)}
           onLogAction={handleLogAction}
-          isPending={actionMutation.isPending}
+          onSkip={handleSkip}
+          isPending={actionMutation.isPending || skipMutation.isPending}
         />
 
         {/* Convert to Consultant */}
