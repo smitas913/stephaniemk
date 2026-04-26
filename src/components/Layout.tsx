@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, Calendar, Target, Crown, TrendingUp, Receipt, Mail, MessageSquare, BookOpen, MoreHorizontal, FileText } from "lucide-react";
+import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, Calendar, Target, Crown, TrendingUp, Receipt, Mail, MessageSquare, BookOpen, MoreHorizontal, FileText, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const primaryNavItems = [
+  { to: "/momentum", label: "Momentum", icon: Zap },
   { to: "/follow-ups", label: "Today", icon: Clock },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/events", label: "Events", icon: Calendar },
@@ -33,6 +34,7 @@ const secondaryNavItems = [
 ];
 
 const consultantNavItems = [
+  { to: "/momentum", label: "Momentum", icon: Zap },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ];
 

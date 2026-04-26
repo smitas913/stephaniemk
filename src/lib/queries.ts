@@ -574,6 +574,59 @@ export const updateMomentumGoal = async (id: string, updates: Partial<Pick<Momen
   if (error) throw error;
 };
 
+// Business Growth Goals (Production / Unit Size / etc.)
+export interface BusinessGoal {
+  id: string;
+  user_id: string;
+  metric_key: string;
+  metric_label: string;
+  period: MomentumPeriod;
+  goal_value: number;
+  manual_actual: number | null;
+  auto_track_key: string | null;
+  unit: "count" | "currency";
+  is_visible: boolean;
+  sort_order: number;
+}
+
+export const DEFAULT_BUSINESS_GOALS: Omit<BusinessGoal, "id" | "user_id">[] = [
+  { metric_key: "production", metric_label: "Production", period: "weekly", goal_value: 1000, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
+  { metric_key: "unit_size", metric_label: "Unit Size", period: "weekly", goal_value: 10, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
+  { metric_key: "production", metric_label: "Production", period: "monthly", goal_value: 4000, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
+  { metric_key: "unit_size", metric_label: "Unit Size", period: "monthly", goal_value: 12, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
+];
+
+export const fetchBusinessGoals = async (): Promise<BusinessGoal[]> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("business_goals" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .order("period")
+    .order("sort_order");
+  if (error) throw error;
+  const existing = (data || []) as unknown as BusinessGoal[];
+  const have = new Set(existing.map((g) => `${g.period}:${g.metric_key}`));
+  const missing = DEFAULT_BUSINESS_GOALS.filter((d) => !have.has(`${d.period}:${d.metric_key}`));
+  if (missing.length > 0) {
+    const rows = missing.map((d) => ({ ...d, user_id: userId }));
+    const { data: inserted, error: insErr } = await supabase
+      .from("business_goals" as any)
+      .insert(rows as any)
+      .select();
+    if (insErr) throw insErr;
+    return [...existing, ...((inserted as unknown as BusinessGoal[]) || [])].sort(
+      (a, b) => a.period.localeCompare(b.period) || a.sort_order - b.sort_order,
+    );
+  }
+  return existing;
+};
+
+export const updateBusinessGoal = async (id: string, updates: Partial<Pick<BusinessGoal, "goal_value" | "manual_actual" | "is_visible">>) => {
+  const { error } = await supabase.from("business_goals" as any).update(updates as any).eq("id", id);
+  if (error) throw error;
+};
 
 export const deleteNote = async (id: string) => {
   const { error } = await supabase.from("notes").delete().eq("id", id);

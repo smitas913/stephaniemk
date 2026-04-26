@@ -80,6 +80,54 @@ export type Database = {
         }
         Relationships: []
       }
+      business_goals: {
+        Row: {
+          auto_track_key: string | null
+          created_at: string
+          goal_value: number
+          id: string
+          is_visible: boolean
+          manual_actual: number | null
+          metric_key: string
+          metric_label: string
+          period: string
+          sort_order: number
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_track_key?: string | null
+          created_at?: string
+          goal_value?: number
+          id?: string
+          is_visible?: boolean
+          manual_actual?: number | null
+          metric_key: string
+          metric_label: string
+          period: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_track_key?: string | null
+          created_at?: string
+          goal_value?: number
+          id?: string
+          is_visible?: boolean
+          manual_actual?: number | null
+          metric_key?: string
+          metric_label?: string
+          period?: string
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       catalog_campaign_customers: {
         Row: {
           campaign_id: string
