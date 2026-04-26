@@ -496,6 +496,7 @@ export const createNote = async (note: {
   next_follow_up_date?: string | null;
   is_booking_attempt?: boolean;
   is_follow_up?: boolean;
+  result_type?: "Face" | "Career Chat" | "Booking Conversation" | null;
 }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
@@ -506,6 +507,73 @@ export const createNote = async (note: {
   if (error) throw error;
   return data;
 };
+
+// Momentum Goals
+export type MomentumPeriod = "weekly" | "monthly";
+export interface MomentumGoal {
+  id: string;
+  user_id: string;
+  metric_key: string;
+  metric_label: string;
+  period: MomentumPeriod;
+  goal_value: number;
+  is_visible: boolean;
+  sort_order: number;
+}
+
+export const DEFAULT_MOMENTUM_GOALS: Omit<MomentumGoal, "id" | "user_id">[] = [
+  // Weekly
+  { metric_key: "faces", metric_label: "Faces", period: "weekly", goal_value: 10, is_visible: true, sort_order: 1 },
+  { metric_key: "career_chats", metric_label: "Career Chats", period: "weekly", goal_value: 5, is_visible: true, sort_order: 2 },
+  { metric_key: "booking_conversations", metric_label: "Booking Conversations", period: "weekly", goal_value: 5, is_visible: true, sort_order: 3 },
+  { metric_key: "appointments_held", metric_label: "Appointments Held", period: "weekly", goal_value: 3, is_visible: true, sort_order: 4 },
+  { metric_key: "new_bookings", metric_label: "New Bookings", period: "weekly", goal_value: 2, is_visible: true, sort_order: 5 },
+  { metric_key: "follow_ups", metric_label: "Follow-ups Completed", period: "weekly", goal_value: 15, is_visible: true, sort_order: 6 },
+  // Monthly
+  { metric_key: "faces", metric_label: "Faces", period: "monthly", goal_value: 40, is_visible: true, sort_order: 1 },
+  { metric_key: "career_chats", metric_label: "Career Chats", period: "monthly", goal_value: 20, is_visible: true, sort_order: 2 },
+  { metric_key: "booking_conversations", metric_label: "Booking Conversations", period: "monthly", goal_value: 20, is_visible: true, sort_order: 3 },
+  { metric_key: "appointments_held", metric_label: "Appointments Held", period: "monthly", goal_value: 12, is_visible: true, sort_order: 4 },
+  { metric_key: "new_bookings", metric_label: "New Bookings", period: "monthly", goal_value: 8, is_visible: true, sort_order: 5 },
+  { metric_key: "follow_ups", metric_label: "Follow-ups Completed", period: "monthly", goal_value: 60, is_visible: true, sort_order: 6 },
+  { metric_key: "new_customers", metric_label: "New Customers", period: "monthly", goal_value: 5, is_visible: true, sort_order: 7 },
+  { metric_key: "new_team_members", metric_label: "New Team Members", period: "monthly", goal_value: 1, is_visible: true, sort_order: 8 },
+];
+
+export const fetchMomentumGoals = async (): Promise<MomentumGoal[]> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("momentum_goals")
+    .select("*")
+    .eq("user_id", userId)
+    .order("period")
+    .order("sort_order");
+  if (error) throw error;
+
+  const existing = (data || []) as unknown as MomentumGoal[];
+  // Seed defaults for any missing metric_key/period combos
+  const have = new Set(existing.map((g) => `${g.period}:${g.metric_key}`));
+  const missing = DEFAULT_MOMENTUM_GOALS.filter((d) => !have.has(`${d.period}:${d.metric_key}`));
+  if (missing.length > 0) {
+    const rows = missing.map((d) => ({ ...d, user_id: userId }));
+    const { data: inserted, error: insErr } = await supabase
+      .from("momentum_goals")
+      .insert(rows as any)
+      .select();
+    if (insErr) throw insErr;
+    return [...existing, ...((inserted as unknown as MomentumGoal[]) || [])].sort(
+      (a, b) => a.period.localeCompare(b.period) || a.sort_order - b.sort_order,
+    );
+  }
+  return existing;
+};
+
+export const updateMomentumGoal = async (id: string, updates: Partial<Pick<MomentumGoal, "goal_value" | "is_visible">>) => {
+  const { error } = await supabase.from("momentum_goals").update(updates as any).eq("id", id);
+  if (error) throw error;
+};
+
 
 export const deleteNote = async (id: string) => {
   const { error } = await supabase.from("notes").delete().eq("id", id);

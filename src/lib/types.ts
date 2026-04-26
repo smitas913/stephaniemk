@@ -190,6 +190,7 @@ export interface Note {
   next_follow_up_date: string | null;
   is_booking_attempt: boolean;
   is_follow_up: boolean;
+  result_type?: "Face" | "Career Chat" | "Booking Conversation" | null;
   owner_user_id: string | null;
   created_at: string;
 }

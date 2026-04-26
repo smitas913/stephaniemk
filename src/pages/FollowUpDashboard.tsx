@@ -4,16 +4,33 @@ import { fetchCustomers, fetchOrders, fetchExpenses, fetchEvents } from "@/lib/q
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, OrderWithCustomer, Expense, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
+import MomentumScoreboard from "@/components/MomentumScoreboard";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, Crown, Star, RefreshCw, Store } from "lucide-react";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, Crown, Star, RefreshCw, Store, Sparkles, ArrowRight } from "lucide-react";
 import { parseISO, isWithinInterval } from "date-fns";
 
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
+
+const MOTIVATIONAL_QUOTES = [
+  "Small daily actions compound into extraordinary results.",
+  "You don't have to be great to start, but you have to start to be great.",
+  "Consistency beats intensity, every single time.",
+  "Progress, not perfection.",
+  "Success is the sum of small efforts repeated day in and day out.",
+  "Your future is created by what you do today, not tomorrow.",
+  "Faces today become bookings tomorrow.",
+  "Every conversation is a seed.",
+];
+
+function getDailyQuote(): string {
+  const day = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
+}
 
 type Enriched = Customer & CustomerComputed;
 
@@ -200,9 +217,28 @@ export default function FollowUpDashboard() {
       { label: "Hold Rate", value: `${m.holdRate.toFixed(1)}%`, subtitle: `${m.evHeld} held / ${m.evBooked} booked · ${m.evCancelled} cancelled`, icon: CalendarIcon, accent: "text-primary" },
     ];
 
+    const dailyQuote = getDailyQuote();
+
     return (
       <Layout>
         <div className="space-y-6">
+          {/* Motivational header card */}
+          <Card className="border-primary/20 shadow-sm bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 text-primary">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider">Today's Focus</span>
+                </div>
+                <p className="text-base font-medium text-foreground italic">"{dailyQuote}"</p>
+              </div>
+              <Button onClick={() => navigate("/follow-ups")} className="shrink-0">
+                Go to Today's Action List
+                <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </CardContent>
+          </Card>
+
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
@@ -226,7 +262,8 @@ export default function FollowUpDashboard() {
             </div>
           </div>
 
-          
+          {/* Momentum Tracker — Weekly + Monthly Actuals vs Goals */}
+          <MomentumScoreboard />
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
