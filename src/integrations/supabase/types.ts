@@ -869,6 +869,45 @@ export type Database = {
           },
         ]
       }
+      momentum_goals: {
+        Row: {
+          created_at: string
+          goal_value: number
+          id: string
+          is_visible: boolean
+          metric_key: string
+          metric_label: string
+          period: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal_value?: number
+          id?: string
+          is_visible?: boolean
+          metric_key: string
+          metric_label: string
+          period: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal_value?: number
+          id?: string
+          is_visible?: boolean
+          metric_key?: string
+          metric_label?: string
+          period?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           created_at: string
@@ -886,6 +925,7 @@ export type Database = {
           person_id: string | null
           person_type: string | null
           prospect_id: string | null
+          result_type: string | null
           tags: string[]
         }
         Insert: {
@@ -904,6 +944,7 @@ export type Database = {
           person_id?: string | null
           person_type?: string | null
           prospect_id?: string | null
+          result_type?: string | null
           tags?: string[]
         }
         Update: {
@@ -922,6 +963,7 @@ export type Database = {
           person_id?: string | null
           person_type?: string | null
           prospect_id?: string | null
+          result_type?: string | null
           tags?: string[]
         }
         Relationships: [
