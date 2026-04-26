@@ -25,14 +25,10 @@ import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 
 interface TeamConsultantRow { id: string; created_at: string }
 
-function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
-  return supabase
-    .from("team_consultants")
-    .select("id, created_at")
-    .then(({ data, error }) => {
-      if (error) throw error;
-      return (data || []) as TeamConsultantRow[];
-    });
+async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
+  const { data, error } = await supabase.from("team_consultants").select("id, created_at");
+  if (error) throw error;
+  return (data || []) as TeamConsultantRow[];
 }
 
 function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
