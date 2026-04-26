@@ -217,9 +217,28 @@ export default function FollowUpDashboard() {
       { label: "Hold Rate", value: `${m.holdRate.toFixed(1)}%`, subtitle: `${m.evHeld} held / ${m.evBooked} booked · ${m.evCancelled} cancelled`, icon: CalendarIcon, accent: "text-primary" },
     ];
 
+    const dailyQuote = getDailyQuote();
+
     return (
       <Layout>
         <div className="space-y-6">
+          {/* Motivational header card */}
+          <Card className="border-primary/20 shadow-sm bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 text-primary">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider">Today's Focus</span>
+                </div>
+                <p className="text-base font-medium text-foreground italic">"{dailyQuote}"</p>
+              </div>
+              <Button onClick={() => navigate("/follow-ups")} className="shrink-0">
+                Go to Today's Action List
+                <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </CardContent>
+          </Card>
+
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1">
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h2>
@@ -243,7 +262,8 @@ export default function FollowUpDashboard() {
             </div>
           </div>
 
-          
+          {/* Momentum Tracker — Weekly + Monthly Actuals vs Goals */}
+          <MomentumScoreboard />
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
