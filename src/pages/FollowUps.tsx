@@ -1009,28 +1009,33 @@ export default function FollowUps() {
 
     if (isOOOActive && followUpSnapshot) {
       // OOO snapshot pinning + manual-action override:
-      //   • The snapshot pins WHICH items are visible (no auto-backlog growth).
-      //   • But manual actions taken DURING OOO (mark done, skip, log activity,
-      //     set next date, no follow-up needed, etc.) update the underlying
-      //     record's next_follow_up_date. We honor those by intersecting the
-      //     frozen snapshot with the LIVE Today set — items the user has
-      //     manually rescheduled out of Today simply drop out of the frozen list.
-      //   • Result: Today count starts at the snapshot size and decreases as the
-      //     user clears items, then stays frozen at that level (no new items
-      //     can sneak in because we never expand beyond the snapshot).
+      //   • The snapshot pins WHICH items are visible at OOO start (no auto-backlog growth).
+      //   • Manual actions during OOO push next_follow_up_date forward. We honor those
+      //     by checking the item's CURRENT next_follow_up against the frozen-today key —
+      //     if the user pushed it past today, it drops out of the frozen Today list.
+      //   • CRITICAL: We do NOT intersect with the live Today/Upcoming sets, because
+      //     those re-derive membership from many factors (stage, status, ordering)
+      //     under frozen time and can spuriously drop items that should remain pinned.
+      //     The snapshot is the source of truth; manual reschedule is the only override.
       const itemMap = new Map(allItems.map((item) => [getActionItemKey(item), item]));
-      const liveTodayKeys = new Set(liveTodayActions.map(getActionItemKey));
-      const liveUpcomingKeys = new Set(liveUpcomingActions.map(getActionItemKey));
+      const frozenKey = frozenTodayKey;
+
+      const stillPinnedToday = (item: ActionItem) => {
+        const next = item.next_follow_up;
+        // No date set (e.g., team consultant with no coaching date cleared) — keep pinned.
+        if (!next) return true;
+        // Item still due on or before frozen-today (i.e., not pushed forward by manual action).
+        return next <= frozenKey;
+      };
 
       const frozenTodayActions = followUpSnapshot.today
         .map((key) => itemMap.get(key))
         .filter((item): item is ActionItem => Boolean(item))
-        // Drop items the user has manually rescheduled out of Today.
-        .filter((item) => liveTodayKeys.has(getActionItemKey(item)));
+        .filter(stillPinnedToday);
+
       const frozenUpcomingActions = followUpSnapshot.upcoming
         .map((key) => itemMap.get(key))
-        .filter((item): item is ActionItem => Boolean(item))
-        .filter((item) => liveUpcomingKeys.has(getActionItemKey(item)) || liveTodayKeys.has(getActionItemKey(item)));
+        .filter((item): item is ActionItem => Boolean(item));
 
       return {
         todayActions: sortItems(frozenTodayActions),
@@ -1039,8 +1044,8 @@ export default function FollowUps() {
         upcomingEvents,
         reschedulingFollowUp,
         birthdaysToday,
-        birthdaysOverdue,
         birthdaysUpcoming,
+        birthdaysOverdue,
       };
     }
 
