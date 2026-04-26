@@ -4,16 +4,33 @@ import { fetchCustomers, fetchOrders, fetchExpenses, fetchEvents } from "@/lib/q
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, OrderWithCustomer, Expense, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
+import MomentumScoreboard from "@/components/MomentumScoreboard";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, Crown, Star, RefreshCw, Store } from "lucide-react";
+import { DollarSign, TrendingUp, CalendarIcon, Receipt, Wallet, Users, Crown, Star, RefreshCw, Store, Sparkles, ArrowRight } from "lucide-react";
 import { parseISO, isWithinInterval } from "date-fns";
 
 import { usePeriodFilter, getDateRange, getShortLabel, getPeriodLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
+
+const MOTIVATIONAL_QUOTES = [
+  "Small daily actions compound into extraordinary results.",
+  "You don't have to be great to start, but you have to start to be great.",
+  "Consistency beats intensity, every single time.",
+  "Progress, not perfection.",
+  "Success is the sum of small efforts repeated day in and day out.",
+  "Your future is created by what you do today, not tomorrow.",
+  "Faces today become bookings tomorrow.",
+  "Every conversation is a seed.",
+];
+
+function getDailyQuote(): string {
+  const day = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
+}
 
 type Enriched = Customer & CustomerComputed;
 
