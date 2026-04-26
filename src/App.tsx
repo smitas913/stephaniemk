@@ -42,6 +42,7 @@ import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
 import Scripts from "./pages/Scripts";
+import Momentum from "./pages/Momentum";
 
 const queryClient = new QueryClient();
 
@@ -49,9 +50,9 @@ function getRoleHome(role: string): string {
   switch (role) {
     case "owner":
     case "admin":
-      return "/dashboard";
+      return "/momentum";
     case "consultant":
-      return "/dashboard";
+      return "/momentum";
     case "customer":
       return "/my-account";
     default:
@@ -122,6 +123,7 @@ const AppRoutes = () => (
       </ProtectedRoute>
     } />
 
+    <Route path="/momentum" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Momentum /></ProtectedRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
     <Route path="/scoreboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Scoreboard /></ProtectedRoute>} />
     <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
