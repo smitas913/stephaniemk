@@ -10,7 +10,7 @@ import {
   fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings, upsertScheduleSettings,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
-import { buildWorkdayFlags, isTodayNonWorkday } from "@/lib/smartSchedule";
+import { buildWorkdayFlags, isTodayNonWorkday, spreadTasks } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
 import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
