@@ -471,7 +471,50 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
     .eq(col, entityId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data as unknown as Note[];
+  const unified = (data || []) as unknown as Note[];
+
+  // Merge legacy customer_notes so older history isn't lost. We surface any
+  // legacy row that doesn't already appear in the unified `notes` table
+  // (matched by body + date) to avoid duplicates from the Skip mirror writes.
+  if (entityType === "Customer") {
+    const { data: legacy, error: legacyErr } = await supabase
+      .from("customer_notes")
+      .select("*")
+      .eq("customer_id", entityId)
+      .order("created_at", { ascending: false });
+    if (legacyErr) throw legacyErr;
+    const seen = new Set(
+      unified.map((n) => `${(n.note_body || "").trim()}|${(n.note_date || "").slice(0, 10)}`)
+    );
+    const legacyMapped: Note[] = ((legacy || []) as any[])
+      .filter((l) => {
+        const key = `${(l.note_text || "").trim()}|${(l.created_at || "").slice(0, 10)}`;
+        return !seen.has(key);
+      })
+      .map((l) => ({
+        id: l.id,
+        entity_type: "Customer",
+        customer_id: l.customer_id,
+        prospect_id: null,
+        person_id: l.customer_id,
+        person_type: "customer",
+        note_body: l.note_text,
+        note_type: l.note_type || "Note",
+        note_date: (l.created_at || "").slice(0, 10),
+        next_follow_up_date: null,
+        is_booking_attempt: false,
+        is_follow_up: false,
+        result_type: null,
+        tags: ["legacy"],
+        owner_user_id: l.owner_user_id,
+        created_at: l.created_at,
+      })) as unknown as Note[];
+
+    const merged = [...unified, ...legacyMapped];
+    merged.sort((a: any, b: any) => (b.created_at || "").localeCompare(a.created_at || ""));
+    return merged;
+  }
+  return unified;
 };
 
 export const fetchAllLatestNotes = async (): Promise<Note[]> => {
