@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
+import { resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
 
 const QUICK_ACTIONS = [
   { key: "Text", label: "Texted", icon: MessageSquare, emoji: "💬" },
