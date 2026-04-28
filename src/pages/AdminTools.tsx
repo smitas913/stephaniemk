@@ -112,7 +112,10 @@ export default function AdminTools() {
           </TabsContent>
 
           <TabsContent value="scheduling">
-            <ScheduleSettings />
+            <div className="space-y-4">
+              <ScheduleSettings />
+              <EmailPreferenceSettings />
+            </div>
           </TabsContent>
 
           <TabsContent value="zoom">
