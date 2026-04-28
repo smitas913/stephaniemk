@@ -604,22 +604,28 @@ export default function CustomerDetail() {
               <p className="text-center text-muted-foreground py-6">No activity yet — tap Log Activity to get started</p>
             ) : (
               <div className="space-y-2">
-                {recentUnifiedNotes.slice(0, 10).map((note: any) => (
-                  <div key={note.id} className="p-3 rounded-lg bg-muted/40 border border-border/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
-                      </span>
-                      {note.next_follow_up_date && (
-                        <span className="text-[11px] text-primary font-medium">
-                          → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                {recentUnifiedNotes.map((note: any) => {
+                  const isLegacy = Array.isArray(note.tags) && note.tags.includes("legacy");
+                  return (
+                    <div key={note.id} className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
                         </span>
-                      )}
+                        {note.next_follow_up_date && (
+                          <span className="text-[11px] text-primary font-medium">
+                            → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                          </span>
+                        )}
+                        {isLegacy && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">Legacy</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
                     </div>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
