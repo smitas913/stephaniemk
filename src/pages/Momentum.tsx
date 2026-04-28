@@ -203,7 +203,7 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
       await createNote({
         entity_type: "Customer",
         note_body: `Quick log: ${resultType}`,
-        note_type: "Quick Log",
+        note_type: "General",
         result_type: resultType,
         is_booking_attempt: resultType === "Booking Conversation",
       });
