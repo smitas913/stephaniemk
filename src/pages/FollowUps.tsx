@@ -305,6 +305,11 @@ export default function FollowUps() {
   // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
   // Birthdays (in Today's Schedule) and 6 Most Important always remain visible.
   const hideWorkflow = isOOOActive && !showFollowUpsOverride;
+  // Ensures the "Ease Back In" rescheduling pass runs only once per OOO exit (per session).
+  const easeBackInRanRef = useRef(false);
+  useEffect(() => {
+    if (isOOOActive) easeBackInRanRef.current = false; // reset for next exit
+  }, [isOOOActive]);
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
