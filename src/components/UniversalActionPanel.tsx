@@ -57,9 +57,7 @@ const WHATS_NEXT_OPTIONS = [
   { key: "none", label: "No follow-up needed (long-term touch)", icon: CheckCircle2 },
 ] as const;
 
-// Long-term maintenance touch interval — fixed 75 days for a predictable cadence.
-// Do not randomize or infer; users can manually override via "Schedule a date".
-const LONG_TERM_TOUCH_DAYS = 75;
+import { LONG_TERM_TOUCH_DAYS, resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
 
 // ─── Follow-Up Reason Options by Person Type ───
 const FOLLOW_UP_REASONS: Record<string, string[]> = {
