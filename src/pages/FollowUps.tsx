@@ -1856,19 +1856,23 @@ export default function FollowUps() {
                      />
                    )}
 
-                  {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
-                  {!hideWorkflow && (() => {
-                    const teamTypes = new Set(["consultant"]);
-                    const followUpItems = todayActions.filter(i => !teamTypes.has(i.itemType));
+                   {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
+                   {/* Event Tasks (hostess + event_task) are intentionally EXCLUDED here — they
+                       live in their own dedicated "Event Tasks" section below to avoid
+                       duplication and to keep follow-up counts focused on client/lead/prospect
+                       outreach. */}
+                   {!hideWorkflow && (() => {
+                     const excludedTypes = new Set(["consultant", "hostess", "event_task"]);
+                     const followUpItems = todayActions.filter(i => !excludedTypes.has(i.itemType));
 
-                    // Priority hierarchy: each item appears ONLY once in the highest-priority bucket
-                    const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
-                    const overdueIds = new Set(overdueItems.map(i => i.id));
-                    const dueTodayItems = followUpItems.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
-                    const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
-                    const highPriorityItems = followUpItems.filter(i => !overdueIds.has(i.id) && !dueTodayIds.has(i.id) && (i.itemType === "event_task" || i.itemType === "hostess"));
-                    const usedIds = new Set([...overdueIds, ...dueTodayIds, ...highPriorityItems.map(i => i.id)]);
-                    const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
+                     // Priority hierarchy: each item appears ONLY once in the highest-priority bucket
+                     const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
+                     const overdueIds = new Set(overdueItems.map(i => i.id));
+                     const dueTodayItems = followUpItems.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
+                     const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
+                     const highPriorityItems: ActionItem[] = []; // event-related items moved to dedicated section
+                     const usedIds = new Set([...overdueIds, ...dueTodayIds]);
+                     const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
 
                     // Mobile: use new compact mobile view
                     if (isMobile) {
