@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { openEmail } from "@/lib/emailPreference";
 
 // ─── Types ───
 
