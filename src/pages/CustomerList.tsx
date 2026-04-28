@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle } from "lucide-react";
+import { openEmail } from "@/lib/emailPreference";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -314,7 +315,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                     <span className="text-muted-foreground">No phone</span>
                   )}
                   {c.email && (
-                    <a href={`mailto:${c.email}`} className="text-muted-foreground hover:text-primary flex items-center gap-1 truncate">
+                    <a href={`mailto:${c.email}`} onClick={(e) => openEmail(c.email!, e)} className="text-muted-foreground hover:text-primary flex items-center gap-1 truncate">
                       <Mail className="w-3 h-3 shrink-0" />
                       <span className="truncate">{c.email}</span>
                     </a>

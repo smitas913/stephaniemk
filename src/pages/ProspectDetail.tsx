@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck, CalendarDays } from "lucide-react";
+import { openEmail } from "@/lib/emailPreference";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -162,7 +163,7 @@ export default function ProspectDetail() {
               </>
             )}
             {prospect.email && (
-              <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${prospect.email}`}><Mail className="w-4 h-4" /></a></Button>
+              <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${prospect.email}`} onClick={(e) => openEmail(prospect.email!, e)}><Mail className="w-4 h-4" /></a></Button>
             )}
             <Button size="sm" variant="outline" onClick={() => markContacted.mutate()} disabled={markContacted.isPending}>
               <CheckCircle2 className="w-4 h-4 mr-1" />Contacted

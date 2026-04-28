@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save, Plus, Trash2, Phone, MessageSquare, Mail, MapPin, Copy, Truck, ArrowRightLeft, Archive, ArchiveRestore } from "lucide-react";
+import { openEmail } from "@/lib/emailPreference";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -356,7 +357,7 @@ export default function CustomerDetail() {
               </>
             )}
             {customer.email && (
-              <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${customer.email}`}><Mail className="w-4 h-4" /></a></Button>
+              <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${customer.email}`} onClick={(e) => openEmail(customer.email!, e)}><Mail className="w-4 h-4" /></a></Button>
             )}
             <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
           </div>

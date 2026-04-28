@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft } from "lucide-react";
+import { openEmail } from "@/lib/emailPreference";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
@@ -469,7 +470,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                   )}
                   {vc.email && (
                     <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" asChild>
-                      <a href={`mailto:${vc.email}`}><Mail className="w-3 h-3" />Email</a>
+                      <a href={`mailto:${vc.email}`} onClick={(e) => openEmail(vc.email!, e)}><Mail className="w-3 h-3" />Email</a>
                     </Button>
                   )}
                   <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => { setViewConsultant(null); openEdit(vc); }}>
@@ -530,7 +531,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                         {vc.email && (
                           <div className="flex items-center gap-2 text-xs">
                             <Mail className="w-3 h-3 text-muted-foreground" />
-                            <a href={`mailto:${vc.email}`} className="text-primary hover:underline">{vc.email}</a>
+                            <a href={`mailto:${vc.email}`} onClick={(e) => openEmail(vc.email!, e)} className="text-primary hover:underline">{vc.email}</a>
                           </div>
                         )}
                         {address && (
