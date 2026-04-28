@@ -11,6 +11,7 @@ import DeliveryTracking from "@/components/DeliveryTracking";
 import ScheduleSettings from "@/components/ScheduleSettings";
 import MergeDuplicates from "@/components/MergeDuplicates";
 import ZoomDefaultsSettings from "@/components/ZoomDefaultsSettings";
+import EmailPreferenceSettings from "@/components/EmailPreferenceSettings";
 
 export default function AdminTools() {
   const { profile } = useAuth();
