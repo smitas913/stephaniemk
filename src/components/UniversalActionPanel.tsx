@@ -163,14 +163,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     else if (optionKey === "none") {
       // Long-term maintenance touch — keep customer in lifecycle, push out ~75 days.
       // Priority override: if a higher-priority (sooner) follow-up already exists, keep it.
-      const longTermDate = format(addDays(new Date(), LONG_TERM_TOUCH_DAYS), "yyyy-MM-dd");
-      const existing = item.nextFollowUpDate;
-      const today = format(new Date(), "yyyy-MM-dd");
-      if (existing && existing > today && existing < longTermDate) {
-        nextDate = existing; // preserve sooner priority follow-up (PCP, sample, post-appt, etc.)
-      } else {
-        nextDate = longTermDate;
-      }
+      nextDate = resolveLongTermFollowUpDate(item.nextFollowUpDate);
       reasonForLog = selectedReason || "No Follow-Up Needed (Long-Term Touch)";
     }
 
