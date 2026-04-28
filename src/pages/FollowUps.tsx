@@ -1856,19 +1856,23 @@ export default function FollowUps() {
                      />
                    )}
 
-                  {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
-                  {!hideWorkflow && (() => {
-                    const teamTypes = new Set(["consultant"]);
-                    const followUpItems = todayActions.filter(i => !teamTypes.has(i.itemType));
+                   {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
+                   {/* Event Tasks (hostess + event_task) are intentionally EXCLUDED here — they
+                       live in their own dedicated "Event Tasks" section below to avoid
+                       duplication and to keep follow-up counts focused on client/lead/prospect
+                       outreach. */}
+                   {!hideWorkflow && (() => {
+                     const excludedTypes = new Set(["consultant", "hostess", "event_task"]);
+                     const followUpItems = todayActions.filter(i => !excludedTypes.has(i.itemType));
 
-                    // Priority hierarchy: each item appears ONLY once in the highest-priority bucket
-                    const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
-                    const overdueIds = new Set(overdueItems.map(i => i.id));
-                    const dueTodayItems = followUpItems.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
-                    const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
-                    const highPriorityItems = followUpItems.filter(i => !overdueIds.has(i.id) && !dueTodayIds.has(i.id) && (i.itemType === "event_task" || i.itemType === "hostess"));
-                    const usedIds = new Set([...overdueIds, ...dueTodayIds, ...highPriorityItems.map(i => i.id)]);
-                    const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
+                     // Priority hierarchy: each item appears ONLY once in the highest-priority bucket
+                     const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
+                     const overdueIds = new Set(overdueItems.map(i => i.id));
+                     const dueTodayItems = followUpItems.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
+                     const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
+                     const highPriorityItems: ActionItem[] = []; // event-related items moved to dedicated section
+                     const usedIds = new Set([...overdueIds, ...dueTodayIds]);
+                     const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
 
                     // Mobile: use new compact mobile view
                     if (isMobile) {
@@ -2044,12 +2048,11 @@ export default function FollowUps() {
 
 
 
-                  {/* ═══ SECTION 3: Team Attention — hidden in OOO unless overridden ═══ */}
+                  {/* ═══ SECTION 3: Coaching (Consultants) — hidden in OOO unless overridden ═══ */}
                   {!hideWorkflow && (() => {
-                    const teamActions = todayActions.filter(i => i.itemType === "consultant" || i.itemType === "hostess" || i.itemType === "event_task");
-                    if (teamActions.length === 0) return null;
+                    const coachingActions = todayActions.filter(i => i.itemType === "consultant");
+                    if (coachingActions.length === 0) return null;
 
-                    // Mobile: use card-based layout
                     if (isMobile) {
                       const toTeamItem = (item: ActionItem): MobileTeamItem => ({
                         id: item.id,
@@ -2061,41 +2064,21 @@ export default function FollowUps() {
                         lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
                         followUpReason: item.followUpReason,
                         actionLabel: item.actionLabel,
-                        focusGroup: item.itemType === "consultant"
-                          ? (consultants.find(c => c.id === item.id)?.focus_group || undefined)
-                          : undefined,
+                        focusGroup: (consultants.find(c => c.id === item.id)?.focus_group || undefined),
                       });
 
                       return (
                         <MobileTeamAttention
-                          items={teamActions.map(toTeamItem)}
-                          onSchedule={(mi) => {
-                            const original = todayActions.find(i => i.id === mi.id);
-                            if (original) openDetailSheet(original);
-                          }}
-                          onCall={(mi) => {
-                            const original = todayActions.find(i => i.id === mi.id);
-                            if (original) openUniversalPanel(original);
-                          }}
-                          onText={(mi) => {
-                            const original = todayActions.find(i => i.id === mi.id);
-                            if (original) openUniversalPanel(original);
-                          }}
-                          onNote={(mi) => {
-                            const original = todayActions.find(i => i.id === mi.id);
-                            if (original) openUniversalPanel(original);
-                          }}
-                          onOpen={(mi) => {
-                            const original = todayActions.find(i => i.id === mi.id);
-                            if (original) navigateToItem(original);
-                          }}
+                          items={coachingActions.map(toTeamItem)}
+                          onSchedule={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
+                          onCall={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onText={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onNote={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onOpen={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
                         />
                       );
                     }
 
-                    // Desktop: existing layout
-                    const coachingItems = teamActions.filter(i => i.itemType === "consultant");
-                    const eventItems = teamActions.filter(i => i.itemType === "hostess" || i.itemType === "event_task");
                     return (
                       <Card className="border-border/50 shadow-sm">
                         <CardHeader className="pb-2">
@@ -2103,74 +2086,110 @@ export default function FollowUps() {
                             <div className="p-1.5 rounded-md bg-violet-50 dark:bg-violet-950/30">
                               <Crown className="w-4 h-4 text-violet-600" />
                             </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Team Attention</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{teamActions.length}</Badge>
+                            <CardTitle className="text-sm font-semibold text-foreground">Coaching</CardTitle>
+                            <Badge variant="secondary" className="text-xs">{coachingActions.length}</Badge>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <div className="space-y-3">
-                            {coachingItems.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Crown className="w-3 h-3" /> Coaching ({coachingItems.length})
-                                </p>
-                                <div className="divide-y divide-border/40">
-                                  {coachingItems.map(item => (
-                                    <ActionRow
-                                      key={`${item.itemType}-${item.id}`}
-                                      item={item}
-                                      inlineNoteId={inlineNoteId}
-                                      inlineNoteText={inlineNoteText}
-                                      inlineNextStep={inlineNextStep}
-                                      inlineNoteType={inlineNoteType}
-                                      inlineFollowUpDate={inlineFollowUpDate}
-                                      setInlineNoteText={setInlineNoteText}
-                                      setInlineNextStep={setInlineNextStep}
-                                      setInlineNoteType={setInlineNoteType}
-                                      setInlineFollowUpDate={setInlineFollowUpDate}
-                                      onToggleInline={() => toggleInlineNote(item)}
-                                      onInlineSave={() => handleInlineSave(item)}
-                                      onOpenDetail={() => openDetailSheet(item)}
-                                      isPending={contactMutation.isPending}
-                                       onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                                       onQuickLog={(type) => handleQuickLog(item, type)}
-                                       onOpenQuickAction={() => openUniversalPanel(item)}
-                                     />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {eventItems.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <CalendarCheck className="w-3 h-3" /> Event Tasks ({eventItems.length})
-                                </p>
-                                <div className="divide-y divide-border/40">
-                                  {eventItems.map(item => (
-                                    <ActionRow
-                                      key={`${item.itemType}-${item.id}`}
-                                      item={item}
-                                      inlineNoteId={inlineNoteId}
-                                      inlineNoteText={inlineNoteText}
-                                      inlineNextStep={inlineNextStep}
-                                      inlineNoteType={inlineNoteType}
-                                      inlineFollowUpDate={inlineFollowUpDate}
-                                      setInlineNoteText={setInlineNoteText}
-                                      setInlineNextStep={setInlineNextStep}
-                                      setInlineNoteType={setInlineNoteType}
-                                      setInlineFollowUpDate={setInlineFollowUpDate}
-                                      onToggleInline={() => toggleInlineNote(item)}
-                                      onInlineSave={() => handleInlineSave(item)}
-                                      onOpenDetail={() => openDetailSheet(item)}
-                                      isPending={contactMutation.isPending}
-                                       onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                                       onQuickLog={(type) => handleQuickLog(item, type)}
-                                       onOpenQuickAction={() => openUniversalPanel(item)}
-                                     />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                          <div className="divide-y divide-border/40">
+                            {coachingActions.map(item => (
+                              <ActionRow
+                                key={`${item.itemType}-${item.id}`}
+                                item={item}
+                                inlineNoteId={inlineNoteId}
+                                inlineNoteText={inlineNoteText}
+                                inlineNextStep={inlineNextStep}
+                                inlineNoteType={inlineNoteType}
+                                inlineFollowUpDate={inlineFollowUpDate}
+                                setInlineNoteText={setInlineNoteText}
+                                setInlineNextStep={setInlineNextStep}
+                                setInlineNoteType={setInlineNoteType}
+                                setInlineFollowUpDate={setInlineFollowUpDate}
+                                onToggleInline={() => toggleInlineNote(item)}
+                                onInlineSave={() => handleInlineSave(item)}
+                                onOpenDetail={() => openDetailSheet(item)}
+                                isPending={contactMutation.isPending}
+                                onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                onQuickLog={(type) => handleQuickLog(item, type)}
+                                onOpenQuickAction={() => openUniversalPanel(item)}
+                              />
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+
+                  {/* ═══ SECTION 3b: Event Tasks (DEDICATED) — hostess coaching + event prep ═══
+                      Shown as its own visually distinct card so event work never duplicates
+                      with general follow-ups or consultant coaching. */}
+                  {!hideWorkflow && (() => {
+                    const eventTaskActions = todayActions.filter(i => i.itemType === "hostess" || i.itemType === "event_task");
+                    if (eventTaskActions.length === 0) return null;
+
+                    if (isMobile) {
+                      const toTeamItem = (item: ActionItem): MobileTeamItem => ({
+                        id: item.id,
+                        itemType: item.itemType as MobileTeamItem["itemType"],
+                        name: item.name,
+                        phone: item.phone,
+                        follow_up_status: item.follow_up_status,
+                        daysOverdue: item.daysOverdue,
+                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
+                        followUpReason: item.followUpReason,
+                        actionLabel: item.actionLabel,
+                      });
+
+                      return (
+                        <MobileTeamAttention
+                          items={eventTaskActions.map(toTeamItem)}
+                          onSchedule={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
+                          onCall={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onText={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onNote={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onOpen={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
+                        />
+                      );
+                    }
+
+                    return (
+                      <Card className="border-2 border-emerald-300/60 dark:border-emerald-800/60 shadow-sm bg-emerald-50/30 dark:bg-emerald-950/10">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40">
+                              <CalendarCheck className="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
+                            </div>
+                            <CardTitle className="text-base font-bold text-emerald-900 dark:text-emerald-100 tracking-tight">Event Tasks</CardTitle>
+                            <Badge className="text-xs bg-emerald-600 hover:bg-emerald-600 text-white">{eventTaskActions.length}</Badge>
+                          </div>
+                          <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70 mt-1 ml-9">
+                            Hostess coaching, event prep & event-related follow-ups
+                          </p>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="divide-y divide-emerald-200/50 dark:divide-emerald-900/40">
+                            {eventTaskActions.map(item => (
+                              <ActionRow
+                                key={`${item.itemType}-${item.id}`}
+                                item={item}
+                                inlineNoteId={inlineNoteId}
+                                inlineNoteText={inlineNoteText}
+                                inlineNextStep={inlineNextStep}
+                                inlineNoteType={inlineNoteType}
+                                inlineFollowUpDate={inlineFollowUpDate}
+                                setInlineNoteText={setInlineNoteText}
+                                setInlineNextStep={setInlineNextStep}
+                                setInlineNoteType={setInlineNoteType}
+                                setInlineFollowUpDate={setInlineFollowUpDate}
+                                onToggleInline={() => toggleInlineNote(item)}
+                                onInlineSave={() => handleInlineSave(item)}
+                                onOpenDetail={() => openDetailSheet(item)}
+                                isPending={contactMutation.isPending}
+                                onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                onQuickLog={(type) => handleQuickLog(item, type)}
+                                onOpenQuickAction={() => openUniversalPanel(item)}
+                              />
+                            ))}
                           </div>
                         </CardContent>
                       </Card>
