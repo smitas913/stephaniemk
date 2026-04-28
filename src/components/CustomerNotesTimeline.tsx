@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes, createNote, deleteNote } from "@/lib/queries";
+import { fetchNotes, createNote, deleteNote, fetchCustomer } from "@/lib/queries";
+import { resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
 import { NOTE_TYPES } from "@/lib/types";
 import type { Note } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,14 +43,24 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   });
 
   const addMutation = useMutation({
-    mutationFn: () =>
-      createNote({
+    mutationFn: async () => {
+      // Default to +75d long-term touch when user leaves follow-up blank,
+      // unless a sooner pending follow-up already exists (preserve priority).
+      // Skipped / dismissal note types are excluded — they have their own defer rules.
+      let resolvedFollowUp: string | null = nextFollowUp || null;
+      const isDismissal = noteType === "Skipped" || noteType === "No Follow-Up Needed";
+      if (!resolvedFollowUp && !isDismissal) {
+        const customer = await fetchCustomer(customerId).catch(() => null);
+        resolvedFollowUp = resolveLongTermFollowUpDate(customer?.next_follow_up_date ?? null);
+      }
+      return createNote({
         entity_type: "Customer",
         customer_id: customerId,
         note_body: noteText.trim(),
         note_type: noteType,
-        next_follow_up_date: nextFollowUp || null,
-      }),
+        next_follow_up_date: resolvedFollowUp,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
       queryClient.invalidateQueries({ queryKey: ["customer", customerId] });

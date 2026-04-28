@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
+import { resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
 
 const QUICK_ACTIONS = [
   { key: "Text", label: "Texted", icon: MessageSquare, emoji: "💬" },
@@ -105,6 +106,13 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
     if (nextOption === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (nextOption === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
     else if (nextOption === "schedule" && customDate) nextDate = customDate;
+    else if (nextOption === "none") {
+      // Long-term touch: +75d, preserve sooner existing coaching date if any.
+      nextDate = resolveLongTermFollowUpDate(null);
+    } else if (!nextOption) {
+      // No What's Next chosen but real activity logged → default to long-term touch.
+      nextDate = resolveLongTermFollowUpDate(null);
+    }
 
     logMutation.mutate({
       action: selectedAction,
