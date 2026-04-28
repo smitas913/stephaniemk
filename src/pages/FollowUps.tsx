@@ -43,6 +43,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Cake, Phone, MessageSquare, Mail, FileText, CheckCircle2, CalendarRange, ExternalLink, Clock, ChevronRight, CalendarCheck, Calendar, Users, Crown, Truck, PhoneMissed, SkipForward, RefreshCw, Star, Heart, Gift, ChevronDown, Plus, X, Pencil, ArrowUp, ArrowDown, RotateCcw, Palmtree, Eye, EyeOff } from "lucide-react";
+import { openEmail } from "@/lib/emailPreference";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
@@ -2569,7 +2570,7 @@ export default function FollowUps() {
                   </>
                 )}
                 {actionItem.email && (
-                  <Button variant="outline" size="sm" asChild><a href={`mailto:${actionItem.email}`}><Mail className="w-3.5 h-3.5 mr-1" />Email</a></Button>
+                  <Button variant="outline" size="sm" asChild><a href={`mailto:${actionItem.email}`} onClick={(e) => openEmail(actionItem.email!, e)}><Mail className="w-3.5 h-3.5 mr-1" />Email</a></Button>
                 )}
               </div>
             )}
@@ -2674,7 +2675,7 @@ export default function FollowUps() {
                     </>
                   )}
                   {detailItem.email && (
-                    <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`mailto:${detailItem.email}`}><Mail className="w-3 h-3 mr-1" />Email</a></Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`mailto:${detailItem.email}`} onClick={(e) => openEmail(detailItem.email!, e)}><Mail className="w-3 h-3 mr-1" />Email</a></Button>
                   )}
                 </div>
               )}
@@ -4269,7 +4270,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
           )}
           {item.email && (
             <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
-              <a href={`mailto:${item.email}`}><Mail className="w-4 h-4 text-primary" /></a>
+              <a href={`mailto:${item.email}`} onClick={(e) => openEmail(item.email!, e)}><Mail className="w-4 h-4 text-primary" /></a>
             </Button>
           )}
         </div>

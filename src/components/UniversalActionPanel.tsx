@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { openEmail } from "@/lib/emailPreference";
 
 // ─── Types ───
 
@@ -256,7 +257,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
             )}
             {item.email && (
               <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                <a href={`mailto:${item.email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                <a href={`mailto:${item.email}`} onClick={(e) => openEmail(item.email!, e)}><Mail className="w-3 h-3 mr-1" />Email</a>
               </Button>
             )}
           </div>

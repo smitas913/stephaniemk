@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare } from "lucide-react";
+import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -637,7 +638,7 @@ export default function EventDetail() {
                 )}
                 {event.hostess_email && (
                   <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                    <a href={`mailto:${event.hostess_email}`}><Mail className="w-3 h-3 mr-1" />Email</a>
+                    <a href={`mailto:${event.hostess_email}`} onClick={(e) => openEmail(event.hostess_email!, e)}><Mail className="w-3 h-3 mr-1" />Email</a>
                   </Button>
                 )}
                 {event.hostess_name && (
