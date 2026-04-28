@@ -1116,11 +1116,9 @@ export default function FollowUps() {
           // Spread tomorrow → forward, max PER_DAY per workday.
           const tomorrow = toLocalDateKey(addDays(new Date(), 1));
           const seedDates = toReschedule.map(() => tomorrow);
-          const ooo = scheduleSettings?.ooo_start_date && scheduleSettings?.ooo_end_date
-            ? { start: scheduleSettings.ooo_start_date, end: scheduleSettings.ooo_end_date }
-            : null;
+          // OOO has just ended, so we don't need to skip any OOO range when spreading.
           const blackout = new Set<string>(); // custom blackouts not loaded here; safe default
-          const newDates = spreadTasks(seedDates, PER_DAY, ooo, blackout, workdayFlags);
+          const newDates = spreadTasks(seedDates, PER_DAY, null, blackout, workdayFlags);
 
           // Apply per-entity updates in parallel.
           await Promise.allSettled(
