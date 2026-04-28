@@ -1081,23 +1081,101 @@ export default function FollowUps() {
     }
 
     if (!isOOOActive && (scheduleSettings?.ooo_followup_snapshot || scheduleSettings?.ooo_followup_frozen_on)) {
-      void upsertScheduleSettings({
-        ooo_followup_snapshot: null,
-        ooo_followup_frozen_on: null,
-      }).then(() => {
+      // ─── EASE BACK IN ───────────────────────────────────────────────────────
+      // OOO just ended. Without this pass, every item that became overdue during
+      // OOO would dump into Today (e.g. 131 items). We instead:
+      //   • Keep the most-overdue ~25 items in Today (they're already "due now").
+      //   • Spread everything else across the next workdays at 8 per day.
+      //   • Update each entity's next_follow_up_date so future renders match.
+      //
+      // Guarded by easeBackInRanRef so the pass runs once per OOO exit.
+      if (easeBackInRanRef.current) return;
+      easeBackInRanRef.current = true;
+
+      const TODAY_CAP = 25;
+      const PER_DAY = 8;
+      const todayKey = toLocalDateKey();
+
+      // Items currently overdue OR due-today (the flood we want to ease).
+      const flooded = todayActions.filter(
+        (i) => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY"
+      );
+
+      // Sort: most overdue first → keep them in Today.
+      const sorted = [...flooded].sort((a, b) => (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0));
+      const keepInToday = sorted.slice(0, TODAY_CAP);
+      const toReschedule = sorted.slice(TODAY_CAP);
+
+      const runEaseBackIn = async () => {
+        if (toReschedule.length > 0) {
+          // Spread tomorrow → forward, max PER_DAY per workday.
+          const tomorrow = toLocalDateKey(addDays(new Date(), 1));
+          const seedDates = toReschedule.map(() => tomorrow);
+          const ooo = scheduleSettings?.ooo_start_date && scheduleSettings?.ooo_end_date
+            ? { start: scheduleSettings.ooo_start_date, end: scheduleSettings.ooo_end_date }
+            : null;
+          const blackout = new Set<string>(); // custom blackouts not loaded here; safe default
+          const newDates = spreadTasks(seedDates, PER_DAY, ooo, blackout, workdayFlags);
+
+          // Apply per-entity updates in parallel.
+          await Promise.allSettled(
+            toReschedule.map((item, idx) => {
+              const newDate = newDates[idx];
+              switch (item.itemType) {
+                case "customer":
+                  return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
+                case "lead":
+                  return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+                case "prospect":
+                  return updateProspect(item.id, { next_follow_up_date: newDate } as any);
+                case "consultant":
+                  return updateTeamConsultant(item.id, { next_coaching_date: newDate } as any);
+                case "hostess":
+                  return updateEvent(item.id, { hostess_next_action_date: newDate } as any);
+                case "event_task":
+                  return supabase.from("event_tasks").update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
+                default:
+                  return Promise.resolve();
+              }
+            })
+          );
+        }
+
+        await upsertScheduleSettings({
+          ooo_followup_snapshot: null,
+          ooo_followup_frozen_on: null,
+        });
+
         queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
-      });
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["prospects"] });
+        queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+        queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+
+        if (toReschedule.length > 0) {
+          toast.success(
+            `Welcome back! Today shows ${keepInToday.length} priority follow-ups; ${toReschedule.length} more spread across upcoming workdays.`,
+            { duration: 8000 }
+          );
+        }
+      };
+
+      void runEaseBackIn();
     }
   }, [
     isLoading,
     isOOOActive,
     scheduleSettings?.ooo_start_date,
+    scheduleSettings?.ooo_end_date,
     scheduleSettings?.ooo_followup_snapshot,
     scheduleSettings?.ooo_followup_frozen_on,
     followUpSnapshot,
     todayActions,
     upcomingActions,
     queryClient,
+    workdayFlags,
   ]);
 
   // Distribution candidates
