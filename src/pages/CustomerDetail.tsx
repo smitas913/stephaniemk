@@ -637,11 +637,19 @@ export default function CustomerDetail() {
         </Card>
         {/* Activity — uses same Universal Action Panel as Today */}
         <Card className="border-border/50 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2 flex-wrap">
             <CardTitle className="text-base">Notes & Activity ({recentUnifiedNotes.length})</CardTitle>
-            <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
-              <Plus className="w-3 h-3" />Log Activity
-            </Button>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
+                setCatalogDate(todayKey());
+                setCatalogDialogOpen(true);
+              }}>
+                <BookOpen className="w-3 h-3" />Sent Catalog
+              </Button>
+              <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
+                <Plus className="w-3 h-3" />Log Activity
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {recentUnifiedNotes.length === 0 ? (
