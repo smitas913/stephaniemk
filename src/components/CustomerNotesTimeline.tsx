@@ -37,9 +37,17 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   const [noteType, setNoteType] = useState<string>("Call");
   const [nextFollowUp, setNextFollowUp] = useState("");
 
-  const { data: notes = [] } = useQuery({
+  const { data: rawNotes = [] } = useQuery({
     queryKey: ["customer-notes-unified", customerId],
     queryFn: () => fetchNotes("Customer", customerId),
+  });
+
+  // Always show newest first. Sort by created_at desc (most reliable timestamp),
+  // falling back to note_date for legacy rows that lack created_at.
+  const notes = [...rawNotes].sort((a: any, b: any) => {
+    const aKey = a.created_at || a.note_date || "";
+    const bKey = b.created_at || b.note_date || "";
+    return bKey.localeCompare(aKey);
   });
 
   const addMutation = useMutation({
@@ -165,8 +173,8 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
           <div className="relative">
             <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
             <div className="space-y-3">
-              {notes.map((note) => (
-                <NoteItem key={note.id} note={note} onDelete={() => deleteMutation.mutate(note.id)} />
+              {notes.map((note, idx) => (
+                <NoteItem key={note.id} note={note} isLatest={idx === 0} onDelete={() => deleteMutation.mutate(note.id)} />
               ))}
             </div>
           </div>
@@ -176,7 +184,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   );
 }
 
-function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
+function NoteItem({ note, onDelete, isLatest = false }: { note: Note; onDelete: () => void; isLatest?: boolean }) {
   const Icon = NOTE_TYPE_ICONS[note.note_type] || FileText;
   const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.Other;
 
@@ -185,11 +193,17 @@ function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
       <div className={cn("absolute left-2 top-1 w-5 h-5 rounded-full flex items-center justify-center z-10", colors)}>
         <Icon className="w-3 h-3" />
       </div>
-      <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
+      <div className={cn(
+        "p-3 rounded-lg border",
+        isLatest ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-muted/40 border-border/50"
+      )}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{note.note_type}</span>
+              {isLatest && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+              )}
               <span className="text-[11px] text-muted-foreground">
                 {new Date(note.note_date + "T00:00:00").toLocaleDateString()}
               </span>

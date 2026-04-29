@@ -656,12 +656,19 @@ export default function CustomerDetail() {
               <p className="text-center text-muted-foreground py-6">No activity yet — tap Log Activity to get started</p>
             ) : (
               <div className="space-y-2">
-                {recentUnifiedNotes.map((note: any) => {
+                {recentUnifiedNotes.map((note: any, idx: number) => {
                   const isLegacy = Array.isArray(note.tags) && note.tags.includes("legacy");
+                  const isLatest = idx === 0;
                   return (
-                    <div key={note.id} className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                    <div key={note.id} className={cn(
+                      "p-3 rounded-lg border",
+                      isLatest ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-muted/40 border-border/50"
+                    )}>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
+                        {isLatest && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+                        )}
                         <span className="text-[11px] text-muted-foreground">
                           {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
                         </span>

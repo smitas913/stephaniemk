@@ -351,8 +351,8 @@ export default function ProspectDetail() {
               <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
             ) : (
               <div className="space-y-2">
-                {notes.map((n) => (
-                  <NoteItem key={n.id} note={n} onDelete={() => deleteNoteMut.mutate(n.id)} />
+                {notes.map((n, idx) => (
+                  <NoteItem key={n.id} note={n} isLatest={idx === 0} onDelete={() => deleteNoteMut.mutate(n.id)} />
                 ))}
               </div>
             )}
@@ -426,11 +426,19 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
   );
 }
 
-function NoteItem({ note, onDelete }: { note: ProspectNote; onDelete: () => void }) {
+function NoteItem({ note, onDelete, isLatest = false }: { note: ProspectNote; onDelete: () => void; isLatest?: boolean }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50 group">
+    <div className={cn(
+      "flex items-start gap-3 p-3 rounded-lg border group",
+      isLatest ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-muted/40 border-border/50"
+    )}>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-muted-foreground">{new Date(note.created_at).toLocaleString()}</p>
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="text-[11px] text-muted-foreground">{new Date(note.created_at).toLocaleString()}</p>
+          {isLatest && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+          )}
+        </div>
         <p className="text-sm text-foreground mt-0.5">{note.note_text}</p>
       </div>
       <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0" onClick={onDelete}>
