@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Phone, MessageSquare, CheckCircle2, ChevronRight, FileText, MoreHorizontal, Calendar, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TextActionButton from "@/components/TextActionButton";
 import {
   Drawer,
   DrawerContent,
