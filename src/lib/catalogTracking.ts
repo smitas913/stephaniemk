@@ -39,7 +39,8 @@ export async function logCatalogSent(opts: LogCatalogSentOpts) {
   const followUpDate = format(addDays(new Date(mailingDate + "T00:00:00"), CATALOG_FOLLOW_UP_OFFSET_DAYS), "yyyy-MM-dd");
   const cycleQ = quarterFromDate(mailingDate);
 
-  await createNote({
+  const userId = await getCurrentUserId();
+  const { error: noteErr } = await supabase.from("notes").insert({
     entity_type: "Customer",
     customer_id: customerId,
     person_type: "customer",
@@ -51,7 +52,9 @@ export async function logCatalogSent(opts: LogCatalogSentOpts) {
     is_follow_up: false,
     is_booking_attempt: false,
     tags: ["catalog", campaignType, cycleQ, campaignId ? `campaign:${campaignId}` : ""].filter(Boolean) as string[],
-  });
+    owner_user_id: userId,
+  } as any);
+  if (noteErr) throw noteErr;
 
   if (scheduleFollowUp) {
     // Only push next_follow_up forward if the existing one is later or missing.
