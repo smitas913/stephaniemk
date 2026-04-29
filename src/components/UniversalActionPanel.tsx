@@ -371,20 +371,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   Skipped / Did Not Reach Out
                 </button>
 
-                {/* Auto-tag indicator */}
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[10px] text-muted-foreground">Auto-tags:</span>
-                  {getAutoTags(item.personType, selectedReason).isFollowUp && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Follow-Up</Badge>
-                  )}
-                  {getAutoTags(item.personType, selectedReason).isBookingAttempt && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Booking Attempt</Badge>
-                  )}
-                  {item.personType === "consultant" && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Coaching</Badge>
-                  )}
-                  {(item.personType === "lead" || item.personType === "customer") && (
-                    <span className="text-[10px] text-muted-foreground italic">Select "Booking Ask" to count as Booking Attempt</span>
+                {/* Category preview — shows where this activity will be filed */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground">Files under:</span>
+                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide", CATEGORY_BADGE_CLASS[resolvedCategory])}>
+                    {resolvedCategory}
+                  </span>
+                  {!selectedReason && (
+                    <span className="text-[10px] text-muted-foreground italic">(no reason selected — defaults to Follow-Up)</span>
                   )}
                 </div>
               </div>
