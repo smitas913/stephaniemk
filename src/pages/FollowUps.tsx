@@ -2687,7 +2687,7 @@ export default function FollowUps() {
         <UniversalActionPanel
           item={universalPanelItem}
           open={universalPanelOpen}
-          onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); }}
+          onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); setUniversalRescheduleEvent(null); }}
           onLogAction={handleUniversalAction}
           onSkip={handleUniversalSkip}
           onNavigateToProfile={(uItem) => {
