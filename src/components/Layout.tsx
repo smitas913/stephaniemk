@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const primaryNavItems = [
-  { to: "/momentum", label: "Momentum", icon: Zap },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/follow-ups", label: "Today", icon: Clock },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/events", label: "Events", icon: Calendar },
@@ -22,9 +22,8 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/scoreboard", label: "Scoreboard", icon: Target },
-  { to: "/analytics", label: "Analytics", icon: TrendingUp },
+  { to: "/performance", label: "Performance", icon: TrendingUp },
+  { to: "/analytics", label: "Analytics", icon: Target },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
   { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
@@ -34,8 +33,8 @@ const secondaryNavItems = [
 ];
 
 const consultantNavItems = [
-  { to: "/momentum", label: "Momentum", icon: Zap },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/follow-ups", label: "Today", icon: Clock },
 ];
 
 function getNavItems(role?: string) {
