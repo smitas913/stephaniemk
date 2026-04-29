@@ -54,26 +54,34 @@ export default function FocusEditView({
         </TabsList>
 
         <TabsContent value="items" className="mt-2 space-y-2">
-          {draft.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
-              <Input
-                value={item.label}
-                onChange={(e) => {
-                  const next = [...draft];
-                  next[idx] = { ...next[idx], label: e.target.value };
-                  setDraft(next);
-                }}
-                className="h-8 text-sm flex-1"
-              />
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, -1)} disabled={idx === 0}>
-                <ArrowUp className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, 1)} disabled={idx === draft.length - 1}>
-                <ArrowDown className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))}
+          <p className="text-[11px] text-muted-foreground leading-snug">
+            Slots 1–5 are fixed activity categories. Slot 6 is your <strong>Custom Focus</strong> — rename it
+            to whatever you want to prioritize (e.g. Social Media, Recruiting Push, Promotions).
+          </p>
+          {draft.map((item, idx) => {
+            const isCustomSlot = idx === 5;
+            return (
+              <div key={idx} className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
+                <Input
+                  value={item.label}
+                  onChange={(e) => {
+                    const next = [...draft];
+                    next[idx] = { ...next[idx], label: e.target.value };
+                    setDraft(next);
+                  }}
+                  className="h-8 text-sm flex-1"
+                  placeholder={isCustomSlot ? "Custom Focus name…" : undefined}
+                />
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, -1)} disabled={idx === 0}>
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, 1)} disabled={idx === draft.length - 1}>
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            );
+          })}
         </TabsContent>
 
         <TabsContent value="targets" className="mt-2 space-y-3">
