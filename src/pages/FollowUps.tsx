@@ -2229,185 +2229,317 @@ export default function FollowUps() {
                      const excludedTypes = new Set(["consultant", "hostess", "event_task"]);
                      const followUpItems = todayActions.filter(i => !excludedTypes.has(i.itemType));
 
-                     // Priority hierarchy: each item appears ONLY once in the highest-priority bucket
-                     const overdueItems = followUpItems.filter(i => i.follow_up_status === "OVERDUE");
-                     const overdueIds = new Set(overdueItems.map(i => i.id));
-                     const dueTodayItems = followUpItems.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
-                     const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
-                     const highPriorityItems: ActionItem[] = []; // event-related items moved to dedicated section
-                     const usedIds = new Set([...overdueIds, ...dueTodayIds]);
-                     const generalItems = followUpItems.filter(i => !usedIds.has(i.id));
+                     // Per-category daily limits (user-configurable in Schedule Settings).
+                     const customerLimit = Math.max(1, Number(scheduleSettings?.daily_customer_followup_limit ?? 10));
+                     const leadLimit = Math.max(1, Number(scheduleSettings?.daily_lead_followup_limit ?? 10));
 
-                    // Mobile: use new compact mobile view
-                    if (isMobile) {
-                      const toMobileItem = (item: ActionItem): MobileActionItem => ({
-                        id: item.id,
-                        itemType: item.itemType,
-                        name: item.name,
-                        phone: item.phone,
-                        email: item.email,
-                        follow_up_status: item.follow_up_status,
-                        daysOverdue: item.daysOverdue,
-                        followUpReason: item.followUpReason,
-                        actionLabel: item.actionLabel,
-                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
-                        days_since_last_order: item.days_since_last_order,
-                        vip: item.vip,
-                        lastNotePreview: item.lastNotePreview,
-                        activity_status: item.activity_status,
-                      });
+                     // Split into the three categories. Customers and leads are capped
+                     // independently; prospects (recruiting) are unlimited per spec.
+                     const allCustomerItems = followUpItems.filter(i => i.itemType === "customer");
+                     const allLeadItems = followUpItems.filter(i => i.itemType === "lead");
+                     const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
 
-                      return (
-                        <MobileTodayView
-                          overdueItems={overdueItems.map(toMobileItem)}
-                          dueTodayItems={dueTodayItems.map(toMobileItem)}
-                          highPriorityItems={highPriorityItems.map(toMobileItem)}
-                          generalItems={generalItems.map(toMobileItem)}
-                          onTapItem={(mi) => {
-                            const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) openUniversalPanel(original);
-                          }}
-                          onCompleteItem={(mi) => {
-                            const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) markFollowUpCompleteMutation.mutate({ item: original, noteText: "Follow-up complete", noteType: "Call" });
-                          }}
-                          onRescheduleItem={(mi) => {
-                            const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) openDetailSheet(original);
-                          }}
-                          onSkipItem={(mi) => {
-                            const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) skipFollowUpMutation.mutate({ item: original });
-                          }}
-                          onAddNoteItem={(mi) => {
-                            const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) toggleInlineNote(original);
-                          }}
-                          onDidNotConnect={(mi) => {
-                            const original = followUpItems.find(i => i.id === mi.id);
-                            if (original) contactMutation.mutate({ item: original, note: "Did not connect", type: "Did Not Connect" });
-                          }}
-                        />
-                      );
-                    }
+                     // Priority sort within a category: most overdue first, then due-today, then general.
+                     const prioritySort = (items: ActionItem[]) => {
+                       const score = (i: ActionItem) =>
+                         i.follow_up_status === "OVERDUE" ? 0 :
+                         i.follow_up_status === "TODAY" ? 1 : 2;
+                       return [...items].sort((a, b) => {
+                         const sa = score(a);
+                         const sb = score(b);
+                         if (sa !== sb) return sa - sb;
+                         return (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0);
+                       });
+                     };
 
-                    // Desktop: existing card view
-                    const renderUnifiedSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string) => {
-                      if (items.length === 0) return null;
-                      const Icon = icon;
-                      return (
-                        <div key={title}>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                            <Icon className={cn("w-3 h-3", iconColor)} /> {title} ({items.length})
-                          </p>
-                          <div className="divide-y divide-border/40">
-                            {items.map(item => (
-                              <ActionRow
-                                key={`${item.itemType}-${item.id}`}
-                                item={item}
-                                inlineNoteId={inlineNoteId}
-                                inlineNoteText={inlineNoteText}
-                                inlineNextStep={inlineNextStep}
-                                inlineNoteType={inlineNoteType}
-                                inlineFollowUpDate={inlineFollowUpDate}
-                                setInlineNoteText={setInlineNoteText}
-                                setInlineNextStep={setInlineNextStep}
-                                setInlineNoteType={setInlineNoteType}
-                                setInlineFollowUpDate={setInlineFollowUpDate}
-                                onToggleInline={() => toggleInlineNote(item)}
-                                onInlineSave={() => handleInlineSave(item)}
-                                onOpenDetail={() => openDetailSheet(item)}
-                                isPending={contactMutation.isPending}
-                                 onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                                 onQuickLog={(type) => handleQuickLog(item, type)}
-                                 onOpenQuickAction={() => openUniversalPanel(item)}
-                                />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    };
+                     const customerSorted = prioritySort(allCustomerItems);
+                     const leadSorted = prioritySort(allLeadItems);
+                     const customerVisible = customerSorted.slice(0, customerLimit);
+                     const leadVisible = leadSorted.slice(0, leadLimit);
+                     const customerOverflow = Math.max(0, customerSorted.length - customerLimit);
+                     const leadOverflow = Math.max(0, leadSorted.length - leadLimit);
 
-                    return (
-                      <Card className="border-border/50 shadow-sm">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
-                              <Users className="w-4 h-4 text-blue-600" />
-                            </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Follow-Ups</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{followUpItems.length}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          {followUpItems.length === 0 ? (
-                            <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
-                          ) : (
-                            <div className="space-y-4">
-                              {renderUnifiedSection("Overdue", Clock, overdueItems, "text-destructive")}
-                              {renderUnifiedSection("Due Today", CalendarCheck, dueTodayItems, "text-primary")}
-                              {highPriorityItems.length > 0 && renderUnifiedSection("High Priority (Event-Related)", CalendarCheck, highPriorityItems, "text-accent-foreground")}
-                              {generalItems.length > 0 && renderUnifiedSection("General Follow-Ups", Users, generalItems, "text-muted-foreground")}
+                     // Bucket helpers for desktop sub-sections.
+                     const splitBuckets = (items: ActionItem[]) => {
+                       const overdue = items.filter(i => i.follow_up_status === "OVERDUE");
+                       const overdueIds = new Set(overdue.map(i => i.id));
+                       const dueToday = items.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
+                       const dueIds = new Set(dueToday.map(i => i.id));
+                       const general = items.filter(i => !overdueIds.has(i.id) && !dueIds.has(i.id));
+                       return { overdue, dueToday, general };
+                     };
 
-                              {reschedulingFollowUp.length > 0 && (
-                                <div>
-                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                    <RefreshCw className="w-3 h-3" /> Reschedule Follow-Ups ({reschedulingFollowUp.length})
-                                  </p>
-                                  <div className="divide-y divide-border/40">
-                                    {reschedulingFollowUp.map((evt) => {
-                                      const todayKey = toLocalDateKey();
-                                      const fuDate = evt.reschedule_next_follow_up_date;
-                                      const isDueNow = !fuDate || fuDate <= todayKey;
-                                      return (
-                                        <div key={evt.id} className="py-2 px-1 space-y-1">
-                                          <div className="flex items-center gap-3">
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
-                                              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                                                {evt.event_type && <span>{evt.event_type}</span>}
-                                                {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
-                                                <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
-                                                {evt.reschedule_last_contact_date && <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>}
-                                                {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
-                                                {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
-                                              </div>
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                              {evt.hostess_phone && (
-                                                <>
-                                                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                    <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                                  </Button>
-                                                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                    <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-                                                  </Button>
-                                                </>
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="flex items-center gap-1.5 mt-1">
-                                            {evt.requires_manual_next_step ? (
-                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
-                                            ) : (
-                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRescheduleUniversalPanel(evt)}>Log Activity</Button>
-                                            )}
-                                            <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
+                     // Mobile: feed the existing MobileTodayView with capped items combined,
+                     // preserving overdue/due/general grouping.
+                     if (isMobile) {
+                       const combined = [...customerVisible, ...leadVisible, ...prospectItems];
+                       const overdueItems = combined.filter(i => i.follow_up_status === "OVERDUE");
+                       const overdueIds = new Set(overdueItems.map(i => i.id));
+                       const dueTodayItems = combined.filter(i => !overdueIds.has(i.id) && i.follow_up_status === "TODAY");
+                       const dueTodayIds = new Set(dueTodayItems.map(i => i.id));
+                       const usedIds = new Set([...overdueIds, ...dueTodayIds]);
+                       const generalItems = combined.filter(i => !usedIds.has(i.id));
+                       const highPriorityItems: ActionItem[] = [];
+
+                       const toMobileItem = (item: ActionItem): MobileActionItem => ({
+                         id: item.id,
+                         itemType: item.itemType,
+                         name: item.name,
+                         phone: item.phone,
+                         email: item.email,
+                         follow_up_status: item.follow_up_status,
+                         daysOverdue: item.daysOverdue,
+                         followUpReason: item.followUpReason,
+                         actionLabel: item.actionLabel,
+                         lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
+                         days_since_last_order: item.days_since_last_order,
+                         vip: item.vip,
+                         lastNotePreview: item.lastNotePreview,
+                         activity_status: item.activity_status,
+                       });
+
+                       return (
+                         <>
+                           {(customerOverflow > 0 || leadOverflow > 0) && (
+                             <div className="rounded-md border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                               Showing top {customerVisible.length}/{customerSorted.length} customers
+                               {" · "}top {leadVisible.length}/{leadSorted.length} leads.
+                               {(customerOverflow + leadOverflow) > 0 && ` ${customerOverflow + leadOverflow} more pushed to upcoming workdays.`}
+                             </div>
+                           )}
+                           <MobileTodayView
+                             overdueItems={overdueItems.map(toMobileItem)}
+                             dueTodayItems={dueTodayItems.map(toMobileItem)}
+                             highPriorityItems={highPriorityItems.map(toMobileItem)}
+                             generalItems={generalItems.map(toMobileItem)}
+                             onTapItem={(mi) => {
+                               const original = combined.find(i => i.id === mi.id);
+                               if (original) openUniversalPanel(original);
+                             }}
+                             onCompleteItem={(mi) => {
+                               const original = combined.find(i => i.id === mi.id);
+                               if (original) markFollowUpCompleteMutation.mutate({ item: original, noteText: "Follow-up complete", noteType: "Call" });
+                             }}
+                             onRescheduleItem={(mi) => {
+                               const original = combined.find(i => i.id === mi.id);
+                               if (original) openDetailSheet(original);
+                             }}
+                             onSkipItem={(mi) => {
+                               const original = combined.find(i => i.id === mi.id);
+                               if (original) skipFollowUpMutation.mutate({ item: original });
+                             }}
+                             onAddNoteItem={(mi) => {
+                               const original = combined.find(i => i.id === mi.id);
+                               if (original) toggleInlineNote(original);
+                             }}
+                             onDidNotConnect={(mi) => {
+                               const original = combined.find(i => i.id === mi.id);
+                               if (original) contactMutation.mutate({ item: original, note: "Did not connect", type: "Did Not Connect" });
+                             }}
+                           />
+                         </>
+                       );
+                     }
+
+                     // Desktop: shared row renderer.
+                     const renderUnifiedSection = (title: string, icon: React.ElementType, items: ActionItem[], iconColor: string) => {
+                       if (items.length === 0) return null;
+                       const Icon = icon;
+                       return (
+                         <div key={title}>
+                           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                             <Icon className={cn("w-3 h-3", iconColor)} /> {title} ({items.length})
+                           </p>
+                           <div className="divide-y divide-border/40">
+                             {items.map(item => (
+                               <ActionRow
+                                 key={`${item.itemType}-${item.id}`}
+                                 item={item}
+                                 inlineNoteId={inlineNoteId}
+                                 inlineNoteText={inlineNoteText}
+                                 inlineNextStep={inlineNextStep}
+                                 inlineNoteType={inlineNoteType}
+                                 inlineFollowUpDate={inlineFollowUpDate}
+                                 setInlineNoteText={setInlineNoteText}
+                                 setInlineNextStep={setInlineNextStep}
+                                 setInlineNoteType={setInlineNoteType}
+                                 setInlineFollowUpDate={setInlineFollowUpDate}
+                                 onToggleInline={() => toggleInlineNote(item)}
+                                 onInlineSave={() => handleInlineSave(item)}
+                                 onOpenDetail={() => openDetailSheet(item)}
+                                 isPending={contactMutation.isPending}
+                                  onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                                  onQuickLog={(type) => handleQuickLog(item, type)}
+                                  onOpenQuickAction={() => openUniversalPanel(item)}
+                                 />
+                             ))}
+                           </div>
+                         </div>
+                       );
+                     };
+
+                     const renderCategoryCard = (
+                       title: string,
+                       items: ActionItem[],
+                       totalCount: number,
+                       limit: number,
+                       overflow: number,
+                       accentBg: string,
+                       accentIcon: string,
+                     ) => {
+                       const buckets = splitBuckets(items);
+                       return (
+                         <Card className="border-border/50 shadow-sm">
+                           <CardHeader className="pb-2">
+                             <div className="flex items-center gap-2 flex-wrap">
+                               <div className={cn("p-1.5 rounded-md", accentBg)}>
+                                 <Users className={cn("w-4 h-4", accentIcon)} />
+                               </div>
+                               <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
+                               <Badge variant="secondary" className="text-xs">
+                                 {items.length}{totalCount > items.length ? ` / ${totalCount}` : ""}
+                               </Badge>
+                               <Badge variant="outline" className="text-[10px] px-1.5 py-0">Limit {limit}/day</Badge>
+                               {overflow > 0 && (
+                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
+                                   +{overflow} pushed to upcoming
+                                 </Badge>
+                               )}
+                             </div>
+                           </CardHeader>
+                           <CardContent className="pt-0">
+                             {items.length === 0 ? (
+                               <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
+                             ) : (
+                               <div className="space-y-4">
+                                 {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
+                                 {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
+                                 {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
+                               </div>
+                             )}
+                           </CardContent>
+                         </Card>
+                       );
+                     };
+
+                     return (
+                       <div className="space-y-4">
+                         {/* Customer Follow-Ups (capped, overflow auto-distributed) */}
+                         {renderCategoryCard(
+                           "Customer Follow-Ups",
+                           customerVisible,
+                           customerSorted.length,
+                           customerLimit,
+                           customerOverflow,
+                           "bg-blue-50 dark:bg-blue-950/30",
+                           "text-blue-600",
+                         )}
+
+                         {/* Lead Follow-Ups (capped, overflow auto-distributed) */}
+                         {renderCategoryCard(
+                           "Lead Follow-Ups",
+                           leadVisible,
+                           leadSorted.length,
+                           leadLimit,
+                           leadOverflow,
+                           "bg-amber-50 dark:bg-amber-950/30",
+                           "text-amber-600",
+                         )}
+
+                         {/* Recruiting (Prospects) — unlimited */}
+                         {prospectItems.length > 0 && (
+                           <Card className="border-border/50 shadow-sm">
+                             <CardHeader className="pb-2">
+                               <div className="flex items-center gap-2">
+                                 <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30">
+                                   <Users className="w-4 h-4 text-purple-600" />
+                                 </div>
+                                 <CardTitle className="text-sm font-semibold text-foreground">Recruiting</CardTitle>
+                                 <Badge variant="secondary" className="text-xs">{prospectItems.length}</Badge>
+                               </div>
+                             </CardHeader>
+                             <CardContent className="pt-0">
+                               <div className="space-y-4">
+                                 {(() => {
+                                   const buckets = splitBuckets(prioritySort(prospectItems));
+                                   return (
+                                     <>
+                                       {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
+                                       {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
+                                       {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
+                                     </>
+                                   );
+                                 })()}
+                               </div>
+                             </CardContent>
+                           </Card>
+                         )}
+
+                         {/* Reschedule Follow-Ups (event reschedules — unlimited) */}
+                         {reschedulingFollowUp.length > 0 && (
+                           <Card className="border-border/50 shadow-sm">
+                             <CardHeader className="pb-2">
+                               <div className="flex items-center gap-2">
+                                 <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30">
+                                   <RefreshCw className="w-4 h-4 text-orange-600" />
+                                 </div>
+                                 <CardTitle className="text-sm font-semibold text-foreground">Reschedule Follow-Ups</CardTitle>
+                                 <Badge variant="secondary" className="text-xs">{reschedulingFollowUp.length}</Badge>
+                               </div>
+                             </CardHeader>
+                             <CardContent className="pt-0">
+                               <div className="divide-y divide-border/40">
+                                 {reschedulingFollowUp.map((evt) => {
+                                   const todayKey = toLocalDateKey();
+                                   const fuDate = evt.reschedule_next_follow_up_date;
+                                   const isDueNow = !fuDate || fuDate <= todayKey;
+                                   return (
+                                     <div key={evt.id} className="py-2 px-1 space-y-1">
+                                       <div className="flex items-center gap-3">
+                                         <div className="flex-1 min-w-0">
+                                           <p className="text-sm font-medium text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
+                                           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                             {evt.event_type && <span>{evt.event_type}</span>}
+                                             {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
+                                             <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
+                                             {evt.reschedule_last_contact_date && <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>}
+                                             {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
+                                             {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
+                                           </div>
+                                         </div>
+                                         <div className="flex items-center gap-1 shrink-0">
+                                           {evt.hostess_phone && (
+                                             <>
+                                               <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                 <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                               </Button>
+                                               <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                                 <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
+                                               </Button>
+                                             </>
+                                           )}
+                                         </div>
+                                       </div>
+                                       <div className="flex items-center gap-1.5 mt-1">
+                                         {evt.requires_manual_next_step ? (
+                                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
+                                         ) : (
+                                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRescheduleUniversalPanel(evt)}>Log Activity</Button>
+                                         )}
+                                         <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
+                                         <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                                         </Button>
+                                       </div>
+                                     </div>
+                                   );
+                                 })}
+                               </div>
+                             </CardContent>
+                           </Card>
+                         )}
+                       </div>
+                     );
                   })()}
 
 
