@@ -2033,6 +2033,33 @@ export default function FollowUps() {
               {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            {freshStartUndo && freshStartUndo.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => freshStartUndoMutation.mutate()}
+                disabled={freshStartUndoMutation.isPending}
+                title="Restore previous follow-up dates"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Undo Fresh Start
+              </Button>
+            )}
+            {todayActions.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => setShowFreshStart(true)}
+                title="Reschedule all of Today's follow-ups forward to recover from a backlog"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Fresh Start
+              </Button>
+            )}
+          </div>
         </div>
 
         {isLoading ? (
