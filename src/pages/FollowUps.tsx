@@ -3083,7 +3083,7 @@ export default function FollowUps() {
                   {detailItem.phone && (
                     <>
                       <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`tel:${detailItem.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a></Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`sms:${detailItem.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a></Button>
+                      <TextActionButton phone={detailItem.phone} trigger="labeled" className="h-8 text-xs" />
                     </>
                   )}
                   {detailItem.email && (
