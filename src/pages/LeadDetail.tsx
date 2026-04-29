@@ -345,10 +345,15 @@ export default function LeadDetail() {
               <p className="text-sm text-muted-foreground py-4 text-center">No activity logged yet.</p>
             ) : (
               <ul className="divide-y divide-border/40">
-                {leadNotes.map((n: any) => (
+                {leadNotes.map((n: any, idx: number) => (
                   <li key={n.id} className="py-2.5">
                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-foreground">{n.note_type || "Note"}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-foreground">{n.note_type || "Note"}</span>
+                        {idx === 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+                        )}
+                      </div>
                       <span className="text-[11px] text-muted-foreground">
                         {formatDateOnly(n.note_date || n.created_at, "MMM d, yyyy")}
                       </span>
