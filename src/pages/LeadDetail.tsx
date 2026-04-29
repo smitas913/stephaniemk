@@ -210,9 +210,7 @@ export default function LeadDetail() {
                 <Button variant="outline" size="sm" asChild>
                   <a href={`tel:${phoneForLink(lead.phone)}`}><Phone className="w-3.5 h-3.5 mr-1" />Call</a>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`sms:${phoneForLink(lead.phone)}`}><MessageSquare className="w-3.5 h-3.5 mr-1" />Text</a>
-                </Button>
+                <TextActionButton phone={lead.phone} trigger="labeled" />
               </>
             )}
             {lead.email && (
