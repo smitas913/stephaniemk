@@ -161,8 +161,15 @@ export default function AddOrder() {
       let resolvedCustomerId = customerId;
       let resolvedCustomerName = customerName;
 
-      // Create new customer if needed
-      if (isNewCustomer && newCustName.trim() && !customerId) {
+      if (isNonCustomer) {
+        // Route the order to the per-owner archived "Non-Customer Orders" bucket.
+        // Bucket is is_active=false + archived → excluded from customer lists,
+        // follow-ups, and customer metrics. The free-text label below is shown
+        // as the buyer name on the order itself.
+        resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
+        resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
+      } else if (isNewCustomer && newCustName.trim() && !customerId) {
+        // Create new customer if needed
         const birthdayMMDD = newCustBirthday ? (() => {
           const parts = newCustBirthday.split("-");
           return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
@@ -195,6 +202,7 @@ export default function AddOrder() {
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
+        face_type: isNonCustomer ? "Non-Customer" : undefined,
         payment_status: paymentStatus,
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
@@ -203,15 +211,18 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
       });
 
-      // Auto-schedule post-order follow-up (clears Today, sets +14d / +25d catalog)
-      try {
-        await applyPostOrderFollowUp({
-          customerId: resolvedCustomerId,
-          orderDate,
-          needsCatalog,
-        });
-      } catch (e) {
-        console.error("Post-order follow-up failed", e);
+      // Auto-schedule post-order follow-up — SKIP for non-customer orders so
+      // one-time/online buyers do not enter the follow-up system.
+      if (!isNonCustomer) {
+        try {
+          await applyPostOrderFollowUp({
+            customerId: resolvedCustomerId,
+            orderDate,
+            needsCatalog,
+          });
+        } catch (e) {
+          console.error("Post-order follow-up failed", e);
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
