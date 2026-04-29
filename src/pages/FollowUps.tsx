@@ -1206,7 +1206,68 @@ export default function FollowUps() {
     workdayFlags,
   ]);
 
-  // Distribution candidates
+  // ─── Daily Follow-Up Limit Auto-Distribution ─────────────────────────────────
+  // For Customer and Lead categories, if the number of items currently visible in
+  // Today exceeds the user's per-day cap, push the lowest-priority overflow forward
+  // across upcoming workdays (each category distributed independently). Runs at most
+  // once per (date, category) per session to avoid loops; user actions invalidate
+  // queries which give us a fresh chance on the next pass.
+  useEffect(() => {
+    if (isLoading) return;
+    if (isOOOActive) return; // OOO has its own ease-back-in flow
+    if (!scheduleSettings) return;
+
+    const todayKey = toLocalDateKey();
+    const customerLimit = Math.max(1, Number(scheduleSettings.daily_customer_followup_limit ?? 10));
+    const leadLimit = Math.max(1, Number(scheduleSettings.daily_lead_followup_limit ?? 10));
+
+    const runForCategory = async (
+      category: "customer" | "lead",
+      limit: number,
+      items: ActionItem[],
+    ) => {
+      if (items.length <= limit) return;
+      const memoKey = `${todayKey}:${category}`;
+      if (dailyLimitDistributedRef.current.has(memoKey)) return;
+      dailyLimitDistributedRef.current.add(memoKey);
+
+      // Sort: most overdue first → keep them in Today; least overdue → push forward.
+      const sorted = [...items].sort((a, b) => (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0));
+      const toPush = sorted.slice(limit);
+      if (toPush.length === 0) return;
+
+      const tomorrow = toLocalDateKey(addDays(new Date(), 1));
+      const seedDates = toPush.map(() => tomorrow);
+      const blackout = new Set<string>();
+      const newDates = spreadTasks(seedDates, limit, null, blackout, workdayFlags);
+
+      await Promise.allSettled(
+        toPush.map((item, idx) => {
+          const newDate = newDates[idx];
+          if (category === "customer") {
+            return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
+          }
+          return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+        })
+      );
+
+      queryClient.invalidateQueries({ queryKey: category === "customer" ? ["customers"] : ["booking-leads"] });
+    };
+
+    const customerItems = todayActions.filter((i) => i.itemType === "customer");
+    const leadItems = todayActions.filter((i) => i.itemType === "lead");
+    void runForCategory("customer", customerLimit, customerItems);
+    void runForCategory("lead", leadLimit, leadItems);
+  }, [
+    isLoading,
+    isOOOActive,
+    scheduleSettings,
+    todayActions,
+    workdayFlags,
+    queryClient,
+  ]);
+
+
   const distributeCandidates = useMemo(() => {
     switch (distributeFilter) {
       case "overdue-today": return enrichedCustomers.filter((c) => c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY");
