@@ -1713,15 +1713,18 @@ export default function FollowUps() {
   };
 
   const rescheduleLogMutation = useMutation({
-    mutationFn: async ({ event, noteType: nt, noteText: text }: { event: EventRecord; noteType: string; noteText: string }) => {
+    mutationFn: async ({ event, noteType: nt, noteText: text, overrideNextDate }: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => {
       const newAttempt = (event.reschedule_attempt_number || 0) + 1;
-      const nextFollowUp = getNextRescheduleFollowUp(newAttempt);
+      // Honor a user-chosen next follow-up date if provided; otherwise fall back to cadence.
+      const nextFollowUp = overrideNextDate !== undefined
+        ? overrideNextDate
+        : getNextRescheduleFollowUp(newAttempt);
       const updates: Record<string, any> = {
         reschedule_last_contact_date: toLocalDateKey(),
         reschedule_attempt_number: newAttempt,
         reschedule_next_follow_up_date: nextFollowUp,
         reschedule_status: "In Process of Rescheduling",
-        requires_manual_next_step: newAttempt >= 5,
+        requires_manual_next_step: newAttempt >= 5 && !nextFollowUp,
       };
       await updateEvent(event.id, updates);
       // Log centralized note for traceability and 6 Important tracking
