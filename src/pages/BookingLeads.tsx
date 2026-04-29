@@ -542,6 +542,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }) =>
             actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate })
           }
+          onNavigateToProfile={(uItem) => {
+            setActionPanelOpen(false);
+            navigate(`/booking-leads/${uItem.id}`, { state: { from: "/clients?tab=leads" } });
+          }}
           isPending={actionMutation.isPending}
         />
 
