@@ -20,14 +20,14 @@ import {
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
-  fetchProspects,
-  createNote,
+  
   type MomentumGoal,
   type BusinessGoal,
   type MomentumPeriod,
 } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import type { EventRecord, Note, Customer } from "@/lib/types";
+import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
 
 // ─── Quotes ───
 const MOTIVATIONAL_QUOTES = [
@@ -196,51 +196,40 @@ const QUICK_ADD_OPTIONS = [
 ] as const;
 
 function QuickAddBar({ onLogged }: { onLogged: () => void }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const handleQuickLog = async (resultType: "Face" | "Career Chat" | "Booking Conversation") => {
-    setBusy(resultType);
-    try {
-      await createNote({
-        entity_type: "Customer",
-        note_body: `Quick log: ${resultType}`,
-        note_type: "General",
-        result_type: resultType,
-        is_booking_attempt: resultType === "Booking Conversation",
-      });
-      toast({ title: `${resultType} logged` });
-      onLogged();
-    } catch (e) {
-      toast({ title: "Failed to log", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
-    } finally {
-      setBusy(null);
-    }
-  };
+  const [openType, setOpenType] = useState<"Face" | "Career Chat" | "Booking Conversation" | null>(null);
 
   return (
-    <Card className="border-primary/20 shadow-sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
-          <CardTitle className="text-sm font-semibold text-foreground">Quick Add</CardTitle>
-          <span className="text-[11px] text-muted-foreground ml-auto">Tap to log instantly</span>
-        </div>
-      </CardHeader>
-      <CardContent className="grid grid-cols-3 gap-2">
-        {QUICK_ADD_OPTIONS.map((opt) => (
-          <Button
-            key={opt.key}
-            variant="outline"
-            className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            disabled={busy !== null}
-            onClick={() => handleQuickLog(opt.key)}
-          >
-            <span className="text-2xl">{opt.emoji}</span>
-            <span className="text-xs font-semibold">{opt.label}</span>
-            {busy === opt.key && <span className="text-[10px] text-muted-foreground">Logging…</span>}
-          </Button>
-        ))}
-      </CardContent>
-    </Card>
+    <>
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            <CardTitle className="text-sm font-semibold text-foreground">Quick Add</CardTitle>
+            <span className="text-[11px] text-muted-foreground ml-auto">Tap to log</span>
+          </div>
+        </CardHeader>
+        <CardContent className="grid grid-cols-3 gap-2">
+          {QUICK_ADD_OPTIONS.map((opt) => (
+            <Button
+              key={opt.key}
+              variant="outline"
+              className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+              onClick={() => setOpenType(opt.key)}
+            >
+              <span className="text-2xl">{opt.emoji}</span>
+              <span className="text-xs font-semibold">{opt.label}</span>
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
+      <QuickAddPersonDialog
+        open={openType !== null}
+        resultType={openType}
+        onOpenChange={(v) => { if (!v) setOpenType(null); }}
+        onLogged={onLogged}
+      />
+    </>
   );
 }
 
@@ -345,6 +334,10 @@ export default function Momentum() {
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["notes-all"] });
+    queryClient.invalidateQueries({ queryKey: ["customers"] });
+    queryClient.invalidateQueries({ queryKey: ["prospects"] });
+    queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+    queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
   };
 
   return (
