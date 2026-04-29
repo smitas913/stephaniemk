@@ -301,6 +301,8 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     bookingAttemptDetails: allBookingAttemptItems,
     coachingDetails: consultantCoachingItems,
     clientFollowUpDetails: clientFollowUpItems,
+    customerFollowUpDetails: customerFollowUpItems,
+    leadFollowUpDetails: leadFollowUpItems,
     hostessCoachingDetails: hostessCoachingItems,
     recruitingFollowUpDetails: recruitingFollowUpItems,
     relationshipDetails: dedupedRelationship,
