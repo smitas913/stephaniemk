@@ -1815,6 +1815,8 @@ export default function FollowUps() {
   });
   // Wire the ref so handleUniversalAction (defined earlier) can invoke this mutation.
   rescheduleLogRef.current = (args) => rescheduleLogMutation.mutate(args);
+
+  const rescheduleSetNewDateMutation = useMutation({
     mutationFn: async ({ event, newDate }: { event: EventRecord; newDate: string }) => {
       await updateEvent(event.id, {
         event_date: newDate,
