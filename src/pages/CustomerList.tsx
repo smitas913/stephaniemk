@@ -307,9 +307,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                       <a href={`tel:${phoneForLink(c.phone)}`} className="text-primary hover:underline flex items-center gap-1">
                         <Phone className="w-3 h-3" />{formatPhone(c.phone)}
                       </a>
-                      <a href={`sms:${phoneForLink(c.phone)}`} className="text-muted-foreground hover:text-primary">
-                        <MessageSquare className="w-3 h-3" />
-                      </a>
+                      <TextActionButton phone={c.phone} trigger="icon" iconClassName="w-3 h-3" />
                     </span>
                   ) : (
                     <span className="text-muted-foreground">No phone</span>
