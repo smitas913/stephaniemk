@@ -637,9 +637,7 @@ export default function EventDetail() {
                     <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                       <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                      <a href={`sms:${phoneForLink(event.hostess_phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
-                    </Button>
+                    <TextActionButton phone={event.hostess_phone} trigger="labeled" className="h-7 text-xs" />
                   </>
                 )}
                 {event.hostess_email && (
