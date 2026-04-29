@@ -510,3 +510,20 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     </Sheet>
   );
 }
+
+function ReasonChip({ reason, selected, onClick }: { reason: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
+        selected
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+      )}
+    >
+      {reason}
+    </button>
+  );
+}
