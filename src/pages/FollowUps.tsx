@@ -4726,9 +4726,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
               <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
                 <a href={`tel:${item.phone}`}><Phone className="w-4 h-4 text-primary" /></a>
               </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
-                <a href={`sms:${item.phone}`}><MessageSquare className="w-4 h-4 text-primary" /></a>
-              </Button>
+              <TextActionButton phone={item.phone} trigger="icon" className="h-9 w-9" iconClassName="w-4 h-4" />
             </>
           )}
           {item.email && (
