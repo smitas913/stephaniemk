@@ -1,7 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
-import { createNote } from "@/lib/queries";
 import { addDays, format } from "date-fns";
 import { toLocalDateKey } from "@/lib/dateOnly";
+
+async function getCurrentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.id ?? null;
+}
 
 export const CATALOG_NOTE_TYPE = "Catalog Sent";
 export const CATALOG_FOLLOW_UP_OFFSET_DAYS = 6;
