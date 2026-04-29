@@ -227,6 +227,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
+        setNeedsCatalog(false);
         setAttempted(false);
       } else {
         navigate("/orders");
@@ -236,7 +237,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
