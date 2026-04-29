@@ -239,6 +239,10 @@ async function logCustomerActivity({
 }) {
   const fallbackNote = `${noteType} follow-up completed`;
   const noteBody = noteText?.trim() || fallbackNote;
+  // Derive intent category from the bracketed [Reason] prefix in the note body
+  // (added by UniversalActionPanel.buildNote). Defaults to "Follow-Up".
+  const reasonMatch = noteBody.match(/^\s*\[([^\]]+)\]/);
+  const category = resolveIntentCategory(reasonMatch ? reasonMatch[1] : null);
 
   await Promise.all([
     createCustomerNote({ customer_id: customerId, note_text: noteBody, note_type: noteType }),
@@ -247,6 +251,7 @@ async function logCustomerActivity({
       customer_id: customerId,
       note_body: noteBody,
       note_type: noteType,
+      tags: [categoryTag(category)],
       next_step: nextStep?.trim() || null,
       next_follow_up_date: nextFollowUpDate ?? null,
       is_booking_attempt: isBookingAttempt ?? false,
