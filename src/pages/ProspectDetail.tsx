@@ -159,7 +159,7 @@ export default function ProspectDetail() {
             {prospect.phone && (
               <>
                 <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(prospect.phone)}`}><Phone className="w-4 h-4" /></a></Button>
-                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${phoneForLink(prospect.phone)}`}><MessageSquare className="w-4 h-4" /></a></Button>
+                <TextActionButton phone={prospect.phone} trigger="icon-button" />
               </>
             )}
             {prospect.email && (
