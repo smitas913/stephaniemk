@@ -410,8 +410,50 @@ export default function AddOrder() {
 
         {/* Customer selection */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Customer *</label>
-          {selectedCustomer ? (
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Customer *</label>
+            {!selectedCustomer && !isNewCustomer && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNonCustomer(!isNonCustomer);
+                  setCustomerId(""); setCustomerName(""); setCustomerSearch("");
+                  setIsNewCustomer(false);
+                }}
+                className={cn(
+                  "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-colors",
+                  isNonCustomer
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Store className="w-3 h-3" />
+                Non-Customer / One-Time Order
+              </button>
+            )}
+          </div>
+
+          {isNonCustomer ? (
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-primary" /> One-Time / Support Order
+                </span>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNonCustomer(false); setNonCustomerLabel(""); }}>
+                  Cancel
+                </Button>
+              </div>
+              <Input
+                placeholder="Buyer label (optional, e.g. 'MyShop online', 'Goal support')"
+                value={nonCustomerLabel}
+                onChange={e => setNonCustomerLabel(e.target.value)}
+                className="h-9"
+              />
+              <p className="text-xs text-muted-foreground leading-snug">
+                This order will be tracked but the buyer will not be added to follow-up lists or customer metrics.
+              </p>
+            </div>
+          ) : selectedCustomer ? (
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
               <div>
                 <span className="font-medium text-sm">{selectedCustomer.full_name}</span>
