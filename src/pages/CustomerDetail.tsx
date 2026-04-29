@@ -24,6 +24,8 @@ import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
+import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
+import { BookOpen } from "lucide-react";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
