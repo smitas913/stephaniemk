@@ -209,7 +209,10 @@ export default function ScheduleSettings() {
         </CardContent>
       </Card>
 
-      {/* Smart Scheduling Card */}
+      {/* Daily Follow-Up Limits */}
+      <DailyLimitsCard settings={settings} />
+
+
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
