@@ -62,13 +62,19 @@ const WHATS_NEXT_OPTIONS = [
 
 import { LONG_TERM_TOUCH_DAYS, resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
 
-// ─── Follow-Up Reason Options by Person Type ───
-const FOLLOW_UP_REASONS: Record<string, string[]> = {
-  customer: ["Booking Ask", "Trial / Sample Follow-Up", "Product Check-In", "Post-Appointment Follow-Up", "General Check-In"],
-  lead: ["Booking Ask", "Trial / Sample Follow-Up", "Product Check-In", "Post-Appointment Follow-Up", "General Check-In"],
-  hostess: ["Event Prep", "Event Reminder", "Rescheduling", "Post-Event Follow-Up"],
-  event_task: ["Event Prep", "Event Reminder", "Rescheduling", "Post-Event Follow-Up"],
-  prospect: ["Initial Outreach", "Follow-Up", "Interview / Info Shared"],
+// ─── Intent-based reason options ───
+// Reasons are NOT keyed by person type. Every interaction picks from the same
+// canonical reason list, grouped by the category that reason routes to. The
+// default (no reason selected) is the "Follow-Up" category.
+//
+// Suggested reasons surface first per person type purely as a UX nudge, but
+// users can always pick any reason from any category.
+const SUGGESTED_REASONS_BY_PERSON: Partial<Record<PersonType, string[]>> = {
+  customer: ["General Check-In", "Booking Ask", "Trial / Sample Follow-Up", "Product Check-In"],
+  lead: ["Booking Ask", "General Check-In", "Trial / Sample Follow-Up"],
+  hostess: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up", "Rescheduling"],
+  event_task: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up"],
+  prospect: ["Initial Outreach", "Recruiting Follow-Up", "Interview / Info Shared"],
   consultant: ["Coaching", "Accountability", "Training / Support"],
 };
 
@@ -81,20 +87,27 @@ const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> =
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" },
 };
 
-function getAutoTags(personType: PersonType, followUpReason?: string | null): { isFollowUp: boolean; isBookingAttempt: boolean } {
-  // Booking Attempt is inferred from "Booking Ask" reason, not auto-tagged by person type
-  const isBookingAsk = followUpReason === "Booking Ask";
-  switch (personType) {
-    case "hostess":
-      return { isFollowUp: true, isBookingAttempt: true };
-    case "consultant":
-      return { isFollowUp: false, isBookingAttempt: false };
-    case "lead":
-    case "customer":
-      return { isFollowUp: true, isBookingAttempt: isBookingAsk };
-    default:
-      return { isFollowUp: true, isBookingAttempt: isBookingAsk };
-  }
+const CATEGORY_BADGE_CLASS: Record<IntentCategory, string> = {
+  "Follow-Up": "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  Booking: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  Coaching: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  Recruiting: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  "Team Building": "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+};
+
+/**
+ * Auto-tag flags are now driven by the resolved intent category, not the
+ * person type. This means an event "General Check-In" with a hostess lands
+ * in Follow-Up, while "Booking Ask" with a customer lands in Booking, etc.
+ */
+function getAutoTags(_personType: PersonType, followUpReason?: string | null): { isFollowUp: boolean; isBookingAttempt: boolean; category: IntentCategory } {
+  const category = resolveIntentCategory(followUpReason);
+  return {
+    isBookingAttempt: category === "Booking",
+    // Coaching, Team Building and Recruiting count under their own category, not Follow-Up.
+    isFollowUp: category === "Follow-Up",
+    category,
+  };
 }
 
 interface Props {
