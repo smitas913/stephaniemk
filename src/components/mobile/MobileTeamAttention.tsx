@@ -180,14 +180,9 @@ export default function MobileTeamAttention({ items, onSchedule, onCall, onText,
                     >
                       <Phone className="w-4.5 h-4.5 text-primary" />
                     </a>
-                    <a
-                      href={`sms:${phoneForLink(item.phone)}`}
-                      className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-muted transition-colors"
-                      aria-label="Text"
-                      onClick={(e) => { e.stopPropagation(); onText(item); }}
-                    >
-                      <MessageSquare className="w-4.5 h-4.5 text-primary" />
-                    </a>
+                    <div onClick={(e) => { e.stopPropagation(); onText(item); }} className="inline-flex">
+                      <TextActionButton phone={item.phone} trigger="icon" className="w-10 h-10 rounded-lg hover:bg-muted" iconClassName="w-4 h-4" />
+                    </div>
                   </>
                 ) : (
                   <>
