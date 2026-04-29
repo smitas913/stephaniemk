@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PeriodProvider } from "@/hooks/usePeriodFilter";
 import Landing from "./pages/Landing";
 import FollowUpDashboard from "./pages/FollowUpDashboard";
+import Dashboard from "./pages/Dashboard";
 import CustomerList from "./pages/CustomerList";
 import AddCustomer from "./pages/AddCustomer";
 import AddConsultant from "./pages/AddConsultant";
@@ -32,7 +33,6 @@ import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
-import Scoreboard from "./pages/Scoreboard";
 import Analytics from "./pages/Analytics";
 import BookingLeads from "./pages/BookingLeads";
 import LeadDetail from "./pages/LeadDetail";
@@ -43,7 +43,7 @@ import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
 import Scripts from "./pages/Scripts";
-import Momentum from "./pages/Momentum";
+
 
 const queryClient = new QueryClient();
 
@@ -51,9 +51,9 @@ function getRoleHome(role: string): string {
   switch (role) {
     case "owner":
     case "admin":
-      return "/momentum";
+      return "/dashboard";
     case "consultant":
-      return "/momentum";
+      return "/dashboard";
     case "customer":
       return "/my-account";
     default:
@@ -124,9 +124,10 @@ const AppRoutes = () => (
       </ProtectedRoute>
     } />
 
-    <Route path="/momentum" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Momentum /></ProtectedRoute>} />
-    <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
-    <Route path="/scoreboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Scoreboard /></ProtectedRoute>} />
+    <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Dashboard /></ProtectedRoute>} />
+    <Route path="/performance" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
+    <Route path="/momentum" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/scoreboard" element={<Navigate to="/dashboard" replace />} />
     <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
     <Route path="/clients" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Clients /></ProtectedRoute>} />
     <Route path="/customers" element={<Navigate to="/clients?tab=customers" replace />} />
