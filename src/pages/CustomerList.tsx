@@ -22,6 +22,7 @@ import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnl
 import { useIsMobile } from "@/hooks/use-mobile";
 
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
+import TextActionButton from "@/components/TextActionButton";
 
 type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
