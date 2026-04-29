@@ -1956,6 +1956,7 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message || "Failed to undo"),
   });
 
+  const rescheduleArchiveMutation = useMutation({
     mutationFn: async (event: EventRecord) => {
       await updateEvent(event.id, { is_archived: true, reschedule_next_follow_up_date: null, requires_manual_next_step: false } as any);
     },
