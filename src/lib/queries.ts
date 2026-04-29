@@ -1007,6 +1007,8 @@ export interface ScheduleSettings {
   workday_friday: boolean;
   workday_saturday: boolean;
   workday_sunday: boolean;
+  daily_customer_followup_limit?: number;
+  daily_lead_followup_limit?: number;
 }
 
 export const fetchScheduleSettings = async (): Promise<ScheduleSettings | null> => {
