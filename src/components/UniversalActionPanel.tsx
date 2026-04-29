@@ -215,7 +215,8 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
-  const reasonOptions = FOLLOW_UP_REASONS[item.personType] || [];
+  const suggestedReasons = SUGGESTED_REASONS_BY_PERSON[item.personType] || [];
+  const resolvedCategory = resolveIntentCategory(selectedReason);
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
