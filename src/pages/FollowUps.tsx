@@ -1333,12 +1333,14 @@ export default function FollowUps() {
         updates.next_follow_up_date = nextDate || null;
         await updateProspect(item.id, updates as any);
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
-        await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: note.trim() || `${type} follow-up`, note_type: type, next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null, is_booking_attempt: isBookingAttempt ?? false, is_follow_up: isFollowUp ?? true });
+        const pBody = note.trim() || `${type} follow-up`;
+        const pReason = pBody.match(/^\s*\[([^\]]+)\]/)?.[1] || null;
+        const pCategory = resolveIntentCategory(pReason || "Recruiting Follow-Up");
+        await createNote({ entity_type: "Prospect", prospect_id: item.id, note_body: pBody, note_type: type, tags: [categoryTag(pCategory)], next_step: nextStep?.trim() || null, next_follow_up_date: nextDate ?? null, is_booking_attempt: isBookingAttempt ?? false, is_follow_up: isFollowUp ?? true });
       } else if (item.itemType === "consultant") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.next_coaching_date = nextDate;
         await updateTeamConsultant(item.id, updates as any);
-        // Include consultant name in note_body for identity resolution in drill-downs
         const consultantNoteBody = note.trim()
           ? `[${item.name}] ${note.trim()}`
           : `[${item.name}] ${type} coaching`;
@@ -1346,30 +1348,35 @@ export default function FollowUps() {
           entity_type: "Consultant",
           person_type: "consultant",
           person_id: item.id,
-          tags: ["consultant_coaching"],
+          tags: ["consultant_coaching", categoryTag("Team Building")],
           note_body: consultantNoteBody,
           note_type: type,
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,
           is_booking_attempt: false,
-          is_follow_up: false, // consultant activity counts under coaching, not follow-ups
+          is_follow_up: false,
         });
       } else if (item.itemType === "hostess") {
         const updates: Record<string, string | null> = {};
         if (nextDate) updates.hostess_next_action_date = nextDate;
         await updateEvent(item.id, updates as any);
-        // Include hostess name in note_body for identity resolution in drill-downs
         const hostessNoteBody = note.trim()
           ? `[${item.name}] ${note.trim()}`
           : `[${item.name}] ${type} hostess coaching`;
+        // Derive category from intent (the [Reason] prefix), not from person type.
+        // Hostess interactions only count as Coaching when the user explicitly
+        // picked a coaching reason; otherwise they fall to Follow-Up.
+        const hReason = (note.trim().match(/^\s*\[([^\]]+)\]/)?.[1]) || null;
+        const hCategory = resolveIntentCategory(hReason);
         await createNote({
           entity_type: "Hostess",
           note_body: hostessNoteBody,
           note_type: type,
+          tags: [categoryTag(hCategory)],
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate ?? null,
-          is_booking_attempt: isBookingAttempt ?? false,
-          is_follow_up: isFollowUp ?? true,
+          is_booking_attempt: hCategory === "Booking" || (isBookingAttempt ?? false),
+          is_follow_up: hCategory === "Follow-Up" || (isFollowUp ?? true),
         });
       } else if (item.itemType === "lead") {
         const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
@@ -1379,12 +1386,16 @@ export default function FollowUps() {
         };
         if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
+        const lBody = note.trim() || `${type} follow-up`;
+        const lReason = lBody.match(/^\s*\[([^\]]+)\]/)?.[1] || null;
+        const lCategory = resolveIntentCategory(lReason);
         await createNote({
           entity_type: "Lead",
           person_id: item.id,
           person_type: "lead",
-          note_body: note.trim() || `${type} follow-up`,
+          note_body: lBody,
           note_type: type,
+          tags: [categoryTag(lCategory)],
           next_step: nextStep?.trim() || null,
           next_follow_up_date: nextDate || defaultNext,
           is_booking_attempt: isBookingAttempt ?? false,
