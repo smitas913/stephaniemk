@@ -574,6 +574,18 @@ export default function CustomerDetail() {
                   <InfoRow label="Next Follow-Up" value={formatDate(customer.next_follow_up_date)} />
                   <InfoRow label="Follow-Up Reason" value={customer.follow_up_reason} />
                   <InfoRow label="Stage" value={customer.new_follow_up_stage} />
+                  <InfoRow
+                    label="Last Catalog Sent"
+                    value={catalogInfo.lastDate ? formatDateOnly(catalogInfo.lastDate, "MMM d, yyyy") : "—"}
+                  />
+                  <InfoRow
+                    label="Catalog Cycle"
+                    value={
+                      catalogInfo.lastDate
+                        ? `${catalogInfo.campaignType || "—"}${catalogInfo.cycle ? ` · ${catalogInfo.cycle}` : ""}`
+                        : "—"
+                    }
+                  />
                 </div>
 
                 {customer.notes && (
