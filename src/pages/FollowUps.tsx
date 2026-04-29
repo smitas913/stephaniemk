@@ -311,6 +311,9 @@ export default function FollowUps() {
   useEffect(() => {
     if (isOOOActive) easeBackInRanRef.current = false; // reset for next exit
   }, [isOOOActive]);
+  // Tracks per-day-per-category whether the overflow auto-distribute has already run,
+  // so each unique (date, category) pass executes at most once per session and we don't loop on every render.
+  const dailyLimitDistributedRef = useRef<Set<string>>(new Set());
   const { data: todayDeliveries = [] } = useQuery({
     queryKey: ["daily-plan", toLocalDateKey()],
     queryFn: async () => {
