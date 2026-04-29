@@ -1555,7 +1555,7 @@ export default function FollowUps() {
       isBookingAttempt,
       isFollowUp,
     });
-  }, [contactMutation, universalRescheduleEvent, rescheduleLogMutation]);
+  }, [contactMutation, universalRescheduleEvent]);
 
   // Open the Universal Action Panel for a Reschedule Follow-Up row.
   // Treats the event as a "hostess" person so the unified UI works as everywhere else.
