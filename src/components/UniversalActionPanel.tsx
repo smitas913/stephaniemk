@@ -210,6 +210,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       isFollowUp: tags.isFollowUp,
       nextFollowUpDate: customDate,
       followUpReason: selectedReason,
+      category: tags.category,
     });
     handleClose();
   }, [item, customDate, selectedAction, buildNote, selectedReason, onLogAction, handleClose]);
