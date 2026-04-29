@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
+import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
 
