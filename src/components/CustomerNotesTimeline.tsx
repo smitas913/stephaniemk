@@ -37,9 +37,17 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   const [noteType, setNoteType] = useState<string>("Call");
   const [nextFollowUp, setNextFollowUp] = useState("");
 
-  const { data: notes = [] } = useQuery({
+  const { data: rawNotes = [] } = useQuery({
     queryKey: ["customer-notes-unified", customerId],
     queryFn: () => fetchNotes("Customer", customerId),
+  });
+
+  // Always show newest first. Sort by created_at desc (most reliable timestamp),
+  // falling back to note_date for legacy rows that lack created_at.
+  const notes = [...rawNotes].sort((a: any, b: any) => {
+    const aKey = a.created_at || a.note_date || "";
+    const bKey = b.created_at || b.note_date || "";
+    return bKey.localeCompare(aKey);
   });
 
   const addMutation = useMutation({
