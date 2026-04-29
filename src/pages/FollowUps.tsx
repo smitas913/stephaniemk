@@ -1515,6 +1515,10 @@ export default function FollowUps() {
     },
   });
 
+  // Ref forwarder so handleUniversalAction (declared early) can call rescheduleLogMutation
+  // (declared later) without hitting the temporal dead zone.
+  const rescheduleLogRef = useRef<((args: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => void) | null>(null);
+
   // Universal Action Panel handler (placed after contactMutation)
   const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
     item: UniversalActionItem;
