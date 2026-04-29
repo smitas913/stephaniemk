@@ -1559,6 +1559,8 @@ export type Database = {
       user_schedule_settings: {
         Row: {
           created_at: string
+          daily_customer_followup_limit: number
+          daily_lead_followup_limit: number
           id: string
           light_schedule_mode: boolean
           ooo_end_date: string | null
@@ -1577,6 +1579,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          daily_customer_followup_limit?: number
+          daily_lead_followup_limit?: number
           id?: string
           light_schedule_mode?: boolean
           ooo_end_date?: string | null
@@ -1595,6 +1599,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          daily_customer_followup_limit?: number
+          daily_lead_followup_limit?: number
           id?: string
           light_schedule_mode?: boolean
           ooo_end_date?: string | null
