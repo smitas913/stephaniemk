@@ -30,17 +30,17 @@ export interface DayTypeTarget {
 
 // Canonical category auto_track_keys — used to detect stale/legacy configs
 const CANONICAL_AUTO_KEYS = new Set([
-  "customer_followup", "lead_followup", "booking_attempts",
-  "hostess_coaching", "consultant_coaching", "relationship",
+  "customer_followup", "lead_followup", "hostess_coaching",
+  "consultant_coaching", "relationship", "personal_appointments",
 ]);
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 0, label: "Customer Follow-Ups", default_target: 10, auto_track_key: "customer_followup" },
   { sort_order: 1, label: "Lead Follow-Ups", default_target: 10, auto_track_key: "lead_followup" },
-  { sort_order: 2, label: "Booking Attempts", default_target: 5, auto_track_key: "booking_attempts" },
-  { sort_order: 3, label: "Hostess / Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
-  { sort_order: 4, label: "Consultant Coaching", default_target: 2, auto_track_key: "consultant_coaching" },
-  { sort_order: 5, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
+  { sort_order: 2, label: "Hostess / Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
+  { sort_order: 3, label: "Consultant Coaching", default_target: 2, auto_track_key: "consultant_coaching" },
+  { sort_order: 4, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
+  { sort_order: 5, label: "Personal Appointments", default_target: 1, auto_track_key: "personal_appointments" },
 ];
 
 /** Returns true if saved configs match the canonical 6-category structure */
@@ -50,9 +50,9 @@ export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
 }
 
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
-  power: [10, 10, 5, 3, 2, 3],
-  appointment: [6, 6, 3, 2, 1, 2],
-  flex: [3, 3, 2, 1, 1, 1],
+  power: [10, 10, 3, 2, 3, 1],
+  appointment: [6, 6, 2, 1, 2, 1],
+  flex: [3, 3, 1, 1, 1, 0],
 };
 
 export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
