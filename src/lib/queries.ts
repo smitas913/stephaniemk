@@ -717,6 +717,16 @@ export const fetchBookingLeads = async (): Promise<BookingLead[]> => {
   return data as unknown as BookingLead[];
 };
 
+export const fetchBookingLead = async (id: string): Promise<BookingLead> => {
+  const { data, error } = await supabase
+    .from("booking_leads" as any)
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data as unknown as BookingLead;
+};
+
 export const createBookingLead = async (lead: Partial<BookingLead> & { name: string }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
