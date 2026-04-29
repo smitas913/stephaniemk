@@ -56,7 +56,8 @@ export default function FocusEditView({
         <TabsContent value="items" className="mt-2 space-y-2">
           <p className="text-[11px] text-muted-foreground leading-snug">
             Slots 1–5 are fixed activity categories. Slot 6 is your <strong>Custom Focus</strong> — rename it
-            to whatever you want to prioritize (e.g. Social Media, Recruiting Push, Promotions).
+            to whatever you want to prioritize (e.g. Personal Appointments, Social Media, Recruiting Push,
+            Promotions, Health/Routine). Set its daily target on the Day Type Targets tab.
           </p>
           {draft.map((item, idx) => {
             const isCustomSlot = idx === 5;
