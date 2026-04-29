@@ -78,6 +78,11 @@ export default function AddOrder() {
   const [showAdditional, setShowAdditional] = useState(false);
   const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
 
+  // Non-customer / one-time order mode
+  const { user } = useAuth();
+  const [isNonCustomer, setIsNonCustomer] = useState(false);
+  const [nonCustomerLabel, setNonCustomerLabel] = useState("");
+
   const isEventBased = ORDER_TYPE_OPTIONS.find(o => o.value === orderType)?.eventBased ?? false;
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
 
