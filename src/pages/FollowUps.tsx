@@ -635,6 +635,18 @@ export default function FollowUps() {
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
 
+  // ─── Fresh Start (manual backlog reset) ───
+  // Reschedules ALL current Today/Overdue follow-ups forward and staggers them across
+  // the chosen window so the user can recover from a backlog flood without losing data.
+  const [showFreshStart, setShowFreshStart] = useState(false);
+  const [freshStartDays, setFreshStartDays] = useState<"7" | "14" | "30">("14");
+  const [freshStartUndo, setFreshStartUndo] = useState<Array<{
+    itemType: string;
+    id: string;
+    previousDate: string | null;
+    eventTaskId?: string;
+  }> | null>(null);
+
   const [scheduleDelivery, setScheduleDelivery] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
