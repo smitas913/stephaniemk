@@ -546,6 +546,22 @@ export default function AddOrder() {
           <Textarea placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none" />
         </div>
 
+        {/* Catalog follow-up option */}
+        <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+          <input
+            type="checkbox"
+            checked={needsCatalog}
+            onChange={e => setNeedsCatalog(e.target.checked)}
+            className="mt-0.5 rounded border-border"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground">Needs new catalog follow-up</span>
+            <span className="block text-xs text-muted-foreground">
+              Schedules follow-up at order date + 25 days instead of the default + 14 days.
+            </span>
+          </span>
+        </label>
+
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           {bulkMode ? (
