@@ -20,7 +20,7 @@ import {
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
-  fetchProspects,
+  fetchProspects: _unusedFetchProspects,
   type MomentumGoal,
   type BusinessGoal,
   type MomentumPeriod,
