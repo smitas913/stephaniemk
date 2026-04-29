@@ -2180,7 +2180,7 @@ export default function FollowUps() {
                                             {evt.requires_manual_next_step ? (
                                               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
                                             ) : (
-                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRescheduleActivityEvent(evt); setRescheduleStep("log"); }}>Log Activity</Button>
+                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRescheduleUniversalPanel(evt)}>Log Activity</Button>
                                             )}
                                             <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
                                             <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
