@@ -412,3 +412,81 @@ export default function ScheduleSettings() {
     </div>
   );
 }
+
+function DailyLimitsCard({ settings }: { settings: any }) {
+  const queryClient = useQueryClient();
+  const [customerLimit, setCustomerLimit] = useState<string>("10");
+  const [leadLimit, setLeadLimit] = useState<string>("10");
+
+  useEffect(() => {
+    if (settings) {
+      setCustomerLimit(String(settings.daily_customer_followup_limit ?? 10));
+      setLeadLimit(String(settings.daily_lead_followup_limit ?? 10));
+    }
+  }, [settings]);
+
+  const saveLimits = useMutation({
+    mutationFn: () => {
+      const c = Math.max(1, Math.min(200, parseInt(customerLimit, 10) || 10));
+      const l = Math.max(1, Math.min(200, parseInt(leadLimit, 10) || 10));
+      return upsertScheduleSettings({
+        daily_customer_followup_limit: c,
+        daily_lead_followup_limit: l,
+      } as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
+      toast.success("Daily limits saved");
+    },
+    onError: () => toast.error("Failed to save daily limits"),
+  });
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-muted-foreground" />
+          Daily Follow-Up Limits
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Cap how many follow-ups appear in Today for each category. Anything over the limit is automatically pushed to upcoming workdays. Customers and Leads are counted independently.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground">Customer Follow-Ups / day</label>
+            <Input
+              type="number"
+              min={1}
+              max={200}
+              value={customerLimit}
+              onChange={(e) => setCustomerLimit(e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Lead Follow-Ups / day</label>
+            <Input
+              type="number"
+              min={1}
+              max={200}
+              value={leadLimit}
+              onChange={(e) => setLeadLimit(e.target.value)}
+              className="h-8 text-sm"
+            />
+          </div>
+        </div>
+        <div>
+          <Button size="sm" className="h-7 text-xs" onClick={() => saveLimits.mutate()} disabled={saveLimits.isPending}>
+            Save Limits
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Event Tasks, Coaching, Recruiting, and Birthdays are not limited.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
