@@ -500,9 +500,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                       {c.phone ? (
                         <span className="inline-flex items-center gap-1.5">
                           <a href={`tel:${phoneForLink(c.phone)}`} className="text-primary hover:underline" title="Call">{formatPhone(c.phone)}</a>
-                          <a href={`sms:${phoneForLink(c.phone)}`} className="text-muted-foreground hover:text-primary transition-colors" title="Text">
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </a>
+                          <TextActionButton phone={c.phone} trigger="icon" />
                         </span>
                       ) : "—"}
                     </TableCell>
