@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer } from "@/lib/queries";
 import { applyPostOrderFollowUp } from "@/lib/postOrderFollowUp";
+import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
+import { useAuth } from "@/hooks/useAuth";
 import { PAYMENT_TYPES } from "@/lib/types";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { generateEventId } from "@/lib/eventId";
@@ -12,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users } from "lucide-react";
+import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users, Store } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
@@ -76,6 +78,11 @@ export default function AddOrder() {
   const [showAdditional, setShowAdditional] = useState(false);
   const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
 
+  // Non-customer / one-time order mode
+  const { user } = useAuth();
+  const [isNonCustomer, setIsNonCustomer] = useState(false);
+  const [nonCustomerLabel, setNonCustomerLabel] = useState("");
+
   const isEventBased = ORDER_TYPE_OPTIONS.find(o => o.value === orderType)?.eventBased ?? false;
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
 
@@ -132,12 +139,12 @@ export default function AddOrder() {
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
     if (!orderType) errors.push("Select an order type");
-    if (!customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
+    if (!isNonCustomer && !customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
     if (paymentStatus === "Paid" && !paymentType) errors.push("Select a payment type");
     if (isEventBased && !selectedEventId) errors.push("Select an event");
     return errors;
-  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId]);
+  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
@@ -154,8 +161,15 @@ export default function AddOrder() {
       let resolvedCustomerId = customerId;
       let resolvedCustomerName = customerName;
 
-      // Create new customer if needed
-      if (isNewCustomer && newCustName.trim() && !customerId) {
+      if (isNonCustomer) {
+        // Route the order to the per-owner archived "Non-Customer Orders" bucket.
+        // Bucket is is_active=false + archived → excluded from customer lists,
+        // follow-ups, and customer metrics. The free-text label below is shown
+        // as the buyer name on the order itself.
+        resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
+        resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
+      } else if (isNewCustomer && newCustName.trim() && !customerId) {
+        // Create new customer if needed
         const birthdayMMDD = newCustBirthday ? (() => {
           const parts = newCustBirthday.split("-");
           return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
@@ -188,6 +202,7 @@ export default function AddOrder() {
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
+        face_type: isNonCustomer ? "Non-Customer" : undefined,
         payment_status: paymentStatus,
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
@@ -196,15 +211,18 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
       });
 
-      // Auto-schedule post-order follow-up (clears Today, sets +14d / +25d catalog)
-      try {
-        await applyPostOrderFollowUp({
-          customerId: resolvedCustomerId,
-          orderDate,
-          needsCatalog,
-        });
-      } catch (e) {
-        console.error("Post-order follow-up failed", e);
+      // Auto-schedule post-order follow-up — SKIP for non-customer orders so
+      // one-time/online buyers do not enter the follow-up system.
+      if (!isNonCustomer) {
+        try {
+          await applyPostOrderFollowUp({
+            customerId: resolvedCustomerId,
+            orderDate,
+            needsCatalog,
+          });
+        } catch (e) {
+          console.error("Post-order follow-up failed", e);
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -219,6 +237,8 @@ export default function AddOrder() {
         setCustomerName("");
         setCustomerSearch("");
         setIsNewCustomer(false);
+        setIsNonCustomer(false);
+        setNonCustomerLabel("");
         setNewCustName(""); setNewCustPhone(""); setNewCustEmail("");
         setNewCustAddress(""); setNewCustCity(""); setNewCustState(""); setNewCustPostal("");
         setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
@@ -237,7 +257,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog, isNonCustomer, nonCustomerLabel, user]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -390,8 +410,50 @@ export default function AddOrder() {
 
         {/* Customer selection */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">Customer *</label>
-          {selectedCustomer ? (
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Customer *</label>
+            {!selectedCustomer && !isNewCustomer && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNonCustomer(!isNonCustomer);
+                  setCustomerId(""); setCustomerName(""); setCustomerSearch("");
+                  setIsNewCustomer(false);
+                }}
+                className={cn(
+                  "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-colors",
+                  isNonCustomer
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                )}
+              >
+                <Store className="w-3 h-3" />
+                Non-Customer / One-Time Order
+              </button>
+            )}
+          </div>
+
+          {isNonCustomer ? (
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-primary" /> One-Time / Support Order
+                </span>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNonCustomer(false); setNonCustomerLabel(""); }}>
+                  Cancel
+                </Button>
+              </div>
+              <Input
+                placeholder="Buyer label (optional, e.g. 'MyShop online', 'Goal support')"
+                value={nonCustomerLabel}
+                onChange={e => setNonCustomerLabel(e.target.value)}
+                className="h-9"
+              />
+              <p className="text-xs text-muted-foreground leading-snug">
+                This order will be tracked but the buyer will not be added to follow-up lists or customer metrics.
+              </p>
+            </div>
+          ) : selectedCustomer ? (
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
               <div>
                 <span className="font-medium text-sm">{selectedCustomer.full_name}</span>
