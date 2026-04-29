@@ -464,6 +464,22 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   />
                 </div>
 
+                {/* Booking Attempt toggle — independent of category, applies to any person type */}
+                {(() => {
+                  const autoIsBooking = resolvedCategory === "Booking";
+                  const checked = bookingAttemptOverride ?? autoIsBooking;
+                  return (
+                    <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => setBookingAttemptOverride(v === true)}
+                      />
+                      <span className="text-sm font-medium text-foreground">Booking Attempt</span>
+                      <span className="text-xs text-muted-foreground ml-auto">Track this as an ask</span>
+                    </label>
+                  );
+                })()}
+
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">What's next?</p>
                   <div className="space-y-1.5">
