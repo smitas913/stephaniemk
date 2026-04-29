@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Phone, MessageSquare, CheckCircle2, ChevronRight, FileText, MoreHorizontal, Calendar, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TextActionButton from "@/components/TextActionButton";
 import {
   Drawer,
   DrawerContent,
@@ -206,16 +207,7 @@ export default function MobileFollowUpRow({
                     <Phone className="w-4 h-4 text-primary" />
                   </a>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 rounded-full"
-                  asChild
-                >
-                  <a href={`sms:${item.phone}`} onClick={(e) => e.stopPropagation()}>
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                  </a>
-                </Button>
+                <TextActionButton phone={item.phone} trigger="icon" className="h-9 w-9 rounded-full" iconClassName="w-4 h-4" />
               </>
             )}
 

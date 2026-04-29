@@ -47,6 +47,7 @@ import { openEmail } from "@/lib/emailPreference";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
+import TextActionButton from "@/components/TextActionButton";
 import {
   formatDateOnly,
   getDateOnlyTime,
@@ -2513,9 +2514,7 @@ export default function FollowUps() {
                                                <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                                  <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                                                </Button>
-                                               <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                 <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-                                               </Button>
+                                                <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-7 w-7" />
                                              </>
                                            )}
                                          </div>
@@ -2980,7 +2979,7 @@ export default function FollowUps() {
                 {actionItem.phone && (
                   <>
                     <Button variant="outline" size="sm" asChild><a href={`tel:${phoneForLink(actionItem.phone)}`}><Phone className="w-3.5 h-3.5 mr-1" />Call</a></Button>
-                    <Button variant="outline" size="sm" asChild><a href={`sms:${phoneForLink(actionItem.phone)}`}><MessageSquare className="w-3.5 h-3.5 mr-1" />Text</a></Button>
+                    <TextActionButton phone={actionItem.phone} trigger="labeled" />
                   </>
                 )}
                 {actionItem.email && (
@@ -3085,7 +3084,7 @@ export default function FollowUps() {
                   {detailItem.phone && (
                     <>
                       <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`tel:${detailItem.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a></Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs" asChild><a href={`sms:${detailItem.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a></Button>
+                      <TextActionButton phone={detailItem.phone} trigger="labeled" className="h-8 text-xs" />
                     </>
                   )}
                   {detailItem.email && (
@@ -4518,7 +4517,7 @@ function ActionRow({
             {item.phone && (
               <>
                 <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
+                <TextActionButton phone={item.phone} trigger="icon" className="h-8 w-8" />
               </>
             )}
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleInline} title="Log Activity"><FileText className="w-3.5 h-3.5 text-primary" /></Button>
@@ -4728,9 +4727,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
               <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
                 <a href={`tel:${item.phone}`}><Phone className="w-4 h-4 text-primary" /></a>
               </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
-                <a href={`sms:${item.phone}`}><MessageSquare className="w-4 h-4 text-primary" /></a>
-              </Button>
+              <TextActionButton phone={item.phone} trigger="icon" className="h-9 w-9" iconClassName="w-4 h-4" />
             </>
           )}
           {item.email && (

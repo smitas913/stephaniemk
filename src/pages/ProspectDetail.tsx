@@ -19,6 +19,7 @@ import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly"
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import TextActionButton from "@/components/TextActionButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -159,7 +160,7 @@ export default function ProspectDetail() {
             {prospect.phone && (
               <>
                 <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(prospect.phone)}`}><Phone className="w-4 h-4" /></a></Button>
-                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${phoneForLink(prospect.phone)}`}><MessageSquare className="w-4 h-4" /></a></Button>
+                <TextActionButton phone={prospect.phone} trigger="icon-button" />
               </>
             )}
             {prospect.email && (

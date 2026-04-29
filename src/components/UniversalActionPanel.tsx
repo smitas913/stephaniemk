@@ -15,6 +15,7 @@ import {
 import { format, addDays } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
+import TextActionButton from "@/components/TextActionButton";
 
 // ─── Types ───
 
@@ -256,9 +257,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                 <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
                   <a href={`tel:${item.phone}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                  <a href={`sms:${item.phone}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
-                </Button>
+                <TextActionButton phone={item.phone} trigger="labeled" className="h-8 text-xs" />
               </>
             )}
             {item.email && (

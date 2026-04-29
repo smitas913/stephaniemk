@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import TextActionButton from "@/components/TextActionButton";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -380,9 +381,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                             <a href={`tel:${phoneForLink(lead.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`sms:${phoneForLink(lead.phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-                          </Button>
+                          <TextActionButton phone={lead.phone} trigger="icon" className="h-8 w-8" />
                         </>
                       )}
                       {!lead.converted_customer_id && lead.status !== "Not Interested" && (

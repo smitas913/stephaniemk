@@ -25,6 +25,7 @@ import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
+import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
 
@@ -384,7 +385,7 @@ export default function CustomerDetail() {
             {customer.phone && (
               <>
                 <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(customer.phone)}`}><Phone className="w-4 h-4" /></a></Button>
-                <Button size="sm" variant="outline" asChild title="Text"><a href={`sms:${phoneForLink(customer.phone)}`}><MessageSquare className="w-4 h-4" /></a></Button>
+                <TextActionButton phone={customer.phone} trigger="icon-button" />
               </>
             )}
             {customer.email && (

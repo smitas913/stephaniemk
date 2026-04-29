@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
+import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
 
@@ -464,9 +465,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                     </Button>
                   )}
                   {vc.phone && (
-                    <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" asChild>
-                      <a href={`sms:${phoneForLink(vc.phone)}`}><MessageSquare className="w-3 h-3" />Text</a>
-                    </Button>
+                    <TextActionButton phone={vc.phone} trigger="labeled" className="gap-1 h-7 text-xs" />
                   )}
                   {vc.email && (
                     <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" asChild>

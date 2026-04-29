@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
+import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
@@ -637,9 +638,7 @@ export default function EventDetail() {
                     <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                       <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                      <a href={`sms:${phoneForLink(event.hostess_phone)}`}><MessageSquare className="w-3 h-3 mr-1" />Text</a>
-                    </Button>
+                    <TextActionButton phone={event.hostess_phone} trigger="labeled" className="h-7 text-xs" />
                   </>
                 )}
                 {event.hostess_email && (

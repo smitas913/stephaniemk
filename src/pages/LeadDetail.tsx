@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import TextActionButton from "@/components/TextActionButton";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -210,9 +211,7 @@ export default function LeadDetail() {
                 <Button variant="outline" size="sm" asChild>
                   <a href={`tel:${phoneForLink(lead.phone)}`}><Phone className="w-3.5 h-3.5 mr-1" />Call</a>
                 </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`sms:${phoneForLink(lead.phone)}`}><MessageSquare className="w-3.5 h-3.5 mr-1" />Text</a>
-                </Button>
+                <TextActionButton phone={lead.phone} trigger="labeled" />
               </>
             )}
             {lead.email && (
