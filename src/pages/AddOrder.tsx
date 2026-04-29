@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer } from "@/lib/queries";
+import { applyPostOrderFollowUp } from "@/lib/postOrderFollowUp";
 import { PAYMENT_TYPES } from "@/lib/types";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { generateEventId } from "@/lib/eventId";
@@ -58,6 +59,7 @@ export default function AddOrder() {
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
+  const [needsCatalog, setNeedsCatalog] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
 
@@ -194,6 +196,17 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
       });
 
+      // Auto-schedule post-order follow-up (clears Today, sets +14d / +25d catalog)
+      try {
+        await applyPostOrderFollowUp({
+          customerId: resolvedCustomerId,
+          orderDate,
+          needsCatalog,
+        });
+      } catch (e) {
+        console.error("Post-order follow-up failed", e);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
@@ -214,6 +227,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
+        setNeedsCatalog(false);
         setAttempted(false);
       } else {
         navigate("/orders");
@@ -223,7 +237,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -531,6 +545,22 @@ export default function AddOrder() {
           <label className="text-sm font-medium text-foreground">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
           <Textarea placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none" />
         </div>
+
+        {/* Catalog follow-up option */}
+        <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+          <input
+            type="checkbox"
+            checked={needsCatalog}
+            onChange={e => setNeedsCatalog(e.target.checked)}
+            className="mt-0.5 rounded border-border"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground">Needs new catalog follow-up</span>
+            <span className="block text-xs text-muted-foreground">
+              Schedules follow-up at order date + 25 days instead of the default + 14 days.
+            </span>
+          </span>
+        </label>
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
