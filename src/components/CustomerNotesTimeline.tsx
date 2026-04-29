@@ -201,6 +201,9 @@ function NoteItem({ note, onDelete, isLatest = false }: { note: Note; onDelete: 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{note.note_type}</span>
+              {isLatest && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+              )}
               <span className="text-[11px] text-muted-foreground">
                 {new Date(note.note_date + "T00:00:00").toLocaleDateString()}
               </span>
