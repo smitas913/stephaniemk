@@ -196,6 +196,17 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
       });
 
+      // Auto-schedule post-order follow-up (clears Today, sets +14d / +25d catalog)
+      try {
+        await applyPostOrderFollowUp({
+          customerId: resolvedCustomerId,
+          orderDate,
+          needsCatalog,
+        });
+      } catch (e) {
+        console.error("Post-order follow-up failed", e);
+      }
+
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
