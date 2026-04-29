@@ -122,6 +122,8 @@ interface Props {
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
     followUpReason?: string | null;
+    /** Resolved intent category (Follow-Up | Booking | Coaching | Recruiting | Team Building). */
+    category: IntentCategory;
   }) => void;
   onSkip?: (item: UniversalActionItem) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
