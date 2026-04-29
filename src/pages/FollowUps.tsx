@@ -4516,7 +4516,7 @@ function ActionRow({
             {item.phone && (
               <>
                 <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`sms:${item.phone}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a></Button>
+                <TextActionButton phone={item.phone} trigger="icon" className="h-8 w-8" />
               </>
             )}
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleInline} title="Log Activity"><FileText className="w-3.5 h-3.5 text-primary" /></Button>
