@@ -334,6 +334,10 @@ export default function Momentum() {
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["notes-all"] });
+    queryClient.invalidateQueries({ queryKey: ["customers"] });
+    queryClient.invalidateQueries({ queryKey: ["prospects"] });
+    queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+    queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
   };
 
   return (
