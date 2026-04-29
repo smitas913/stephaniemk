@@ -605,12 +605,18 @@ export default function EventDetail() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Activity</p>
                     <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-2.5">
                       {hostessNotes.map((note: any, i: number) => (
-                        <div key={i} className="flex items-start gap-2 text-xs">
+                        <div key={i} className={cn(
+                          "flex items-start gap-2 text-xs rounded px-1.5 py-1",
+                          i === 0 ? "bg-primary/10 ring-1 ring-primary/20" : ""
+                        )}>
                           <span className="text-muted-foreground whitespace-nowrap shrink-0">
                             {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
                           </span>
                           <span className="text-muted-foreground">—</span>
                           <span className="font-medium text-foreground shrink-0">{note.note_type || "Note"}</span>
+                          {i === 0 && (
+                            <span className="text-[9px] px-1 py-0 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+                          )}
                           {note.note_body && (
                             <>
                               <span className="text-muted-foreground">—</span>
