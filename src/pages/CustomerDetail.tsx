@@ -693,6 +693,48 @@ export default function CustomerDetail() {
           isPending={actionMutation.isPending || skipMutation.isPending}
         />
 
+        {/* Sent Catalog Dialog */}
+        <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" />Sent Catalog</DialogTitle>
+              <DialogDescription>
+                Logs a "Catalog Sent" activity and schedules a follow-up 6 days out.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Catalog Cycle *</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {CATALOG_CYCLES.map((c) => (
+                    <Button
+                      key={c}
+                      type="button"
+                      size="sm"
+                      variant={catalogCycle === c ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => setCatalogCycle(c)}
+                    >
+                      {c}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Mailing Date *</label>
+                <Input type="date" value={catalogDate} onChange={(e) => setCatalogDate(e.target.value)} className="h-9" />
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => catalogSentMutation.mutate()}
+                disabled={catalogSentMutation.isPending || !catalogDate}
+              >
+                {catalogSentMutation.isPending ? "Logging…" : "Log Catalog Sent"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Convert to Consultant */}
         {!isConsultant && customer.relationship_status !== "Former Consultant" && (
           <Card className="border-border/50 shadow-sm">
