@@ -93,6 +93,8 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   bookingAttemptDetails: FocusDetailItem[];
   coachingDetails: FocusDetailItem[];
   clientFollowUpDetails: FocusDetailItem[];
+  customerFollowUpDetails: FocusDetailItem[];
+  leadFollowUpDetails: FocusDetailItem[];
   hostessCoachingDetails: FocusDetailItem[];
   recruitingFollowUpDetails: FocusDetailItem[];
   relationshipDetails: FocusDetailItem[];
@@ -216,6 +218,12 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const clientFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
     (item) => item.type === "Customer" || item.type === "Lead"
   );
+  const customerFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Customer"
+  );
+  const leadFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Lead"
+  );
 
   // ─── Hostess/Event Coaching details ───
   const hostessCoachingItems: FocusDetailItem[] = [];
@@ -293,6 +301,8 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     bookingAttemptDetails: allBookingAttemptItems,
     coachingDetails: consultantCoachingItems,
     clientFollowUpDetails: clientFollowUpItems,
+    customerFollowUpDetails: customerFollowUpItems,
+    leadFollowUpDetails: leadFollowUpItems,
     hostessCoachingDetails: hostessCoachingItems,
     recruitingFollowUpDetails: recruitingFollowUpItems,
     relationshipDetails: dedupedRelationship,
