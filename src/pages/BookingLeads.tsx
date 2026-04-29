@@ -380,9 +380,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                           <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                             <a href={`tel:${phoneForLink(lead.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                            <a href={`sms:${phoneForLink(lead.phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-                          </Button>
+                          <TextActionButton phone={lead.phone} trigger="icon" className="h-8 w-8" />
                         </>
                       )}
                       {!lead.converted_customer_id && lead.status !== "Not Interested" && (
