@@ -305,18 +305,19 @@ function CampaignDetailSheet({
       const { error } = await supabase.from("catalog_campaign_customers" as any).insert(rows as any);
       if (error) throw error;
 
-      // Create follow-up entries on customers
+      // Log "Catalog Sent" note + schedule follow-up for each (sooner-priority preserved)
+      const { logCatalogSent } = await import("@/lib/catalogTracking");
       for (const cid of customerIds) {
-        const customer = customers.find((c) => c.id === cid);
-        if (customer) {
-          const currentFU = customer.next_follow_up_date;
-          // Only set if no existing follow-up or existing is later
-          if (!currentFU || currentFU > followUpDate) {
-            await supabase.from("customers").update({
-              next_follow_up_date: followUpDate,
-              follow_up_reason: `${campaign.campaign_type} Catalog Follow-Up`,
-            } as any).eq("id", cid);
-          }
+        try {
+          await logCatalogSent({
+            customerId: cid,
+            campaignType: campaign.campaign_type,
+            mailingDate: campaign.mailing_date,
+            campaignId: campaign.id,
+            scheduleFollowUp: true,
+          });
+        } catch (e) {
+          console.error("logCatalogSent failed", cid, e);
         }
       }
     },
@@ -324,10 +325,11 @@ function CampaignDetailSheet({
       queryClient.invalidateQueries({ queryKey: ["campaign-customers", campaign.id] });
       queryClient.invalidateQueries({ queryKey: ["catalog-campaigns"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       setShowAddCustomers(false);
       setSelectedIds(new Set());
       setSearch("");
-      toast.success("Customers added with follow-ups scheduled");
+      toast.success("Catalog sent — follow-ups scheduled & activity logged");
     },
     onError: (err: Error) => toast.error(err.message),
   });

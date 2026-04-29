@@ -17,6 +17,7 @@ import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,8 @@ import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
+import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
+import { BookOpen } from "lucide-react";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -218,6 +221,34 @@ export default function CustomerDetail() {
     onError: (err: any) => {
       toast.error(`Failed to skip: ${err?.message || "unknown error"}`);
     },
+  });
+
+  // ─── Catalog Sent quick action ───
+  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+  const [catalogCycle, setCatalogCycle] = useState<CatalogCycle>("Spring");
+  const [catalogDate, setCatalogDate] = useState<string>(todayKey());
+
+  const catalogInfo = useMemo(() => getLastCatalogInfo(recentUnifiedNotes as any), [recentUnifiedNotes]);
+
+  const catalogSentMutation = useMutation({
+    mutationFn: async () => {
+      return logCatalogSent({
+        customerId: id!,
+        campaignType: catalogCycle,
+        mailingDate: catalogDate,
+        scheduleFollowUp: true,
+      });
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      setCatalogDialogOpen(false);
+      toast.success(`Catalog logged — follow-up ${formatDateOnly(res.followUpDate)}`);
+    },
+    onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
   });
 
   const handleSkip = useCallback(() => {
@@ -544,6 +575,18 @@ export default function CustomerDetail() {
                   <InfoRow label="Next Follow-Up" value={formatDate(customer.next_follow_up_date)} />
                   <InfoRow label="Follow-Up Reason" value={customer.follow_up_reason} />
                   <InfoRow label="Stage" value={customer.new_follow_up_stage} />
+                  <InfoRow
+                    label="Last Catalog Sent"
+                    value={catalogInfo.lastDate ? formatDateOnly(catalogInfo.lastDate, "MMM d, yyyy") : "—"}
+                  />
+                  <InfoRow
+                    label="Catalog Cycle"
+                    value={
+                      catalogInfo.lastDate
+                        ? `${catalogInfo.campaignType || "—"}${catalogInfo.cycle ? ` · ${catalogInfo.cycle}` : ""}`
+                        : "—"
+                    }
+                  />
                 </div>
 
                 {customer.notes && (
@@ -594,11 +637,19 @@ export default function CustomerDetail() {
         </Card>
         {/* Activity — uses same Universal Action Panel as Today */}
         <Card className="border-border/50 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2 flex-wrap">
             <CardTitle className="text-base">Notes & Activity ({recentUnifiedNotes.length})</CardTitle>
-            <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
-              <Plus className="w-3 h-3" />Log Activity
-            </Button>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
+                setCatalogDate(todayKey());
+                setCatalogDialogOpen(true);
+              }}>
+                <BookOpen className="w-3 h-3" />Sent Catalog
+              </Button>
+              <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
+                <Plus className="w-3 h-3" />Log Activity
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {recentUnifiedNotes.length === 0 ? (
@@ -641,6 +692,48 @@ export default function CustomerDetail() {
           onSkip={handleSkip}
           isPending={actionMutation.isPending || skipMutation.isPending}
         />
+
+        {/* Sent Catalog Dialog */}
+        <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" />Sent Catalog</DialogTitle>
+              <DialogDescription>
+                Logs a "Catalog Sent" activity and schedules a follow-up 6 days out.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Catalog Cycle *</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {CATALOG_CYCLES.map((c) => (
+                    <Button
+                      key={c}
+                      type="button"
+                      size="sm"
+                      variant={catalogCycle === c ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => setCatalogCycle(c)}
+                    >
+                      {c}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Mailing Date *</label>
+                <Input type="date" value={catalogDate} onChange={(e) => setCatalogDate(e.target.value)} className="h-9" />
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => catalogSentMutation.mutate()}
+                disabled={catalogSentMutation.isPending || !catalogDate}
+              >
+                {catalogSentMutation.isPending ? "Logging…" : "Log Catalog Sent"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Convert to Consultant */}
         {!isConsultant && customer.relationship_status !== "Former Consultant" && (
