@@ -60,7 +60,11 @@ export default function LeadDetail() {
     () =>
       (allNotes as any[])
         .filter((n) => n.entity_type === "Lead" && n.person_id === id)
-        .sort((a, b) => (b.note_date || b.created_at).localeCompare(a.note_date || a.created_at)),
+        .sort((a, b) => {
+          const aKey = a.created_at || a.note_date || "";
+          const bKey = b.created_at || b.note_date || "";
+          return bKey.localeCompare(aKey);
+        }),
     [allNotes, id]
   );
 
