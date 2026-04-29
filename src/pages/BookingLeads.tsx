@@ -76,6 +76,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const [editForm, setEditForm] = useState({
     name: "", phone: "", email: "", lead_source: "",
     lead_activity: "No Activity Yet", notes: "", next_follow_up_date: "",
+    address_line_1: "", city: "", state_territory: "", postal_code: "",
   });
 
   const filtered = useMemo(() => {
@@ -184,6 +185,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       lead_activity: lead.lead_activity || "No Activity Yet",
       notes: lead.notes || "",
       next_follow_up_date: lead.next_follow_up_date || "",
+      address_line_1: (lead as any).address_line_1 || "",
+      city: (lead as any).city || "",
+      state_territory: (lead as any).state_territory || "",
+      postal_code: (lead as any).postal_code || "",
     });
   };
 
@@ -263,7 +268,11 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       lead_activity: editForm.lead_activity || "No Activity Yet",
       notes: editForm.notes.trim() || null,
       next_follow_up_date: editForm.next_follow_up_date || null,
-    });
+      address_line_1: editForm.address_line_1.trim() || null,
+      city: editForm.city.trim() || null,
+      state_territory: editForm.state_territory.trim() || null,
+      postal_code: editForm.postal_code.trim() || null,
+    } as any);
   };
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
@@ -506,6 +515,15 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                 </Select>
               </div>
               <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Address</label>
+                <Input value={editForm.address_line_1} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} placeholder="Street address" className="h-9" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Input value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} placeholder="City" className="h-9" />
+                <Input value={editForm.state_territory} onChange={(e) => setEditForm({ ...editForm, state_territory: e.target.value })} placeholder="State" className="h-9" />
+                <Input value={editForm.postal_code} onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })} placeholder="Zip" className="h-9" />
+              </div>
+              <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
                 <Textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className="min-h-[60px]" />
               </div>
@@ -524,6 +542,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }) =>
             actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate })
           }
+          onNavigateToProfile={(uItem) => {
+            setActionPanelOpen(false);
+            navigate(`/booking-leads/${uItem.id}`, { state: { from: "/clients?tab=leads" } });
+          }}
           isPending={actionMutation.isPending}
         />
 

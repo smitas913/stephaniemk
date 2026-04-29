@@ -287,6 +287,10 @@ export interface BookingLead {
   converted_customer_id: string | null;
   owner_user_id: string | null;
   allow_non_working_day: boolean;
+  address_line_1: string | null;
+  city: string | null;
+  state_territory: string | null;
+  postal_code: string | null;
   created_at: string;
   updated_at: string | null;
 }

@@ -237,8 +237,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
               )}
             </div>
             {onNavigateToProfile && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => onNavigateToProfile(item)}>
-                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 gap-1"
+                onClick={() => onNavigateToProfile(item)}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium">View Full Profile</span>
               </Button>
             )}
           </div>
