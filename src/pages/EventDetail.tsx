@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
+import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
