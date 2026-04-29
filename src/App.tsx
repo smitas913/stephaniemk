@@ -33,7 +33,6 @@ import Expenses from "./pages/Expenses";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
-import Scoreboard from "./pages/Scoreboard";
 import Analytics from "./pages/Analytics";
 import BookingLeads from "./pages/BookingLeads";
 import LeadDetail from "./pages/LeadDetail";
@@ -44,7 +43,7 @@ import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
 import Scripts from "./pages/Scripts";
-import Momentum from "./pages/Momentum";
+
 
 const queryClient = new QueryClient();
 
