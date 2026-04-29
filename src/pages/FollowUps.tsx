@@ -1849,7 +1849,113 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const rescheduleArchiveMutation = useMutation({
+  // ─── Fresh Start: reschedule all current Today/Overdue follow-ups forward ───
+  // Spreads them across [tomorrow, today + N days] using the existing workday-aware
+  // spreadTasks helper so the user lands on a clean Today without losing data.
+  // Captures previous dates for one-shot Undo.
+  const freshStartMutation = useMutation({
+    mutationFn: async (windowDays: number) => {
+      const itemsToReset = todayActions.filter(
+        (i) => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY"
+      );
+      if (itemsToReset.length === 0) return { undo: [] as Array<any>, count: 0, perDay: 0 };
+
+      // Distribute evenly across the window (ceil) so all items fit.
+      const perDay = Math.max(1, Math.ceil(itemsToReset.length / windowDays));
+      const tomorrow = toLocalDateKey(addDays(new Date(), 1));
+      const seedDates = itemsToReset.map(() => tomorrow);
+      const blackout = new Set<string>();
+      const newDates = spreadTasks(seedDates, perDay, null, blackout, workdayFlags);
+
+      const undo: Array<{ itemType: string; id: string; previousDate: string | null; eventTaskId?: string }> = [];
+
+      await Promise.allSettled(
+        itemsToReset.map((item, idx) => {
+          const newDate = newDates[idx];
+          undo.push({
+            itemType: item.itemType,
+            id: item.id,
+            previousDate: item.next_follow_up || null,
+            eventTaskId: item._eventTaskId,
+          });
+          switch (item.itemType) {
+            case "customer":
+              return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
+            case "lead":
+              return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+            case "prospect":
+              return updateProspect(item.id, { next_follow_up_date: newDate } as any);
+            case "consultant":
+              return updateTeamConsultant(item.id, { next_coaching_date: newDate } as any);
+            case "hostess":
+              return updateEvent(item.id, { hostess_next_action_date: newDate } as any);
+            case "event_task":
+              return supabase.from("event_tasks").update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
+            default:
+              return Promise.resolve();
+          }
+        })
+      );
+
+      return { undo, count: itemsToReset.length, perDay };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      setShowFreshStart(false);
+      if (result.count === 0) {
+        toast.info("Nothing to reset — Today is already clear.");
+        return;
+      }
+      setFreshStartUndo(result.undo);
+      toast.success(`Fresh Start: ${result.count} follow-ups spread across the next ${freshStartDays} days.`, { duration: 8000 });
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to reset follow-ups"),
+  });
+
+  // Undo the most recent Fresh Start (restores prior next_follow_up dates).
+  const freshStartUndoMutation = useMutation({
+    mutationFn: async () => {
+      if (!freshStartUndo) return 0;
+      await Promise.allSettled(
+        freshStartUndo.map((u) => {
+          switch (u.itemType) {
+            case "customer":
+              return updateCustomer(u.id, { next_follow_up_date: u.previousDate } as any);
+            case "lead":
+              return updateBookingLead(u.id, { next_follow_up_date: u.previousDate } as any);
+            case "prospect":
+              return updateProspect(u.id, { next_follow_up_date: u.previousDate } as any);
+            case "consultant":
+              return updateTeamConsultant(u.id, { next_coaching_date: u.previousDate } as any);
+            case "hostess":
+              return updateEvent(u.id, { hostess_next_action_date: u.previousDate } as any);
+            case "event_task":
+              return supabase.from("event_tasks").update({ due_date: u.previousDate }).eq("id", u.eventTaskId || u.id);
+            default:
+              return Promise.resolve();
+          }
+        })
+      );
+      return freshStartUndo.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      setFreshStartUndo(null);
+      toast.success(`Undone — restored ${count} follow-up dates.`);
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to undo"),
+  });
+
     mutationFn: async (event: EventRecord) => {
       await updateEvent(event.id, { is_archived: true, reschedule_next_follow_up_date: null, requires_manual_next_step: false } as any);
     },
