@@ -911,13 +911,19 @@ export default function FollowUps() {
       return true;
     });
 
-    // Rescheduling follow-up: events needing rebooking attention
+    // Rescheduling follow-up: events needing rebooking attention.
+    // Only surface in Today when the next reschedule follow-up is due (≤ today)
+    // OR there is no scheduled date yet OR a manual next step is required.
+    // This ensures that if the user pushes the date forward, the task clears.
     const reschedulingFollowUp = events.filter((e) => {
       if (e.is_archived) return false;
       const reschedule = e.reschedule_status || "None";
-      if (reschedule === "In Process of Rescheduling") return true;
-      if (e.event_status === "Cancelled") return true;
-      return false;
+      const isReschedule = reschedule === "In Process of Rescheduling" || e.event_status === "Cancelled";
+      if (!isReschedule) return false;
+      if (e.requires_manual_next_step) return true;
+      const fu = e.reschedule_next_follow_up_date;
+      if (!fu) return true;
+      return fu <= todayKey;
     }).sort((a, b) => {
       // Due today/overdue first
       const aDate = a.reschedule_next_follow_up_date || "9999";
