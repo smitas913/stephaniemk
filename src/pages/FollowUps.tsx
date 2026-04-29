@@ -574,6 +574,9 @@ export default function FollowUps() {
   // Universal Action Panel state
   const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
   const [universalPanelOpen, setUniversalPanelOpen] = useState(false);
+  // Tracks the source event when the Universal panel was opened from a Reschedule row.
+  // When set, onLogAction routes through reschedule update logic instead of generic hostess flow.
+  const [universalRescheduleEvent, setUniversalRescheduleEvent] = useState<EventRecord | null>(null);
 
   const openUniversalPanel = useCallback((item: ActionItem) => {
     // Build recent notes for this entity from unified notes
@@ -911,13 +914,19 @@ export default function FollowUps() {
       return true;
     });
 
-    // Rescheduling follow-up: events needing rebooking attention
+    // Rescheduling follow-up: events needing rebooking attention.
+    // Only surface in Today when the next reschedule follow-up is due (≤ today)
+    // OR there is no scheduled date yet OR a manual next step is required.
+    // This ensures that if the user pushes the date forward, the task clears.
     const reschedulingFollowUp = events.filter((e) => {
       if (e.is_archived) return false;
       const reschedule = e.reschedule_status || "None";
-      if (reschedule === "In Process of Rescheduling") return true;
-      if (e.event_status === "Cancelled") return true;
-      return false;
+      const isReschedule = reschedule === "In Process of Rescheduling" || e.event_status === "Cancelled";
+      if (!isReschedule) return false;
+      if (e.requires_manual_next_step) return true;
+      const fu = e.reschedule_next_follow_up_date;
+      if (!fu) return true;
+      return fu <= todayKey;
     }).sort((a, b) => {
       // Due today/overdue first
       const aDate = a.reschedule_next_follow_up_date || "9999";
@@ -1506,6 +1515,10 @@ export default function FollowUps() {
     },
   });
 
+  // Ref forwarder so handleUniversalAction (declared early) can call rescheduleLogMutation
+  // (declared later) without hitting the temporal dead zone.
+  const rescheduleLogRef = useRef<((args: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => void) | null>(null);
+
   // Universal Action Panel handler (placed after contactMutation)
   const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
     item: UniversalActionItem;
@@ -1515,6 +1528,20 @@ export default function FollowUps() {
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
   }) => {
+    // If the panel was opened from a Reschedule row, route through reschedule logic so the
+    // event's reschedule_* fields update (and the Today task clears once the date moves forward).
+    if (universalRescheduleEvent) {
+      rescheduleLogRef.current?.({
+        event: universalRescheduleEvent,
+        noteType: actionType,
+        noteText: note,
+        overrideNextDate: nextFollowUpDate ?? undefined,
+      });
+      setUniversalRescheduleEvent(null);
+      setUniversalPanelOpen(false);
+      setUniversalPanelItem(null);
+      return;
+    }
     const ai: ActionItem = {
       id: uItem.id, itemType: uItem.personType, name: uItem.name,
       phone: uItem.phone, email: uItem.email,
@@ -1528,16 +1555,56 @@ export default function FollowUps() {
       isBookingAttempt,
       isFollowUp,
     });
-  }, [contactMutation]);
+  }, [contactMutation, universalRescheduleEvent]);
+
+  // Open the Universal Action Panel for a Reschedule Follow-Up row.
+  // Treats the event as a "hostess" person so the unified UI works as everywhere else.
+  const openRescheduleUniversalPanel = useCallback((evt: EventRecord) => {
+    const recentNotes = unifiedNotes
+      .filter((n: any) => n.entity_type === "Hostess" && evt.hostess_name && n.note_body?.includes(evt.hostess_name))
+      .slice(0, 5)
+      .map((n: any) => ({
+        date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+        actionType: n.note_type || "Note",
+        preview: (n.note_body || "").slice(0, 80),
+      }));
+    setUniversalRescheduleEvent(evt);
+    setUniversalPanelItem({
+      id: evt.id,
+      personType: "hostess",
+      name: evt.hostess_name || evt.event_id,
+      phone: evt.hostess_phone || null,
+      email: evt.hostess_email || null,
+      statusLabel: `Reschedule — Attempt #${(evt.reschedule_attempt_number || 0) + 1}`,
+      followUpReason: "Rescheduling",
+      nextFollowUpDate: evt.reschedule_next_follow_up_date || null,
+      recentNotes,
+    });
+    setUniversalPanelOpen(true);
+  }, [unifiedNotes]);
 
   const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
+    // Skip from a reschedule row: push the reschedule follow-up date out by 2 days, no activity counted.
+    if (universalRescheduleEvent) {
+      const nextDate = toLocalDateKey(addDays(new Date(), 2));
+      updateEvent(universalRescheduleEvent.id, { reschedule_next_follow_up_date: nextDate } as any)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["events"] });
+          toast.success("Skipped — rescheduled");
+        })
+        .catch((err: any) => toast.error(err?.message || "Failed to skip"));
+      setUniversalRescheduleEvent(null);
+      setUniversalPanelOpen(false);
+      setUniversalPanelItem(null);
+      return;
+    }
     const ai: ActionItem = {
       id: uItem.id, itemType: uItem.personType, name: uItem.name,
       phone: uItem.phone, email: uItem.email,
       next_follow_up: null, follow_up_status: uItem.followUpStatus || "", actionLabel: "",
     };
     skipFollowUpMutation.mutate({ item: ai });
-  }, [skipFollowUpMutation]);
+  }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
 
   const handleInlineSave = (item: ActionItem) => {
     contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
@@ -1704,15 +1771,18 @@ export default function FollowUps() {
   };
 
   const rescheduleLogMutation = useMutation({
-    mutationFn: async ({ event, noteType: nt, noteText: text }: { event: EventRecord; noteType: string; noteText: string }) => {
+    mutationFn: async ({ event, noteType: nt, noteText: text, overrideNextDate }: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => {
       const newAttempt = (event.reschedule_attempt_number || 0) + 1;
-      const nextFollowUp = getNextRescheduleFollowUp(newAttempt);
+      // Honor a user-chosen next follow-up date if provided; otherwise fall back to cadence.
+      const nextFollowUp = overrideNextDate !== undefined
+        ? overrideNextDate
+        : getNextRescheduleFollowUp(newAttempt);
       const updates: Record<string, any> = {
         reschedule_last_contact_date: toLocalDateKey(),
         reschedule_attempt_number: newAttempt,
         reschedule_next_follow_up_date: nextFollowUp,
         reschedule_status: "In Process of Rescheduling",
-        requires_manual_next_step: newAttempt >= 5,
+        requires_manual_next_step: newAttempt >= 5 && !nextFollowUp,
       };
       await updateEvent(event.id, updates);
       // Log centralized note for traceability and 6 Important tracking
@@ -1743,6 +1813,8 @@ export default function FollowUps() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+  // Wire the ref so handleUniversalAction (defined earlier) can invoke this mutation.
+  rescheduleLogRef.current = (args) => rescheduleLogMutation.mutate(args);
 
   const rescheduleSetNewDateMutation = useMutation({
     mutationFn: async ({ event, newDate }: { event: EventRecord; newDate: string }) => {
@@ -2108,7 +2180,7 @@ export default function FollowUps() {
                                             {evt.requires_manual_next_step ? (
                                               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
                                             ) : (
-                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setRescheduleActivityEvent(evt); setRescheduleStep("log"); }}>Log Activity</Button>
+                                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRescheduleUniversalPanel(evt)}>Log Activity</Button>
                                             )}
                                             <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
                                             <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
@@ -2615,7 +2687,7 @@ export default function FollowUps() {
         <UniversalActionPanel
           item={universalPanelItem}
           open={universalPanelOpen}
-          onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); }}
+          onClose={() => { setUniversalPanelOpen(false); setUniversalPanelItem(null); setUniversalRescheduleEvent(null); }}
           onLogAction={handleUniversalAction}
           onSkip={handleUniversalSkip}
           onNavigateToProfile={(uItem) => {
