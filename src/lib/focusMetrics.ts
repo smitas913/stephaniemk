@@ -218,6 +218,12 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const clientFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
     (item) => item.type === "Customer" || item.type === "Lead"
   );
+  const customerFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Customer"
+  );
+  const leadFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Lead"
+  );
 
   // ─── Hostess/Event Coaching details ───
   const hostessCoachingItems: FocusDetailItem[] = [];
