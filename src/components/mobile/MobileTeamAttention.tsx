@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Calendar, Phone, MessageSquare, StickyNote, ChevronRight, Crown, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import TextActionButton from "@/components/TextActionButton";
 
 type TeamFilter = "attention" | "today" | "all";
 
