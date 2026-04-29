@@ -574,6 +574,9 @@ export default function FollowUps() {
   // Universal Action Panel state
   const [universalPanelItem, setUniversalPanelItem] = useState<UniversalActionItem | null>(null);
   const [universalPanelOpen, setUniversalPanelOpen] = useState(false);
+  // Tracks the source event when the Universal panel was opened from a Reschedule row.
+  // When set, onLogAction routes through reschedule update logic instead of generic hostess flow.
+  const [universalRescheduleEvent, setUniversalRescheduleEvent] = useState<EventRecord | null>(null);
 
   const openUniversalPanel = useCallback((item: ActionItem) => {
     // Build recent notes for this entity from unified notes
