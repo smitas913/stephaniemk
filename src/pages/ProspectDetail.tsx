@@ -351,8 +351,8 @@ export default function ProspectDetail() {
               <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
             ) : (
               <div className="space-y-2">
-                {notes.map((n) => (
-                  <NoteItem key={n.id} note={n} onDelete={() => deleteNoteMut.mutate(n.id)} />
+                {notes.map((n, idx) => (
+                  <NoteItem key={n.id} note={n} isLatest={idx === 0} onDelete={() => deleteNoteMut.mutate(n.id)} />
                 ))}
               </div>
             )}
