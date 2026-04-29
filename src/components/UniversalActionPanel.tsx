@@ -393,29 +393,60 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
             {/* ── Step 2: What's Next? (with reason + notes) ── */}
             {step === "whats-next" && (
               <div className="space-y-4">
-                {/* Follow-Up Reason chips */}
-                {reasonOptions.length > 0 && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Reason (optional)</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {reasonOptions.map((reason) => (
-                        <button
-                          key={reason}
-                          type="button"
-                          onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
-                          className={cn(
-                            "px-2.5 py-1 rounded-full text-xs font-medium border transition-all",
-                            selectedReason === reason
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-muted/50 text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                          )}
-                        >
-                          {reason}
-                        </button>
-                      ))}
-                    </div>
+                {/* Follow-Up Reason picker — intent-based, grouped by category.
+                    No selection ⇒ defaults to the Follow-Up category. */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Reason / Intent <span className="font-normal italic">(optional — defaults to Follow-Up)</span>
+                    </label>
+                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide", CATEGORY_BADGE_CLASS[resolvedCategory])}>
+                      → {resolvedCategory}
+                    </span>
                   </div>
-                )}
+
+                  {/* Suggested for this person type — surfaced first as a UX nudge */}
+                  {suggestedReasons.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 font-semibold">Suggested</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {suggestedReasons.map((reason) => (
+                          <ReasonChip
+                            key={`suggested-${reason}`}
+                            reason={reason}
+                            selected={selectedReason === reason}
+                            onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Full library, grouped by category */}
+                  <div className="space-y-1.5 pt-1">
+                    {INTENT_CATEGORIES.map((cat) => {
+                      const reasons = REASONS_BY_CATEGORY[cat].filter((r) => !suggestedReasons.includes(r));
+                      if (reasons.length === 0) return null;
+                      return (
+                        <div key={cat} className="space-y-0.5">
+                          <p className={cn("inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide", CATEGORY_BADGE_CLASS[cat])}>
+                            {cat}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {reasons.map((reason) => (
+                              <ReasonChip
+                                key={`${cat}-${reason}`}
+                                reason={reason}
+                                selected={selectedReason === reason}
+                                onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {/* New Note */}
                 <div className="space-y-1.5">
