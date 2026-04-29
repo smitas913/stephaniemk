@@ -2513,9 +2513,7 @@ export default function FollowUps() {
                                                <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                                  <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
                                                </Button>
-                                               <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                 <a href={`sms:${phoneForLink(evt.hostess_phone)}`}><MessageSquare className="w-3.5 h-3.5 text-primary" /></a>
-                                               </Button>
+                                                <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-7 w-7" />
                                              </>
                                            )}
                                          </div>
