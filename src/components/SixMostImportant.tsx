@@ -22,7 +22,9 @@ import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
 
 interface AutoCounts {
   booking_attempts: number;
-  client_followup: number;
+  customer_followup: number;
+  lead_followup: number;
+  client_followup: number; // legacy combined; kept for back-compat
   hostess_coaching: number;
   recruiting_followup: number;
   consultant_coaching: number;
@@ -41,6 +43,8 @@ interface SixMostImportantProps {
 // Map auto_track_key to the correct detail category
 const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsForDate>> = {
   booking_attempts: "bookingAttemptDetails",
+  customer_followup: "customerFollowUpDetails",
+  lead_followup: "leadFollowUpDetails",
   client_followup: "clientFollowUpDetails",
   hostess_coaching: "hostessCoachingDetails",
   recruiting_followup: "recruitingFollowUpDetails",
@@ -53,7 +57,9 @@ function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key"
 
   const normalizedLabel = config.label.trim().toLowerCase();
   if (normalizedLabel.includes("booking attempt")) return "booking_attempts";
-  if (normalizedLabel.includes("client") || normalizedLabel.includes("lead follow")) return "client_followup";
+  if (normalizedLabel.includes("customer follow")) return "customer_followup";
+  if (normalizedLabel.includes("lead follow")) return "lead_followup";
+  if (normalizedLabel.includes("client")) return "client_followup";
   if (normalizedLabel.includes("hostess") || normalizedLabel.includes("event coach")) return "hostess_coaching";
   if (normalizedLabel.includes("recruiting")) return "recruiting_followup";
   if (normalizedLabel.includes("consultant") || normalizedLabel.includes("team building")) return "consultant_coaching";
