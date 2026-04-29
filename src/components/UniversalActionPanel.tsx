@@ -139,6 +139,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const [customDate, setCustomDate] = useState("");
   const [actionLogged, setActionLogged] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  // Manual booking-attempt override. `null` = use auto-derived value from intent;
+  // `true`/`false` = user explicitly toggled it on/off.
+  const [bookingAttemptOverride, setBookingAttemptOverride] = useState<boolean | null>(null);
 
   const resetState = useCallback(() => {
     setStep("action");
@@ -148,6 +151,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setCustomDate("");
     setActionLogged(false);
     setSelectedReason(null);
+    setBookingAttemptOverride(null);
   }, []);
 
   const handleClose = useCallback(() => {
