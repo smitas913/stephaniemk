@@ -222,7 +222,34 @@ export default function CustomerDetail() {
     },
   });
 
-  const handleSkip = useCallback(() => {
+  // ─── Catalog Sent quick action ───
+  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+  const [catalogCycle, setCatalogCycle] = useState<CatalogCycle>("Spring");
+  const [catalogDate, setCatalogDate] = useState<string>(todayKey());
+
+  const catalogInfo = useMemo(() => getLastCatalogInfo(recentUnifiedNotes as any), [recentUnifiedNotes]);
+
+  const catalogSentMutation = useMutation({
+    mutationFn: async () => {
+      return logCatalogSent({
+        customerId: id!,
+        campaignType: catalogCycle,
+        mailingDate: catalogDate,
+        scheduleFollowUp: true,
+      });
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      setCatalogDialogOpen(false);
+      toast.success(`Catalog logged — follow-up ${formatDateOnly(res.followUpDate)}`);
+    },
+    onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
+  });
+
     skipMutation.mutate();
   }, [skipMutation]);
 
