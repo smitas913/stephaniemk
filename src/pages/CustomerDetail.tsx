@@ -250,6 +250,7 @@ export default function CustomerDetail() {
     onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
   });
 
+  const handleSkip = useCallback(() => {
     skipMutation.mutate();
   }, [skipMutation]);
 
