@@ -2981,6 +2981,57 @@ export default function FollowUps() {
           </SheetContent>
         </Sheet>
 
+        {/* Fresh Start Dialog — reschedule today's backlog forward */}
+        <Dialog open={showFreshStart} onOpenChange={setShowFreshStart}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-primary" /> Fresh Start
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This will move <strong>all {todayActions.filter(i => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY").length} current Today &amp; Overdue follow-ups</strong> forward and stagger them across the next several workdays. No data is deleted — you can Undo right after.
+              </p>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Spread across</label>
+                <div className="flex gap-2">
+                  {(["7", "14", "30"] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setFreshStartDays(d)}
+                      className={cn(
+                        "flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all",
+                        freshStartDays === d
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card hover:border-primary/50"
+                      )}
+                    >
+                      {d} days
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
+                <p>• Items spread starting tomorrow, distributed across workdays.</p>
+                <p>• All history, notes, and relationships are preserved.</p>
+                <p>• Undo button appears after the reset.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowFreshStart(false)}>Cancel</Button>
+                <Button
+                  className="flex-1"
+                  disabled={freshStartMutation.isPending}
+                  onClick={() => freshStartMutation.mutate(parseInt(freshStartDays, 10))}
+                >
+                  {freshStartMutation.isPending ? "Resetting…" : `Reset ${todayActions.filter(i => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY").length} follow-ups`}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Distribute Dialog */}
         <Dialog open={showDistribute} onOpenChange={(open) => { setShowDistribute(open); if (!open) { setDistributeStep("configure"); setDistributeSelectedIds(new Set()); } }}>
           <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
