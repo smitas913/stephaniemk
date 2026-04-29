@@ -1524,6 +1524,20 @@ export default function FollowUps() {
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
   }) => {
+    // If the panel was opened from a Reschedule row, route through reschedule logic so the
+    // event's reschedule_* fields update (and the Today task clears once the date moves forward).
+    if (universalRescheduleEvent) {
+      rescheduleLogMutation.mutate({
+        event: universalRescheduleEvent,
+        noteType: actionType,
+        noteText: note,
+        overrideNextDate: nextFollowUpDate ?? undefined,
+      });
+      setUniversalRescheduleEvent(null);
+      setUniversalPanelOpen(false);
+      setUniversalPanelItem(null);
+      return;
+    }
     const ai: ActionItem = {
       id: uItem.id, itemType: uItem.personType, name: uItem.name,
       phone: uItem.phone, email: uItem.email,
@@ -1537,16 +1551,56 @@ export default function FollowUps() {
       isBookingAttempt,
       isFollowUp,
     });
-  }, [contactMutation]);
+  }, [contactMutation, universalRescheduleEvent, rescheduleLogMutation]);
+
+  // Open the Universal Action Panel for a Reschedule Follow-Up row.
+  // Treats the event as a "hostess" person so the unified UI works as everywhere else.
+  const openRescheduleUniversalPanel = useCallback((evt: EventRecord) => {
+    const recentNotes = unifiedNotes
+      .filter((n: any) => n.entity_type === "Hostess" && evt.hostess_name && n.note_body?.includes(evt.hostess_name))
+      .slice(0, 5)
+      .map((n: any) => ({
+        date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+        actionType: n.note_type || "Note",
+        preview: (n.note_body || "").slice(0, 80),
+      }));
+    setUniversalRescheduleEvent(evt);
+    setUniversalPanelItem({
+      id: evt.id,
+      personType: "hostess",
+      name: evt.hostess_name || evt.event_id,
+      phone: evt.hostess_phone || null,
+      email: evt.hostess_email || null,
+      statusLabel: `Reschedule — Attempt #${(evt.reschedule_attempt_number || 0) + 1}`,
+      followUpReason: "Rescheduling",
+      nextFollowUpDate: evt.reschedule_next_follow_up_date || null,
+      recentNotes,
+    });
+    setUniversalPanelOpen(true);
+  }, [unifiedNotes]);
 
   const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
+    // Skip from a reschedule row: push the reschedule follow-up date out by 2 days, no activity counted.
+    if (universalRescheduleEvent) {
+      const nextDate = toLocalDateKey(addDays(new Date(), 2));
+      updateEvent(universalRescheduleEvent.id, { reschedule_next_follow_up_date: nextDate } as any)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["events"] });
+          toast.success("Skipped — rescheduled");
+        })
+        .catch((err: any) => toast.error(err?.message || "Failed to skip"));
+      setUniversalRescheduleEvent(null);
+      setUniversalPanelOpen(false);
+      setUniversalPanelItem(null);
+      return;
+    }
     const ai: ActionItem = {
       id: uItem.id, itemType: uItem.personType, name: uItem.name,
       phone: uItem.phone, email: uItem.email,
       next_follow_up: null, follow_up_status: uItem.followUpStatus || "", actionLabel: "",
     };
     skipFollowUpMutation.mutate({ item: ai });
-  }, [skipFollowUpMutation]);
+  }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
 
   const handleInlineSave = (item: ActionItem) => {
     contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
