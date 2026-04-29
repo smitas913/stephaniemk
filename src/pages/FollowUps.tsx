@@ -1531,7 +1531,7 @@ export default function FollowUps() {
     // If the panel was opened from a Reschedule row, route through reschedule logic so the
     // event's reschedule_* fields update (and the Today task clears once the date moves forward).
     if (universalRescheduleEvent) {
-      rescheduleLogMutation.mutate({
+      rescheduleLogRef.current?.({
         event: universalRescheduleEvent,
         noteType: actionType,
         noteText: note,
