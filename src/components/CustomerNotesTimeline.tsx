@@ -184,7 +184,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   );
 }
 
-function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
+function NoteItem({ note, onDelete, isLatest = false }: { note: Note; onDelete: () => void; isLatest?: boolean }) {
   const Icon = NOTE_TYPE_ICONS[note.note_type] || FileText;
   const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.Other;
 
@@ -193,7 +193,10 @@ function NoteItem({ note, onDelete }: { note: Note; onDelete: () => void }) {
       <div className={cn("absolute left-2 top-1 w-5 h-5 rounded-full flex items-center justify-center z-10", colors)}>
         <Icon className="w-3 h-3" />
       </div>
-      <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
+      <div className={cn(
+        "p-3 rounded-lg border",
+        isLatest ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-muted/40 border-border/50"
+      )}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
