@@ -635,6 +635,18 @@ export default function FollowUps() {
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
 
+  // ─── Fresh Start (manual backlog reset) ───
+  // Reschedules ALL current Today/Overdue follow-ups forward and staggers them across
+  // the chosen window so the user can recover from a backlog flood without losing data.
+  const [showFreshStart, setShowFreshStart] = useState(false);
+  const [freshStartDays, setFreshStartDays] = useState<"7" | "14" | "30">("14");
+  const [freshStartUndo, setFreshStartUndo] = useState<Array<{
+    itemType: string;
+    id: string;
+    previousDate: string | null;
+    eventTaskId?: string;
+  }> | null>(null);
+
   const [scheduleDelivery, setScheduleDelivery] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState(toLocalDateKey(addDays(new Date(), 1)));
   const [deliveryNotes, setDeliveryNotes] = useState("");
@@ -1837,6 +1849,113 @@ export default function FollowUps() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // ─── Fresh Start: reschedule all current Today/Overdue follow-ups forward ───
+  // Spreads them across [tomorrow, today + N days] using the existing workday-aware
+  // spreadTasks helper so the user lands on a clean Today without losing data.
+  // Captures previous dates for one-shot Undo.
+  const freshStartMutation = useMutation({
+    mutationFn: async (windowDays: number) => {
+      const itemsToReset = todayActions.filter(
+        (i) => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY"
+      );
+      if (itemsToReset.length === 0) return { undo: [] as Array<any>, count: 0, perDay: 0 };
+
+      // Distribute evenly across the window (ceil) so all items fit.
+      const perDay = Math.max(1, Math.ceil(itemsToReset.length / windowDays));
+      const tomorrow = toLocalDateKey(addDays(new Date(), 1));
+      const seedDates = itemsToReset.map(() => tomorrow);
+      const blackout = new Set<string>();
+      const newDates = spreadTasks(seedDates, perDay, null, blackout, workdayFlags);
+
+      const undo: Array<{ itemType: string; id: string; previousDate: string | null; eventTaskId?: string }> = [];
+
+      await Promise.allSettled(
+        itemsToReset.map((item, idx) => {
+          const newDate = newDates[idx];
+          undo.push({
+            itemType: item.itemType,
+            id: item.id,
+            previousDate: item.next_follow_up || null,
+            eventTaskId: item._eventTaskId,
+          });
+          switch (item.itemType) {
+            case "customer":
+              return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
+            case "lead":
+              return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+            case "prospect":
+              return updateProspect(item.id, { next_follow_up_date: newDate } as any);
+            case "consultant":
+              return updateTeamConsultant(item.id, { next_coaching_date: newDate } as any);
+            case "hostess":
+              return updateEvent(item.id, { hostess_next_action_date: newDate } as any);
+            case "event_task":
+              return supabase.from("event_tasks").update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
+            default:
+              return Promise.resolve();
+          }
+        })
+      );
+
+      return { undo, count: itemsToReset.length, perDay };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      setShowFreshStart(false);
+      if (result.count === 0) {
+        toast.info("Nothing to reset — Today is already clear.");
+        return;
+      }
+      setFreshStartUndo(result.undo);
+      toast.success(`Fresh Start: ${result.count} follow-ups spread across the next ${freshStartDays} days.`, { duration: 8000 });
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to reset follow-ups"),
+  });
+
+  // Undo the most recent Fresh Start (restores prior next_follow_up dates).
+  const freshStartUndoMutation = useMutation({
+    mutationFn: async () => {
+      if (!freshStartUndo) return 0;
+      await Promise.allSettled(
+        freshStartUndo.map((u) => {
+          switch (u.itemType) {
+            case "customer":
+              return updateCustomer(u.id, { next_follow_up_date: u.previousDate } as any);
+            case "lead":
+              return updateBookingLead(u.id, { next_follow_up_date: u.previousDate } as any);
+            case "prospect":
+              return updateProspect(u.id, { next_follow_up_date: u.previousDate } as any);
+            case "consultant":
+              return updateTeamConsultant(u.id, { next_coaching_date: u.previousDate } as any);
+            case "hostess":
+              return updateEvent(u.id, { hostess_next_action_date: u.previousDate } as any);
+            case "event_task":
+              return supabase.from("event_tasks").update({ due_date: u.previousDate }).eq("id", u.eventTaskId || u.id);
+            default:
+              return Promise.resolve();
+          }
+        })
+      );
+      return freshStartUndo.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      setFreshStartUndo(null);
+      toast.success(`Undone — restored ${count} follow-up dates.`);
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to undo"),
+  });
+
   const rescheduleArchiveMutation = useMutation({
     mutationFn: async (event: EventRecord) => {
       await updateEvent(event.id, { is_archived: true, reschedule_next_follow_up_date: null, requires_manual_next_step: false } as any);
@@ -1913,6 +2032,33 @@ export default function FollowUps() {
             <p className="text-xs text-muted-foreground mt-0.5">
               {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {freshStartUndo && freshStartUndo.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => freshStartUndoMutation.mutate()}
+                disabled={freshStartUndoMutation.isPending}
+                title="Restore previous follow-up dates"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Undo Fresh Start
+              </Button>
+            )}
+            {todayActions.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => setShowFreshStart(true)}
+                title="Reschedule all of Today's follow-ups forward to recover from a backlog"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Fresh Start
+              </Button>
+            )}
           </div>
         </div>
 
@@ -2834,6 +2980,57 @@ export default function FollowUps() {
             </ScrollArea>
           </SheetContent>
         </Sheet>
+
+        {/* Fresh Start Dialog — reschedule today's backlog forward */}
+        <Dialog open={showFreshStart} onOpenChange={setShowFreshStart}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-primary" /> Fresh Start
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This will move <strong>all {todayActions.filter(i => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY").length} current Today &amp; Overdue follow-ups</strong> forward and stagger them across the next several workdays. No data is deleted — you can Undo right after.
+              </p>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Spread across</label>
+                <div className="flex gap-2">
+                  {(["7", "14", "30"] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setFreshStartDays(d)}
+                      className={cn(
+                        "flex-1 px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all",
+                        freshStartDays === d
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card hover:border-primary/50"
+                      )}
+                    >
+                      {d} days
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
+                <p>• Items spread starting tomorrow, distributed across workdays.</p>
+                <p>• All history, notes, and relationships are preserved.</p>
+                <p>• Undo button appears after the reset.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowFreshStart(false)}>Cancel</Button>
+                <Button
+                  className="flex-1"
+                  disabled={freshStartMutation.isPending}
+                  onClick={() => freshStartMutation.mutate(parseInt(freshStartDays, 10))}
+                >
+                  {freshStartMutation.isPending ? "Resetting…" : `Reset ${todayActions.filter(i => i.follow_up_status === "OVERDUE" || i.follow_up_status === "TODAY").length} follow-ups`}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Distribute Dialog */}
         <Dialog open={showDistribute} onOpenChange={(open) => { setShowDistribute(open); if (!open) { setDistributeStep("configure"); setDistributeSelectedIds(new Set()); } }}>
