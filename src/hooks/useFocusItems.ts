@@ -42,26 +42,23 @@ export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 2, label: "Hostess / Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
   { sort_order: 3, label: "Consultant Coaching", default_target: 2, auto_track_key: "consultant_coaching" },
   { sort_order: 4, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
-  { sort_order: 5, label: "Custom Focus", default_target: 1, auto_track_key: null },
 ];
 
-/** Returns true if saved configs match the canonical structure (slots 0-4 fixed; slot 5 user-customizable). */
+/** Returns true if saved configs match the canonical 5-slot structure. */
 export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
-  if (configs.length !== 6) return false;
-  // Slots 0-4 must use canonical auto_track_keys at their expected positions
+  if (configs.length !== 5) return false;
   const expected = ["customer_followup", "lead_followup", "hostess_coaching", "consultant_coaching", "relationship"];
   for (let i = 0; i < 5; i++) {
     const c = configs.find(cfg => cfg.sort_order === i);
     if (!c || c.auto_track_key !== expected[i]) return false;
   }
-  // Slot 5 is the Custom Focus slot — accept any label/target (user-renamable).
   return true;
 }
 
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
-  power: [10, 10, 3, 2, 3, 1],
-  appointment: [6, 6, 2, 1, 2, 1],
-  flex: [3, 3, 1, 1, 1, 0],
+  power: [10, 10, 3, 2, 3],
+  appointment: [6, 6, 2, 1, 2],
+  flex: [3, 3, 1, 1, 1],
 };
 
 export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
