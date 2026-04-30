@@ -1,21 +1,21 @@
 import { cn } from "@/lib/utils";
-import { Check, Plus, Minus, Zap } from "lucide-react";
+import { Plus, Minus, Zap } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import type { FocusItemData } from "./FocusItemRow";
 
 interface FocusItemCompactProps {
   item: FocusItemData;
   onAdjust?: (delta: number) => void;
-  onToggleComplete?: () => void;
+  onToggleComplete?: () => void; // deprecated; kept for API compatibility
   onDrillDown?: () => void;
   readOnly?: boolean;
 }
 
 export default function FocusItemCompact({
-  item, onAdjust, onToggleComplete, onDrillDown, readOnly,
+  item, onAdjust, onDrillDown, readOnly,
 }: FocusItemCompactProps) {
-  const met = item.current >= item.target;
-  const done = item.isComplete || met;
+  // Completion is purely data-driven: target reached.
+  const done = item.target > 0 && item.current >= item.target;
   const pct = item.target > 0 ? Math.min(100, Math.round((item.current / item.target) * 100)) : 0;
 
   return (
@@ -36,7 +36,7 @@ export default function FocusItemCompact({
           <span
             className={cn(
               "text-[11px] font-medium truncate",
-              done ? "text-muted-foreground line-through" : "text-foreground"
+              done ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"
             )}
           >
             {item.label}
@@ -58,25 +58,14 @@ export default function FocusItemCompact({
       <Progress value={pct} className="h-1" />
 
       {!readOnly && (
-        <div className="flex items-center justify-between mt-1.5">
-          <button
-            type="button"
-            onClick={onToggleComplete}
-            className={cn(
-              "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
-              done
-                ? "border-emerald-500 bg-emerald-500 text-white"
-                : "border-muted-foreground/30 hover:border-primary"
-            )}
-          >
-            {done && <Check className="w-2.5 h-2.5" />}
-          </button>
+        <div className="flex items-center justify-end mt-1.5">
           <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={() => onAdjust?.(-1)}
               className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:bg-muted disabled:opacity-30"
               disabled={item.current <= 0}
+              aria-label="Decrease"
             >
               <Minus className="w-2.5 h-2.5" />
             </button>
@@ -84,6 +73,7 @@ export default function FocusItemCompact({
               type="button"
               onClick={() => onAdjust?.(1)}
               className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:bg-muted"
+              aria-label="Increase"
             >
               <Plus className="w-2.5 h-2.5" />
             </button>
@@ -93,3 +83,4 @@ export default function FocusItemCompact({
     </div>
   );
 }
+
