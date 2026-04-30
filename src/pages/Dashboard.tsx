@@ -306,8 +306,24 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* 6 MOST IMPORTANT — compact summary */}
-        <SixMostImportantSummary />
+        {/* 6 MOST IMPORTANT — full editor (single source of truth) */}
+        <SixMostImportant
+          autoCounts={focusAutoCounts}
+          rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
+          onDetailNavigate={(type, id) => {
+            if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Lead") navigate("/booking-leads");
+            else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
+            else if (type === "Hostess") {
+              const evt = events.find((e: any) => e.id === id);
+              if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
+              else navigate("/events");
+            }
+          }}
+          suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
+        />
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
