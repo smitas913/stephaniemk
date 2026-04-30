@@ -332,7 +332,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
           )}
         </CardHeader>
 
-        <CardContent className={cn("pt-0", isMobile && "px-3")}>
+        <CardContent className={cn(isMobile && "px-3")}>
           {editMode ? (
             <FocusEditView
               draft={draft}
@@ -350,7 +350,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               weekStart={selectedWeekStart}
             />
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-4">
               {isOOO && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1 font-medium">
                   Out of Office — targets set to zero
@@ -362,7 +362,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                 </div>
               ) : (
                 <>
-                  <div className={cn(compact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
+                  <div className={cn(compact ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" : "space-y-1.5")}>
                     {items.map((item) =>
                       compact ? (
                         <FocusItemCompact
