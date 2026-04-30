@@ -28,7 +28,7 @@ interface TeamConsultantRow { id: string; created_at: string; relationship_type:
 async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
   const { data, error } = await supabase.from("team_consultants").select("id, created_at, relationship_type" as any);
   if (error) throw error;
-  return (data || []) as TeamConsultantRow[];
+  return ((data || []) as unknown) as TeamConsultantRow[];
 }
 
 function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
