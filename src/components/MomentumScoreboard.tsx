@@ -17,8 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
-import { Pencil, Target, Eye, EyeOff } from "lucide-react";
+import { Pencil, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
@@ -30,6 +29,14 @@ async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
   if (error) throw error;
   return ((data || []) as unknown) as TeamConsultantRow[];
 }
+
+// Only the four core dashboard metrics are supported.
+const ALLOWED_METRIC_KEYS = new Set([
+  "faces",
+  "career_chats",
+  "new_team_members",
+  "new_skincare_customers",
+]);
 
 function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
   if (!dateStr) return false;
@@ -55,16 +62,6 @@ function computeActuals(
         .reduce((s, e) => s + Number(e.guest_count || 0), 0);
     case "career_chats":
       return notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).length;
-    case "booking_conversations":
-      return notes.filter((n) => (n.is_booking_attempt || n.result_type === "Booking Conversation") && inRange(n.note_date, start, end)).length;
-    case "appointments_held":
-      return events.filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end)).length;
-    case "new_bookings":
-      return events.filter((e) => inRange(e.created_at, start, end)).length;
-    case "follow_ups":
-      return notes.filter((n) => n.note_type !== "Skipped" && n.note_type !== "No Follow-Up Needed" && inRange(n.note_date, start, end)).length;
-    case "new_customers":
-      return customers.filter((c) => inRange(c.created_at, start, end)).length;
     case "new_team_members":
       // Personal recruits only (defaults to Personal Recruit when null/legacy)
       return consultants.filter((c) => {
@@ -73,8 +70,6 @@ function computeActuals(
       }).length;
     case "new_skincare_customers":
       return customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).length;
-    case "active_skincare_customers":
-      return customers.filter((c) => (c as any).is_skincare_customer === true).length;
     default:
       return 0;
   }
@@ -105,10 +100,9 @@ const STATUS_BAR = {
 function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Partial<MomentumGoal>) => void }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(String(goal.goal_value));
-  const [visible, setVisible] = useState(goal.is_visible);
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setValue(String(goal.goal_value)); setVisible(goal.is_visible); } }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setValue(String(goal.goal_value)); } }}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" title="Edit goal">
           <Pencil className="w-3 h-3" />
@@ -119,16 +113,12 @@ function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Pa
           <label className="text-xs font-medium text-foreground">Goal value</label>
           <Input type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} className="h-8" />
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Show on dashboard</span>
-          <Switch checked={visible} onCheckedChange={setVisible} />
-        </div>
         <Button
           size="sm"
           className="w-full h-8"
           onClick={() => {
             const n = parseInt(value, 10);
-            onSave({ goal_value: Number.isFinite(n) && n >= 0 ? n : 0, is_visible: visible });
+            onSave({ goal_value: Number.isFinite(n) && n >= 0 ? n : 0 });
             setOpen(false);
           }}
         >
@@ -141,7 +131,6 @@ function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Pa
 
 export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthly" } = {}) {
   const queryClient = useQueryClient();
-  const [showHidden, setShowHidden] = useState(false);
 
   const { data: goals = [] } = useQuery({ queryKey: ["momentum-goals"], queryFn: fetchMomentumGoals });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
@@ -180,7 +169,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
 
   const renderSection = (period: MomentumPeriod, title: string, subtitle: string, start: Date, end: Date, pace: number) => {
     const sectionGoals = goals
-      .filter((g) => g.period === period && (showHidden || g.is_visible))
+      .filter((g) => g.period === period && ALLOWED_METRIC_KEYS.has(g.metric_key))
       .sort((a, b) => a.sort_order - b.sort_order);
 
     return (
@@ -196,19 +185,16 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
         </CardHeader>
         <CardContent className="space-y-4">
           {sectionGoals.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2">No metrics shown — toggle hidden goals below to manage.</p>
+            <p className="text-sm text-muted-foreground py-2">No metrics configured.</p>
           ) : (
             sectionGoals.map((g) => {
               const current = computeActuals(g.metric_key, start, end, dataBundle);
               const pct = g.goal_value > 0 ? Math.min((current / g.goal_value) * 100, 100) : 0;
               const status = statusFor(current, g.goal_value, pace);
               return (
-                <div key={g.id} className={cn("space-y-1.5", !g.is_visible && "opacity-50")}>
+                <div key={g.id} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium text-foreground">{g.metric_label}</span>
-                      {!g.is_visible && <EyeOff className="w-3 h-3 text-muted-foreground" />}
-                    </div>
+                    <span className="text-sm font-medium text-foreground">{g.metric_label}</span>
                     <div className="flex items-center gap-1.5">
                       <span className={cn("text-base font-bold tabular-nums", STATUS_TEXT[status])}>
                         {current} <span className="text-muted-foreground font-normal text-xs">/ {g.goal_value}</span>
@@ -237,12 +223,6 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
       <div className={cn("grid grid-cols-1 gap-4", showWeekly && showMonthly && "md:grid-cols-2")}>
         {showWeekly && renderSection("weekly", "Weekly Actuals", `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, weekStart, weekEnd, weekPace)}
         {showMonthly && renderSection("monthly", "Monthly Actuals", monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }), monthStart, monthEnd, monthPace)}
-      </div>
-      <div className="flex items-center justify-end">
-        <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => setShowHidden((s) => !s)}>
-          {showHidden ? <EyeOff className="w-3.5 h-3.5 mr-1" /> : <Eye className="w-3.5 h-3.5 mr-1" />}
-          {showHidden ? "Hide hidden goals" : "Manage hidden goals"}
-        </Button>
       </div>
     </div>
   );
