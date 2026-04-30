@@ -238,44 +238,12 @@ export default function Dashboard() {
     };
   }, [unifiedNotes, notes, customers, prospects, bookingLeads, consultants, events]);
 
-  const updateMomentum = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<MomentumGoal> }) => updateMomentumGoal(id, updates),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["momentum-goals"] }); toast({ title: "Goal updated" }); },
-    onError: (e) => toast({ title: "Failed to update", description: e instanceof Error ? e.message : "Unknown", variant: "destructive" }),
-  });
-
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-
-  const weekPace = useMemo(() => {
-    const elapsed = Math.min(7, Math.max(1, Math.floor((now.getTime() - weekStart.getTime()) / 86400000) + 1));
-    return elapsed / 7;
-  }, [now, weekStart]);
-
-  const dataBundle: ActualsBundle = { events, notes, customers };
-
-  // Weekly scoreboard: faces, career_chats, booking_conversations
-  const weeklyKeys = ["faces", "career_chats", "booking_conversations"];
-  const weeklyScoreboard = weeklyKeys.map((key) => {
-    const goal = momentumGoals.find((g) => g.metric_key === key && g.period === "weekly");
-    const current = computeActuals(key, weekStart, weekEnd, dataBundle);
-    return { key, goal, current };
-  });
-
-  // Monthly snapshot — lightweight count cards
-  const monthlySnapshot = [
-    { key: "faces", label: "Faces", icon: Users },
-    { key: "career_chats", label: "Career Chats", icon: MessageSquare },
-    { key: "new_bookings", label: "Bookings", icon: Calendar },
-    { key: "new_customers", label: "New Customers", icon: TrendingUp },
-  ].map((m) => ({ ...m, value: computeActuals(m.key, monthStart, monthEnd, dataBundle) }));
 
   const dailyQuote = getDailyQuote();
   const weekLabel = `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-  const monthLabel = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["notes-all"] });
