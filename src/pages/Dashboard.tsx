@@ -111,7 +111,6 @@ export default function Dashboard() {
       recruiting_followup: metrics.recruitingFollowUpDetails.length,
       consultant_coaching: metrics.coachingDetails.length,
       relationship: metrics.relationshipDetails.length,
-      personal_appointments: 0,
     };
   }, [unifiedNotes, notes, customers, prospects, bookingLeads, consultants, events]);
 
