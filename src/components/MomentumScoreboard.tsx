@@ -67,6 +67,10 @@ function computeActuals(
       return customers.filter((c) => inRange(c.created_at, start, end)).length;
     case "new_team_members":
       return consultants.filter((c) => inRange(c.created_at, start, end)).length;
+    case "new_skincare_customers":
+      return customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).length;
+    case "active_skincare_customers":
+      return customers.filter((c) => (c as any).is_skincare_customer === true).length;
     default:
       return 0;
   }
