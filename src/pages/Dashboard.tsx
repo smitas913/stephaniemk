@@ -329,75 +329,11 @@ export default function Dashboard() {
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
 
-        {/* WEEKLY SCOREBOARD */}
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" />
-                <CardTitle className="text-base font-semibold text-foreground">Weekly Scoreboard</CardTitle>
-              </div>
-              <span className="text-xs text-muted-foreground">{weekLabel}</span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {weeklyScoreboard.map((m) => {
-              const goalVal = m.goal?.goal_value ?? 0;
-              const pct = goalVal > 0 ? Math.min((m.current / goalVal) * 100, 100) : 0;
-              const status = statusFor(m.current, goalVal, weekPace);
-              const label = m.goal?.metric_label ??
-                (m.key === "faces" ? "Faces" :
-                  m.key === "career_chats" ? "Career Chats" : "Booking Attempts");
-              return (
-                <div key={m.key} className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn("text-base font-bold tabular-nums", STATUS_TEXT[status])}>
-                        {m.current} <span className="text-muted-foreground font-normal text-xs">/ {goalVal}</span>
-                      </span>
-                      <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
-                        {goalVal > 0 ? `${Math.round((m.current / goalVal) * 100)}%` : "—"}
-                      </span>
-                      {m.goal && (
-                        <MomentumGoalEditor
-                          goal={m.goal}
-                          onSave={(u) => updateMomentum.mutate({ id: m.goal!.id, updates: u })}
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <Progress value={pct} className={cn("h-2", STATUS_BAR[status])} />
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+        {/* WEEKLY + MONTHLY ACTUALS vs GOALS — single source of truth */}
+        <MomentumScoreboard />
 
         {/* UPCOMING EVENTS */}
         <UpcomingEventsCard />
-
-        {/* MONTHLY SNAPSHOT */}
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <CardTitle className="text-base font-semibold text-foreground">Monthly Snapshot</CardTitle>
-              <span className="text-xs text-muted-foreground ml-auto">{monthLabel}</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {monthlySnapshot.map((m) => (
-                <div key={m.key} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <m.icon className="w-4 h-4 text-primary mb-1.5" />
-                  <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">{m.value}</p>
-                  <p className="text-[10px] font-semibold text-muted-foreground mt-1 uppercase tracking-wider">{m.label}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
