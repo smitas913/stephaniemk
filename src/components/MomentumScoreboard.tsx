@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,15 +98,8 @@ const STATUS_BAR = {
 } as const;
 
 function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Partial<MomentumGoal>) => void }) {
-  const [open, setOpen] = (require("react") as typeof import("react")).useState(false) as any;
-  // Use proper hooks
-  return <GoalEditorInner goal={goal} onSave={onSave} />;
-}
-
-function GoalEditorInner({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Partial<MomentumGoal>) => void }) {
-  const React = require("react") as typeof import("react");
-  const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState(String(goal.goal_value));
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(String(goal.goal_value));
 
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setValue(String(goal.goal_value)); } }}>
@@ -209,7 +202,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
                       <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
                         {g.goal_value > 0 ? `${Math.round((current / g.goal_value) * 100)}%` : "—"}
                       </span>
-                      <GoalEditorInner goal={g} onSave={(updates) => updateMutation.mutate({ id: g.id, updates })} />
+                      <GoalEditor goal={g} onSave={(updates) => updateMutation.mutate({ id: g.id, updates })} />
                     </div>
                   </div>
                   <Progress value={pct} className={cn("h-2", STATUS_BAR[status])} />
