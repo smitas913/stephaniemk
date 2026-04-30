@@ -61,25 +61,46 @@ export default function FocusEditView({
           </p>
           {draft.map((item, idx) => {
             const isCustomSlot = idx === 5;
+            const PRESETS = ["Personal Appointments", "Social Media", "Recruiting", "Admin / Cleanup", "Other"];
             return (
-              <div key={idx} className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
-                <Input
-                  value={item.label}
-                  onChange={(e) => {
-                    const next = [...draft];
-                    next[idx] = { ...next[idx], label: e.target.value };
-                    setDraft(next);
-                  }}
-                  className="h-8 text-sm flex-1"
-                  placeholder={isCustomSlot ? "Custom Focus name…" : undefined}
-                />
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, -1)} disabled={idx === 0}>
-                  <ArrowUp className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, 1)} disabled={idx === draft.length - 1}>
-                  <ArrowDown className="w-3.5 h-3.5" />
-                </Button>
+              <div key={idx} className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
+                  <Input
+                    value={item.label}
+                    onChange={(e) => {
+                      const next = [...draft];
+                      next[idx] = { ...next[idx], label: e.target.value };
+                      setDraft(next);
+                    }}
+                    className="h-8 text-sm flex-1"
+                    placeholder={isCustomSlot ? "Custom Focus name…" : undefined}
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, -1)} disabled={idx === 0}>
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, 1)} disabled={idx === draft.length - 1}>
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                {isCustomSlot && (
+                  <div className="flex flex-wrap gap-1 pl-7">
+                    {PRESETS.map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          const next = [...draft];
+                          next[idx] = { ...next[idx], label: preset };
+                          setDraft(next);
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-muted/40 hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
