@@ -364,17 +364,30 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                 </div>
               ) : (
                 <>
-                  {items.map((item) => (
-                    <FocusItemRow
-                      key={item.sort_order}
-                      item={item}
-                      onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
-                      onToggleComplete={() => handleToggleComplete(item.sort_order)}
-                      onDrillDown={() => setDrillDownIndex(item.sort_order)}
-                      readOnly={!isToday}
-                      isMobile={isMobile}
-                    />
-                  ))}
+                  <div className={cn(compact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
+                    {items.map((item) =>
+                      compact ? (
+                        <FocusItemCompact
+                          key={item.sort_order}
+                          item={item}
+                          onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
+                          onToggleComplete={() => handleToggleComplete(item.sort_order)}
+                          onDrillDown={() => setDrillDownIndex(item.sort_order)}
+                          readOnly={!isToday}
+                        />
+                      ) : (
+                        <FocusItemRow
+                          key={item.sort_order}
+                          item={item}
+                          onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
+                          onToggleComplete={() => handleToggleComplete(item.sort_order)}
+                          onDrillDown={() => setDrillDownIndex(item.sort_order)}
+                          readOnly={!isToday}
+                          isMobile={isMobile}
+                        />
+                      )
+                    )}
+                  </div>
                   {!isToday && (
                     <p className="text-[10px] text-muted-foreground pt-1 text-center">
                       Viewing {dateLabel} — read-only
