@@ -15,6 +15,7 @@ import { computeMetricsForDate, type FocusRawData, type FocusDetailItem } from "
 import FocusDateNav from "@/components/focus/FocusDateNav";
 import DayTypeSelector from "@/components/focus/DayTypeSelector";
 import FocusItemRow from "@/components/focus/FocusItemRow";
+import FocusItemCompact from "@/components/focus/FocusItemCompact";
 import type { FocusItemData } from "@/components/focus/FocusItemRow";
 import FocusEditView from "@/components/focus/FocusEditView";
 import FocusDrillDown from "@/components/focus/FocusDrillDown";
