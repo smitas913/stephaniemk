@@ -275,6 +275,13 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
               <SelectItem value="upcoming">Upcoming</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={relationshipFilter} onValueChange={setRelationshipFilter}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Relationships</SelectItem>
+              {RELATIONSHIP_TYPES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="h-8 w-[180px] text-xs">
               <ArrowUpDown className="w-3 h-3 mr-1" /><SelectValue />
