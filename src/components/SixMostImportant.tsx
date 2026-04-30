@@ -289,10 +289,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   return (
     <>
       <Card className="border-border/50 shadow-sm">
-        <CardHeader className={cn(isMobile ? "pb-2 px-3 py-2" : "pb-3")}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-primary" />
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Star className="w-5 h-5 text-primary shrink-0" />
               <CardTitle className="text-base font-semibold text-foreground">6 Most Important Things</CardTitle>
               <Badge variant="secondary" className="text-xs">
                 {completedCount} / {items.length || 6}
