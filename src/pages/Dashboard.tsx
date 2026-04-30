@@ -155,6 +155,7 @@ export default function Dashboard() {
 
         {/* 6 MOST IMPORTANT — full editor (single source of truth) */}
         <SixMostImportant
+          compact
           autoCounts={focusAutoCounts}
           rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
           onDetailNavigate={(type, id) => {
