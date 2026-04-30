@@ -185,7 +185,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     });
 
     return list;
-  }, [consultants, focusFilter, coachingFilter, search, sortBy]);
+  }, [consultants, focusFilter, coachingFilter, search, sortBy, relationshipFilter]);
 
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
@@ -237,6 +237,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
       focus_group: c.focus_group || "General", onboarding_stage: c.onboarding_stage || "New",
       coaching_focus: c.coaching_focus || "", next_coaching_date: c.next_coaching_date || "",
       notes: c.notes || "",
+      relationship_type: (c.relationship_type ?? "Personal Recruit") as 'Personal Recruit' | 'Unit Member',
     });
     setEditId(c.id);
   };
