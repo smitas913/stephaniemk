@@ -30,7 +30,6 @@ interface AutoCounts {
   recruiting_followup: number;
   consultant_coaching: number;
   relationship: number;
-  personal_appointments: number;
 }
 
 type AutoCountKey = keyof AutoCounts;
@@ -67,7 +66,6 @@ function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key"
   if (normalizedLabel.includes("recruiting")) return "recruiting_followup";
   if (normalizedLabel.includes("consultant") || normalizedLabel.includes("team building")) return "consultant_coaching";
   if (normalizedLabel.includes("relationship")) return "relationship";
-  if (normalizedLabel.includes("personal appoint")) return "personal_appointments";
 
   return null;
 }
