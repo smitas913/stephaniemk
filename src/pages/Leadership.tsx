@@ -5,7 +5,7 @@ import {
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
   convertConsultantToCustomer,
 } from "@/lib/queries";
-import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
+import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, RELATIONSHIP_TYPES } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
 import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
@@ -126,9 +126,11 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     address_line_1: "", city: "", state_territory: "", postal_code: "",
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
     next_coaching_date: "", notes: "",
+    relationship_type: "Personal Recruit" as 'Personal Recruit' | 'Unit Member',
   };
   const [form, setForm] = useState(emptyForm);
   const resetForm = () => setForm(emptyForm);
+  const [relationshipFilter, setRelationshipFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
     const todayKey = toLocalDateKey();
@@ -142,6 +144,11 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
       });
     } else if (focusFilter !== "all") {
       list = list.filter((c) => (c.focus_group || "General") === focusFilter);
+    }
+
+    // Relationship type filter
+    if (relationshipFilter !== "all") {
+      list = list.filter((c) => (c.relationship_type ?? "Personal Recruit") === relationshipFilter);
     }
 
     // Coaching status filter
