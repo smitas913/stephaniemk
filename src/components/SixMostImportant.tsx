@@ -72,7 +72,7 @@ function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key"
   return null;
 }
 
-export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType }: SixMostImportantProps) {
+export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType, compact }: SixMostImportantProps) {
   const isMobile = useIsMobile();
   const todayKey = toLocalDateKey();
   const [selectedDate, setSelectedDate] = useState(todayKey);
