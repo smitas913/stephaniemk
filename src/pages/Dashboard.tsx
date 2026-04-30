@@ -18,7 +18,6 @@ import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
 import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
-import UpcomingEventsCard from "@/components/dashboard/UpcomingEventsCard";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
 
 // ─── Quotes ───
@@ -178,9 +177,6 @@ export default function Dashboard() {
 
         {/* WEEKLY + MONTHLY ACTUALS vs GOALS — single source of truth */}
         <MomentumScoreboard />
-
-        {/* UPCOMING EVENTS */}
-        <UpcomingEventsCard />
       </div>
     </Layout>
   );
