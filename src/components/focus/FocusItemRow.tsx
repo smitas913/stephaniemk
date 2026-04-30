@@ -21,10 +21,10 @@ interface FocusItemRowProps {
 }
 
 export default function FocusItemRow({
-  item, onAdjust, onToggleComplete, onDrillDown, readOnly, isMobile,
+  item, onAdjust, onDrillDown, readOnly, isMobile,
 }: FocusItemRowProps) {
-  const met = item.current >= item.target;
-  const done = item.isComplete || met;
+  // Completion is purely data-driven: target reached.
+  const done = item.target > 0 && item.current >= item.target;
   const pct = item.target > 0 ? Math.min(100, Math.round((item.current / item.target) * 100)) : 0;
 
   return (
@@ -36,32 +36,18 @@ export default function FocusItemRow({
           : "border-border/50 bg-background/80"
       )}
     >
-      {/* Complete toggle */}
-      {!readOnly ? (
-        <button
-          type="button"
-          onClick={onToggleComplete}
-          className={cn(
-            "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-            done
-              ? "border-emerald-500 bg-emerald-500 text-white"
-              : "border-muted-foreground/30 hover:border-primary"
-          )}
-        >
-          {done && <Check className="w-3 h-3" />}
-        </button>
-      ) : (
-        <div
-          className={cn(
-            "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center",
-            done
-              ? "border-emerald-500 bg-emerald-500 text-white"
-              : "border-muted-foreground/20"
-          )}
-        >
-          {done && <Check className="w-3 h-3" />}
-        </div>
-      )}
+      {/* Status indicator (read-only, derived from progress) */}
+      <div
+        className={cn(
+          "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center",
+          done
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : "border-muted-foreground/20"
+        )}
+        title={done ? "Target reached" : `${item.current} of ${item.target}`}
+      >
+        {done && <Check className="w-3 h-3" />}
+      </div>
 
       {/* Label + progress - clickable for drill-down */}
       <button
