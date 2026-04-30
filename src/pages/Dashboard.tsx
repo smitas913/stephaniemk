@@ -35,12 +35,17 @@ import {
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
+  fetchProspects,
+  fetchBookingLeads,
+  fetchTeamConsultants,
   type MomentumGoal,
 } from "@/lib/queries";
 import type { EventRecord, Note, Customer } from "@/lib/types";
 import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
 import { useState } from "react";
-import SixMostImportantSummary from "@/components/dashboard/SixMostImportantSummary";
+import SixMostImportant from "@/components/SixMostImportant";
+import { computeMetricsForDate } from "@/lib/focusMetrics";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import UpcomingEventsCard from "@/components/dashboard/UpcomingEventsCard";
 
 // ─── Quotes ───
