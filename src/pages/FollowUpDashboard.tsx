@@ -4,7 +4,7 @@ import { fetchCustomers, fetchOrders, fetchExpenses, fetchEvents } from "@/lib/q
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, OrderWithCustomer, Expense, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
-import MomentumScoreboard from "@/components/MomentumScoreboard";
+// MomentumScoreboard moved to /dashboard as the single source of truth for Weekly/Monthly Actuals.
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -262,8 +262,7 @@ export default function FollowUpDashboard() {
             </div>
           </div>
 
-          {/* Momentum Tracker — Weekly + Monthly Actuals vs Goals */}
-          <MomentumScoreboard />
+          {/* Weekly + Monthly Actuals vs Goals now live on the Dashboard (/dashboard) to avoid duplication. */}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
