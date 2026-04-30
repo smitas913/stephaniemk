@@ -684,7 +684,7 @@ export default function FollowUps() {
        const consultant_coaching = metrics.coachingDetails.length;
        const relationship = metrics.relationshipDetails.length;
 
-       return { booking_attempts, customer_followup, lead_followup, client_followup, hostess_coaching, recruiting_followup, consultant_coaching, relationship, personal_appointments: 0 };
+       return { booking_attempts, customer_followup, lead_followup, client_followup, hostess_coaching, recruiting_followup, consultant_coaching, relationship };
     }, [unifiedNotes, prospects, events, allNotes, bookingLeads, customers, consultants]);
 
   // Mobile detection
