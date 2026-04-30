@@ -23,10 +23,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 
-interface TeamConsultantRow { id: string; created_at: string }
+interface TeamConsultantRow { id: string; created_at: string; relationship_type: string | null }
 
 async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
-  const { data, error } = await supabase.from("team_consultants").select("id, created_at");
+  const { data, error } = await supabase.from("team_consultants").select("id, created_at, relationship_type" as any);
   if (error) throw error;
   return (data || []) as TeamConsultantRow[];
 }
@@ -66,7 +66,11 @@ function computeActuals(
     case "new_customers":
       return customers.filter((c) => inRange(c.created_at, start, end)).length;
     case "new_team_members":
-      return consultants.filter((c) => inRange(c.created_at, start, end)).length;
+      // Personal recruits only (defaults to Personal Recruit when null/legacy)
+      return consultants.filter((c) => {
+        const rt = c.relationship_type ?? 'Personal Recruit';
+        return rt === 'Personal Recruit' && inRange(c.created_at, start, end);
+      }).length;
     case "new_skincare_customers":
       return customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).length;
     case "active_skincare_customers":
