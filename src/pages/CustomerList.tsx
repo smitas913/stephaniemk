@@ -225,6 +225,14 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
+            <SelectTrigger className="w-[150px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Skincare</SelectItem>
+              <SelectItem value="yes">Skincare: Yes</SelectItem>
+              <SelectItem value="no">Skincare: No</SelectItem>
+            </SelectContent>
+          </Select>
           <Popover open={missingOpen} onOpenChange={setMissingOpen}>
             <PopoverTrigger asChild>
               <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs">
