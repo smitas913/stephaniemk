@@ -168,11 +168,8 @@ export default function Dashboard() {
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
 
-        {/* WEEKLY ACTUALS — above the fold */}
-        <MomentumScoreboard only="weekly" />
-
-        {/* MONTHLY ACTUALS — below the fold */}
-        <MomentumScoreboard only="monthly" />
+        {/* WEEKLY + MONTHLY ACTUALS — side-by-side on desktop, stacked on mobile */}
+        <MomentumScoreboard />
       </div>
     </Layout>
   );
