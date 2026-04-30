@@ -29,7 +29,7 @@ export default function FocusItemCompact({
   const barColor = done ? "[&>div]:bg-green-500" : "[&>div]:bg-primary";
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
