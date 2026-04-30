@@ -345,7 +345,10 @@ export interface TeamConsultant {
   state_territory: string | null;
   postal_code: string | null;
   allow_non_working_day: boolean;
+  relationship_type: 'Personal Recruit' | 'Unit Member';
 }
+
+export const RELATIONSHIP_TYPES = ['Personal Recruit', 'Unit Member'] as const;
 
 export const LEADERSHIP_GOALS = ["DIQ", "Director", "Senior Director", "National", "Other"] as const;
 
