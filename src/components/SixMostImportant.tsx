@@ -15,6 +15,7 @@ import { computeMetricsForDate, type FocusRawData, type FocusDetailItem } from "
 import FocusDateNav from "@/components/focus/FocusDateNav";
 import DayTypeSelector from "@/components/focus/DayTypeSelector";
 import FocusItemRow from "@/components/focus/FocusItemRow";
+import FocusItemCompact from "@/components/focus/FocusItemCompact";
 import type { FocusItemData } from "@/components/focus/FocusItemRow";
 import FocusEditView from "@/components/focus/FocusEditView";
 import FocusDrillDown from "@/components/focus/FocusDrillDown";
@@ -39,6 +40,7 @@ interface SixMostImportantProps {
   rawData?: FocusRawData;
   onDetailNavigate?: (type: string, id: string) => void;
   suggestedDayType?: DayType | null;
+  compact?: boolean;
 }
 
 // Map auto_track_key to the correct detail category
@@ -70,7 +72,7 @@ function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key"
   return null;
 }
 
-export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType }: SixMostImportantProps) {
+export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType, compact }: SixMostImportantProps) {
   const isMobile = useIsMobile();
   const todayKey = toLocalDateKey();
   const [selectedDate, setSelectedDate] = useState(todayKey);
@@ -362,17 +364,30 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                 </div>
               ) : (
                 <>
-                  {items.map((item) => (
-                    <FocusItemRow
-                      key={item.sort_order}
-                      item={item}
-                      onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
-                      onToggleComplete={() => handleToggleComplete(item.sort_order)}
-                      onDrillDown={() => setDrillDownIndex(item.sort_order)}
-                      readOnly={!isToday}
-                      isMobile={isMobile}
-                    />
-                  ))}
+                  <div className={cn(compact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
+                    {items.map((item) =>
+                      compact ? (
+                        <FocusItemCompact
+                          key={item.sort_order}
+                          item={item}
+                          onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
+                          onToggleComplete={() => handleToggleComplete(item.sort_order)}
+                          onDrillDown={() => setDrillDownIndex(item.sort_order)}
+                          readOnly={!isToday}
+                        />
+                      ) : (
+                        <FocusItemRow
+                          key={item.sort_order}
+                          item={item}
+                          onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
+                          onToggleComplete={() => handleToggleComplete(item.sort_order)}
+                          onDrillDown={() => setDrillDownIndex(item.sort_order)}
+                          readOnly={!isToday}
+                          isMobile={isMobile}
+                        />
+                      )
+                    )}
+                  </div>
                   {!isToday && (
                     <p className="text-[10px] text-muted-foreground pt-1 text-center">
                       Viewing {dateLabel} — read-only
