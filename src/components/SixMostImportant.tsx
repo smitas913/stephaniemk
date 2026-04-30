@@ -215,7 +215,17 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   };
 
   const saveDraft = async () => {
-    await saveConfigs(draft);
+    // Enforce lock: slots 0–4 keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
+    // Only slot 5 (Custom Focus) accepts user-renamed label.
+    const { DEFAULT_FOCUS_ITEMS } = await import("@/hooks/useFocusItems");
+    const sanitized = draft.map((item, idx) => {
+      if (idx < 5) {
+        const canonical = DEFAULT_FOCUS_ITEMS[idx];
+        return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
+      }
+      return { ...item, sort_order: 5, label: item.label.trim() || "Custom Focus", auto_track_key: null };
+    });
+    await saveConfigs(sanitized);
     // Save day type targets
     const targets: { day_type: DayType; sort_order: number; target: number }[] = [];
     for (const dt of ["power", "appointment", "flex"] as DayType[]) {
