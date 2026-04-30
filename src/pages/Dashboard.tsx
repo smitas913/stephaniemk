@@ -37,100 +37,6 @@ function getDailyQuote(): string {
   return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
 }
 
-// ─── Helpers ───
-function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
-  if (!dateStr) return false;
-  try {
-    return isWithinInterval(parseISO(dateStr), { start, end });
-  } catch {
-    return false;
-  }
-}
-
-function statusFor(current: number, goal: number, pace: number): "green" | "yellow" | "red" {
-  if (goal <= 0) return "green";
-  const pct = current / goal;
-  if (pct >= 1) return "green";
-  if (pct >= pace * 0.8) return "green";
-  if (pct >= pace * 0.5) return "yellow";
-  return "red";
-}
-
-const STATUS_TEXT = {
-  green: "text-green-600",
-  yellow: "text-yellow-600",
-  red: "text-red-600",
-} as const;
-const STATUS_BAR = {
-  green: "[&>div]:bg-green-500",
-  yellow: "[&>div]:bg-yellow-500",
-  red: "[&>div]:bg-red-500",
-} as const;
-
-interface ActualsBundle {
-  events: EventRecord[];
-  notes: Note[];
-  customers: Customer[];
-}
-
-function computeActuals(
-  metricKey: string,
-  start: Date,
-  end: Date,
-  data: ActualsBundle,
-): number {
-  const { events, notes, customers } = data;
-  switch (metricKey) {
-    case "faces":
-      return events
-        .filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end))
-        .reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    case "career_chats":
-      return notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).length;
-    case "booking_conversations":
-    case "booking_attempts":
-      return notes.filter((n) => (n.is_booking_attempt || n.result_type === "Booking Conversation") && inRange(n.note_date, start, end)).length;
-    case "appointments_held":
-      return events.filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end)).length;
-    case "new_bookings":
-      return events.filter((e) => inRange(e.created_at, start, end)).length;
-    case "new_customers":
-      return customers.filter((c) => inRange(c.created_at, start, end)).length;
-    default:
-      return 0;
-  }
-}
-
-// ─── Goal Editor ───
-function MomentumGoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (u: Partial<MomentumGoal>) => void }) {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(String(goal.goal_value));
-  const [visible, setVisible] = useState(goal.is_visible);
-  return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setValue(String(goal.goal_value)); setVisible(goal.is_visible); } }}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" title="Edit goal">
-          <Pencil className="w-3 h-3" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-3 space-y-3" align="end">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Goal value</label>
-          <Input type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} className="h-8" />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Show on dashboard</span>
-          <Switch checked={visible} onCheckedChange={setVisible} />
-        </div>
-        <Button size="sm" className="w-full h-8" onClick={() => {
-          const n = parseInt(value, 10);
-          onSave({ goal_value: Number.isFinite(n) && n >= 0 ? n : 0, is_visible: visible });
-          setOpen(false);
-        }}>Save</Button>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 // ─── Quick Add ───
 const QUICK_ADD_OPTIONS = [
@@ -182,7 +88,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: momentumGoals = [] } = useQuery({ queryKey: ["momentum-goals"], queryFn: fetchMomentumGoals });
+  
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
