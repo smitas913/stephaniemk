@@ -5,7 +5,7 @@ import {
   fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
   convertConsultantToCustomer,
 } from "@/lib/queries";
-import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
+import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, RELATIONSHIP_TYPES } from "@/lib/types";
 import type { TeamConsultant, LeadershipMember } from "@/lib/types";
 import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
@@ -126,9 +126,11 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     address_line_1: "", city: "", state_territory: "", postal_code: "",
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
     next_coaching_date: "", notes: "",
+    relationship_type: "Personal Recruit" as 'Personal Recruit' | 'Unit Member',
   };
   const [form, setForm] = useState(emptyForm);
   const resetForm = () => setForm(emptyForm);
+  const [relationshipFilter, setRelationshipFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
     const todayKey = toLocalDateKey();
@@ -142,6 +144,11 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
       });
     } else if (focusFilter !== "all") {
       list = list.filter((c) => (c.focus_group || "General") === focusFilter);
+    }
+
+    // Relationship type filter
+    if (relationshipFilter !== "all") {
+      list = list.filter((c) => (c.relationship_type ?? "Personal Recruit") === relationshipFilter);
     }
 
     // Coaching status filter
@@ -178,7 +185,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     });
 
     return list;
-  }, [consultants, focusFilter, coachingFilter, search, sortBy]);
+  }, [consultants, focusFilter, coachingFilter, search, sortBy, relationshipFilter]);
 
   const buildPayload = () => {
     const cleaned: Record<string, any> = {};
@@ -230,6 +237,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
       focus_group: c.focus_group || "General", onboarding_stage: c.onboarding_stage || "New",
       coaching_focus: c.coaching_focus || "", next_coaching_date: c.next_coaching_date || "",
       notes: c.notes || "",
+      relationship_type: (c.relationship_type ?? "Personal Recruit") as 'Personal Recruit' | 'Unit Member',
     });
     setEditId(c.id);
   };
@@ -265,6 +273,13 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
               <SelectItem value="today">Due Today</SelectItem>
               <SelectItem value="overdue">Overdue</SelectItem>
               <SelectItem value="upcoming">Upcoming</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={relationshipFilter} onValueChange={setRelationshipFilter}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Relationships</SelectItem>
+              {RELATIONSHIP_TYPES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -311,6 +326,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                       {c.focus_group && c.focus_group !== "General" && (
                         <Badge variant="outline" className="text-[10px]">{c.focus_group}</Badge>
                       )}
+                      <Badge variant="outline" className={cn("text-[10px]", (c.relationship_type ?? "Personal Recruit") === "Unit Member" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-pink-50 text-pink-700 border-pink-200")}>
+                        {(c.relationship_type ?? "Personal Recruit") === "Unit Member" ? "Unit" : "Personal"}
+                      </Badge>
                     </div>
                     {c.coaching_focus && (
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -372,6 +390,15 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                   <label className="text-xs text-muted-foreground">Birthday</label>
                   <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
                 </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Relationship Type *</label>
+                <Select value={form.relationship_type} onValueChange={(v) => setForm({ ...form, relationship_type: v as 'Personal Recruit' | 'Unit Member' })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RELATIONSHIP_TYPES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

@@ -87,7 +87,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
       { label: "Faces", current: monthFaces, goal: 40, pct: Math.min((monthFaces / 40) * 100, 100), status: getStatus(monthFaces, 40, monthPace) },
       { label: "Parties", current: monthParties, goal: 8, pct: Math.min((monthParties / 8) * 100, 100), status: getStatus(monthParties, 8, monthPace) },
       { label: "Sharings", current: monthSharing, goal: 20, pct: Math.min((monthSharing / 20) * 100, 100), status: getStatus(monthSharing, 20, monthPace) },
-      { label: "New Team Members", current: monthNewTeam, goal: 3, pct: Math.min((monthNewTeam / 3) * 100, 100), status: getStatus(monthNewTeam, 3, monthPace) },
+      { label: "New Personal Team Members", current: monthNewTeam, goal: 3, pct: Math.min((monthNewTeam / 3) * 100, 100), status: getStatus(monthNewTeam, 3, monthPace) },
     ];
 
     const monthlySharingConversion: ConversionItem = {

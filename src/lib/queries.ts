@@ -580,7 +580,7 @@ export const DEFAULT_MOMENTUM_GOALS: Omit<MomentumGoal, "id" | "user_id">[] = [
   { metric_key: "new_bookings", metric_label: "New Bookings", period: "monthly", goal_value: 8, is_visible: true, sort_order: 5 },
   { metric_key: "follow_ups", metric_label: "Follow-ups Completed", period: "monthly", goal_value: 60, is_visible: true, sort_order: 6 },
   { metric_key: "new_customers", metric_label: "New Customers", period: "monthly", goal_value: 5, is_visible: true, sort_order: 7 },
-  { metric_key: "new_team_members", metric_label: "New Team Members", period: "monthly", goal_value: 1, is_visible: true, sort_order: 8 },
+  { metric_key: "new_team_members", metric_label: "New Personal Team Members", period: "monthly", goal_value: 1, is_visible: true, sort_order: 8 },
 ];
 
 export const fetchMomentumGoals = async (): Promise<MomentumGoal[]> => {
