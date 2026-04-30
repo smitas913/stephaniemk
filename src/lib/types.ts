@@ -21,6 +21,8 @@ export interface Customer {
   next_follow_up_date: string | null;
   is_active: boolean;
   new_customer_flag: boolean;
+  is_skincare_customer: boolean;
+  skincare_started_at: string | null;
   archived_at: string | null;
   dormant_follow_up_stage: string | null;
   allow_non_working_day: boolean;

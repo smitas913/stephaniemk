@@ -86,6 +86,7 @@ export default function CustomerDetail() {
         new_follow_up_stage: customer.new_follow_up_stage || "",
         next_follow_up_date: customer.next_follow_up_date || "",
         new_customer_flag: (customer as any).new_customer_flag ? "true" : "false",
+        is_skincare_customer: (customer as any).is_skincare_customer ? "true" : "false",
       });
     }
   }, [customer]);
@@ -260,7 +261,7 @@ export default function CustomerDetail() {
     mutationFn: (data: Record<string, string>) => {
       const cleaned: Record<string, any> = {};
       for (const [k, v] of Object.entries(data)) {
-        if (k === "new_customer_flag") {
+        if (k === "new_customer_flag" || k === "is_skincare_customer") {
           cleaned[k] = v === "true";
         } else {
           cleaned[k] = v === "" ? null : v;
@@ -375,8 +376,9 @@ export default function CustomerDetail() {
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(backPath)}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex-1 min-w-0">
             <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
-            <div className="flex gap-2 mt-0.5">
+            <div className="flex gap-2 mt-0.5 flex-wrap">
               {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New Customer</span>}
+              {(customer as any).is_skincare_customer && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium">Skincare</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
               <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">{customer.relationship_status || "Customer"}</span>
             </div>
@@ -476,6 +478,15 @@ export default function CustomerDetail() {
                         onCheckedChange={(checked) => setForm({ ...form, new_customer_flag: checked ? "true" : "false" } as any)}
                       />
                       <span className="text-sm text-muted-foreground">Mark as new customer</span>
+                    </div>
+                  </FormField>
+                  <FormField label="Skincare Customer">
+                    <div className="flex items-center gap-2 h-9">
+                      <Checkbox
+                        checked={(form as any).is_skincare_customer === "true"}
+                        onCheckedChange={(checked) => setForm({ ...form, is_skincare_customer: checked ? "true" : "false" } as any)}
+                      />
+                      <span className="text-sm text-muted-foreground">On skincare regimen</span>
                     </div>
                   </FormField>
                 </div>

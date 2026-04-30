@@ -320,6 +320,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
+          is_skincare_customer: boolean
           last_contacted: string | null
           last_order_date_order_log: string | null
           last_order_mk: string | null
@@ -332,6 +333,7 @@ export type Database = {
           postal_code: string | null
           profile_date_first_order_date: string | null
           relationship_status: string | null
+          skincare_started_at: string | null
           state_territory: string | null
           updated_at: string | null
         }
@@ -351,6 +353,7 @@ export type Database = {
           full_name: string
           id?: string
           is_active?: boolean
+          is_skincare_customer?: boolean
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
@@ -363,6 +366,7 @@ export type Database = {
           postal_code?: string | null
           profile_date_first_order_date?: string | null
           relationship_status?: string | null
+          skincare_started_at?: string | null
           state_territory?: string | null
           updated_at?: string | null
         }
@@ -382,6 +386,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          is_skincare_customer?: boolean
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
@@ -394,6 +399,7 @@ export type Database = {
           postal_code?: string | null
           profile_date_first_order_date?: string | null
           relationship_status?: string | null
+          skincare_started_at?: string | null
           state_territory?: string | null
           updated_at?: string | null
         }
