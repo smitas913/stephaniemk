@@ -391,6 +391,15 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                   <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} />
                 </div>
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Relationship Type *</label>
+                <Select value={form.relationship_type} onValueChange={(v) => setForm({ ...form, relationship_type: v as 'Personal Recruit' | 'Unit Member' })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RELATIONSHIP_TYPES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Address */}
