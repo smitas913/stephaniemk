@@ -1,48 +1,20 @@
-import { useMemo } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  parseISO,
-  isWithinInterval,
-} from "date-fns";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { startOfWeek, endOfWeek } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
+import { Sparkles, ArrowRight, Zap } from "lucide-react";
 import {
-  Sparkles,
-  ArrowRight,
-  Target,
-  TrendingUp,
-  Users,
-  Calendar,
-  MessageSquare,
-  Pencil,
-  Zap,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
-import {
-  fetchMomentumGoals,
-  updateMomentumGoal,
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
   fetchProspects,
   fetchBookingLeads,
   fetchTeamConsultants,
-  type MomentumGoal,
 } from "@/lib/queries";
-import type { EventRecord, Note, Customer } from "@/lib/types";
 import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
-import { useState } from "react";
 import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
