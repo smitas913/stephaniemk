@@ -213,6 +213,29 @@ export default function Dashboard() {
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+
+  // Auto counts for the 6 Most Important Things (computed for today)
+  const focusAutoCounts = useMemo(() => {
+    const todayKey = toLocalDateKey();
+    const metrics = computeMetricsForDate(todayKey, {
+      unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events,
+    } as any);
+    return {
+      booking_attempts: metrics.bookingAttempts,
+      customer_followup: metrics.customerFollowUpDetails.length,
+      lead_followup: metrics.leadFollowUpDetails.length,
+      client_followup: metrics.clientFollowUpDetails.length,
+      hostess_coaching: metrics.hostessCoachingDetails.length,
+      recruiting_followup: metrics.recruitingFollowUpDetails.length,
+      consultant_coaching: metrics.coachingDetails.length,
+      relationship: metrics.relationshipDetails.length,
+      personal_appointments: 0,
+    };
+  }, [unifiedNotes, notes, customers, prospects, bookingLeads, consultants, events]);
 
   const updateMomentum = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<MomentumGoal> }) => updateMomentumGoal(id, updates),
