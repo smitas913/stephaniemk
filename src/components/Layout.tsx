@@ -22,7 +22,7 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
-  { to: "/performance", label: "Performance", icon: TrendingUp },
+  { to: "/performance", label: "Averages", icon: TrendingUp },
   { to: "/analytics", label: "Analytics", icon: Target },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
