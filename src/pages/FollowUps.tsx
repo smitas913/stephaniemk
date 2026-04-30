@@ -20,7 +20,7 @@ import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
-import SixMostImportant from "@/components/SixMostImportant";
+// SixMostImportant moved to Dashboard (/dashboard)
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
