@@ -35,12 +35,17 @@ import {
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
+  fetchProspects,
+  fetchBookingLeads,
+  fetchTeamConsultants,
   type MomentumGoal,
 } from "@/lib/queries";
 import type { EventRecord, Note, Customer } from "@/lib/types";
 import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
 import { useState } from "react";
-import SixMostImportantSummary from "@/components/dashboard/SixMostImportantSummary";
+import SixMostImportant from "@/components/SixMostImportant";
+import { computeMetricsForDate } from "@/lib/focusMetrics";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import UpcomingEventsCard from "@/components/dashboard/UpcomingEventsCard";
 
 // ─── Quotes ───
@@ -208,6 +213,29 @@ export default function Dashboard() {
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
+  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+
+  // Auto counts for the 6 Most Important Things (computed for today)
+  const focusAutoCounts = useMemo(() => {
+    const todayKey = toLocalDateKey();
+    const metrics = computeMetricsForDate(todayKey, {
+      unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events,
+    } as any);
+    return {
+      booking_attempts: metrics.bookingAttempts,
+      customer_followup: metrics.customerFollowUpDetails.length,
+      lead_followup: metrics.leadFollowUpDetails.length,
+      client_followup: metrics.clientFollowUpDetails.length,
+      hostess_coaching: metrics.hostessCoachingDetails.length,
+      recruiting_followup: metrics.recruitingFollowUpDetails.length,
+      consultant_coaching: metrics.coachingDetails.length,
+      relationship: metrics.relationshipDetails.length,
+      personal_appointments: 0,
+    };
+  }, [unifiedNotes, notes, customers, prospects, bookingLeads, consultants, events]);
 
   const updateMomentum = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<MomentumGoal> }) => updateMomentumGoal(id, updates),
@@ -278,8 +306,24 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* 6 MOST IMPORTANT — compact summary */}
-        <SixMostImportantSummary />
+        {/* 6 MOST IMPORTANT — full editor (single source of truth) */}
+        <SixMostImportant
+          autoCounts={focusAutoCounts}
+          rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
+          onDetailNavigate={(type, id) => {
+            if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Lead") navigate("/booking-leads");
+            else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
+            else if (type === "Hostess") {
+              const evt = events.find((e: any) => e.id === id);
+              if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
+              else navigate("/events");
+            }
+          }}
+          suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
+        />
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />

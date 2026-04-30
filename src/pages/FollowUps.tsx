@@ -20,7 +20,7 @@ import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
-import SixMostImportant from "@/components/SixMostImportant";
+// SixMostImportant moved to Dashboard (/dashboard)
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
@@ -2216,29 +2216,8 @@ export default function FollowUps() {
                     );
                   })()}
 
-                   {/* ═══ SECTION 1: 6 Most Important Things — hidden in OOO unless overridden ═══ */}
-                   {!hideWorkflow && (
-                     <SixMostImportant
-                       autoCounts={focusAutoCounts}
-                       rawData={{
-                         unifiedNotes, allNotes, customers, prospects,
-                         bookingLeads, consultants, events,
-                       }}
-                       onDetailNavigate={(type, id) => {
-                         if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/follow-ups" } });
-                         else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/follow-ups" } });
-                         else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/follow-ups" } });
-                         else if (type === "Lead") navigate("/booking-leads");
-                         else if (type === "Consultant") navigate("/leadership", { state: { from: "/follow-ups", tab: "consultants", consultantId: id } });
-                         else if (type === "Hostess") {
-                           const evt = events.find(e => e.id === id || (e.hostess_name && e.id === id));
-                           if (evt) navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } });
-                           else navigate("/events");
-                         }
-                       }}
-                       suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
-                     />
-                   )}
+                   {/* 6 Most Important Things now lives on the Dashboard (/dashboard).
+                       Today is execution-only. */}
 
                    {/* ═══ SECTION 2: Follow-Ups (Unified View) — hidden in OOO unless overridden ═══ */}
                    {/* Event Tasks (hostess + event_task) are intentionally EXCLUDED here — they
