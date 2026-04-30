@@ -288,14 +288,12 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
 
   return (
     <>
-      <Card className="border-primary/20 shadow-md bg-primary/5">
-        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
+      <Card className="border-border/50 shadow-sm">
+        <CardHeader className={cn(isMobile ? "pb-2 px-3 py-2" : "pb-3")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Star className="w-4 h-4 text-primary" />
-              </div>
-              <CardTitle className="text-sm font-semibold text-foreground">6 Most Important Things</CardTitle>
+              <Star className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base font-semibold text-foreground">6 Most Important Things</CardTitle>
               <Badge variant="secondary" className="text-xs">
                 {completedCount} / {items.length || 6}
               </Badge>
@@ -334,7 +332,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
           )}
         </CardHeader>
 
-        <CardContent className={cn("pt-0", isMobile && "px-3")}>
+        <CardContent className={cn(isMobile && "px-3")}>
           {editMode ? (
             <FocusEditView
               draft={draft}
@@ -352,7 +350,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               weekStart={selectedWeekStart}
             />
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-4">
               {isOOO && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1 font-medium">
                   Out of Office — targets set to zero
@@ -364,7 +362,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                 </div>
               ) : (
                 <>
-                  <div className={cn(compact ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
+                  <div className={cn(compact ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" : "space-y-1.5")}>
                     {items.map((item) =>
                       compact ? (
                         <FocusItemCompact
