@@ -266,7 +266,23 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     return format(d, "MMM d, yyyy");
   })();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <Card className="border-primary/20 shadow-md bg-primary/5">
+        <CardHeader className={cn(isMobile ? "pb-1 px-3 py-2" : "pb-2")}>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <Star className="w-4 h-4 text-primary" />
+            </div>
+            <CardTitle className="text-sm font-semibold text-foreground">6 Most Important Things</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-xs text-muted-foreground py-4 text-center">Loading your focus items…</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
