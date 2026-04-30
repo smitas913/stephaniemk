@@ -131,7 +131,7 @@ function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Pa
   );
 }
 
-export default function MomentumScoreboard() {
+export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthly" } = {}) {
   const queryClient = useQueryClient();
   const [showHidden, setShowHidden] = useState(false);
 
@@ -221,11 +221,14 @@ export default function MomentumScoreboard() {
     );
   };
 
+  const showWeekly = only !== "monthly";
+  const showMonthly = only !== "weekly";
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {renderSection("weekly", "Weekly Actuals", `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, weekStart, weekEnd, weekPace)}
-        {renderSection("monthly", "Monthly Actuals", monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }), monthStart, monthEnd, monthPace)}
+      <div className={cn("grid grid-cols-1 gap-4", showWeekly && showMonthly && "md:grid-cols-2")}>
+        {showWeekly && renderSection("weekly", "Weekly Actuals", `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, weekStart, weekEnd, weekPace)}
+        {showMonthly && renderSection("monthly", "Monthly Actuals", monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }), monthStart, monthEnd, monthPace)}
       </div>
       <div className="flex items-center justify-end">
         <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => setShowHidden((s) => !s)}>
