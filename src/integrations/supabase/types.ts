@@ -1482,6 +1482,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           prospect_id: string | null
+          relationship_type: string
           secondary_email: string | null
           secondary_phone: string | null
           state_territory: string | null
@@ -1514,6 +1515,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           prospect_id?: string | null
+          relationship_type?: string
           secondary_email?: string | null
           secondary_phone?: string | null
           state_territory?: string | null
@@ -1546,6 +1548,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           prospect_id?: string | null
+          relationship_type?: string
           secondary_email?: string | null
           secondary_phone?: string | null
           state_territory?: string | null
