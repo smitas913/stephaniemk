@@ -1,52 +1,25 @@
-import { useMemo } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  parseISO,
-  isWithinInterval,
-} from "date-fns";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { startOfWeek, endOfWeek } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
+import { Sparkles, ArrowRight, Zap } from "lucide-react";
 import {
-  Sparkles,
-  ArrowRight,
-  Target,
-  TrendingUp,
-  Users,
-  Calendar,
-  MessageSquare,
-  Pencil,
-  Zap,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
-import {
-  fetchMomentumGoals,
-  updateMomentumGoal,
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
   fetchProspects,
   fetchBookingLeads,
   fetchTeamConsultants,
-  type MomentumGoal,
 } from "@/lib/queries";
-import type { EventRecord, Note, Customer } from "@/lib/types";
 import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
-import { useState } from "react";
 import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import UpcomingEventsCard from "@/components/dashboard/UpcomingEventsCard";
+import MomentumScoreboard from "@/components/MomentumScoreboard";
 
 // ─── Quotes ───
 const MOTIVATIONAL_QUOTES = [
@@ -64,100 +37,6 @@ function getDailyQuote(): string {
   return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
 }
 
-// ─── Helpers ───
-function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
-  if (!dateStr) return false;
-  try {
-    return isWithinInterval(parseISO(dateStr), { start, end });
-  } catch {
-    return false;
-  }
-}
-
-function statusFor(current: number, goal: number, pace: number): "green" | "yellow" | "red" {
-  if (goal <= 0) return "green";
-  const pct = current / goal;
-  if (pct >= 1) return "green";
-  if (pct >= pace * 0.8) return "green";
-  if (pct >= pace * 0.5) return "yellow";
-  return "red";
-}
-
-const STATUS_TEXT = {
-  green: "text-green-600",
-  yellow: "text-yellow-600",
-  red: "text-red-600",
-} as const;
-const STATUS_BAR = {
-  green: "[&>div]:bg-green-500",
-  yellow: "[&>div]:bg-yellow-500",
-  red: "[&>div]:bg-red-500",
-} as const;
-
-interface ActualsBundle {
-  events: EventRecord[];
-  notes: Note[];
-  customers: Customer[];
-}
-
-function computeActuals(
-  metricKey: string,
-  start: Date,
-  end: Date,
-  data: ActualsBundle,
-): number {
-  const { events, notes, customers } = data;
-  switch (metricKey) {
-    case "faces":
-      return events
-        .filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end))
-        .reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    case "career_chats":
-      return notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).length;
-    case "booking_conversations":
-    case "booking_attempts":
-      return notes.filter((n) => (n.is_booking_attempt || n.result_type === "Booking Conversation") && inRange(n.note_date, start, end)).length;
-    case "appointments_held":
-      return events.filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end)).length;
-    case "new_bookings":
-      return events.filter((e) => inRange(e.created_at, start, end)).length;
-    case "new_customers":
-      return customers.filter((c) => inRange(c.created_at, start, end)).length;
-    default:
-      return 0;
-  }
-}
-
-// ─── Goal Editor ───
-function MomentumGoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (u: Partial<MomentumGoal>) => void }) {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(String(goal.goal_value));
-  const [visible, setVisible] = useState(goal.is_visible);
-  return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) { setValue(String(goal.goal_value)); setVisible(goal.is_visible); } }}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" title="Edit goal">
-          <Pencil className="w-3 h-3" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-3 space-y-3" align="end">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground">Goal value</label>
-          <Input type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} className="h-8" />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Show on dashboard</span>
-          <Switch checked={visible} onCheckedChange={setVisible} />
-        </div>
-        <Button size="sm" className="w-full h-8" onClick={() => {
-          const n = parseInt(value, 10);
-          onSave({ goal_value: Number.isFinite(n) && n >= 0 ? n : 0, is_visible: visible });
-          setOpen(false);
-        }}>Save</Button>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 // ─── Quick Add ───
 const QUICK_ADD_OPTIONS = [
@@ -209,7 +88,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: momentumGoals = [] } = useQuery({ queryKey: ["momentum-goals"], queryFn: fetchMomentumGoals });
+  
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -237,44 +116,12 @@ export default function Dashboard() {
     };
   }, [unifiedNotes, notes, customers, prospects, bookingLeads, consultants, events]);
 
-  const updateMomentum = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<MomentumGoal> }) => updateMomentumGoal(id, updates),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["momentum-goals"] }); toast({ title: "Goal updated" }); },
-    onError: (e) => toast({ title: "Failed to update", description: e instanceof Error ? e.message : "Unknown", variant: "destructive" }),
-  });
-
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-
-  const weekPace = useMemo(() => {
-    const elapsed = Math.min(7, Math.max(1, Math.floor((now.getTime() - weekStart.getTime()) / 86400000) + 1));
-    return elapsed / 7;
-  }, [now, weekStart]);
-
-  const dataBundle: ActualsBundle = { events, notes, customers };
-
-  // Weekly scoreboard: faces, career_chats, booking_conversations
-  const weeklyKeys = ["faces", "career_chats", "booking_conversations"];
-  const weeklyScoreboard = weeklyKeys.map((key) => {
-    const goal = momentumGoals.find((g) => g.metric_key === key && g.period === "weekly");
-    const current = computeActuals(key, weekStart, weekEnd, dataBundle);
-    return { key, goal, current };
-  });
-
-  // Monthly snapshot — lightweight count cards
-  const monthlySnapshot = [
-    { key: "faces", label: "Faces", icon: Users },
-    { key: "career_chats", label: "Career Chats", icon: MessageSquare },
-    { key: "new_bookings", label: "Bookings", icon: Calendar },
-    { key: "new_customers", label: "New Customers", icon: TrendingUp },
-  ].map((m) => ({ ...m, value: computeActuals(m.key, monthStart, monthEnd, dataBundle) }));
 
   const dailyQuote = getDailyQuote();
   const weekLabel = `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-  const monthLabel = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["notes-all"] });
@@ -328,75 +175,11 @@ export default function Dashboard() {
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
 
-        {/* WEEKLY SCOREBOARD */}
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" />
-                <CardTitle className="text-base font-semibold text-foreground">Weekly Scoreboard</CardTitle>
-              </div>
-              <span className="text-xs text-muted-foreground">{weekLabel}</span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {weeklyScoreboard.map((m) => {
-              const goalVal = m.goal?.goal_value ?? 0;
-              const pct = goalVal > 0 ? Math.min((m.current / goalVal) * 100, 100) : 0;
-              const status = statusFor(m.current, goalVal, weekPace);
-              const label = m.goal?.metric_label ??
-                (m.key === "faces" ? "Faces" :
-                  m.key === "career_chats" ? "Career Chats" : "Booking Attempts");
-              return (
-                <div key={m.key} className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">{label}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn("text-base font-bold tabular-nums", STATUS_TEXT[status])}>
-                        {m.current} <span className="text-muted-foreground font-normal text-xs">/ {goalVal}</span>
-                      </span>
-                      <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
-                        {goalVal > 0 ? `${Math.round((m.current / goalVal) * 100)}%` : "—"}
-                      </span>
-                      {m.goal && (
-                        <MomentumGoalEditor
-                          goal={m.goal}
-                          onSave={(u) => updateMomentum.mutate({ id: m.goal!.id, updates: u })}
-                        />
-                      )}
-                    </div>
-                  </div>
-                  <Progress value={pct} className={cn("h-2", STATUS_BAR[status])} />
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+        {/* WEEKLY + MONTHLY ACTUALS vs GOALS — single source of truth */}
+        <MomentumScoreboard />
 
         {/* UPCOMING EVENTS */}
         <UpcomingEventsCard />
-
-        {/* MONTHLY SNAPSHOT */}
-        <Card className="border-border/50 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              <CardTitle className="text-base font-semibold text-foreground">Monthly Snapshot</CardTitle>
-              <span className="text-xs text-muted-foreground ml-auto">{monthLabel}</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {monthlySnapshot.map((m) => (
-                <div key={m.key} className="rounded-lg border border-border/50 bg-muted/20 p-3">
-                  <m.icon className="w-4 h-4 text-primary mb-1.5" />
-                  <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">{m.value}</p>
-                  <p className="text-[10px] font-semibold text-muted-foreground mt-1 uppercase tracking-wider">{m.label}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
