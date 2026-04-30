@@ -40,6 +40,7 @@ interface SixMostImportantProps {
   rawData?: FocusRawData;
   onDetailNavigate?: (type: string, id: string) => void;
   suggestedDayType?: DayType | null;
+  compact?: boolean;
 }
 
 // Map auto_track_key to the correct detail category
