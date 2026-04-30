@@ -143,9 +143,9 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
   const winStatus = useMemo(() => {
-    if (completedCount >= 6) return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
-    if (completedCount >= 5) return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
-    if (completedCount >= 4) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
+    if (completedCount >= 5) return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
+    if (completedCount >= 4) return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
+    if (completedCount >= 3) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
     return null;
   }, [completedCount]);
 
@@ -218,12 +218,9 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     // Enforce lock: slots 0–4 keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
     // Only slot 5 (Custom Focus) accepts user-renamed label.
     // Use statically-imported DEFAULT_FOCUS_ITEMS
-    const sanitized = draft.map((item, idx) => {
-      if (idx < 5) {
-        const canonical = DEFAULT_FOCUS_ITEMS[idx];
-        return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
-      }
-      return { ...item, sort_order: 5, label: item.label.trim() || "Custom Focus", auto_track_key: null };
+    const sanitized = draft.slice(0, 5).map((item, idx) => {
+      const canonical = DEFAULT_FOCUS_ITEMS[idx];
+      return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
     });
     await saveConfigs(sanitized);
     // Save day type targets
@@ -284,7 +281,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
             <div className="p-1.5 rounded-md bg-primary/10">
               <Star className="w-4 h-4 text-primary" />
             </div>
-            <CardTitle className="text-sm font-semibold text-foreground">6 Most Important Things</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Daily Success Drivers</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
@@ -301,9 +298,9 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <Star className="w-5 h-5 text-primary shrink-0" />
-              <CardTitle className="text-base font-semibold text-foreground">6 Most Important Things</CardTitle>
+              <CardTitle className="text-base font-semibold text-foreground">Daily Success Drivers</CardTitle>
               <Badge variant="secondary" className="text-xs">
-                {completedCount} / {items.length || 6}
+                {completedCount} / {items.length || 5}
               </Badge>
               {winStatus && (
                 <Badge variant="outline" className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}>

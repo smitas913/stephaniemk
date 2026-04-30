@@ -35,55 +35,20 @@ export default function FocusEditView({
 
         <TabsContent value="items" className="mt-2 space-y-2">
           <p className="text-[11px] text-muted-foreground leading-snug">
-            Slots 1–5 are fixed activity categories (labels locked). Slot 6 is your <strong>Custom Focus</strong> —
-            rename it to whatever you want to prioritize. Set daily targets for every slot on the Day Type Targets tab.
+            These are your <strong>5 Daily Success Drivers</strong> — the income-producing and growth-driving
+            activities that matter most. Labels are fixed; set daily targets on the Day Type Targets tab.
           </p>
-          {draft.map((item, idx) => {
-            const isCustomSlot = idx === 5;
-            const PRESETS = ["Personal Appointments", "Social Media", "Recruiting", "Admin / Cleanup", "Other"];
-            return (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
-                  {isCustomSlot ? (
-                    <Input
-                      value={item.label}
-                      onChange={(e) => {
-                        const next = [...draft];
-                        next[idx] = { ...next[idx], label: e.target.value };
-                        setDraft(next);
-                      }}
-                      className="h-8 text-sm flex-1"
-                      placeholder="Custom Focus name…"
-                    />
-                  ) : (
-                    <div className="h-8 flex-1 flex items-center gap-1.5 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-foreground">
-                      <Lock className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                  )}
+          {draft.map((item, idx) => (
+            <div key={idx} className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
+                <div className="h-8 flex-1 flex items-center gap-1.5 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-foreground">
+                  <Lock className="w-3 h-3 text-muted-foreground shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </div>
-                {isCustomSlot && (
-                  <div className="flex flex-wrap gap-1 pl-7">
-                    {PRESETS.map(preset => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          const next = [...draft];
-                          next[idx] = { ...next[idx], label: preset };
-                          setDraft(next);
-                        }}
-                        className="text-[10px] px-2 py-0.5 rounded-full border border-border bg-muted/40 hover:bg-primary/10 hover:border-primary/40 transition-colors"
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </TabsContent>
 
         <TabsContent value="targets" className="mt-2 space-y-3">
