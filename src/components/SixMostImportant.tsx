@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
-import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS, configsAreCanonical } from "@/hooks/useFocusItems";
+import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS, DEFAULT_FOCUS_ITEMS, configsAreCanonical } from "@/hooks/useFocusItems";
 import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -215,7 +215,17 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   };
 
   const saveDraft = async () => {
-    await saveConfigs(draft);
+    // Enforce lock: slots 0–4 keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
+    // Only slot 5 (Custom Focus) accepts user-renamed label.
+    // Use statically-imported DEFAULT_FOCUS_ITEMS
+    const sanitized = draft.map((item, idx) => {
+      if (idx < 5) {
+        const canonical = DEFAULT_FOCUS_ITEMS[idx];
+        return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
+      }
+      return { ...item, sort_order: 5, label: item.label.trim() || "Custom Focus", auto_track_key: null };
+    });
+    await saveConfigs(sanitized);
     // Save day type targets
     const targets: { day_type: DayType; sort_order: number; target: number }[] = [];
     for (const dt of ["power", "appointment", "flex"] as DayType[]) {

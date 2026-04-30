@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Lock, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FocusItemConfig, DayType } from "@/hooks/useFocusItems";
 import { DEFAULT_FOCUS_ITEMS, DEFAULT_DAY_TYPE_TARGETS, DAY_TYPE_INFO } from "@/hooks/useFocusItems";
@@ -20,26 +20,6 @@ export default function FocusEditView({
 }: FocusEditViewProps) {
   const [activeTab, setActiveTab] = useState<string>("items");
 
-  const moveDraftItem = (from: number, dir: -1 | 1) => {
-    const to = from + dir;
-    if (to < 0 || to >= draft.length) return;
-    setDraft((prev) => {
-      const next = [...prev];
-      [next[from], next[to]] = [next[to], next[from]];
-      return next.map((item, idx) => ({ ...item, sort_order: idx }));
-    });
-    // Also reorder targets
-    setDayTypeTargetsDraft(prev => {
-      const updated = { ...prev };
-      for (const dt of Object.keys(updated) as DayType[]) {
-        const arr = [...updated[dt]];
-        [arr[from], arr[to]] = [arr[to], arr[from]];
-        updated[dt] = arr;
-      }
-      return updated;
-    });
-  };
-
   const resetToDefaults = () => {
     setDraft([...DEFAULT_FOCUS_ITEMS]);
     setDayTypeTargetsDraft({ ...DEFAULT_DAY_TYPE_TARGETS });
@@ -55,9 +35,8 @@ export default function FocusEditView({
 
         <TabsContent value="items" className="mt-2 space-y-2">
           <p className="text-[11px] text-muted-foreground leading-snug">
-            Slots 1–5 are fixed activity categories. Slot 6 is your <strong>Custom Focus</strong> — rename it
-            to whatever you want to prioritize (e.g. Personal Appointments, Social Media, Recruiting Push,
-            Promotions, Health/Routine). Set its daily target on the Day Type Targets tab.
+            Slots 1–5 are fixed activity categories (labels locked). Slot 6 is your <strong>Custom Focus</strong> —
+            rename it to whatever you want to prioritize. Set daily targets for every slot on the Day Type Targets tab.
           </p>
           {draft.map((item, idx) => {
             const isCustomSlot = idx === 5;
@@ -66,22 +45,23 @@ export default function FocusEditView({
               <div key={idx} className="space-y-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-primary w-5 text-center shrink-0">{idx + 1}</span>
-                  <Input
-                    value={item.label}
-                    onChange={(e) => {
-                      const next = [...draft];
-                      next[idx] = { ...next[idx], label: e.target.value };
-                      setDraft(next);
-                    }}
-                    className="h-8 text-sm flex-1"
-                    placeholder={isCustomSlot ? "Custom Focus name…" : undefined}
-                  />
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, -1)} disabled={idx === 0}>
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => moveDraftItem(idx, 1)} disabled={idx === draft.length - 1}>
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </Button>
+                  {isCustomSlot ? (
+                    <Input
+                      value={item.label}
+                      onChange={(e) => {
+                        const next = [...draft];
+                        next[idx] = { ...next[idx], label: e.target.value };
+                        setDraft(next);
+                      }}
+                      className="h-8 text-sm flex-1"
+                      placeholder="Custom Focus name…"
+                    />
+                  ) : (
+                    <div className="h-8 flex-1 flex items-center gap-1.5 px-3 rounded-md border border-border/60 bg-muted/40 text-sm text-foreground">
+                      <Lock className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                  )}
                 </div>
                 {isCustomSlot && (
                   <div className="flex flex-wrap gap-1 pl-7">
