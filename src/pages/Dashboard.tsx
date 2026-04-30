@@ -47,6 +47,7 @@ import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import UpcomingEventsCard from "@/components/dashboard/UpcomingEventsCard";
+import MomentumScoreboard from "@/components/MomentumScoreboard";
 
 // ─── Quotes ───
 const MOTIVATIONAL_QUOTES = [
