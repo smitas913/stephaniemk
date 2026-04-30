@@ -131,28 +131,21 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-5">
-        {/* HEADER */}
-        <Card className="border-primary/20 shadow-sm bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-          <CardContent className="p-5">
-            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-              <div className="flex-1 space-y-1 min-w-0">
-                <div className="flex items-center gap-2 text-primary">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider">Dashboard</span>
-                </div>
-                <p className="text-base font-medium text-foreground italic">"{dailyQuote}"</p>
-                <p className="text-xs text-muted-foreground">{weekLabel}</p>
-              </div>
-              <Button onClick={() => navigate("/follow-ups")} size="sm" variant="outline" className="text-xs shrink-0">
-                Today's Action List
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="space-y-3">
+        {/* HEADER — minimized */}
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+            <p className="text-xs text-foreground italic truncate">"{dailyQuote}"</p>
+            <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">· {weekLabel}</span>
+          </div>
+          <Button onClick={() => navigate("/follow-ups")} size="sm" variant="ghost" className="h-7 text-xs shrink-0">
+            Today
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Button>
+        </div>
 
-        {/* 6 MOST IMPORTANT — full editor (single source of truth) */}
+        {/* 6 MOST IMPORTANT — compact 2-col grid */}
         <SixMostImportant
           compact
           autoCounts={focusAutoCounts}
@@ -175,8 +168,11 @@ export default function Dashboard() {
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
 
-        {/* WEEKLY + MONTHLY ACTUALS vs GOALS — single source of truth */}
-        <MomentumScoreboard />
+        {/* WEEKLY ACTUALS — above the fold */}
+        <MomentumScoreboard only="weekly" />
+
+        {/* MONTHLY ACTUALS — below the fold */}
+        <MomentumScoreboard only="monthly" />
       </div>
     </Layout>
   );
