@@ -734,6 +734,14 @@ export default function FollowUps() {
       });
   }, [customers, allOrders, isOOOActive, frozenToday]);
 
+  const customerDncSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      if (Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")) s.add(c.id);
+    }
+    return s;
+  }, [customers]);
+
   // Detail sheet queries
   const { data: detailNotes = [] } = useQuery({
     queryKey: ["customer-notes", detailItem?.id],
