@@ -50,7 +50,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [vipOpen, setVipOpen] = useState(false);
   const [actOpen, setActOpen] = useState(false);
   const [fuOpen, setFuOpen] = useState(false);
-  const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
+  const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | "date_added" | "became_customer" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Read ?attention=1 (set by Business Reset banner) → enable combined filter
@@ -61,7 +61,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
   }, [searchParams]);
 
-  const toggleSort = (col: "last_contacted" | "last_order" | "follow_up") => {
+  const toggleSort = (col: "last_contacted" | "last_order" | "follow_up" | "date_added" | "became_customer") => {
     if (sortCol === col) {
       if (sortDir === "asc") setSortDir("desc");
       else { setSortCol(null); setSortDir("asc"); }
@@ -184,6 +184,8 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const getVal = (c: EnrichedCustomer): string | null => {
         if (sortCol === "last_contacted") return c.last_contacted;
         if (sortCol === "last_order") return c.last_order_effective;
+        if (sortCol === "date_added") return (c as any).date_added ?? null;
+        if (sortCol === "became_customer") return (c as any).became_customer_date ?? null;
         return c.next_follow_up;
       };
       const dir = sortDir === "asc" ? 1 : -1;
@@ -553,12 +555,24 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                       </button>
                     </div>
                   </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("date_added")}>
+                      Date Added
+                      {sortCol === "date_added" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    <button className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={() => toggleSort("became_customer")}>
+                      Became Customer
+                      {sortCol === "became_customer" ? (sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+                    </button>
+                  </TableHead>
                   <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
@@ -620,6 +634,12 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                           </>
                         );
                       })()}
+                    </TableCell>
+                    <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                      {formatDateOnly((c as any).date_added) || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                      {formatDateOnly((c as any).became_customer_date) || <span className="text-muted-foreground/60">—</span>}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">

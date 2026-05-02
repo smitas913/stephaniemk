@@ -30,6 +30,7 @@ export interface Customer {
   attention_reason?: string | null;
   flagged_at?: string | null;
   date_added: string;
+  became_customer_date: string | null;
   created_at: string;
   updated_at: string;
 }

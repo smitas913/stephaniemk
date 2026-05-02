@@ -32,6 +32,7 @@ export default function AddCustomer() {
   const [notes, setNotes] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState("");
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
+  const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -50,6 +51,8 @@ export default function AddCustomer() {
         notes: notes.trim() || null,
         next_follow_up_date: nextFollowUp || null,
         date_added: dateAdded || toLocalDateKey(),
+        // Only stamp became_customer_date when creating as Customer; trigger also enforces this.
+        became_customer_date: relationship === "Customer" ? (becameCustomerDate || toLocalDateKey()) : null,
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -161,6 +164,13 @@ export default function AddCustomer() {
                 <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
                 <p className="text-xs text-muted-foreground mt-1">Defaults to today. Adjust if backdating.</p>
               </div>
+              {relationship === "Customer" && (
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Became Customer Date</label>
+                  <Input type="date" value={becameCustomerDate} onChange={(e) => setBecameCustomerDate(e.target.value)} className="h-10" />
+                  <p className="text-xs text-muted-foreground mt-1">When they became a customer.</p>
+                </div>
+              )}
             </div>
 
             {/* Notes */}
