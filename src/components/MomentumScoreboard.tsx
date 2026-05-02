@@ -23,10 +23,10 @@ import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 import MetricDrillDownDialog, { type DrillMetricKey } from "@/components/MetricDrillDownDialog";
 
-interface TeamConsultantRow { id: string; created_at: string; relationship_type: string | null }
+interface TeamConsultantRow { id: string; created_at: string; relationship_type: string | null; name: string | null }
 
 async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
-  const { data, error } = await supabase.from("team_consultants").select("id, created_at, relationship_type" as any);
+  const { data, error } = await supabase.from("team_consultants").select("id, created_at, relationship_type, name" as any);
   if (error) throw error;
   return ((data || []) as unknown) as TeamConsultantRow[];
 }
