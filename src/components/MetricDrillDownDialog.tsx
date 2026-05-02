@@ -58,7 +58,8 @@ export default function MetricDrillDownDialog({
   const defaultStart = period === "weekly" ? startOfWeek(now, { weekStartsOn: 1 }) : startOfMonth(now);
   const defaultEnd = period === "weekly" ? endOfWeek(now, { weekStartsOn: 1 }) : endOfMonth(now);
 
-  const [rangeMode, setRangeMode] = useState<"week" | "month" | "custom">(period === "weekly" ? "week" : "month");
+  // Per spec: default filter is Current Week for all metrics; user can expand to month/custom.
+  const [rangeMode, setRangeMode] = useState<"week" | "month" | "custom">("week");
   const [customStart, setCustomStart] = useState<Date | undefined>(defaultStart);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(defaultEnd);
 
