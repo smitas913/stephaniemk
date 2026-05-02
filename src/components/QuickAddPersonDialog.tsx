@@ -9,14 +9,16 @@ import {
   createCustomer,
   createNote,
   flagCustomer,
+  updateCustomer,
 } from "@/lib/queries";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag } from "lucide-react";
+import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag, Repeat, CalendarClock } from "lucide-react";
 
 type ResultType = "Face" | "Career Chat" | "Booking Conversation";
 
@@ -62,6 +64,9 @@ export default function QuickAddPersonDialog({
   const [capturePrompt, setCapturePrompt] = useState<{ name: string; noteBody: string } | null>(null);
   // Step 3: optional "Flag for follow-up?" prompt after a customer-linked log
   const [flagPrompt, setFlagPrompt] = useState<{ customerId: string; name: string } | null>(null);
+  // Step 2.5: "Set follow-up?" sequence picker — runs ONLY for newly-created customers
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ customerId: string; name: string } | null>(null);
+  const [customFollowUpDate, setCustomFollowUpDate] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -73,6 +78,8 @@ export default function QuickAddPersonDialog({
       setBusy(false);
       setCapturePrompt(null);
       setFlagPrompt(null);
+      setFollowUpPrompt(null);
+      setCustomFollowUpDate("");
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
@@ -144,9 +151,14 @@ export default function QuickAddPersonDialog({
     await createNote(payload);
   };
 
-  const finishOrPromptFlag = (person: PersonMatch | null, name: string) => {
+  const finishOrPromptFlag = (person: PersonMatch | null, name: string, opts?: { newCustomer?: boolean }) => {
     if (person?.kind === "customer") {
-      // Offer 1-tap flag for follow-through
+      // Newly created customers must be placed on a follow-up path first
+      if (opts?.newCustomer) {
+        setFollowUpPrompt({ customerId: person.id, name: person.name });
+        return;
+      }
+      // Existing customers: offer 1-tap flag for follow-through
       setFlagPrompt({ customerId: person.id, name: person.name });
       return;
     }
@@ -195,31 +207,105 @@ export default function QuickAddPersonDialog({
     }
   };
 
-  // "Add person?" handler: captures a Customer / Lead / Skip choice
-  const handleCaptureChoice = async (choice: "customer" | "lead" | "skip") => {
+  // "Add person?" handler: captures a Customer / Lead choice (Skip removed —
+  // closing the dialog without choosing leaves the activity unlogged for that name).
+  const handleCaptureChoice = async (choice: "customer" | "lead") => {
     if (!capturePrompt || !resultType) return;
     setBusy(true);
     try {
       let person: PersonMatch | null = null;
+      let isNewCustomer = false;
       if (choice === "customer") {
         const c = await createCustomer({ full_name: capturePrompt.name, relationship_status: "Customer" } as any);
         person = { kind: "customer", id: (c as any).id, name: capturePrompt.name };
+        isNewCustomer = true;
         toast.success(`Customer added: ${capturePrompt.name}`);
-      } else if (choice === "lead") {
+      } else {
         const l = await createBookingLead({ name: capturePrompt.name, status: "New" as any });
         person = { kind: "lead", id: (l as any).id, name: capturePrompt.name };
         toast.success(`Lead added: ${capturePrompt.name}`);
-      } else {
-        toast.success(`Face logged for ${capturePrompt.name}`);
       }
       await logActivity(person, capturePrompt.name);
       setBusy(false);
       setCapturePrompt(null);
-      finishOrPromptFlag(person, capturePrompt.name);
+      finishOrPromptFlag(person, capturePrompt.name, { newCustomer: isNewCustomer });
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed: ${msg}`);
       setBusy(false);
+    }
+  };
+
+  // Apply selected follow-up path for a newly-created customer.
+  // Choices:
+  //   "222"     — 2+2+2 sequence: stamp +2 days as next follow-up; record full sequence in a note
+  //   "custom"  — user-picked date
+  //   "default" — 90-Day Care Cycle (~75 days from today, matches long-term cadence)
+  // If user closes without choosing, we still apply "default" (no dead-end actions).
+  const applyFollowUpChoice = async (choice: "222" | "custom" | "default", customDate?: string) => {
+    if (!followUpPrompt) return;
+    setBusy(true);
+    try {
+      const today = new Date();
+      const addDays = (n: number) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() + n);
+        return toLocalDateKey(d);
+      };
+
+      let nextDate: string;
+      let reason: string;
+      let planNote: string | null = null;
+
+      if (choice === "222") {
+        const d2 = addDays(2);
+        const d2w = addDays(14);
+        const d2m = addDays(60);
+        nextDate = d2;
+        reason = "2+2+2 Sequence — Step 1 of 3 (initial check-in)";
+        planNote =
+          `2+2+2 follow-up sequence started:\n` +
+          `• Step 1 — ${d2}: Initial product experience check-in\n` +
+          `• Step 2 — ${d2w}: Reorder / appointment opportunity\n` +
+          `• Step 3 — ${d2m}: Transition to long-term care`;
+      } else if (choice === "custom" && customDate) {
+        nextDate = customDate;
+        reason = "Custom follow-up";
+      } else {
+        // Default — 90-Day Care Cycle
+        nextDate = addDays(75);
+        reason = "90-Day Care Cycle";
+      }
+
+      await updateCustomer(followUpPrompt.customerId, {
+        next_follow_up_date: nextDate,
+        follow_up_reason: reason,
+      } as any);
+
+      if (planNote) {
+        await createNote({
+          entity_type: "Customer",
+          customer_id: followUpPrompt.customerId,
+          person_id: followUpPrompt.customerId,
+          person_type: "customer",
+          note_body: planNote,
+          note_type: "Follow-Up",
+          next_follow_up_date: nextDate,
+          is_booking_attempt: false,
+          is_follow_up: true,
+        });
+      }
+
+      toast.success(`Follow-up set: ${reason}`);
+    } catch (e: any) {
+      toast.error(`Failed to set follow-up: ${e?.message ?? "Unknown error"}`);
+    } finally {
+      setBusy(false);
+      setFollowUpPrompt(null);
+      setCustomFollowUpDate("");
+      // After follow-up is set, still offer the flag prompt for items-to-complete tracking
+      onLogged();
+      onOpenChange(false);
     }
   };
 
@@ -245,7 +331,17 @@ export default function QuickAddPersonDialog({
   const meta = resultType ? TITLES[resultType] : null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        // No dead-end actions: if user closes mid-follow-up step, apply default 90-Day Care Cycle
+        if (!v && followUpPrompt && !busy) {
+          applyFollowUpChoice("default");
+          return;
+        }
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -254,7 +350,76 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {flagPrompt ? (
+        {followUpPrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                <CalendarClock className="w-4 h-4 text-primary" /> Set follow-up?
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pick a follow-up path for <span className="font-semibold">{followUpPrompt.name}</span>. Defaults to the 90-Day Care Cycle.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-primary/5 hover:border-primary/40"
+                disabled={busy}
+                onClick={() => applyFollowUpChoice("222")}
+              >
+                <Repeat className="w-4 h-4 text-primary shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Start 2+2+2 sequence</div>
+                  <div className="text-[11px] text-muted-foreground">+2 days · +2 weeks · +2 months</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-primary/5 hover:border-primary/40"
+                disabled={busy}
+                onClick={() => applyFollowUpChoice("default")}
+              >
+                <CalendarClock className="w-4 h-4 text-primary shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">90-Day Care Cycle <span className="ml-1 text-[10px] uppercase tracking-wide text-primary/70">Default</span></div>
+                  <div className="text-[11px] text-muted-foreground">Long-term retention rhythm (~75 days)</div>
+                </div>
+              </Button>
+              <div className="rounded-md border p-2.5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Custom follow-up date</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    min={toLocalDateKey()}
+                    value={customFollowUpDate}
+                    onChange={(e) => setCustomFollowUpDate(e.target.value)}
+                    className="h-9 flex-1"
+                    disabled={busy}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-9"
+                    disabled={busy || !customFollowUpDate}
+                    onClick={() => applyFollowUpChoice("custom", customFollowUpDate)}
+                  >
+                    Set
+                  </Button>
+                </div>
+              </div>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground text-center">
+              Closing without choosing applies the 90-Day Care Cycle.
+            </p>
+          </div>
+        ) : flagPrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium flex items-center gap-1.5">
@@ -300,7 +465,7 @@ export default function QuickAddPersonDialog({
                 Save <span className="font-semibold">{capturePrompt.name}</span> to your contacts so they show up in follow-ups.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col gap-1 hover:bg-blue-50 hover:border-blue-300"
@@ -319,15 +484,6 @@ export default function QuickAddPersonDialog({
                 <UserPlus className="w-4 h-4 text-amber-600" />
                 <span className="text-xs font-semibold">Lead</span>
               </Button>
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col gap-1"
-                disabled={busy}
-                onClick={() => handleCaptureChoice("skip")}
-              >
-                <span className="text-base">⏭️</span>
-                <span className="text-xs font-semibold">Skip</span>
-              </Button>
             </div>
             {busy && (
               <div className="flex items-center justify-center text-xs text-muted-foreground">
@@ -335,8 +491,16 @@ export default function QuickAddPersonDialog({
               </div>
             )}
             <p className="text-[11px] text-muted-foreground text-center">
-              Skip just logs the Face — no contact is created.
+              New customers get a follow-up path on the next step.
             </p>
+            <Button
+              variant="ghost"
+              className="w-full h-8 text-xs text-muted-foreground"
+              disabled={busy}
+              onClick={() => { setCapturePrompt(null); onLogged(); onOpenChange(false); }}
+            >
+              Cancel — don't save this person
+            </Button>
           </div>
         ) : (
         <div className="space-y-3">
