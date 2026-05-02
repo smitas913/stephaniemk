@@ -6,6 +6,7 @@ import {
   fetchBookingLeads,
   fetchTeamConsultants,
   createBookingLead,
+  createCustomer,
   createNote,
 } from "@/lib/queries";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
