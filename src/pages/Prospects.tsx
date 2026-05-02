@@ -207,10 +207,19 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+        {/* Search + Active/DNC */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+          </div>
+          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (no DNC)</SelectItem>
+              <SelectItem value="dnc">Do Not Contact</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* List */}
