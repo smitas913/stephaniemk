@@ -34,6 +34,16 @@ export default function AddCustomer() {
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
 
+  // Duplicate-name detection (never blocks creation — informational only)
+  const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const nameMatches = useMemo(() => {
+    const q = name.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return existingCustomers
+      .filter((c: any) => (c.full_name || "").toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [name, existingCustomers]);
+
   const mutation = useMutation({
     mutationFn: () =>
       createCustomer({
