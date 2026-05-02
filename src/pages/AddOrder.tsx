@@ -271,6 +271,7 @@ export default function AddOrder() {
         setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
         setRetailAmount("");
         setWholesaleAmount("");
+        setDiscountValue("");
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
