@@ -69,7 +69,12 @@ export default function AddCustomer() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
-      navigate(`/customers/${data.id}`);
+      if (relationship === "Customer") {
+        // Show 2+2+2 prompt before navigating
+        setFollowUpPrompt({ id: data.id, name: name.trim() });
+      } else {
+        navigate(`/customers/${data.id}`);
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });
