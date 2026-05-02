@@ -31,6 +31,7 @@ export default function AddCustomer() {
   const [firstOrderDate, setFirstOrderDate] = useState("");
   const [notes, setNotes] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState("");
+  const [dateAdded, setDateAdded] = useState(toLocalDateKey());
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -48,6 +49,7 @@ export default function AddCustomer() {
         profile_date_first_order_date: firstOrderDate || null,
         notes: notes.trim() || null,
         next_follow_up_date: nextFollowUp || null,
+        date_added: dateAdded || toLocalDateKey(),
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -153,6 +155,11 @@ export default function AddCustomer() {
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Next Follow-Up</label>
                 <Input type="date" value={nextFollowUp} min={toLocalDateKey()} onChange={(e) => setNextFollowUp(e.target.value)} className="h-10" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Date Added</label>
+                <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
+                <p className="text-xs text-muted-foreground mt-1">Defaults to today. Adjust if backdating.</p>
               </div>
             </div>
 

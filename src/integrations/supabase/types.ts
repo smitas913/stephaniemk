@@ -315,6 +315,7 @@ export type Database = {
           city: string | null
           created_at: string
           customer_source: string | null
+          date_added: string
           dormant_follow_up_stage: string | null
           email: string | null
           flagged_at: string | null
@@ -351,6 +352,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           customer_source?: string | null
+          date_added?: string
           dormant_follow_up_stage?: string | null
           email?: string | null
           flagged_at?: string | null
@@ -387,6 +389,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           customer_source?: string | null
+          date_added?: string
           dormant_follow_up_stage?: string | null
           email?: string | null
           flagged_at?: string | null

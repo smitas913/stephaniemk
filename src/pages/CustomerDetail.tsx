@@ -87,6 +87,7 @@ export default function CustomerDetail() {
         next_follow_up_date: customer.next_follow_up_date || "",
         new_customer_flag: (customer as any).new_customer_flag ? "true" : "false",
         is_skincare_customer: (customer as any).is_skincare_customer ? "true" : "false",
+        date_added: (customer as any).date_added || "",
       });
     }
   }, [customer]);
@@ -471,6 +472,9 @@ export default function CustomerDetail() {
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
                   </FormField>
+                  <FormField label="Date Added">
+                    <Input type="date" value={form.date_added} onChange={(e) => setForm({ ...form, date_added: e.target.value })} className="h-9" />
+                  </FormField>
                   <FormField label="New Customer">
                     <div className="flex items-center gap-2 h-9">
                       <Checkbox
@@ -572,6 +576,7 @@ export default function CustomerDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <InfoRow label="Relationship" value={customer.relationship_status} />
                   <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
+                  <InfoRow label="Date Added" value={formatDate((customer as any).date_added)} />
                   <div className="flex flex-col gap-0.5 py-1.5">
                     <span className="text-muted-foreground text-xs">Deliveries</span>
                     <span className="text-foreground flex items-center gap-1">

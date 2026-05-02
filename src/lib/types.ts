@@ -29,6 +29,7 @@ export interface Customer {
   needs_attention?: boolean;
   attention_reason?: string | null;
   flagged_at?: string | null;
+  date_added: string;
   created_at: string;
   updated_at: string;
 }
