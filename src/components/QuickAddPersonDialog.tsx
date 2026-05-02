@@ -144,6 +144,16 @@ export default function QuickAddPersonDialog({
     await createNote(payload);
   };
 
+  const finishOrPromptFlag = (person: PersonMatch | null, name: string) => {
+    if (person?.kind === "customer") {
+      // Offer 1-tap flag for follow-through
+      setFlagPrompt({ customerId: person.id, name: person.name });
+      return;
+    }
+    onLogged();
+    onOpenChange(false);
+  };
+
   const handleSave = async () => {
     if (!resultType) return;
     const trimmed = query.trim();
@@ -158,8 +168,8 @@ export default function QuickAddPersonDialog({
         const person = selected || exactMatch!;
         await logActivity(person, person.name);
         toast.success(`${resultType} logged for ${person.name}`);
-        onLogged();
-        onOpenChange(false);
+        setBusy(false);
+        finishOrPromptFlag(person, person.name);
         return;
       }
 
@@ -176,12 +186,11 @@ export default function QuickAddPersonDialog({
       const person: PersonMatch = { kind: "lead", id: (newLead as any).id, name: trimmed };
       await logActivity(person, trimmed);
       toast.success(`${resultType} logged for ${person.name}`);
-      onLogged();
-      onOpenChange(false);
+      setBusy(false);
+      finishOrPromptFlag(person, person.name);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
-    } finally {
       setBusy(false);
     }
   };
@@ -204,13 +213,32 @@ export default function QuickAddPersonDialog({
         toast.success(`Face logged for ${capturePrompt.name}`);
       }
       await logActivity(person, capturePrompt.name);
-      onLogged();
-      onOpenChange(false);
+      setBusy(false);
+      setCapturePrompt(null);
+      finishOrPromptFlag(person, capturePrompt.name);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed: ${msg}`);
+      setBusy(false);
+    }
+  };
+
+  // Flag prompt handler — 1 tap to mark customer needing follow-through
+  const handleFlagChoice = async (reason: "Finish later" | "Needs follow-up" | "Complete details later" | null) => {
+    if (!flagPrompt) return;
+    setBusy(true);
+    try {
+      if (reason) {
+        await flagCustomer(flagPrompt.customerId, reason);
+        toast.success(`Flagged: ${reason}`);
+      }
+    } catch (e: any) {
+      toast.error(`Failed to flag: ${e?.message ?? "Unknown error"}`);
     } finally {
       setBusy(false);
+      setFlagPrompt(null);
+      onLogged();
+      onOpenChange(false);
     }
   };
 
