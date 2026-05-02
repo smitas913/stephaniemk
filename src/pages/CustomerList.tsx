@@ -173,7 +173,18 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       if (filterAttention) {
         const flagged = (c as any).needs_attention === true;
         const incomplete = !c.phone?.trim() || !c.email?.trim() || !c.address_line_1?.trim();
-        if (!flagged && !incomplete) return false;
+        const needsFollowUp = c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
+        if (attentionView === "incomplete") {
+          // "Incomplete Profiles" = flagged (finish later)
+          if (!flagged) return false;
+        } else if (attentionView === "followup") {
+          if (!needsFollowUp) return false;
+        } else if (attentionView === "missing") {
+          if (!incomplete) return false;
+        } else {
+          // all
+          if (!flagged && !incomplete && !needsFollowUp) return false;
+        }
       }
 
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing;
