@@ -31,9 +31,13 @@ export interface Customer {
   flagged_at?: string | null;
   date_added: string;
   became_customer_date: string | null;
+  tags?: string[] | null;
   created_at: string;
   updated_at: string;
 }
+
+export const CUSTOMER_TAGS = ["Lead", "Prospect", "DNC"] as const;
+export type CustomerTag = typeof CUSTOMER_TAGS[number];
 
 export const DORMANT_FOLLOW_UP_STAGES = ["Stage 1", "Stage 2", "Stage 3", "Annual"] as const;
 
