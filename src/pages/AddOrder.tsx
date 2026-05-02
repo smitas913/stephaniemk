@@ -774,6 +774,69 @@ export default function AddOrder() {
           if (shouldNav) navigate("/orders");
         }}
       />
+
+      <AlertDialog open={!!dncPrompt} onOpenChange={(o) => { if (!o) setDncPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-destructive" />
+              Marked Do Not Contact
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{selectedCustomer?.full_name}</strong> is marked Do Not Contact. How would you like to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="rounded-md border border-border p-3">
+              <p className="font-medium text-foreground">A. Remove DNC and convert to Customer</p>
+              <p className="text-xs text-muted-foreground">Removes the DNC tag and resumes the standard post-order follow-up.</p>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <p className="font-medium text-foreground">B. Keep DNC and log the order</p>
+              <p className="text-xs text-muted-foreground">Records the sale but does <strong>not</strong> schedule any follow-up.</p>
+            </div>
+          </div>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={async () => {
+                const pending = dncPrompt;
+                setDncPrompt(null);
+                setDncSuppressFollowUp(true);
+                if (pending) await handleSubmit(pending.addAnother);
+              }}
+            >
+              Keep DNC, log order
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={async () => {
+                const pending = dncPrompt;
+                setDncPrompt(null);
+                if (!customerId) return;
+                try {
+                  const cust = customers.find(c => c.id === customerId);
+                  const newTags = (Array.isArray((cust as any)?.tags) ? (cust as any).tags : []).filter((t: string) => t !== "DNC");
+                  const { error } = await supabase
+                    .from("customers")
+                    .update({ tags: newTags } as any)
+                    .eq("id", customerId);
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({ queryKey: ["customers"] });
+                  toast.success("DNC removed");
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to remove DNC");
+                  return;
+                }
+                setDncSuppressFollowUp(false);
+                if (pending) await handleSubmit(pending.addAnother);
+              }}
+            >
+              Remove DNC & convert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
