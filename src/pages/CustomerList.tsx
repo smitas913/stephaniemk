@@ -45,6 +45,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
   const [filterAttention, setFilterAttention] = useState(false);
+  const [attentionView, setAttentionView] = useState<"all" | "incomplete" | "followup" | "missing">("all");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
@@ -58,6 +59,10 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     if (searchParams.get("attention") === "1") {
       setFilterAttention(true);
       setFilterMissing(["phone", "email", "address"]);
+    }
+    const v = searchParams.get("view");
+    if (v === "incomplete" || v === "followup" || v === "missing" || v === "all") {
+      setAttentionView(v);
     }
   }, [searchParams]);
 
@@ -168,7 +173,18 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       if (filterAttention) {
         const flagged = (c as any).needs_attention === true;
         const incomplete = !c.phone?.trim() || !c.email?.trim() || !c.address_line_1?.trim();
-        if (!flagged && !incomplete) return false;
+        const needsFollowUp = c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
+        if (attentionView === "incomplete") {
+          // "Incomplete Profiles" = flagged (finish later)
+          if (!flagged) return false;
+        } else if (attentionView === "followup") {
+          if (!needsFollowUp) return false;
+        } else if (attentionView === "missing") {
+          if (!incomplete) return false;
+        } else {
+          // all
+          if (!flagged && !incomplete && !needsFollowUp) return false;
+        }
       }
 
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing;
@@ -200,7 +216,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention, attentionView]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -314,23 +330,55 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         </div>
 
         {filterAttention && (
-          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
-            <span className="text-sm font-medium text-foreground">
-              Showing: Items to Complete ({filtered.length})
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => {
-                setFilterAttention(false);
-                const sp = new URLSearchParams(searchParams);
-                sp.delete("attention");
-                setSearchParams(sp, { replace: true });
-              }}
-            >
-              Clear
-            </Button>
+          <div className="flex flex-col gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-sm font-medium text-foreground">
+                Showing: Items to Complete ({filtered.length})
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setFilterAttention(false);
+                  setAttentionView("all");
+                  const sp = new URLSearchParams(searchParams);
+                  sp.delete("attention");
+                  sp.delete("view");
+                  setSearchParams(sp, { replace: true });
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                { key: "all", label: "All" },
+                { key: "incomplete", label: "Incomplete Profiles" },
+                { key: "followup", label: "Needs Follow-Up" },
+                { key: "missing", label: "Missing Info" },
+              ] as const).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => {
+                    setAttentionView(t.key);
+                    const sp = new URLSearchParams(searchParams);
+                    if (t.key === "all") sp.delete("view");
+                    else sp.set("view", t.key);
+                    setSearchParams(sp, { replace: true });
+                  }}
+                  className={cn(
+                    "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                    attentionView === t.key
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-foreground border-border hover:bg-muted"
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

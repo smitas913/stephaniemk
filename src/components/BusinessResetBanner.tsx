@@ -100,7 +100,7 @@ export default function BusinessResetBanner() {
             .
           </p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <Button size="sm" className="h-8 text-xs" onClick={() => navigate("/clients?tab=customers&attention=1")}>
+            <Button size="sm" className="h-8 text-xs" onClick={() => navigate("/clients?tab=customers&attention=1&view=all")}>
               Review {totalToComplete} item{totalToComplete === 1 ? "" : "s"}
             </Button>
             <Button
