@@ -49,6 +49,7 @@ export default function AddCustomer() {
         profile_date_first_order_date: firstOrderDate || null,
         notes: notes.trim() || null,
         next_follow_up_date: nextFollowUp || null,
+        date_added: dateAdded || toLocalDateKey(),
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
