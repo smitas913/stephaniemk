@@ -335,9 +335,11 @@ export default function QuickAddPersonDialog({
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        // No dead-end actions: if user closes mid-follow-up step, apply default 90-Day Care Cycle
+        // Closing during follow-up step = Skip (customer already saved)
         if (!v && followUpPrompt && !busy) {
-          applyFollowUpChoice("default");
+          setFollowUpPrompt(null);
+          onLogged();
+          onOpenChange(false);
           return;
         }
         onOpenChange(v);
@@ -411,13 +413,26 @@ export default function QuickAddPersonDialog({
                 </div>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground hover:text-foreground"
+              disabled={busy}
+              onClick={() => {
+                setFollowUpPrompt(null);
+                onLogged();
+                onOpenChange(false);
+              }}
+            >
+              Skip for now
+            </Button>
             {busy && (
               <div className="flex items-center justify-center text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
               </div>
             )}
             <p className="text-[11px] text-muted-foreground text-center">
-              Closing without choosing applies the 90-Day Care Cycle.
+              Customer is saved — choose a follow-up path or skip.
             </p>
           </div>
         ) : flagPrompt ? (

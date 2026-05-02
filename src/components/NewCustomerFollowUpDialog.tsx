@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarClock, Repeat, Calendar } from "lucide-react";
+import { CalendarClock, Repeat, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { applyNewCustomerFollowUp, type FollowUpChoice } from "@/lib/newCustomerFollowUp";
@@ -49,9 +49,9 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v && !busy && customerId) {
-          // No dead-end actions — apply default 90-Day cycle on close
-          apply("default");
+        if (!v && !busy) {
+          // Failsafe: closing = Skip (customer is already saved). No dead-end.
+          onClose(null);
         }
       }}
     >
@@ -117,6 +117,16 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
                 </Button>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              disabled={busy}
+              onClick={() => onClose(null)}
+            >
+              <X className="w-3.5 h-3.5 mr-1" />
+              Skip for now
+            </Button>
           </div>
         </div>
       </DialogContent>
