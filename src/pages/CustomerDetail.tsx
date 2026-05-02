@@ -472,6 +472,9 @@ export default function CustomerDetail() {
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
                   </FormField>
+                  <FormField label="Date Added">
+                    <Input type="date" value={form.date_added} onChange={(e) => setForm({ ...form, date_added: e.target.value })} className="h-9" />
+                  </FormField>
                   <FormField label="New Customer">
                     <div className="flex items-center gap-2 h-9">
                       <Checkbox
