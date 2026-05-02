@@ -292,6 +292,23 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               )}
             </PopoverContent>
           </Popover>
+          <Button
+            variant={filterAttention ? "default" : "outline"}
+            size="sm"
+            className="h-9 gap-1 text-xs"
+            onClick={() => {
+              const next = !filterAttention;
+              setFilterAttention(next);
+              if (!next) {
+                const sp = new URLSearchParams(searchParams);
+                sp.delete("attention");
+                setSearchParams(sp, { replace: true });
+              }
+            }}
+          >
+            <Flag className="w-3.5 h-3.5" />
+            Items to Complete
+          </Button>
         </div>
 
         {/* Table */}
