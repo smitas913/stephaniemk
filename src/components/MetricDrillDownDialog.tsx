@@ -194,6 +194,25 @@ export default function MetricDrillDownDialog({
     }
   };
 
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .update({ note_date: editing.date, note_body: editing.body })
+        .eq("id", editing.noteId);
+      if (error) throw error;
+      toast({ title: "Activity updated" });
+      qc.invalidateQueries({ queryKey: ["notes-all"] });
+      setEditing(null);
+    } catch (err) {
+      toast({ title: "Update failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const total = rows.reduce((s, r) => s + (r.count ?? 1), 0);
   const canCleanup = metricKey === "faces" || metricKey === "career_chats";
 
