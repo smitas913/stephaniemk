@@ -1,0 +1,1 @@
+UPDATE public.daily_focus_progress SET manual_adjustment = 0 WHERE manual_adjustment <> 0;
