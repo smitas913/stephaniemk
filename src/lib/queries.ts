@@ -75,6 +75,55 @@ export const unarchiveCustomer = async (id: string) => {
   if (error) throw error;
 };
 
+// Flag / unflag a customer for follow-through
+export const flagCustomer = async (id: string, reason: string) => {
+  const { error } = await supabase
+    .from("customers")
+    .update({ needs_attention: true, attention_reason: reason, flagged_at: new Date().toISOString() } as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const unflagCustomer = async (id: string) => {
+  const { error } = await supabase
+    .from("customers")
+    .update({ needs_attention: false, attention_reason: null, flagged_at: null } as any)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+// User preferences (weekly reset day, banner dismissals)
+export type UserPreferences = {
+  id: string;
+  user_id: string;
+  weekly_reset_day: number; // 0=Sun..6=Sat
+  weekly_reset_last_dismissed: string | null;
+};
+
+export const fetchUserPreferences = async (): Promise<UserPreferences | null> => {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from("user_preferences" as any)
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) ?? null;
+};
+
+export const upsertUserPreferences = async (updates: Partial<Omit<UserPreferences, "id" | "user_id">>) => {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error("Not signed in");
+  const { data, error } = await supabase
+    .from("user_preferences" as any)
+    .upsert({ user_id: userId, ...updates } as any, { onConflict: "user_id" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as any;
+};
+
 // Orders
 export const fetchOrders = async (customerId?: string): Promise<OrderWithCustomer[]> => {
   let query = supabase.from("orders").select("*, customers(full_name)").order("order_date", { ascending: false });

@@ -309,6 +309,7 @@ export type Database = {
           address_line_2: string | null
           allow_non_working_day: boolean
           archived_at: string | null
+          attention_reason: string | null
           birthday: string | null
           birthday_mmdd: string | null
           city: string | null
@@ -316,6 +317,7 @@ export type Database = {
           customer_source: string | null
           dormant_follow_up_stage: string | null
           email: string | null
+          flagged_at: string | null
           follow_up_reason: string | null
           full_name: string
           id: string
@@ -324,6 +326,7 @@ export type Database = {
           last_contacted: string | null
           last_order_date_order_log: string | null
           last_order_mk: string | null
+          needs_attention: boolean
           new_customer_flag: boolean
           new_follow_up_stage: string | null
           next_follow_up_date: string | null
@@ -342,6 +345,7 @@ export type Database = {
           address_line_2?: string | null
           allow_non_working_day?: boolean
           archived_at?: string | null
+          attention_reason?: string | null
           birthday?: string | null
           birthday_mmdd?: string | null
           city?: string | null
@@ -349,6 +353,7 @@ export type Database = {
           customer_source?: string | null
           dormant_follow_up_stage?: string | null
           email?: string | null
+          flagged_at?: string | null
           follow_up_reason?: string | null
           full_name: string
           id?: string
@@ -357,6 +362,7 @@ export type Database = {
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
+          needs_attention?: boolean
           new_customer_flag?: boolean
           new_follow_up_stage?: string | null
           next_follow_up_date?: string | null
@@ -375,6 +381,7 @@ export type Database = {
           address_line_2?: string | null
           allow_non_working_day?: boolean
           archived_at?: string | null
+          attention_reason?: string | null
           birthday?: string | null
           birthday_mmdd?: string | null
           city?: string | null
@@ -382,6 +389,7 @@ export type Database = {
           customer_source?: string | null
           dormant_follow_up_stage?: string | null
           email?: string | null
+          flagged_at?: string | null
           follow_up_reason?: string | null
           full_name?: string
           id?: string
@@ -390,6 +398,7 @@ export type Database = {
           last_contacted?: string | null
           last_order_date_order_log?: string | null
           last_order_mk?: string | null
+          needs_attention?: boolean
           new_customer_flag?: boolean
           new_follow_up_stage?: string | null
           next_follow_up_date?: string | null
@@ -1564,6 +1573,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          weekly_reset_day: number
+          weekly_reset_last_dismissed: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          weekly_reset_day?: number
+          weekly_reset_last_dismissed?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          weekly_reset_day?: number
+          weekly_reset_last_dismissed?: string | null
+        }
+        Relationships: []
       }
       user_schedule_settings: {
         Row: {

@@ -8,6 +8,7 @@ import {
   createBookingLead,
   createCustomer,
   createNote,
+  flagCustomer,
 } from "@/lib/queries";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2 } from "lucide-react";
+import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag } from "lucide-react";
 
 type ResultType = "Face" | "Career Chat" | "Booking Conversation";
 
@@ -59,6 +60,8 @@ export default function QuickAddPersonDialog({
   const [busy, setBusy] = useState(false);
   // Step 2: optional "Add person?" capture for brand-new names on Face logs
   const [capturePrompt, setCapturePrompt] = useState<{ name: string; noteBody: string } | null>(null);
+  // Step 3: optional "Flag for follow-up?" prompt after a customer-linked log
+  const [flagPrompt, setFlagPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -69,6 +72,7 @@ export default function QuickAddPersonDialog({
       setNote("");
       setBusy(false);
       setCapturePrompt(null);
+      setFlagPrompt(null);
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
@@ -140,6 +144,16 @@ export default function QuickAddPersonDialog({
     await createNote(payload);
   };
 
+  const finishOrPromptFlag = (person: PersonMatch | null, name: string) => {
+    if (person?.kind === "customer") {
+      // Offer 1-tap flag for follow-through
+      setFlagPrompt({ customerId: person.id, name: person.name });
+      return;
+    }
+    onLogged();
+    onOpenChange(false);
+  };
+
   const handleSave = async () => {
     if (!resultType) return;
     const trimmed = query.trim();
@@ -154,8 +168,8 @@ export default function QuickAddPersonDialog({
         const person = selected || exactMatch!;
         await logActivity(person, person.name);
         toast.success(`${resultType} logged for ${person.name}`);
-        onLogged();
-        onOpenChange(false);
+        setBusy(false);
+        finishOrPromptFlag(person, person.name);
         return;
       }
 
@@ -172,12 +186,11 @@ export default function QuickAddPersonDialog({
       const person: PersonMatch = { kind: "lead", id: (newLead as any).id, name: trimmed };
       await logActivity(person, trimmed);
       toast.success(`${resultType} logged for ${person.name}`);
-      onLogged();
-      onOpenChange(false);
+      setBusy(false);
+      finishOrPromptFlag(person, person.name);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
-    } finally {
       setBusy(false);
     }
   };
@@ -200,13 +213,32 @@ export default function QuickAddPersonDialog({
         toast.success(`Face logged for ${capturePrompt.name}`);
       }
       await logActivity(person, capturePrompt.name);
-      onLogged();
-      onOpenChange(false);
+      setBusy(false);
+      setCapturePrompt(null);
+      finishOrPromptFlag(person, capturePrompt.name);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed: ${msg}`);
+      setBusy(false);
+    }
+  };
+
+  // Flag prompt handler — 1 tap to mark customer needing follow-through
+  const handleFlagChoice = async (reason: "Finish later" | "Needs follow-up" | "Complete details later" | null) => {
+    if (!flagPrompt) return;
+    setBusy(true);
+    try {
+      if (reason) {
+        await flagCustomer(flagPrompt.customerId, reason);
+        toast.success(`Flagged: ${reason}`);
+      }
+    } catch (e: any) {
+      toast.error(`Failed to flag: ${e?.message ?? "Unknown error"}`);
     } finally {
       setBusy(false);
+      setFlagPrompt(null);
+      onLogged();
+      onOpenChange(false);
     }
   };
 
@@ -222,7 +254,45 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {capturePrompt ? (
+        {flagPrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                <Flag className="w-3.5 h-3.5 text-primary" /> Flag for follow-up?
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Mark <span className="font-semibold">{flagPrompt.name}</span> so they show in your weekly Business Reset.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {(["Finish later", "Needs follow-up", "Complete details later"] as const).map((reason) => (
+                <Button
+                  key={reason}
+                  variant="outline"
+                  className="h-10 justify-start gap-2 hover:bg-primary/5 hover:border-primary/40"
+                  disabled={busy}
+                  onClick={() => handleFlagChoice(reason)}
+                >
+                  <Flag className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-sm">{reason}</span>
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                className="h-9 text-xs text-muted-foreground"
+                disabled={busy}
+                onClick={() => handleFlagChoice(null)}
+              >
+                No flag — done
+              </Button>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+          </div>
+        ) : capturePrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium">Add person?</p>

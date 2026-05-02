@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
@@ -12,10 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
@@ -32,6 +32,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -43,6 +44,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
+  const [filterAttention, setFilterAttention] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
@@ -50,6 +52,14 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [fuOpen, setFuOpen] = useState(false);
   const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Read ?attention=1 (set by Business Reset banner) → enable combined filter
+  useEffect(() => {
+    if (searchParams.get("attention") === "1") {
+      setFilterAttention(true);
+      setFilterMissing(["phone", "email", "address"]);
+    }
+  }, [searchParams]);
 
   const toggleSort = (col: "last_contacted" | "last_order" | "follow_up") => {
     if (sortCol === col) {
@@ -143,15 +153,22 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
       const matchSkincare = filterSkincare === "all" || (filterSkincare === "yes" ? (c as any).is_skincare_customer === true : (c as any).is_skincare_customer !== true);
 
-      // Missing info filters
+      // Missing info filters (skipped when the combined Attention filter is on)
       let matchMissing = true;
-      if (filterMissing.length > 0) {
+      if (!filterAttention && filterMissing.length > 0) {
         for (const f of filterMissing) {
           if (f === "birthday" && c.birthday) { matchMissing = false; break; }
           if (f === "phone" && c.phone?.trim()) { matchMissing = false; break; }
           if (f === "email" && c.email?.trim()) { matchMissing = false; break; }
           if (f === "address" && c.address_line_1?.trim() && c.city?.trim() && c.state_territory?.trim() && c.postal_code?.trim()) { matchMissing = false; break; }
         }
+      }
+
+      // Items-to-Complete combined filter — show if flagged OR missing key info
+      if (filterAttention) {
+        const flagged = (c as any).needs_attention === true;
+        const incomplete = !c.phone?.trim() || !c.email?.trim() || !c.address_line_1?.trim();
+        if (!flagged && !incomplete) return false;
       }
 
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing;
@@ -181,7 +198,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -275,6 +292,23 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               )}
             </PopoverContent>
           </Popover>
+          <Button
+            variant={filterAttention ? "default" : "outline"}
+            size="sm"
+            className="h-9 gap-1 text-xs"
+            onClick={() => {
+              const next = !filterAttention;
+              setFilterAttention(next);
+              if (!next) {
+                const sp = new URLSearchParams(searchParams);
+                sp.delete("attention");
+                setSearchParams(sp, { replace: true });
+              }
+            }}
+          >
+            <Flag className="w-3.5 h-3.5" />
+            Items to Complete
+          </Button>
         </div>
 
         {/* Table */}
