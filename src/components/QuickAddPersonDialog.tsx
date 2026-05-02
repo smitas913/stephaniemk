@@ -335,9 +335,11 @@ export default function QuickAddPersonDialog({
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        // No dead-end actions: if user closes mid-follow-up step, apply default 90-Day Care Cycle
+        // Closing during follow-up step = Skip (customer already saved)
         if (!v && followUpPrompt && !busy) {
-          applyFollowUpChoice("default");
+          setFollowUpPrompt(null);
+          onLogged();
+          onOpenChange(false);
           return;
         }
         onOpenChange(v);
