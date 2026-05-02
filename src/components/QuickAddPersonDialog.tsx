@@ -9,7 +9,9 @@ import {
   createCustomer,
   createNote,
   flagCustomer,
+  updateCustomer,
 } from "@/lib/queries";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
