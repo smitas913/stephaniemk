@@ -253,7 +253,9 @@ export default function AddOrder() {
         setPaymentStatus("Paid");
         setNeedsCatalog(false);
         setAttempted(false);
-      } else {
+      } else if (!isNewCustomer) {
+        // For existing-customer orders, navigate immediately. New-customer
+        // orders defer navigation until the 2+2+2 follow-up prompt closes.
         navigate("/orders");
       }
     } catch (err: any) {
