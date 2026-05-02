@@ -41,10 +41,12 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: customersForDnc = [] } = useQuery({ queryKey: ["customers"], queryFn: () => import("@/lib/queries").then(m => m.fetchCustomers()) });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [showAdd, setShowAdd] = useState(false);
   const [editLead, setEditLead] = useState<BookingLead | null>(null);
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
