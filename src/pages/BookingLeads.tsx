@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant, createNote, fetchAllLatestNotes } from "@/lib/queries";
+import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant, createNote, fetchAllLatestNotes, fetchCustomers } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES, NEXT_STEP_TYPES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
@@ -41,10 +41,12 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: customersForDnc = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [showAdd, setShowAdd] = useState(false);
   const [editLead, setEditLead] = useState<BookingLead | null>(null);
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
@@ -81,15 +83,25 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     address_line_1: "", city: "", state_territory: "", postal_code: "",
   });
 
+  const customerDncSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customersForDnc) {
+      if (Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")) s.add(c.id);
+    }
+    return s;
+  }, [customersForDnc]);
+
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      if (statusFilter === "all" && l.converted_customer_id) return false;
+      const isDnc = !!l.converted_customer_id && customerDncSet.has(l.converted_customer_id);
+      if (filterDnc === "dnc" ? !isDnc : isDnc) return false;
+      if (statusFilter === "all" && l.converted_customer_id && filterDnc === "active") return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (activityFilter !== "all" && (l.lead_activity || "No Activity Yet") !== activityFilter) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [leads, search, statusFilter, activityFilter]);
+  }, [leads, search, statusFilter, activityFilter, filterDnc, customerDncSet]);
 
   // Quick Add validation
   const hasContact = form.phone.trim() || form.email.trim();
@@ -328,6 +340,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             <SelectContent>
               <SelectItem value="all">All Activities</SelectItem>
               {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+            <SelectTrigger className="h-9 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (no DNC)</SelectItem>
+              <SelectItem value="dnc">Do Not Contact</SelectItem>
             </SelectContent>
           </Select>
         </div>

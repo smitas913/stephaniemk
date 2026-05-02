@@ -726,12 +726,21 @@ export default function FollowUps() {
     // dates from sliding into the past while the user is away.
     return customers
       .filter((c) => c.is_active !== false && c.relationship_status !== "Consultant")
+      .filter((c) => !(Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")))
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
         const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined);
         return { ...c, ...computed };
       });
   }, [customers, allOrders, isOOOActive, frozenToday]);
+
+  const customerDncSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      if (Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")) s.add(c.id);
+    }
+    return s;
+  }, [customers]);
 
   // Detail sheet queries
   const { data: detailNotes = [] } = useQuery({
@@ -785,6 +794,7 @@ export default function FollowUps() {
 
     // Prospect items
     const prospectItems: ActionItem[] = prospects
+      .filter((p) => !(p.customer_id && customerDncSet.has(p.customer_id)))
       .filter((p) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
       .map((p) => {
         const effectiveFollowUp = normalizeFollowUpDate(p.next_step_date) || normalizeFollowUpDate(p.next_follow_up_date);
@@ -852,6 +862,7 @@ export default function FollowUps() {
 
     // Booking lead items (converted to ActionItems)
     const leadItems: ActionItem[] = bookingLeads
+      .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
       .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
       .map((lead) => {
         const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
@@ -1098,7 +1109,7 @@ export default function FollowUps() {
       birthdaysOverdue,
       birthdaysUpcoming,
     };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet]);
 
   useEffect(() => {
     const activeStartDate = scheduleSettings?.ooo_start_date || null;

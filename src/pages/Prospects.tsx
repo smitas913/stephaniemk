@@ -42,6 +42,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterOwnership, setFilterOwnership] = useState<string>("all");
   const [filterConsultant, setFilterConsultant] = useState<string>("all");
+  const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Prospect | null>(null);
@@ -63,8 +64,21 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
     return map;
   }, [consultants]);
 
+  const customerDncSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      if (Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")) s.add(c.id);
+    }
+    return s;
+  }, [customers]);
+
   const filtered = useMemo(() => {
     let list = prospects;
+    // DNC filter via linked customer
+    list = list.filter((p) => {
+      const isDnc = !!p.customer_id && customerDncSet.has(p.customer_id);
+      return filterDnc === "dnc" ? isDnc : !isDnc;
+    });
     if (filterStatus !== "all") list = list.filter((p) => p.opportunity_status === filterStatus);
     if (filterOwnership !== "all") list = list.filter((p) => (p.ownership_type || "personal") === filterOwnership);
     if (filterConsultant !== "all") list = list.filter((p) => p.assigned_consultant_id === filterConsultant);
@@ -73,7 +87,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       list = list.filter((p) => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.email?.toLowerCase().includes(q));
     }
     return list;
-  }, [prospects, filterStatus, filterOwnership, filterConsultant, search]);
+  }, [prospects, filterStatus, filterOwnership, filterConsultant, filterDnc, customerDncSet, search]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -193,10 +207,19 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+        {/* Search + Active/DNC */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+          </div>
+          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (no DNC)</SelectItem>
+              <SelectItem value="dnc">Do Not Contact</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* List */}
