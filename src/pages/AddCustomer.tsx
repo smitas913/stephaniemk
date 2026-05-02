@@ -31,6 +31,7 @@ export default function AddCustomer() {
   const [firstOrderDate, setFirstOrderDate] = useState("");
   const [notes, setNotes] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState("");
+  const [dateAdded, setDateAdded] = useState(toLocalDateKey());
 
   const mutation = useMutation({
     mutationFn: () =>
