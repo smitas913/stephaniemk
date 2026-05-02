@@ -6,6 +6,7 @@ import {
   fetchBookingLeads,
   fetchTeamConsultants,
   createBookingLead,
+  createCustomer,
   createNote,
 } from "@/lib/queries";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -56,6 +57,8 @@ export default function QuickAddPersonDialog({
   const [selected, setSelected] = useState<PersonMatch | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // Step 2: optional "Add person?" capture for brand-new names on Face logs
+  const [capturePrompt, setCapturePrompt] = useState<{ name: string; noteBody: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -65,6 +68,7 @@ export default function QuickAddPersonDialog({
       setSelected(null);
       setNote("");
       setBusy(false);
+      setCapturePrompt(null);
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
@@ -104,6 +108,38 @@ export default function QuickAddPersonDialog({
     setQuery(p.name);
   };
 
+  // Logs a note for the given person (or anonymous if person is null)
+  const logActivity = async (person: PersonMatch | null, name: string) => {
+    if (!resultType) return;
+    const noteBody = note.trim() || `Quick log: ${resultType}${person ? ` — ${person.name}` : name ? ` — ${name}` : ""}`;
+    const payload: Parameters<typeof createNote>[0] = {
+      entity_type: person ? kindToEntityType(person.kind) : "Lead",
+      note_body: noteBody,
+      note_type: "General",
+      result_type: resultType,
+      is_booking_attempt: resultType === "Booking Conversation",
+    };
+    if (person?.kind === "customer") {
+      payload.customer_id = person.id;
+      payload.person_type = "customer";
+      payload.person_id = person.id;
+    } else if (person?.kind === "prospect") {
+      payload.prospect_id = person.id;
+      payload.person_type = "prospect";
+      payload.person_id = person.id;
+    } else if (person?.kind === "lead") {
+      payload.person_type = "lead";
+      payload.person_id = person.id;
+    } else if (person?.kind === "consultant") {
+      payload.person_type = "consultant";
+      payload.person_id = person.id;
+    } else if (person?.kind === "hostess") {
+      payload.person_type = "hostess";
+      payload.person_id = person.id;
+    }
+    await createNote(payload);
+  };
+
   const handleSave = async () => {
     if (!resultType) return;
     const trimmed = query.trim();
@@ -113,54 +149,62 @@ export default function QuickAddPersonDialog({
     }
     setBusy(true);
     try {
-      let person = selected;
-
-      // No selection — match by exact name or create new lead
-      if (!person) {
-        if (exactMatch) {
-          person = exactMatch;
-        } else {
-          // Create new booking lead with status 'New'
-          const newLead = await createBookingLead({ name: trimmed, status: "New" as any });
-          person = { kind: "lead", id: (newLead as any).id, name: trimmed };
-        }
+      // If selected or exact-match exists → log directly
+      if (selected || exactMatch) {
+        const person = selected || exactMatch!;
+        await logActivity(person, person.name);
+        toast.success(`${resultType} logged for ${person.name}`);
+        onLogged();
+        onOpenChange(false);
+        return;
       }
 
-      // Map to note fields
-      const noteBody = note.trim() || `Quick log: ${resultType}${person ? ` — ${person.name}` : ""}`;
-      const payload: Parameters<typeof createNote>[0] = {
-        entity_type: kindToEntityType(person.kind),
-        note_body: noteBody,
-        note_type: "General",
-        result_type: resultType,
-        is_booking_attempt: resultType === "Booking Conversation",
-      };
-      if (person.kind === "customer") {
-        payload.customer_id = person.id;
-        payload.person_type = "customer";
-        payload.person_id = person.id;
-      } else if (person.kind === "prospect") {
-        payload.prospect_id = person.id;
-        payload.person_type = "prospect";
-        payload.person_id = person.id;
-      } else if (person.kind === "lead") {
-        payload.person_type = "lead";
-        payload.person_id = person.id;
-      } else if (person.kind === "consultant") {
-        payload.person_type = "consultant";
-        payload.person_id = person.id;
-      } else if (person.kind === "hostess") {
-        payload.person_type = "hostess";
-        payload.person_id = person.id;
+      // Brand-new name
+      if (resultType === "Face") {
+        // Show "Add person?" prompt — defer activity log until user chooses
+        setCapturePrompt({ name: trimmed, noteBody: note.trim() });
+        setBusy(false);
+        return;
       }
 
-      await createNote(payload);
+      // Other result types: keep existing behavior (auto-create lead)
+      const newLead = await createBookingLead({ name: trimmed, status: "New" as any });
+      const person: PersonMatch = { kind: "lead", id: (newLead as any).id, name: trimmed };
+      await logActivity(person, trimmed);
       toast.success(`${resultType} logged for ${person.name}`);
       onLogged();
       onOpenChange(false);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // "Add person?" handler: captures a Customer / Lead / Skip choice
+  const handleCaptureChoice = async (choice: "customer" | "lead" | "skip") => {
+    if (!capturePrompt || !resultType) return;
+    setBusy(true);
+    try {
+      let person: PersonMatch | null = null;
+      if (choice === "customer") {
+        const c = await createCustomer({ full_name: capturePrompt.name, relationship_status: "Customer" } as any);
+        person = { kind: "customer", id: (c as any).id, name: capturePrompt.name };
+        toast.success(`Customer added: ${capturePrompt.name}`);
+      } else if (choice === "lead") {
+        const l = await createBookingLead({ name: capturePrompt.name, status: "New" as any });
+        person = { kind: "lead", id: (l as any).id, name: capturePrompt.name };
+        toast.success(`Lead added: ${capturePrompt.name}`);
+      } else {
+        toast.success(`Face logged for ${capturePrompt.name}`);
+      }
+      await logActivity(person, capturePrompt.name);
+      onLogged();
+      onOpenChange(false);
+    } catch (e: any) {
+      const msg = e?.message || e?.error_description || "Unknown error";
+      toast.error(`Failed: ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -178,6 +222,53 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {capturePrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium">Add person?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Save <span className="font-semibold">{capturePrompt.name}</span> to your contacts so they show up in follow-ups.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1 hover:bg-blue-50 hover:border-blue-300"
+                disabled={busy}
+                onClick={() => handleCaptureChoice("customer")}
+              >
+                <Users className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-semibold">Customer</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1 hover:bg-amber-50 hover:border-amber-300"
+                disabled={busy}
+                onClick={() => handleCaptureChoice("lead")}
+              >
+                <UserPlus className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-semibold">Lead</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1"
+                disabled={busy}
+                onClick={() => handleCaptureChoice("skip")}
+              >
+                <span className="text-base">⏭️</span>
+                <span className="text-xs font-semibold">Skip</span>
+              </Button>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground text-center">
+              Skip just logs the Face — no contact is created.
+            </p>
+          </div>
+        ) : (
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Name *</label>
@@ -227,7 +318,11 @@ export default function QuickAddPersonDialog({
                     className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2 text-sm"
                   >
                     <UserPlus className="w-4 h-4 text-primary" />
-                    <span>Create new lead: <span className="font-semibold">{query.trim()}</span></span>
+                    <span>
+                      {resultType === "Face"
+                        ? <>Use new name: <span className="font-semibold">{query.trim()}</span></>
+                        : <>Create new lead: <span className="font-semibold">{query.trim()}</span></>}
+                    </span>
                   </button>
                 )}
               </div>
@@ -259,10 +354,11 @@ export default function QuickAddPersonDialog({
               Cancel
             </Button>
             <Button className="flex-1" onClick={handleSave} disabled={busy || !query.trim()}>
-              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : "Save"}
+              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : (resultType === "Face" ? "Continue" : "Save")}
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
