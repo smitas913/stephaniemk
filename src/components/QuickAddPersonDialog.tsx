@@ -59,6 +59,7 @@ export default function QuickAddPersonDialog({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<PersonMatch | null>(null);
   const [note, setNote] = useState("");
+  const [activityDate, setActivityDate] = useState<string>(toLocalDateKey());
   const [busy, setBusy] = useState(false);
   // Step 2: optional "Add person?" capture for brand-new names on Face logs
   const [capturePrompt, setCapturePrompt] = useState<{ name: string; noteBody: string } | null>(null);
@@ -75,6 +76,7 @@ export default function QuickAddPersonDialog({
       setQuery("");
       setSelected(null);
       setNote("");
+      setActivityDate(toLocalDateKey());
       setBusy(false);
       setCapturePrompt(null);
       setFlagPrompt(null);
@@ -127,6 +129,7 @@ export default function QuickAddPersonDialog({
       entity_type: person ? kindToEntityType(person.kind) : "Lead",
       note_body: noteBody,
       note_type: "General",
+      note_date: activityDate || toLocalDateKey(),
       result_type: resultType,
       is_booking_attempt: resultType === "Booking Conversation",
     };
@@ -571,6 +574,17 @@ export default function QuickAddPersonDialog({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="min-h-[60px]"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
+            <Input
+              type="date"
+              max={toLocalDateKey()}
+              value={activityDate}
+              onChange={(e) => setActivityDate(e.target.value || toLocalDateKey())}
+              className="h-9"
             />
           </div>
 
