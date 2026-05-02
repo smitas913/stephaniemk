@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 export default function AddCustomer() {
   const navigate = useNavigate();
