@@ -216,7 +216,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention, attentionView]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
