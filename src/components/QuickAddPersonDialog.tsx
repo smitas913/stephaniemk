@@ -129,6 +129,7 @@ export default function QuickAddPersonDialog({
       entity_type: person ? kindToEntityType(person.kind) : "Lead",
       note_body: noteBody,
       note_type: "General",
+      note_date: activityDate || toLocalDateKey(),
       result_type: resultType,
       is_booking_attempt: resultType === "Booking Conversation",
     };
