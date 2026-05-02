@@ -87,6 +87,7 @@ export default function CustomerDetail() {
         next_follow_up_date: customer.next_follow_up_date || "",
         new_customer_flag: (customer as any).new_customer_flag ? "true" : "false",
         is_skincare_customer: (customer as any).is_skincare_customer ? "true" : "false",
+        date_added: (customer as any).date_added || "",
       });
     }
   }, [customer]);
