@@ -12,6 +12,7 @@ import ScheduleSettings from "@/components/ScheduleSettings";
 import MergeDuplicates from "@/components/MergeDuplicates";
 import ZoomDefaultsSettings from "@/components/ZoomDefaultsSettings";
 import EmailPreferenceSettings from "@/components/EmailPreferenceSettings";
+import FinancialDefaultsSettings from "@/components/FinancialDefaultsSettings";
 import ResetMomentumTestData from "@/components/ResetMomentumTestData";
 
 export default function AdminTools() {
@@ -120,6 +121,7 @@ export default function AdminTools() {
             <div className="space-y-4">
               <ScheduleSettings />
               <EmailPreferenceSettings />
+              <FinancialDefaultsSettings />
             </div>
           </TabsContent>
 
