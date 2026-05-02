@@ -254,7 +254,45 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {capturePrompt ? (
+        {flagPrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                <Flag className="w-3.5 h-3.5 text-primary" /> Flag for follow-up?
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Mark <span className="font-semibold">{flagPrompt.name}</span> so they show in your weekly Business Reset.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {(["Finish later", "Needs follow-up", "Complete details later"] as const).map((reason) => (
+                <Button
+                  key={reason}
+                  variant="outline"
+                  className="h-10 justify-start gap-2 hover:bg-primary/5 hover:border-primary/40"
+                  disabled={busy}
+                  onClick={() => handleFlagChoice(reason)}
+                >
+                  <Flag className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-sm">{reason}</span>
+                </Button>
+              ))}
+              <Button
+                variant="ghost"
+                className="h-9 text-xs text-muted-foreground"
+                disabled={busy}
+                onClick={() => handleFlagChoice(null)}
+              >
+                No flag — done
+              </Button>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+          </div>
+        ) : capturePrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium">Add person?</p>
