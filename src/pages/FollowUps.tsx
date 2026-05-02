@@ -862,6 +862,7 @@ export default function FollowUps() {
 
     // Booking lead items (converted to ActionItems)
     const leadItems: ActionItem[] = bookingLeads
+      .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
       .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
       .map((lead) => {
         const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
