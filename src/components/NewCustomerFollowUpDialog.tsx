@@ -117,6 +117,16 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
                 </Button>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              disabled={busy}
+              onClick={() => onClose(null)}
+            >
+              <X className="w-3.5 h-3.5 mr-1" />
+              Skip for now
+            </Button>
           </div>
         </div>
       </DialogContent>
