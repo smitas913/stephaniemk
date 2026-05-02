@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Plus, Minus, Zap, ChevronRight } from "lucide-react";
+import { Check, Zap, ChevronRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 export interface FocusItemData {
@@ -21,11 +21,12 @@ interface FocusItemRowProps {
 }
 
 export default function FocusItemRow({
-  item, onAdjust, onDrillDown, readOnly, isMobile,
+  item, onDrillDown,
 }: FocusItemRowProps) {
   // Completion is purely data-driven: target reached.
-  const done = item.target > 0 && item.current >= item.target;
-  const pct = item.target > 0 ? Math.min(100, Math.round((item.current / item.target) * 100)) : 0;
+  const current = Math.max(0, item.current);
+  const done = item.target > 0 && current >= item.target;
+  const pct = item.target > 0 ? Math.min(100, Math.round((current / item.target) * 100)) : 0;
 
   return (
     <div
@@ -69,34 +70,13 @@ export default function FocusItemRow({
               <span title="Auto-tracked"><Zap className="w-3 h-3 text-amber-500" /></span>
             )}
             <span className={cn("text-xs font-medium", done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-              {item.current}/{item.target}
+              {current}/{item.target}
             </span>
             <ChevronRight className="w-3 h-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
         <Progress value={pct} className="h-1.5" />
       </button>
-
-      {/* Manual +/- controls */}
-      {!readOnly && (
-        <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => onAdjust?.(-1)}
-            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-            disabled={item.current <= 0}
-          >
-            <Minus className="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onAdjust?.(1)}
-            className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-          >
-            <Plus className="w-3 h-3" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }
