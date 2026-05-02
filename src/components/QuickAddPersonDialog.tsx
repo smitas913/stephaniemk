@@ -108,6 +108,38 @@ export default function QuickAddPersonDialog({
     setQuery(p.name);
   };
 
+  // Logs a note for the given person (or anonymous if person is null)
+  const logActivity = async (person: PersonMatch | null, name: string) => {
+    if (!resultType) return;
+    const noteBody = note.trim() || `Quick log: ${resultType}${person ? ` — ${person.name}` : name ? ` — ${name}` : ""}`;
+    const payload: Parameters<typeof createNote>[0] = {
+      entity_type: person ? kindToEntityType(person.kind) : "Lead",
+      note_body: noteBody,
+      note_type: "General",
+      result_type: resultType,
+      is_booking_attempt: resultType === "Booking Conversation",
+    };
+    if (person?.kind === "customer") {
+      payload.customer_id = person.id;
+      payload.person_type = "customer";
+      payload.person_id = person.id;
+    } else if (person?.kind === "prospect") {
+      payload.prospect_id = person.id;
+      payload.person_type = "prospect";
+      payload.person_id = person.id;
+    } else if (person?.kind === "lead") {
+      payload.person_type = "lead";
+      payload.person_id = person.id;
+    } else if (person?.kind === "consultant") {
+      payload.person_type = "consultant";
+      payload.person_id = person.id;
+    } else if (person?.kind === "hostess") {
+      payload.person_type = "hostess";
+      payload.person_id = person.id;
+    }
+    await createNote(payload);
+  };
+
   const handleSave = async () => {
     if (!resultType) return;
     const trimmed = query.trim();
@@ -117,54 +149,62 @@ export default function QuickAddPersonDialog({
     }
     setBusy(true);
     try {
-      let person = selected;
-
-      // No selection — match by exact name or create new lead
-      if (!person) {
-        if (exactMatch) {
-          person = exactMatch;
-        } else {
-          // Create new booking lead with status 'New'
-          const newLead = await createBookingLead({ name: trimmed, status: "New" as any });
-          person = { kind: "lead", id: (newLead as any).id, name: trimmed };
-        }
+      // If selected or exact-match exists → log directly
+      if (selected || exactMatch) {
+        const person = selected || exactMatch!;
+        await logActivity(person, person.name);
+        toast.success(`${resultType} logged for ${person.name}`);
+        onLogged();
+        onOpenChange(false);
+        return;
       }
 
-      // Map to note fields
-      const noteBody = note.trim() || `Quick log: ${resultType}${person ? ` — ${person.name}` : ""}`;
-      const payload: Parameters<typeof createNote>[0] = {
-        entity_type: kindToEntityType(person.kind),
-        note_body: noteBody,
-        note_type: "General",
-        result_type: resultType,
-        is_booking_attempt: resultType === "Booking Conversation",
-      };
-      if (person.kind === "customer") {
-        payload.customer_id = person.id;
-        payload.person_type = "customer";
-        payload.person_id = person.id;
-      } else if (person.kind === "prospect") {
-        payload.prospect_id = person.id;
-        payload.person_type = "prospect";
-        payload.person_id = person.id;
-      } else if (person.kind === "lead") {
-        payload.person_type = "lead";
-        payload.person_id = person.id;
-      } else if (person.kind === "consultant") {
-        payload.person_type = "consultant";
-        payload.person_id = person.id;
-      } else if (person.kind === "hostess") {
-        payload.person_type = "hostess";
-        payload.person_id = person.id;
+      // Brand-new name
+      if (resultType === "Face") {
+        // Show "Add person?" prompt — defer activity log until user chooses
+        setCapturePrompt({ name: trimmed, noteBody: note.trim() });
+        setBusy(false);
+        return;
       }
 
-      await createNote(payload);
+      // Other result types: keep existing behavior (auto-create lead)
+      const newLead = await createBookingLead({ name: trimmed, status: "New" as any });
+      const person: PersonMatch = { kind: "lead", id: (newLead as any).id, name: trimmed };
+      await logActivity(person, trimmed);
       toast.success(`${resultType} logged for ${person.name}`);
       onLogged();
       onOpenChange(false);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // "Add person?" handler: captures a Customer / Lead / Skip choice
+  const handleCaptureChoice = async (choice: "customer" | "lead" | "skip") => {
+    if (!capturePrompt || !resultType) return;
+    setBusy(true);
+    try {
+      let person: PersonMatch | null = null;
+      if (choice === "customer") {
+        const c = await createCustomer({ full_name: capturePrompt.name, relationship_status: "Customer" } as any);
+        person = { kind: "customer", id: (c as any).id, name: capturePrompt.name };
+        toast.success(`Customer added: ${capturePrompt.name}`);
+      } else if (choice === "lead") {
+        const l = await createBookingLead({ name: capturePrompt.name, status: "New" as any });
+        person = { kind: "lead", id: (l as any).id, name: capturePrompt.name };
+        toast.success(`Lead added: ${capturePrompt.name}`);
+      } else {
+        toast.success(`Face logged for ${capturePrompt.name}`);
+      }
+      await logActivity(person, capturePrompt.name);
+      onLogged();
+      onOpenChange(false);
+    } catch (e: any) {
+      const msg = e?.message || e?.error_description || "Unknown error";
+      toast.error(`Failed: ${msg}`);
     } finally {
       setBusy(false);
     }
