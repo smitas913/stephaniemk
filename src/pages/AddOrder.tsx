@@ -182,6 +182,14 @@ export default function AddOrder() {
       return;
     }
 
+    // DNC guard: if existing customer is marked Do Not Contact, prompt before saving.
+    const existingCust = customerId ? customers.find(c => c.id === customerId) : null;
+    const isExistingDnc = !!existingCust && Array.isArray((existingCust as any).tags) && (existingCust as any).tags.includes("DNC");
+    if (isExistingDnc && !dncPrompt) {
+      setDncPrompt({ addAnother });
+      return;
+    }
+
     setSubmitting(true);
     try {
       let resolvedCustomerId = customerId;
