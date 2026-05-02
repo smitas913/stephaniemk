@@ -577,7 +577,18 @@ export default function QuickAddPersonDialog({
             />
           </div>
 
-          <div className="flex gap-2 pt-1">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
+            <Input
+              type="date"
+              max={toLocalDateKey()}
+              value={activityDate}
+              onChange={(e) => setActivityDate(e.target.value || toLocalDateKey())}
+              className="h-9"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-1"></div>
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={busy}>
               Cancel
             </Button>
