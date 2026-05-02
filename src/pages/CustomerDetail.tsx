@@ -25,6 +25,7 @@ import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
+import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
