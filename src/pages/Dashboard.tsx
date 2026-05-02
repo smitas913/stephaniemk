@@ -20,6 +20,7 @@ import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
 import BusinessResetBanner from "@/components/BusinessResetBanner";
+import FinancialSnapshot from "@/components/FinancialSnapshot";
 
 // ─── Quotes ───
 const MOTIVATIONAL_QUOTES = [
