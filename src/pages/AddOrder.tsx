@@ -190,6 +190,8 @@ export default function AddOrder() {
         } as any);
         resolvedCustomerId = newCust.id;
         resolvedCustomerName = newCust.full_name;
+        // Trigger 2+2+2 follow-up prompt for newly-created customers
+        setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
       }
 
       let eventId: string | null = null;
