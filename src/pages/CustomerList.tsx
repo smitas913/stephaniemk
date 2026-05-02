@@ -268,6 +268,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (no DNC)</SelectItem>
+              <SelectItem value="dnc">Do Not Contact</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
             <SelectTrigger className="w-[150px] h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
