@@ -42,6 +42,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterOwnership, setFilterOwnership] = useState<string>("all");
   const [filterConsultant, setFilterConsultant] = useState<string>("all");
+  const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Prospect | null>(null);
