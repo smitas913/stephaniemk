@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag } from "lucide-react";
+import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag, Repeat, CalendarClock } from "lucide-react";
 
 type ResultType = "Face" | "Career Chat" | "Booking Conversation";
 
