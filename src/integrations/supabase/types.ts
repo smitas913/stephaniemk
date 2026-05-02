@@ -811,6 +811,7 @@ export type Database = {
         Row: {
           cc_fee_rate: number
           created_at: string
+          profit_margin_rate: number
           tax_rate: number
           updated_at: string
           user_id: string
@@ -818,6 +819,7 @@ export type Database = {
         Insert: {
           cc_fee_rate?: number
           created_at?: string
+          profit_margin_rate?: number
           tax_rate?: number
           updated_at?: string
           user_id: string
@@ -825,6 +827,7 @@ export type Database = {
         Update: {
           cc_fee_rate?: number
           created_at?: string
+          profit_margin_rate?: number
           tax_rate?: number
           updated_at?: string
           user_id?: string
@@ -1138,6 +1141,7 @@ export type Database = {
           half_price_deal: boolean | null
           hostess: boolean | null
           id: string
+          net_profit: number | null
           net_received: number | null
           notes: string | null
           order_date: string
@@ -1165,6 +1169,7 @@ export type Database = {
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          net_profit?: number | null
           net_received?: number | null
           notes?: string | null
           order_date?: string
@@ -1192,6 +1197,7 @@ export type Database = {
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          net_profit?: number | null
           net_received?: number | null
           notes?: string | null
           order_date?: string
