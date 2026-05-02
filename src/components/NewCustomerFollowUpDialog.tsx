@@ -49,9 +49,9 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v && !busy && customerId) {
-          // No dead-end actions — apply default 90-Day cycle on close
-          apply("default");
+        if (!v && !busy) {
+          // Failsafe: closing = Skip (customer is already saved). No dead-end.
+          onClose(null);
         }
       }}
     >
