@@ -114,13 +114,17 @@ export default function LeadDetail() {
     },
   });
 
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
+
   const convertMut = useMutation({
     mutationFn: () => convertBookingLeadToCustomer(lead!, events.map((e) => e.event_id)),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Lead converted to customer");
-      if (result.customer?.id) navigate(`/customers/${result.customer.id}`);
+      if (result.customer?.id) {
+        setFollowUpPrompt({ id: result.customer.id, name: lead?.name || "" });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
