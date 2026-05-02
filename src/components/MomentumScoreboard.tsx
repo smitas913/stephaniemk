@@ -21,6 +21,7 @@ import { Pencil, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
+import MetricDrillDownDialog, { type DrillMetricKey } from "@/components/MetricDrillDownDialog";
 
 interface TeamConsultantRow { id: string; created_at: string; relationship_type: string | null }
 
