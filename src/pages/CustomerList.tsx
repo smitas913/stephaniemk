@@ -164,6 +164,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         }
       }
 
+      // Items-to-Complete combined filter — show if flagged OR missing key info
+      if (filterAttention) {
+        const flagged = (c as any).needs_attention === true;
+        const incomplete = !c.phone?.trim() || !c.email?.trim() || !c.address_line_1?.trim();
+        if (!flagged && !incomplete) return false;
+      }
+
       return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing;
     });
 
@@ -191,7 +198,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
