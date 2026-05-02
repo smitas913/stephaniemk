@@ -239,6 +239,16 @@ export default function AddCustomer() {
           </CardContent>
         </Card>
       </div>
+      <NewCustomerFollowUpDialog
+        customerId={followUpPrompt?.id ?? null}
+        customerName={followUpPrompt?.name ?? ""}
+        open={!!followUpPrompt}
+        onClose={() => {
+          const id = followUpPrompt?.id;
+          setFollowUpPrompt(null);
+          if (id) navigate(`/customers/${id}`);
+        }}
+      />
     </Layout>
   );
 }
