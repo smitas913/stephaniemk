@@ -12,6 +12,7 @@ import ScheduleSettings from "@/components/ScheduleSettings";
 import MergeDuplicates from "@/components/MergeDuplicates";
 import ZoomDefaultsSettings from "@/components/ZoomDefaultsSettings";
 import EmailPreferenceSettings from "@/components/EmailPreferenceSettings";
+import ResetMomentumTestData from "@/components/ResetMomentumTestData";
 
 export default function AdminTools() {
   const { profile } = useAuth();
@@ -105,6 +106,9 @@ export default function AdminTools() {
             </div>
             <div className="mt-4">
               <MergeDuplicates />
+            </div>
+            <div className="mt-4 max-w-xl">
+              <ResetMomentumTestData />
             </div>
           </TabsContent>
 
