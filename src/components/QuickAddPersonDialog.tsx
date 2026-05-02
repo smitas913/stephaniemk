@@ -121,6 +121,7 @@ export default function QuickAddPersonDialog({
   const handleSelect = (p: PersonMatch) => {
     setSelected(p);
     setQuery(p.name);
+    setCreateNewIntent(false);
   };
 
   // Logs a note for the given person (or anonymous if person is null)
