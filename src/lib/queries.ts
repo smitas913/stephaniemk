@@ -598,8 +598,24 @@ export const createNote = async (note: {
     .select()
     .single();
   if (error) throw error;
+
+  // Auto-progress booking lead status based on logged activity.
+  if (note.entity_type === "Lead" && note.person_id) {
+    const { autoProgressLeadFromNote } = await import("./leadAutoStatus");
+    // tags array contains a category tag like "Booking" or "Follow-Up"
+    const category = (note.tags || []).find((t) =>
+      ["Booking", "Coaching", "Recruiting", "Team Building", "Follow-Up"].includes(t)
+    ) || null;
+    await autoProgressLeadFromNote({
+      leadId: note.person_id,
+      actionType: note.note_type || null,
+      category,
+      isBookingAttempt: note.is_booking_attempt ?? false,
+      noteType: note.note_type || null,
+    });
+  }
   return data;
-};
+}
 
 // Momentum Goals
 export type MomentumPeriod = "weekly" | "monthly";
