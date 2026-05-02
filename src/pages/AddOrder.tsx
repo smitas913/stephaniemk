@@ -767,6 +767,7 @@ export default function AddOrder() {
       <NewCustomerFollowUpDialog
         customerId={followUpPrompt?.id ?? null}
         customerName={followUpPrompt?.name ?? ""}
+        baseDate={orderDate}
         open={!!followUpPrompt}
         onClose={() => {
           const shouldNav = followUpPrompt?.pendingNav;
