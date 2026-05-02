@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarClock, Repeat, Calendar } from "lucide-react";
+import { CalendarClock, Repeat, Calendar, X } from "lucide-react";
 import { toast } from "sonner";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { applyNewCustomerFollowUp, type FollowUpChoice } from "@/lib/newCustomerFollowUp";
