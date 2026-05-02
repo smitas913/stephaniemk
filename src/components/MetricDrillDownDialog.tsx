@@ -6,10 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, ExternalLink, CalendarIcon, Sparkles } from "lucide-react";
+import { Trash2, ExternalLink, CalendarIcon, Sparkles, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer } from "@/lib/types";
@@ -58,7 +60,8 @@ export default function MetricDrillDownDialog({
   const defaultStart = period === "weekly" ? startOfWeek(now, { weekStartsOn: 1 }) : startOfMonth(now);
   const defaultEnd = period === "weekly" ? endOfWeek(now, { weekStartsOn: 1 }) : endOfMonth(now);
 
-  const [rangeMode, setRangeMode] = useState<"week" | "month" | "custom">(period === "weekly" ? "week" : "month");
+  // Per spec: default filter is Current Week for all metrics; user can expand to month/custom.
+  const [rangeMode, setRangeMode] = useState<"week" | "month" | "custom">("week");
   const [customStart, setCustomStart] = useState<Date | undefined>(defaultStart);
   const [customEnd, setCustomEnd] = useState<Date | undefined>(defaultEnd);
 
@@ -69,6 +72,10 @@ export default function MetricDrillDownDialog({
   }, [rangeMode, customStart, customEnd]);
 
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
+
+  // Edit dialog state — only for note-backed rows
+  const [editing, setEditing] = useState<{ noteId: string; date: string; body: string } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [];
@@ -187,6 +194,25 @@ export default function MetricDrillDownDialog({
     }
   };
 
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .update({ note_date: editing.date, note_body: editing.body })
+        .eq("id", editing.noteId);
+      if (error) throw error;
+      toast({ title: "Activity updated" });
+      qc.invalidateQueries({ queryKey: ["notes-all"] });
+      setEditing(null);
+    } catch (err) {
+      toast({ title: "Update failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const total = rows.reduce((s, r) => s + (r.count ?? 1), 0);
   const canCleanup = metricKey === "faces" || metricKey === "career_chats";
 
@@ -254,8 +280,19 @@ export default function MetricDrillDownDialog({
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {row.href && (
-                      <Button asChild size="icon" variant="ghost" className="h-8 w-8" title="Open">
+                      <Button asChild size="icon" variant="ghost" className="h-8 w-8" title="Open profile">
                         <Link to={row.href} onClick={() => onOpenChange(false)}><ExternalLink className="w-4 h-4" /></Link>
+                      </Button>
+                    )}
+                    {row.table === "notes" && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title="Edit activity"
+                        onClick={() => setEditing({ noteId: row.id.replace(/^note-/, ""), date: row.date || "", body: row.notes || "" })}
+                      >
+                        <Pencil className="w-4 h-4" />
                       </Button>
                     )}
                     <AlertDialog>
@@ -315,6 +352,43 @@ export default function MetricDrillDownDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Edit activity dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit {metricLabel.toLowerCase()} entry</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
+                <Input
+                  type="date"
+                  max={format(new Date(), "yyyy-MM-dd")}
+                  value={editing.date}
+                  onChange={(e) => setEditing({ ...editing, date: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</label>
+                <Textarea
+                  value={editing.body}
+                  onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+                  className="min-h-[80px]"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)} disabled={savingEdit}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={savingEdit || !editing?.date}>
+              {savingEdit ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
