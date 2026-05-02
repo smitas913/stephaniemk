@@ -200,14 +200,36 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
               const current = computeActuals(g.metric_key, start, end, dataBundle);
               const pct = g.goal_value > 0 ? Math.min((current / g.goal_value) * 100, 100) : 0;
               const status = statusFor(current, g.goal_value, pace);
+              const isDrillable = (["faces","career_chats","new_team_members","new_skincare_customers"] as const).includes(g.metric_key as any);
               return (
                 <div key={g.id} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-foreground">{g.metric_label}</span>
+                    {isDrillable ? (
+                      <button
+                        type="button"
+                        onClick={() => setDrill({ key: g.metric_key as DrillMetricKey, label: g.metric_label, period })}
+                        className="text-sm font-medium text-foreground hover:text-primary hover:underline underline-offset-2 text-left"
+                      >
+                        {g.metric_label}
+                      </button>
+                    ) : (
+                      <span className="text-sm font-medium text-foreground">{g.metric_label}</span>
+                    )}
                     <div className="flex items-center gap-1.5">
-                      <span className={cn("text-base font-bold tabular-nums", STATUS_TEXT[status])}>
-                        {current} <span className="text-muted-foreground font-normal text-xs">/ {g.goal_value}</span>
-                      </span>
+                      {isDrillable ? (
+                        <button
+                          type="button"
+                          onClick={() => setDrill({ key: g.metric_key as DrillMetricKey, label: g.metric_label, period })}
+                          className={cn("text-base font-bold tabular-nums hover:underline underline-offset-2", STATUS_TEXT[status])}
+                          title="View records"
+                        >
+                          {current} <span className="text-muted-foreground font-normal text-xs">/ {g.goal_value}</span>
+                        </button>
+                      ) : (
+                        <span className={cn("text-base font-bold tabular-nums", STATUS_TEXT[status])}>
+                          {current} <span className="text-muted-foreground font-normal text-xs">/ {g.goal_value}</span>
+                        </span>
+                      )}
                       <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
                         {g.goal_value > 0 ? `${Math.round((current / g.goal_value) * 100)}%` : "—"}
                       </span>
