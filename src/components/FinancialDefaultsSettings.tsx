@@ -10,6 +10,7 @@ import { DollarSign } from "lucide-react";
 export default function FinancialDefaultsSettings() {
   const [taxRate, setTaxRate] = useState("");
   const [ccFeeRate, setCcFeeRate] = useState("");
+  const [profitMargin, setProfitMargin] = useState("50");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function FinancialDefaultsSettings() {
       if (s) {
         setTaxRate(String(s.tax_rate ?? 0));
         setCcFeeRate(String(s.cc_fee_rate ?? 0));
+        setProfitMargin(String(s.profit_margin_rate ?? 50));
       }
     });
   }, []);
@@ -27,6 +29,7 @@ export default function FinancialDefaultsSettings() {
       await upsertFinancialSettings({
         tax_rate: parseFloat(taxRate) || 0,
         cc_fee_rate: parseFloat(ccFeeRate) || 0,
+        profit_margin_rate: parseFloat(profitMargin) || 0,
       });
       toast.success("Financial defaults saved");
     } catch (e: any) {
@@ -44,7 +47,7 @@ export default function FinancialDefaultsSettings() {
           Financial Defaults
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Used to auto-calculate tax and credit card fees on every order. Set once and forget.
+          Used to auto-calculate tax, credit card fees, and estimated net profit on every order.
         </p>
       </CardHeader>
       <CardContent className="space-y-4 max-w-sm">
@@ -55,6 +58,11 @@ export default function FinancialDefaultsSettings() {
         <div className="space-y-1.5">
           <Label className="text-xs">Credit Card Fee (%)</Label>
           <Input type="number" step="0.01" min="0" value={ccFeeRate} onChange={(e) => setCcFeeRate(e.target.value)} placeholder="e.g. 3" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Default Profit Margin (%)</Label>
+          <Input type="number" step="0.1" min="0" max="100" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value)} placeholder="50" />
+          <p className="text-[11px] text-muted-foreground">Estimated profit = Net Revenue × this margin. Mary Kay default is 50%.</p>
         </div>
         <Button onClick={save} disabled={saving} size="sm">
           {saving ? "Saving..." : "Save Defaults"}
