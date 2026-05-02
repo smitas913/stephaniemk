@@ -310,6 +310,7 @@ export type Database = {
           allow_non_working_day: boolean
           archived_at: string | null
           attention_reason: string | null
+          became_customer_date: string | null
           birthday: string | null
           birthday_mmdd: string | null
           city: string | null
@@ -347,6 +348,7 @@ export type Database = {
           allow_non_working_day?: boolean
           archived_at?: string | null
           attention_reason?: string | null
+          became_customer_date?: string | null
           birthday?: string | null
           birthday_mmdd?: string | null
           city?: string | null
@@ -384,6 +386,7 @@ export type Database = {
           allow_non_working_day?: boolean
           archived_at?: string | null
           attention_reason?: string | null
+          became_customer_date?: string | null
           birthday?: string | null
           birthday_mmdd?: string | null
           city?: string | null
