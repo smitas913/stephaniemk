@@ -64,8 +64,21 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
     return map;
   }, [consultants]);
 
+  const customerDncSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      if (Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")) s.add(c.id);
+    }
+    return s;
+  }, [customers]);
+
   const filtered = useMemo(() => {
     let list = prospects;
+    // DNC filter via linked customer
+    list = list.filter((p) => {
+      const isDnc = !!p.customer_id && customerDncSet.has(p.customer_id);
+      return filterDnc === "dnc" ? isDnc : !isDnc;
+    });
     if (filterStatus !== "all") list = list.filter((p) => p.opportunity_status === filterStatus);
     if (filterOwnership !== "all") list = list.filter((p) => (p.ownership_type || "personal") === filterOwnership);
     if (filterConsultant !== "all") list = list.filter((p) => p.assigned_consultant_id === filterConsultant);
@@ -74,7 +87,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       list = list.filter((p) => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.email?.toLowerCase().includes(q));
     }
     return list;
-  }, [prospects, filterStatus, filterOwnership, filterConsultant, search]);
+  }, [prospects, filterStatus, filterOwnership, filterConsultant, filterDnc, customerDncSet, search]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
