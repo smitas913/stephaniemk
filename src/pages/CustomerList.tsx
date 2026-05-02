@@ -41,6 +41,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
+  const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
