@@ -73,6 +73,8 @@ export default function AddOrder() {
   const [needsCatalog, setNeedsCatalog] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
+  const [dncSuppressFollowUp, setDncSuppressFollowUp] = useState(false);
 
   // New customer inline form
   const [isNewCustomer, setIsNewCustomer] = useState(false);
