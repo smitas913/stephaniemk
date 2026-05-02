@@ -14,13 +14,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users, Store } from "lucide-react";
+import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users, Store, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import { useQuery as useRQ } from "@tanstack/react-query";
 import { fetchFinancialSettings, computeOrderFinancials } from "@/lib/financialSettings";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -71,6 +73,8 @@ export default function AddOrder() {
   const [needsCatalog, setNeedsCatalog] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
+  const [dncSuppressFollowUp, setDncSuppressFollowUp] = useState(false);
 
   // New customer inline form
   const [isNewCustomer, setIsNewCustomer] = useState(false);
@@ -178,6 +182,14 @@ export default function AddOrder() {
       return;
     }
 
+    // DNC guard: if existing customer is marked Do Not Contact, prompt before saving.
+    const existingCust = customerId ? customers.find(c => c.id === customerId) : null;
+    const isExistingDnc = !!existingCust && Array.isArray((existingCust as any).tags) && (existingCust as any).tags.includes("DNC");
+    if (isExistingDnc && !dncPrompt) {
+      setDncPrompt({ addAnother });
+      return;
+    }
+
     setSubmitting(true);
     try {
       let resolvedCustomerId = customerId;
@@ -240,9 +252,9 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
       });
 
-      // Auto-schedule post-order follow-up — SKIP for non-customer orders so
-      // one-time/online buyers do not enter the follow-up system.
-      if (!isNonCustomer) {
+      // Auto-schedule post-order follow-up — SKIP for non-customer orders and
+      // for DNC customers when the user opted to keep the DNC tag.
+      if (!isNonCustomer && !dncSuppressFollowUp) {
         try {
           await applyPostOrderFollowUp({
             customerId: resolvedCustomerId,
@@ -288,8 +300,9 @@ export default function AddOrder() {
       toast.error(err.message || "Failed to create order");
     } finally {
       setSubmitting(false);
+      setDncSuppressFollowUp(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog, isNonCustomer, nonCustomerLabel, user]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -761,6 +774,69 @@ export default function AddOrder() {
           if (shouldNav) navigate("/orders");
         }}
       />
+
+      <AlertDialog open={!!dncPrompt} onOpenChange={(o) => { if (!o) setDncPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-destructive" />
+              Marked Do Not Contact
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{selectedCustomer?.full_name}</strong> is marked Do Not Contact. How would you like to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="rounded-md border border-border p-3">
+              <p className="font-medium text-foreground">A. Remove DNC and convert to Customer</p>
+              <p className="text-xs text-muted-foreground">Removes the DNC tag and resumes the standard post-order follow-up.</p>
+            </div>
+            <div className="rounded-md border border-border p-3">
+              <p className="font-medium text-foreground">B. Keep DNC and log the order</p>
+              <p className="text-xs text-muted-foreground">Records the sale but does <strong>not</strong> schedule any follow-up.</p>
+            </div>
+          </div>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              onClick={async () => {
+                const pending = dncPrompt;
+                setDncPrompt(null);
+                setDncSuppressFollowUp(true);
+                if (pending) await handleSubmit(pending.addAnother);
+              }}
+            >
+              Keep DNC, log order
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={async () => {
+                const pending = dncPrompt;
+                setDncPrompt(null);
+                if (!customerId) return;
+                try {
+                  const cust = customers.find(c => c.id === customerId);
+                  const newTags = (Array.isArray((cust as any)?.tags) ? (cust as any).tags : []).filter((t: string) => t !== "DNC");
+                  const { error } = await supabase
+                    .from("customers")
+                    .update({ tags: newTags } as any)
+                    .eq("id", customerId);
+                  if (error) throw error;
+                  await queryClient.invalidateQueries({ queryKey: ["customers"] });
+                  toast.success("DNC removed");
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to remove DNC");
+                  return;
+                }
+                setDncSuppressFollowUp(false);
+                if (pending) await handleSubmit(pending.addAnother);
+              }}
+            >
+              Remove DNC & convert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
