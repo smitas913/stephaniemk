@@ -378,12 +378,16 @@ export default function CustomerDetail() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(backPath)}><ArrowLeft className="w-5 h-5" /></Button>
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
-            <div className="flex gap-2 mt-0.5 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
+              <DncBadge tags={(customer as any).tags} />
+            </div>
+            <div className="flex gap-2 mt-1 flex-wrap items-center">
               {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New Customer</span>}
               {(customer as any).is_skincare_customer && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium">Skincare</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
               <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">{customer.relationship_status || "Customer"}</span>
+              <CustomerTagChips customerId={customer.id} tags={(customer as any).tags || []} className="ml-1" />
             </div>
           </div>
           <div className="flex gap-1">
