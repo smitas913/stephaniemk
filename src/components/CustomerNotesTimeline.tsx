@@ -97,8 +97,19 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
     mutationFn: deleteNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
-      toast.success("Note deleted");
+      toast.success("Activity deleted");
     },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, ...updates }: { id: string; note_body?: string; note_date?: string; next_follow_up_date?: string | null }) =>
+      updateNote(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
+      toast.success("Activity updated");
+    },
+    onError: (err: any) => toast.error(`Failed to update: ${err.message || "Unknown error"}`),
   });
 
   const handleSubmit = () => {
