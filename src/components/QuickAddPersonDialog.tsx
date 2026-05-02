@@ -8,6 +8,7 @@ import {
   createBookingLead,
   createCustomer,
   createNote,
+  flagCustomer,
 } from "@/lib/queries";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2 } from "lucide-react";
+import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag } from "lucide-react";
 
 type ResultType = "Face" | "Career Chat" | "Booking Conversation";
 
