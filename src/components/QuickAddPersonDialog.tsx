@@ -83,6 +83,7 @@ export default function QuickAddPersonDialog({
       setFlagPrompt(null);
       setFollowUpPrompt(null);
       setCustomFollowUpDate("");
+      setCreateNewIntent(false);
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
