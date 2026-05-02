@@ -592,7 +592,42 @@ export default function AddOrder() {
           <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={e => setWholesaleAmount(e.target.value)} className="h-9" />
         </div>
 
-        {/* Payment Status */}
+        {/* Discount (optional) */}
+        <div>
+          <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
+          <div className="flex gap-1.5 mt-1">
+            <Input
+              type="number" step="0.01" min="0" placeholder="0.00"
+              value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+              className="h-9 flex-1"
+            />
+            <div className="flex">
+              {(["$", "%"] as const).map(m => (
+                <button key={m} type="button"
+                  className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                    discountMode === m
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => setDiscountMode(m)}
+                >{m}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Live Financial Summary */}
+        {Number(retailAmount) > 0 && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-1">
+            <div className="flex justify-between"><span className="text-muted-foreground">Order Total</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
+            {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">Final Total</span><span className="font-medium">${financials.finalTotal.toFixed(2)}</span></div>
+            {financials.tax > 0 && <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>}
+            {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
+            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Net Received</span><span className="font-semibold text-foreground">${financials.netReceived.toFixed(2)}</span></div>
+          </div>
+        )}
+
         <div>
           <label className="text-sm font-medium text-foreground">Payment Status</label>
           <div className="flex gap-1.5 mt-1">
