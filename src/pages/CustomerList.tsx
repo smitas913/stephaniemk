@@ -151,6 +151,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const matchArchive = filterArchive === "active" ? isActive : !isActive;
       if (!matchArchive) return false;
 
+      const isDnc = Array.isArray((c as any).tags) && (c as any).tags.includes("DNC");
+      if (filterDnc === "dnc") {
+        if (!isDnc) return false;
+      } else {
+        if (isDnc) return false;
+      }
+
       const q = search.toLowerCase();
       const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
       const matchStatus = filterStatus === "all" || c.relationship_status === filterStatus;
