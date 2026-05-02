@@ -18,6 +18,7 @@ import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2,
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
+import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -61,6 +62,7 @@ export default function AddOrder() {
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   const [needsCatalog, setNeedsCatalog] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -188,6 +190,8 @@ export default function AddOrder() {
         } as any);
         resolvedCustomerId = newCust.id;
         resolvedCustomerName = newCust.full_name;
+        // Trigger 2+2+2 follow-up prompt for newly-created customers
+        setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
       }
 
       let eventId: string | null = null;
@@ -249,7 +253,9 @@ export default function AddOrder() {
         setPaymentStatus("Paid");
         setNeedsCatalog(false);
         setAttempted(false);
-      } else {
+      } else if (!isNewCustomer) {
+        // For existing-customer orders, navigate immediately. New-customer
+        // orders defer navigation until the 2+2+2 follow-up prompt closes.
         navigate("/orders");
       }
     } catch (err: any) {
@@ -683,6 +689,16 @@ export default function AddOrder() {
           </div>
         )}
       </div>
+      <NewCustomerFollowUpDialog
+        customerId={followUpPrompt?.id ?? null}
+        customerName={followUpPrompt?.name ?? ""}
+        open={!!followUpPrompt}
+        onClose={() => {
+          const shouldNav = followUpPrompt?.pendingNav;
+          setFollowUpPrompt(null);
+          if (shouldNav) navigate("/orders");
+        }}
+      />
     </Layout>
   );
 }

@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 export default function AddCustomer() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function AddCustomer() {
   const [nextFollowUp, setNextFollowUp] = useState("");
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
 
   // Duplicate-name detection (never blocks creation — informational only)
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -67,7 +69,12 @@ export default function AddCustomer() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
-      navigate(`/customers/${data.id}`);
+      if (relationship === "Customer") {
+        // Show 2+2+2 prompt before navigating
+        setFollowUpPrompt({ id: data.id, name: name.trim() });
+      } else {
+        navigate(`/customers/${data.id}`);
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -232,6 +239,16 @@ export default function AddCustomer() {
           </CardContent>
         </Card>
       </div>
+      <NewCustomerFollowUpDialog
+        customerId={followUpPrompt?.id ?? null}
+        customerName={followUpPrompt?.name ?? ""}
+        open={!!followUpPrompt}
+        onClose={() => {
+          const id = followUpPrompt?.id;
+          setFollowUpPrompt(null);
+          if (id) navigate(`/customers/${id}`);
+        }}
+      />
     </Layout>
   );
 }

@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
+import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -114,13 +115,17 @@ export default function LeadDetail() {
     },
   });
 
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
+
   const convertMut = useMutation({
     mutationFn: () => convertBookingLeadToCustomer(lead!, events.map((e) => e.event_id)),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Lead converted to customer");
-      if (result.customer?.id) navigate(`/customers/${result.customer.id}`);
+      if (result.customer?.id) {
+        setFollowUpPrompt({ id: result.customer.id, name: lead?.name || "" });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -368,6 +373,16 @@ export default function LeadDetail() {
           </CardContent>
         </Card>
       </div>
+      <NewCustomerFollowUpDialog
+        customerId={followUpPrompt?.id ?? null}
+        customerName={followUpPrompt?.name ?? ""}
+        open={!!followUpPrompt}
+        onClose={() => {
+          const id = followUpPrompt?.id;
+          setFollowUpPrompt(null);
+          if (id) navigate(`/customers/${id}`);
+        }}
+      />
     </Layout>
   );
 }
