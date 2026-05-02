@@ -255,6 +255,19 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
         {showWeekly && renderSection("weekly", "Weekly Actuals", `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, weekStart, weekEnd, weekPace)}
         {showMonthly && renderSection("monthly", "Monthly Actuals", monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }), monthStart, monthEnd, monthPace)}
       </div>
+      {drill && (
+        <MetricDrillDownDialog
+          open={!!drill}
+          onOpenChange={(o) => { if (!o) setDrill(null); }}
+          metricKey={drill.key}
+          metricLabel={drill.label}
+          period={drill.period}
+          notes={notes}
+          events={events}
+          customers={customers}
+          consultants={consultants}
+        />
+      )}
     </div>
   );
 }
