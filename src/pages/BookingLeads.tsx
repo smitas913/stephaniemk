@@ -41,7 +41,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
-  const { data: customersForDnc = [] } = useQuery({ queryKey: ["customers"], queryFn: () => import("@/lib/queries").then(m => m.fetchCustomers()) });
+  const { data: customersForDnc = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
