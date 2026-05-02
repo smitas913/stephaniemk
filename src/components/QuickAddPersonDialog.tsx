@@ -559,7 +559,7 @@ export default function QuickAddPersonDialog({
                 </button>
                 {exactMatch && (
                   <div className="px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-t">
-                    ⚠ Similar name already exists — create new anyway?
+                    ⚠ A person named "{exactMatch.name}" already exists. Pick the match above to link, or "+ Create new person" to add a separate record.
                   </div>
                 )}
               </div>
