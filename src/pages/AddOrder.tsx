@@ -153,6 +153,20 @@ export default function AddOrder() {
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
+  // --- Auto financial calc ---
+  const financials = useMemo(() => {
+    const orderTotal = Number(retailAmount) || 0;
+    const dRaw = Number(discountValue) || 0;
+    const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
+    return computeOrderFinancials({
+      orderTotal,
+      discount,
+      taxRate: financialSettings?.tax_rate ?? 0,
+      ccFeeRate: financialSettings?.cc_fee_rate ?? 0,
+      isCreditCard: paymentStatus === "Paid" && paymentType === "Credit Card",
+    });
+  }, [retailAmount, discountValue, discountMode, financialSettings, paymentStatus, paymentType]);
+
   const canSubmit = validationErrors.length === 0 && !submitting;
 
   // --- Submit ---
