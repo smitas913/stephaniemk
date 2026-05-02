@@ -331,7 +331,17 @@ export default function QuickAddPersonDialog({
   const meta = resultType ? TITLES[resultType] : null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        // No dead-end actions: if user closes mid-follow-up step, apply default 90-Day Care Cycle
+        if (!v && followUpPrompt && !busy) {
+          applyFollowUpChoice("default");
+          return;
+        }
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
