@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
+import { useQuery as useRQ } from "@tanstack/react-query";
+import { fetchFinancialSettings, computeOrderFinancials } from "@/lib/financialSettings";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -42,6 +44,7 @@ export default function AddOrder() {
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: financialSettings } = useRQ({ queryKey: ["financial-settings"], queryFn: fetchFinancialSettings });
 
   // --- State ---
   const [orderType, setOrderType] = useState<OrderTypeValue | "">(() => {
@@ -58,6 +61,8 @@ export default function AddOrder() {
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
   const [wholesaleAmount, setWholesaleAmount] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountMode, setDiscountMode] = useState<"$" | "%">("$");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
@@ -148,6 +153,20 @@ export default function AddOrder() {
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
+  // --- Auto financial calc ---
+  const financials = useMemo(() => {
+    const orderTotal = Number(retailAmount) || 0;
+    const dRaw = Number(discountValue) || 0;
+    const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
+    return computeOrderFinancials({
+      orderTotal,
+      discount,
+      taxRate: financialSettings?.tax_rate ?? 0,
+      ccFeeRate: financialSettings?.cc_fee_rate ?? 0,
+      isCreditCard: paymentStatus === "Paid" && paymentType === "Credit Card",
+    });
+  }, [retailAmount, discountValue, discountMode, financialSettings, paymentStatus, paymentType]);
+
   const canSubmit = validationErrors.length === 0 && !submitting;
 
   // --- Submit ---
@@ -211,6 +230,10 @@ export default function AddOrder() {
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
         wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
+        discount_amount: financials.discount,
+        tax_amount: financials.tax,
+        cc_fee_amount: financials.ccFee,
+        net_received: paymentStatus === "Paid" ? financials.netReceived : null,
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
       });
@@ -248,6 +271,7 @@ export default function AddOrder() {
         setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
         setRetailAmount("");
         setWholesaleAmount("");
+        setDiscountValue("");
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
@@ -263,7 +287,7 @@ export default function AddOrder() {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog, isNonCustomer, nonCustomerLabel, user]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog, isNonCustomer, nonCustomerLabel, user]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -568,7 +592,42 @@ export default function AddOrder() {
           <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={e => setWholesaleAmount(e.target.value)} className="h-9" />
         </div>
 
-        {/* Payment Status */}
+        {/* Discount (optional) */}
+        <div>
+          <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
+          <div className="flex gap-1.5 mt-1">
+            <Input
+              type="number" step="0.01" min="0" placeholder="0.00"
+              value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+              className="h-9 flex-1"
+            />
+            <div className="flex">
+              {(["$", "%"] as const).map(m => (
+                <button key={m} type="button"
+                  className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                    discountMode === m
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => setDiscountMode(m)}
+                >{m}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Live Financial Summary */}
+        {Number(retailAmount) > 0 && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-1">
+            <div className="flex justify-between"><span className="text-muted-foreground">Order Total</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
+            {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">Final Total</span><span className="font-medium">${financials.finalTotal.toFixed(2)}</span></div>
+            {financials.tax > 0 && <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>}
+            {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
+            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Net Received</span><span className="font-semibold text-foreground">${financials.netReceived.toFixed(2)}</span></div>
+          </div>
+        )}
+
         <div>
           <label className="text-sm font-medium text-foreground">Payment Status</label>
           <div className="flex gap-1.5 mt-1">

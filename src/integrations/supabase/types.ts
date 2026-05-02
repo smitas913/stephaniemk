@@ -807,6 +807,30 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_settings: {
+        Row: {
+          cc_fee_rate: number
+          created_at: string
+          tax_rate: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cc_fee_rate?: number
+          created_at?: string
+          tax_rate?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cc_fee_rate?: number
+          created_at?: string
+          tax_rate?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       focus_item_configs: {
         Row: {
           auto_track_key: string | null
@@ -1104,14 +1128,17 @@ export type Database = {
       orders: {
         Row: {
           birthday: boolean | null
+          cc_fee_amount: number
           created_at: string
           customer_id: string
           customer_name: string | null
+          discount_amount: number
           event_id: string | null
           face_type: string | null
           half_price_deal: boolean | null
           hostess: boolean | null
           id: string
+          net_received: number | null
           notes: string | null
           order_date: string
           order_type: string | null
@@ -1122,19 +1149,23 @@ export type Database = {
           payout_amount: number | null
           referral: boolean | null
           retail_amount: number
+          tax_amount: number
           updated_at: string | null
           wholesale_amount: number | null
         }
         Insert: {
           birthday?: boolean | null
+          cc_fee_amount?: number
           created_at?: string
           customer_id: string
           customer_name?: string | null
+          discount_amount?: number
           event_id?: string | null
           face_type?: string | null
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          net_received?: number | null
           notes?: string | null
           order_date?: string
           order_type?: string | null
@@ -1145,19 +1176,23 @@ export type Database = {
           payout_amount?: number | null
           referral?: boolean | null
           retail_amount?: number
+          tax_amount?: number
           updated_at?: string | null
           wholesale_amount?: number | null
         }
         Update: {
           birthday?: boolean | null
+          cc_fee_amount?: number
           created_at?: string
           customer_id?: string
           customer_name?: string | null
+          discount_amount?: number
           event_id?: string | null
           face_type?: string | null
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          net_received?: number | null
           notes?: string | null
           order_date?: string
           order_type?: string | null
@@ -1168,6 +1203,7 @@ export type Database = {
           payout_amount?: number | null
           referral?: boolean | null
           retail_amount?: number
+          tax_amount?: number
           updated_at?: string | null
           wholesale_amount?: number | null
         }

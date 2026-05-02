@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { parseISO, isWithinInterval } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
+import FinancialSnapshot from "@/components/FinancialSnapshot";
 
 type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_status" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
 type SortDir = "asc" | "desc" | null;
@@ -202,6 +203,8 @@ export default function Orders() {
             </Button>
           </div>
         </div>
+
+        <FinancialSnapshot range="mtd" />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
