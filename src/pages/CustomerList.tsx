@@ -45,6 +45,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
   const [filterAttention, setFilterAttention] = useState(false);
+  const [attentionView, setAttentionView] = useState<"all" | "incomplete" | "followup" | "missing">("all");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
