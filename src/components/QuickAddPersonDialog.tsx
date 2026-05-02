@@ -68,6 +68,7 @@ export default function QuickAddPersonDialog({
   // Step 2.5: "Set follow-up?" sequence picker — runs ONLY for newly-created customers
   const [followUpPrompt, setFollowUpPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const [customFollowUpDate, setCustomFollowUpDate] = useState<string>("");
+  const [createNewIntent, setCreateNewIntent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
