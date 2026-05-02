@@ -63,8 +63,12 @@ export default function AddCustomer() {
         notes: notes.trim() || null,
         next_follow_up_date: nextFollowUp || null,
         date_added: dateAdded || toLocalDateKey(),
-        // Only stamp became_customer_date when creating as Customer; trigger also enforces this.
-        became_customer_date: relationship === "Customer" ? (becameCustomerDate || toLocalDateKey()) : null,
+        // Prefer user-entered dates (manual override > first order date). Leave null to let
+        // the DB trigger derive from the earliest related order/face date.
+        became_customer_date:
+          relationship === "Customer"
+            ? (becameCustomerDate || firstOrderDate || null)
+            : null,
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
