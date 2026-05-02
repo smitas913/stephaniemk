@@ -153,9 +153,9 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
       const matchSkincare = filterSkincare === "all" || (filterSkincare === "yes" ? (c as any).is_skincare_customer === true : (c as any).is_skincare_customer !== true);
 
-      // Missing info filters
+      // Missing info filters (skipped when the combined Attention filter is on)
       let matchMissing = true;
-      if (filterMissing.length > 0) {
+      if (!filterAttention && filterMissing.length > 0) {
         for (const f of filterMissing) {
           if (f === "birthday" && c.birthday) { matchMissing = false; break; }
           if (f === "phone" && c.phone?.trim()) { matchMissing = false; break; }
