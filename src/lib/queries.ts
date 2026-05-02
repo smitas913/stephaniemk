@@ -584,6 +584,7 @@ export const createNote = async (note: {
   tags?: string[];
   note_body: string;
   note_type?: string;
+  note_date?: string | null;
   next_step?: string | null;
   next_follow_up_date?: string | null;
   is_booking_attempt?: boolean;
