@@ -174,6 +174,10 @@ export default function Dashboard() {
 
         {/* WEEKLY + MONTHLY ACTUALS — side-by-side on desktop, stacked on mobile */}
         <MomentumScoreboard />
+
+        {/* FINANCIAL SNAPSHOT */}
+        <FinancialSnapshot range="mtd" compact />
+
       </div>
     </Layout>
   );
