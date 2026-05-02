@@ -626,7 +626,8 @@ export default function AddOrder() {
             <div className="flex justify-between"><span className="text-muted-foreground">Final Total</span><span className="font-medium">${financials.finalTotal.toFixed(2)}</span></div>
             {financials.tax > 0 && <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>}
             {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
-            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Net Received</span><span className="font-semibold text-foreground">${financials.netReceived.toFixed(2)}</span></div>
+            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Net Revenue</span><span className="font-semibold text-foreground">${financials.netRevenue.toFixed(2)}</span></div>
+            <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
           </div>
         )}
 
