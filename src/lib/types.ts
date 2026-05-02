@@ -26,6 +26,9 @@ export interface Customer {
   archived_at: string | null;
   dormant_follow_up_stage: string | null;
   allow_non_working_day: boolean;
+  needs_attention?: boolean;
+  attention_reason?: string | null;
+  flagged_at?: string | null;
   created_at: string;
   updated_at: string;
 }
