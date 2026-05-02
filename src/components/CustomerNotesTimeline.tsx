@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchNotes, createNote, deleteNote, fetchCustomer } from "@/lib/queries";
+import { fetchNotes, createNote, deleteNote, updateNote, fetchCustomer } from "@/lib/queries";
 import { resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
 import { NOTE_TYPES } from "@/lib/types";
 import type { Note } from "@/lib/types";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Phone, Mail, MessageSquare, Calendar, RefreshCw, FileText } from "lucide-react";
+import { Plus, Trash2, Phone, Mail, MessageSquare, Calendar, RefreshCw, FileText, Users, Briefcase, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
