@@ -32,6 +32,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -43,6 +44,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
+  const [filterAttention, setFilterAttention] = useState(false);
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
@@ -50,6 +52,14 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [fuOpen, setFuOpen] = useState(false);
   const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Read ?attention=1 (set by Business Reset banner) → enable combined filter
+  useEffect(() => {
+    if (searchParams.get("attention") === "1") {
+      setFilterAttention(true);
+      setFilterMissing(["phone", "email", "address"]);
+    }
+  }, [searchParams]);
 
   const toggleSort = (col: "last_contacted" | "last_order" | "follow_up") => {
     if (sortCol === col) {
