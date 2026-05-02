@@ -342,6 +342,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
               {LEAD_ACTIVITIES.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+            <SelectTrigger className="h-9 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (no DNC)</SelectItem>
+              <SelectItem value="dnc">Do Not Contact</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Leads list */}
