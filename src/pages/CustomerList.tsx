@@ -41,6 +41,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [sortByVip, setSortByVip] = useState<"none" | "vip-first" | "nonvip-first">("none");
   const [filterFollowUp, setFilterFollowUp] = useState("all");
   const [filterArchive, setFilterArchive] = useState<"active" | "archived">("active");
+  const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
@@ -150,6 +151,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const matchArchive = filterArchive === "active" ? isActive : !isActive;
       if (!matchArchive) return false;
 
+      const isDnc = Array.isArray((c as any).tags) && (c as any).tags.includes("DNC");
+      if (filterDnc === "dnc") {
+        if (!isDnc) return false;
+      } else {
+        if (isDnc) return false;
+      }
+
       const q = search.toLowerCase();
       const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
       const matchStatus = filterStatus === "all" || c.relationship_status === filterStatus;
@@ -216,7 +224,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention, attentionView]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention, attentionView]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -258,6 +266,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (no DNC)</SelectItem>
+              <SelectItem value="dnc">Do Not Contact</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
