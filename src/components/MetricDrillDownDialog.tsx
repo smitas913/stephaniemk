@@ -73,6 +73,10 @@ export default function MetricDrillDownDialog({
 
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
 
+  // Edit dialog state — only for note-backed rows
+  const [editing, setEditing] = useState<{ noteId: string; date: string; body: string } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const rows: Row[] = useMemo(() => {
     const out: Row[] = [];
     if (metricKey === "faces") {
