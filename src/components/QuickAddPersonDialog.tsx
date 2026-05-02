@@ -151,9 +151,14 @@ export default function QuickAddPersonDialog({
     await createNote(payload);
   };
 
-  const finishOrPromptFlag = (person: PersonMatch | null, name: string) => {
+  const finishOrPromptFlag = (person: PersonMatch | null, name: string, opts?: { newCustomer?: boolean }) => {
     if (person?.kind === "customer") {
-      // Offer 1-tap flag for follow-through
+      // Newly created customers must be placed on a follow-up path first
+      if (opts?.newCustomer) {
+        setFollowUpPrompt({ customerId: person.id, name: person.name });
+        return;
+      }
+      // Existing customers: offer 1-tap flag for follow-through
       setFlagPrompt({ customerId: person.id, name: person.name });
       return;
     }
