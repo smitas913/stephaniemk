@@ -726,6 +726,14 @@ export const deleteNote = async (id: string) => {
   if (error) throw error;
 };
 
+export const updateNote = async (
+  id: string,
+  updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null }
+) => {
+  const { error } = await supabase.from("notes").update(updates as any).eq("id", id);
+  if (error) throw error;
+};
+
 // Follow-up queue view
 
 export const fetchFollowUpQueue = async () => {
