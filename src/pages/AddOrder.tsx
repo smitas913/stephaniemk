@@ -234,7 +234,8 @@ export default function AddOrder() {
         discount_amount: financials.discount,
         tax_amount: financials.tax,
         cc_fee_amount: financials.ccFee,
-        net_received: paymentStatus === "Paid" ? financials.netReceived : null,
+        net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
+        net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
       });
