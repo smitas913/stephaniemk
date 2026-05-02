@@ -68,6 +68,7 @@ export default function QuickAddPersonDialog({
   // Step 2.5: "Set follow-up?" sequence picker — runs ONLY for newly-created customers
   const [followUpPrompt, setFollowUpPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const [customFollowUpDate, setCustomFollowUpDate] = useState<string>("");
+  const [createNewIntent, setCreateNewIntent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -82,6 +83,7 @@ export default function QuickAddPersonDialog({
       setFlagPrompt(null);
       setFollowUpPrompt(null);
       setCustomFollowUpDate("");
+      setCreateNewIntent(false);
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
@@ -119,6 +121,7 @@ export default function QuickAddPersonDialog({
   const handleSelect = (p: PersonMatch) => {
     setSelected(p);
     setQuery(p.name);
+    setCreateNewIntent(false);
   };
 
   // Logs a note for the given person (or anonymous if person is null)
@@ -528,12 +531,12 @@ export default function QuickAddPersonDialog({
                 ref={inputRef}
                 placeholder="Type a name..."
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
+                onChange={(e) => { setQuery(e.target.value); setSelected(null); setCreateNewIntent(false); }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
+                    // Don't auto-advance on Enter — user must click Continue after confirming date
                     if (matches[0] && !selected) handleSelect(matches[0]);
-                    else handleSave();
                   }
                 }}
                 className="h-10 pl-8"
@@ -542,7 +545,7 @@ export default function QuickAddPersonDialog({
             </div>
 
             {/* Match dropdown */}
-            {query.trim() && !selected && (
+            {query.trim() && !selected && !createNewIntent && (
               <div className="mt-1 border rounded-md bg-popover shadow-sm max-h-56 overflow-y-auto">
                 {matches.map((m) => (
                   <button
@@ -560,10 +563,10 @@ export default function QuickAddPersonDialog({
                     </span>
                   </button>
                 ))}
-                {/* Always show Create new — even when matches exist */}
+                {/* Stage "Create new" — user still must confirm via Continue */}
                 <button
                   type="button"
-                  onClick={() => handleSave({ forceCreate: true })}
+                  onClick={() => setCreateNewIntent(true)}
                   className="w-full text-left px-3 py-2 hover:bg-primary/5 flex items-center gap-2 text-sm bg-muted/30"
                 >
                   <UserPlus className="w-4 h-4 text-primary shrink-0" />
@@ -589,6 +592,33 @@ export default function QuickAddPersonDialog({
                 </button>
               </div>
             )}
+
+            {createNewIntent && !selected && (
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <UserPlus className="w-3.5 h-3.5 text-primary" />
+                <span>Will create new: <span className="font-semibold text-foreground">{query.trim()}</span></span>
+                <button type="button" className="text-primary hover:underline ml-auto" onClick={() => { setCreateNewIntent(false); inputRef.current?.focus(); }}>
+                  Change
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Date — promoted directly under Name so it can be backdated before advancing */}
+          <div>
+            <label className="text-xs font-medium text-foreground mb-1 block">
+              {resultType === "Face" ? "Face Date" : "Date"} *
+            </label>
+            <Input
+              type="date"
+              max={toLocalDateKey()}
+              value={activityDate}
+              onChange={(e) => setActivityDate(e.target.value || toLocalDateKey())}
+              className="h-10"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Defaults to today — change to backdate this {resultType?.toLowerCase()}.
+            </p>
           </div>
 
           <div>
@@ -601,23 +631,16 @@ export default function QuickAddPersonDialog({
             />
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
-            <Input
-              type="date"
-              max={toLocalDateKey()}
-              value={activityDate}
-              onChange={(e) => setActivityDate(e.target.value || toLocalDateKey())}
-              className="h-9"
-            />
-          </div>
-
           <div className="flex gap-2 pt-1">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={busy}>
               Cancel
             </Button>
-            <Button className="flex-1" onClick={() => handleSave()} disabled={busy || !query.trim()}>
-              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : (selected || exactMatch ? "Save" : "Continue")}
+            <Button
+              className="flex-1"
+              onClick={() => handleSave(createNewIntent ? { forceCreate: true } : undefined)}
+              disabled={busy || !query.trim() || !activityDate}
+            >
+              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : (selected ? "Save" : (createNewIntent ? "Continue" : (exactMatch ? "Save" : "Continue")))}
             </Button>
           </div>
         </div>
