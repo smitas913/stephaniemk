@@ -689,6 +689,16 @@ export default function AddOrder() {
           </div>
         )}
       </div>
+      <NewCustomerFollowUpDialog
+        customerId={followUpPrompt?.id ?? null}
+        customerName={followUpPrompt?.name ?? ""}
+        open={!!followUpPrompt}
+        onClose={() => {
+          const shouldNav = followUpPrompt?.pendingNav;
+          setFollowUpPrompt(null);
+          if (shouldNav) navigate("/orders");
+        }}
+      />
     </Layout>
   );
 }
