@@ -108,6 +108,13 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 const ADMIN_ROLES = ["owner", "admin"];
 const INTERNAL_ROLES = ["owner", "admin", "consultant"];
 
+function CustomersRedirect() {
+  const search = window.location.search;
+  const params = new URLSearchParams(search);
+  params.set("tab", "customers");
+  return <Navigate to={`/clients?${params.toString()}`} replace />;
+}
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
