@@ -131,8 +131,8 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
       const autoCount = isToday && autoCounts && autoKey
         ? autoCounts[autoKey] ?? 0
         : prog?.auto_count ?? 0;
-      const manualAdj = prog?.manual_adjustment ?? 0;
-      const current = autoCount + manualAdj;
+      // Manual +/- adjustment removed: counts now reflect only real logged activity.
+      const current = Math.max(0, autoCount);
       const target = isOOO ? 0 : getTargetForItem(config.sort_order, dayType);
       const isComplete = prog?.is_complete ?? false;
       const isAutoTracked = !!autoKey;
@@ -373,7 +373,6 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                         <FocusItemCompact
                           key={item.sort_order}
                           item={item}
-                          onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
                           onToggleComplete={() => handleToggleComplete(item.sort_order)}
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
                           readOnly={!isToday}
@@ -382,7 +381,6 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                         <FocusItemRow
                           key={item.sort_order}
                           item={item}
-                          onAdjust={(delta) => handleManualAdjust(item.sort_order, delta)}
                           onToggleComplete={() => handleToggleComplete(item.sort_order)}
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
                           readOnly={!isToday}
