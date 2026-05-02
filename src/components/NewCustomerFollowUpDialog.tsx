@@ -11,6 +11,12 @@ interface Props {
   customerId: string | null;
   customerName: string;
   open: boolean;
+  /**
+   * Optional anchor date (YYYY-MM-DD). When supplied — typically the order /
+   * Became Customer Date — 2+2+2 and 90-Day offsets are computed from this
+   * date instead of today, so the cadence reflects the real purchase timeline.
+   */
+  baseDate?: string;
   /** Called after a choice is applied (or default applied on close). */
   onClose: (applied: { choice: FollowUpChoice; reason: string } | null) => void;
 }
@@ -26,7 +32,7 @@ interface Props {
  * Closing the dialog without choosing applies the 90-Day default — never a
  * dead-end.
  */
-export default function NewCustomerFollowUpDialog({ customerId, customerName, open, onClose }: Props) {
+export default function NewCustomerFollowUpDialog({ customerId, customerName, open, onClose, baseDate }: Props) {
   const [busy, setBusy] = useState(false);
   const [customDate, setCustomDate] = useState("");
 
@@ -34,7 +40,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
     if (!customerId) return;
     setBusy(true);
     try {
-      const result = await applyNewCustomerFollowUp(customerId, choice, date);
+      const result = await applyNewCustomerFollowUp(customerId, choice, date, baseDate);
       toast.success(`Follow-up set: ${result.reason}`);
       onClose({ choice, reason: result.reason });
     } catch (e: any) {
