@@ -178,13 +178,22 @@ export default function QuickAddPersonDialog({
     }
     setBusy(true);
     try {
-      // If user picked an existing record (or there's an exact match and they didn't force-create) → link to it
-      if (!opts?.forceCreate && (selected || exactMatch)) {
-        const person = selected || exactMatch!;
+      // If user explicitly picked an existing record → link to it.
+      // (We no longer auto-link on exactMatch — the user must choose
+      // either the matched record from the dropdown or "Create new person".)
+      if (selected) {
+        const person = selected;
         await logActivity(person, person.name);
         toast.success(`${resultType} logged for ${person.name}`);
         setBusy(false);
         finishOrPromptFlag(person, person.name);
+        return;
+      }
+      // If there's an exact name match and the user hit Enter/Save without
+      // choosing, surface the choice instead of silently merging.
+      if (!opts?.forceCreate && exactMatch) {
+        setBusy(false);
+        toast.info(`"${exactMatch.name}" already exists — pick the match or choose "Create new person".`);
         return;
       }
 
@@ -550,7 +559,7 @@ export default function QuickAddPersonDialog({
                 </button>
                 {exactMatch && (
                   <div className="px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-t">
-                    ⚠ Similar name already exists — create new anyway?
+                    ⚠ A person named "{exactMatch.name}" already exists. Pick the match above to link, or "+ Create new person" to add a separate record.
                   </div>
                 )}
               </div>

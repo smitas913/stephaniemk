@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createCustomer } from "@/lib/queries";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createCustomer, fetchCustomers } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
@@ -33,6 +33,16 @@ export default function AddCustomer() {
   const [nextFollowUp, setNextFollowUp] = useState("");
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
+
+  // Duplicate-name detection (never blocks creation — informational only)
+  const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const nameMatches = useMemo(() => {
+    const q = name.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return existingCustomers
+      .filter((c: any) => (c.full_name || "").toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [name, existingCustomers]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -84,6 +94,39 @@ export default function AddCustomer() {
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Full Name *</label>
               <Input placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} className="h-10" />
+              {nameMatches.length > 0 && (
+                <div className="mt-2 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                        {nameMatches.length === 1 ? "1 person" : `${nameMatches.length} people`} with a similar name already exist
+                      </p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                        Open one of the matches below, or continue to create a new separate record.
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {nameMatches.map((m: any) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => navigate(`/customers/${m.id}`)}
+                            className="w-full text-left px-2 py-1.5 rounded bg-background hover:bg-muted border border-border flex items-center justify-between gap-2"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-medium text-foreground truncate">{m.full_name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {[m.phone, m.email].filter(Boolean).join(" · ") || "No contact info"}
+                              </div>
+                            </div>
+                            <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Contact */}
