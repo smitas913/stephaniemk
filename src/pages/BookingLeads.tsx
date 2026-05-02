@@ -83,15 +83,25 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     address_line_1: "", city: "", state_territory: "", postal_code: "",
   });
 
+  const customerDncSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customersForDnc) {
+      if (Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")) s.add(c.id);
+    }
+    return s;
+  }, [customersForDnc]);
+
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      if (statusFilter === "all" && l.converted_customer_id) return false;
+      const isDnc = !!l.converted_customer_id && customerDncSet.has(l.converted_customer_id);
+      if (filterDnc === "dnc" ? !isDnc : isDnc) return false;
+      if (statusFilter === "all" && l.converted_customer_id && filterDnc === "active") return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (activityFilter !== "all" && (l.lead_activity || "No Activity Yet") !== activityFilter) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [leads, search, statusFilter, activityFilter]);
+  }, [leads, search, statusFilter, activityFilter, filterDnc, customerDncSet]);
 
   // Quick Add validation
   const hasContact = form.phone.trim() || form.email.trim();
