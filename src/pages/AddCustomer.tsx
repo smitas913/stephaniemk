@@ -34,6 +34,7 @@ export default function AddCustomer() {
   const [nextFollowUp, setNextFollowUp] = useState("");
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
 
   // Duplicate-name detection (never blocks creation — informational only)
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
