@@ -604,7 +604,6 @@ export default function CustomerDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <InfoRow label="Relationship" value={customer.relationship_status} />
                   <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
-                  <InfoRow label="Date Added" value={formatDate((customer as any).date_added)} />
                   <InfoRow label="Became Customer" value={formatDate((customer as any).became_customer_date) || "—"} />
                   <div className="flex flex-col gap-0.5 py-1.5">
                     <span className="text-muted-foreground text-xs">Deliveries</span>
