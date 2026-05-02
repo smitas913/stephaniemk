@@ -44,6 +44,7 @@ export default function AddOrder() {
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: financialSettings } = useRQ({ queryKey: ["financial-settings"], queryFn: fetchFinancialSettings });
 
   // --- State ---
   const [orderType, setOrderType] = useState<OrderTypeValue | "">(() => {
