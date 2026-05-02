@@ -193,7 +193,14 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
             <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
             <div className="space-y-3">
               {notes.map((note, idx) => (
-                <NoteItem key={note.id} note={note} isLatest={idx === 0} onDelete={() => deleteMutation.mutate(note.id)} />
+                <NoteItem
+                  key={note.id}
+                  note={note}
+                  isLatest={idx === 0}
+                  onDelete={() => deleteMutation.mutate(note.id)}
+                  onSaveEdit={(updates) => editMutation.mutate({ id: note.id, ...updates })}
+                  isSaving={editMutation.isPending}
+                />
               ))}
             </div>
           </div>
