@@ -25,6 +25,7 @@ import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
+import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
@@ -411,8 +412,20 @@ export default function CustomerDetail() {
           ))}
         </div>
 
+        {/* Profile Completion */}
+        <ProfileCompletionCard
+          customer={customer as any}
+          onEditField={() => {
+            setEditing(true);
+            // Scroll the customer info card into view on next tick
+            setTimeout(() => {
+              document.getElementById("customer-info-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 50);
+          }}
+        />
+
         {/* Customer Info Card */}
-        <Card className="border-border/50 shadow-sm">
+        <Card id="customer-info-card" className="border-border/50 shadow-sm scroll-mt-20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Customer Info</CardTitle>
             {!editing ? (
