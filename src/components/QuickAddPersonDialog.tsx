@@ -166,7 +166,7 @@ export default function QuickAddPersonDialog({
     onOpenChange(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (opts?: { forceCreate?: boolean }) => {
     if (!resultType) return;
     const trimmed = query.trim();
     if (!selected && !trimmed) {
@@ -175,8 +175,8 @@ export default function QuickAddPersonDialog({
     }
     setBusy(true);
     try {
-      // If selected or exact-match exists → log directly
-      if (selected || exactMatch) {
+      // If user picked an existing record (or there's an exact match and they didn't force-create) → link to it
+      if (!opts?.forceCreate && (selected || exactMatch)) {
         const person = selected || exactMatch!;
         await logActivity(person, person.name);
         toast.success(`${resultType} logged for ${person.name}`);
@@ -185,21 +185,10 @@ export default function QuickAddPersonDialog({
         return;
       }
 
-      // Brand-new name
-      if (resultType === "Face") {
-        // Show "Add person?" prompt — defer activity log until user chooses
-        setCapturePrompt({ name: trimmed, noteBody: note.trim() });
-        setBusy(false);
-        return;
-      }
-
-      // Other result types: keep existing behavior (auto-create lead)
-      const newLead = await createBookingLead({ name: trimmed, status: "New" as any });
-      const person: PersonMatch = { kind: "lead", id: (newLead as any).id, name: trimmed };
-      await logActivity(person, trimmed);
-      toast.success(`${resultType} logged for ${person.name}`);
+      // Brand-new name (or explicit "Create new person")
+      // Always route through the Customer/Lead capture prompt — defer activity log until user chooses.
+      setCapturePrompt({ name: trimmed, noteBody: note.trim() });
       setBusy(false);
-      finishOrPromptFlag(person, person.name);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
