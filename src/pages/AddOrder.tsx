@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
+import { useQuery as useRQ } from "@tanstack/react-query";
+import { fetchFinancialSettings, computeOrderFinancials } from "@/lib/financialSettings";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -58,6 +60,8 @@ export default function AddOrder() {
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
   const [wholesaleAmount, setWholesaleAmount] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountMode, setDiscountMode] = useState<"$" | "%">("$");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
