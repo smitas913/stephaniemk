@@ -1857,7 +1857,12 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
-      booking_lead_status: "New" | "Contacted" | "Booked" | "Not Interested"
+      booking_lead_status:
+        | "New"
+        | "Contacted"
+        | "Engaged"
+        | "Booked"
+        | "Not Interested"
       consultant_status: "none" | "pending" | "approved" | "rejected"
       expense_category:
         | "Inventory"
@@ -2013,7 +2018,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
-      booking_lead_status: ["New", "Contacted", "Booked", "Not Interested"],
+      booking_lead_status: [
+        "New",
+        "Contacted",
+        "Engaged",
+        "Booked",
+        "Not Interested",
+      ],
       consultant_status: ["none", "pending", "approved", "rejected"],
       expense_category: [
         "Inventory",
