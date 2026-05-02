@@ -228,6 +228,12 @@ export const upsertEvent = async (event: Partial<EventRecord> & { event_id: stri
     .select()
     .single();
   if (error) throw error;
+
+  // Auto-progress matching booking lead → Booked when an event is scheduled.
+  if (event.hostess_name) {
+    const { autoProgressLeadFromEvent } = await import("./leadAutoStatus");
+    await autoProgressLeadFromEvent({ hostessName: event.hostess_name as string });
+  }
   return data;
 };
 
