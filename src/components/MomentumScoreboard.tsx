@@ -56,10 +56,17 @@ function computeActuals(
 ): number {
   const { events, notes, customers, consultants } = data;
   switch (metricKey) {
-    case "faces":
-      return events
+    case "faces": {
+      // 1) Faces from held events (guest_count)
+      const heldEventFaces = events
         .filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end))
         .reduce((s, e) => s + Number(e.guest_count || 0), 0);
+      // 2) Faces from Quick Add / standalone Face notes
+      const quickAddFaces = notes.filter(
+        (n) => n.result_type === "Face" && inRange(n.note_date, start, end),
+      ).length;
+      return heldEventFaces + quickAddFaces;
+    }
     case "career_chats":
       return notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).length;
     case "new_team_members":
