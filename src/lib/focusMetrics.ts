@@ -268,10 +268,11 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     }
   }
 
-  // ─── Relationship Building details (general touches not in other categories) ───
+  // ─── Relationship Building details (intentional personal touches only) ───
+  // Excludes activity logs (Face / Career Chat / Booking Conversation) — those have a result_type set.
   const relTypes = new Set(["General", "Gift", "Check-in", "Birthday", "Other"]);
   const relationshipItems: FocusDetailItem[] = allNotes
-    .filter((n: any) => getTimestampDateKey(n.created_at) === dateKey && relTypes.has(n.note_type))
+    .filter((n: any) => getTimestampDateKey(n.created_at) === dateKey && relTypes.has(n.note_type) && !n.result_type)
     .map((n: any) => {
       const c = customers.find((c: any) => c.id === n.customer_id);
       if (!c) return null;
