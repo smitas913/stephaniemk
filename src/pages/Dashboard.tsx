@@ -19,6 +19,7 @@ import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
+import BusinessResetBanner from "@/components/BusinessResetBanner";
 
 // ─── Quotes ───
 const MOTIVATIONAL_QUOTES = [
@@ -163,6 +164,9 @@ export default function Dashboard() {
           }}
           suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
         />
+
+        {/* WEEKLY BUSINESS RESET — only on user's reset day, dismissible */}
+        <BusinessResetBanner />
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
