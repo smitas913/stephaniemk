@@ -517,36 +517,38 @@ export default function QuickAddPersonDialog({
             {/* Match dropdown */}
             {query.trim() && !selected && (
               <div className="mt-1 border rounded-md bg-popover shadow-sm max-h-56 overflow-y-auto">
-                {matches.length > 0 ? (
-                  matches.map((m) => (
-                    <button
-                      key={`${m.kind}-${m.id}`}
-                      type="button"
-                      onClick={() => handleSelect(m)}
-                      className="w-full text-left px-3 py-2 hover:bg-muted flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-foreground truncate">{m.name}</div>
-                        {m.detail && <div className="text-[11px] text-muted-foreground truncate">{m.detail}</div>}
-                      </div>
-                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", KIND_BADGE[m.kind])}>
-                        {m.kind}
-                      </span>
-                    </button>
-                  ))
-                ) : (
+                {matches.map((m) => (
                   <button
+                    key={`${m.kind}-${m.id}`}
                     type="button"
-                    onClick={handleSave}
-                    className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2 text-sm"
+                    onClick={() => handleSelect(m)}
+                    className="w-full text-left px-3 py-2 hover:bg-muted flex items-center justify-between gap-2 border-b last:border-b-0"
                   >
-                    <UserPlus className="w-4 h-4 text-primary" />
-                    <span>
-                      {resultType === "Face"
-                        ? <>Use new name: <span className="font-semibold">{query.trim()}</span></>
-                        : <>Create new lead: <span className="font-semibold">{query.trim()}</span></>}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-foreground truncate">{m.name}</div>
+                      {m.detail && <div className="text-[11px] text-muted-foreground truncate">{m.detail}</div>}
+                    </div>
+                    <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", KIND_BADGE[m.kind])}>
+                      {m.kind}
                     </span>
                   </button>
+                ))}
+                {/* Always show Create new — even when matches exist */}
+                <button
+                  type="button"
+                  onClick={() => handleSave({ forceCreate: true })}
+                  className="w-full text-left px-3 py-2 hover:bg-primary/5 flex items-center gap-2 text-sm bg-muted/30"
+                >
+                  <UserPlus className="w-4 h-4 text-primary shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="text-primary font-medium">+ Create new person:</span>{" "}
+                    <span className="font-semibold">{query.trim()}</span>
+                  </span>
+                </button>
+                {exactMatch && (
+                  <div className="px-3 py-1.5 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-t">
+                    ⚠ Similar name already exists — create new anyway?
+                  </div>
                 )}
               </div>
             )}
@@ -576,8 +578,8 @@ export default function QuickAddPersonDialog({
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={busy}>
               Cancel
             </Button>
-            <Button className="flex-1" onClick={handleSave} disabled={busy || !query.trim()}>
-              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : (resultType === "Face" ? "Continue" : "Save")}
+            <Button className="flex-1" onClick={() => handleSave()} disabled={busy || !query.trim()}>
+              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : (selected || exactMatch ? "Save" : "Continue")}
             </Button>
           </div>
         </div>
