@@ -64,6 +64,9 @@ export default function QuickAddPersonDialog({
   const [capturePrompt, setCapturePrompt] = useState<{ name: string; noteBody: string } | null>(null);
   // Step 3: optional "Flag for follow-up?" prompt after a customer-linked log
   const [flagPrompt, setFlagPrompt] = useState<{ customerId: string; name: string } | null>(null);
+  // Step 2.5: "Set follow-up?" sequence picker — runs ONLY for newly-created customers
+  const [followUpPrompt, setFollowUpPrompt] = useState<{ customerId: string; name: string } | null>(null);
+  const [customFollowUpDate, setCustomFollowUpDate] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
