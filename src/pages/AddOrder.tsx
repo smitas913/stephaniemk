@@ -230,6 +230,10 @@ export default function AddOrder() {
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
         wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
+        discount_amount: financials.discount,
+        tax_amount: financials.tax,
+        cc_fee_amount: financials.ccFee,
+        net_received: paymentStatus === "Paid" ? financials.netReceived : null,
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
       });
