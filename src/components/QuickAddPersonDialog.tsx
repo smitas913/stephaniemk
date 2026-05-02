@@ -588,7 +588,7 @@ export default function QuickAddPersonDialog({
             />
           </div>
 
-          <div className="flex gap-2 pt-1"></div>
+          <div className="flex gap-2 pt-1">
             <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={busy}>
               Cancel
             </Button>
