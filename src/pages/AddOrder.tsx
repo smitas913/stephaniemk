@@ -163,6 +163,7 @@ export default function AddOrder() {
       discount,
       taxRate: financialSettings?.tax_rate ?? 0,
       ccFeeRate: financialSettings?.cc_fee_rate ?? 0,
+      profitMarginRate: financialSettings?.profit_margin_rate ?? 50,
       isCreditCard: paymentStatus === "Paid" && paymentType === "Credit Card",
     });
   }, [retailAmount, discountValue, discountMode, financialSettings, paymentStatus, paymentType]);
