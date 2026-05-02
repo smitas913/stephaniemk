@@ -280,8 +280,19 @@ export default function MetricDrillDownDialog({
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {row.href && (
-                      <Button asChild size="icon" variant="ghost" className="h-8 w-8" title="Open">
+                      <Button asChild size="icon" variant="ghost" className="h-8 w-8" title="Open profile">
                         <Link to={row.href} onClick={() => onOpenChange(false)}><ExternalLink className="w-4 h-4" /></Link>
+                      </Button>
+                    )}
+                    {row.table === "notes" && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title="Edit activity"
+                        onClick={() => setEditing({ noteId: row.id.replace(/^note-/, ""), date: row.date || "", body: row.notes || "" })}
+                      >
+                        <Pencil className="w-4 h-4" />
                       </Button>
                     )}
                     <AlertDialog>
