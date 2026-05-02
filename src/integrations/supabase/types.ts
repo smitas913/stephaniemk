@@ -340,6 +340,7 @@ export type Database = {
           relationship_status: string | null
           skincare_started_at: string | null
           state_territory: string | null
+          tags: string[]
           updated_at: string | null
         }
         Insert: {
@@ -378,6 +379,7 @@ export type Database = {
           relationship_status?: string | null
           skincare_started_at?: string | null
           state_territory?: string | null
+          tags?: string[]
           updated_at?: string | null
         }
         Update: {
@@ -416,6 +418,7 @@ export type Database = {
           relationship_status?: string | null
           skincare_started_at?: string | null
           state_territory?: string | null
+          tags?: string[]
           updated_at?: string | null
         }
         Relationships: []
@@ -463,12 +466,14 @@ export type Database = {
         Row: {
           address: string | null
           allow_non_working_day: boolean
+          canceled_at: string | null
           created_at: string
           customer_id: string | null
           customer_name: string
           event_location: string | null
           event_time: string | null
           id: string
+          is_canceled: boolean
           item_type: string
           notes: string | null
           owner_user_id: string | null
@@ -479,12 +484,14 @@ export type Database = {
         Insert: {
           address?: string | null
           allow_non_working_day?: boolean
+          canceled_at?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string
           event_location?: string | null
           event_time?: string | null
           id?: string
+          is_canceled?: boolean
           item_type: string
           notes?: string | null
           owner_user_id?: string | null
@@ -495,12 +502,14 @@ export type Database = {
         Update: {
           address?: string | null
           allow_non_working_day?: boolean
+          canceled_at?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string
           event_location?: string | null
           event_time?: string | null
           id?: string
+          is_canceled?: boolean
           item_type?: string
           notes?: string | null
           owner_user_id?: string | null
@@ -591,11 +600,13 @@ export type Database = {
       event_tasks: {
         Row: {
           allow_non_working_day: boolean
+          canceled_at: string | null
           completed_at: string | null
           created_at: string
           due_date: string | null
           event_id: string
           id: string
+          is_canceled: boolean
           is_completed: boolean
           owner_user_id: string | null
           task_name: string
@@ -603,11 +614,13 @@ export type Database = {
         }
         Insert: {
           allow_non_working_day?: boolean
+          canceled_at?: string | null
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
           event_id: string
           id?: string
+          is_canceled?: boolean
           is_completed?: boolean
           owner_user_id?: string | null
           task_name: string
@@ -615,11 +628,13 @@ export type Database = {
         }
         Update: {
           allow_non_working_day?: boolean
+          canceled_at?: string | null
           completed_at?: string | null
           created_at?: string
           due_date?: string | null
           event_id?: string
           id?: string
+          is_canceled?: boolean
           is_completed?: boolean
           owner_user_id?: string | null
           task_name?: string
