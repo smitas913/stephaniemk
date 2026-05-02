@@ -412,6 +412,18 @@ export default function CustomerDetail() {
           ))}
         </div>
 
+        {/* Profile Completion */}
+        <ProfileCompletionCard
+          customer={customer as any}
+          onEditField={() => {
+            setEditing(true);
+            // Scroll the customer info card into view on next tick
+            setTimeout(() => {
+              document.getElementById("customer-info-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 50);
+          }}
+        />
+
         {/* Customer Info Card */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
