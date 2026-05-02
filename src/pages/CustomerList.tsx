@@ -60,6 +60,10 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       setFilterAttention(true);
       setFilterMissing(["phone", "email", "address"]);
     }
+    const v = searchParams.get("view");
+    if (v === "incomplete" || v === "followup" || v === "missing" || v === "all") {
+      setAttentionView(v);
+    }
   }, [searchParams]);
 
   const toggleSort = (col: "last_contacted" | "last_order" | "follow_up" | "date_added" | "became_customer") => {
