@@ -169,6 +169,10 @@ export const createOrder = async (order: {
   retail_amount?: number;
   wholesale_amount?: number | null;
   payout_amount?: number | null;
+  discount_amount?: number;
+  tax_amount?: number;
+  cc_fee_amount?: number;
+  net_received?: number | null;
   notes?: string;
   parent_event_id?: string | null;
 }) => {
