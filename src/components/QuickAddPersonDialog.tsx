@@ -340,7 +340,76 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {flagPrompt ? (
+        {followUpPrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium flex items-center gap-1.5">
+                <CalendarClock className="w-4 h-4 text-primary" /> Set follow-up?
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pick a follow-up path for <span className="font-semibold">{followUpPrompt.name}</span>. Defaults to the 90-Day Care Cycle.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-primary/5 hover:border-primary/40"
+                disabled={busy}
+                onClick={() => applyFollowUpChoice("222")}
+              >
+                <Repeat className="w-4 h-4 text-primary shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Start 2+2+2 sequence</div>
+                  <div className="text-[11px] text-muted-foreground">+2 days · +2 weeks · +2 months</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-primary/5 hover:border-primary/40"
+                disabled={busy}
+                onClick={() => applyFollowUpChoice("default")}
+              >
+                <CalendarClock className="w-4 h-4 text-primary shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">90-Day Care Cycle <span className="ml-1 text-[10px] uppercase tracking-wide text-primary/70">Default</span></div>
+                  <div className="text-[11px] text-muted-foreground">Long-term retention rhythm (~75 days)</div>
+                </div>
+              </Button>
+              <div className="rounded-md border p-2.5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Custom follow-up date</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    min={toLocalDateKey()}
+                    value={customFollowUpDate}
+                    onChange={(e) => setCustomFollowUpDate(e.target.value)}
+                    className="h-9 flex-1"
+                    disabled={busy}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-9"
+                    disabled={busy || !customFollowUpDate}
+                    onClick={() => applyFollowUpChoice("custom", customFollowUpDate)}
+                  >
+                    Set
+                  </Button>
+                </div>
+              </div>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground text-center">
+              Closing without choosing applies the 90-Day Care Cycle.
+            </p>
+          </div>
+        ) : flagPrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium flex items-center gap-1.5">
@@ -386,7 +455,7 @@ export default function QuickAddPersonDialog({
                 Save <span className="font-semibold">{capturePrompt.name}</span> to your contacts so they show up in follow-ups.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col gap-1 hover:bg-blue-50 hover:border-blue-300"
@@ -405,15 +474,6 @@ export default function QuickAddPersonDialog({
                 <UserPlus className="w-4 h-4 text-amber-600" />
                 <span className="text-xs font-semibold">Lead</span>
               </Button>
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col gap-1"
-                disabled={busy}
-                onClick={() => handleCaptureChoice("skip")}
-              >
-                <span className="text-base">⏭️</span>
-                <span className="text-xs font-semibold">Skip</span>
-              </Button>
             </div>
             {busy && (
               <div className="flex items-center justify-center text-xs text-muted-foreground">
@@ -421,8 +481,16 @@ export default function QuickAddPersonDialog({
               </div>
             )}
             <p className="text-[11px] text-muted-foreground text-center">
-              Skip just logs the Face — no contact is created.
+              New customers get a follow-up path on the next step.
             </p>
+            <Button
+              variant="ghost"
+              className="w-full h-8 text-xs text-muted-foreground"
+              disabled={busy}
+              onClick={() => { setCapturePrompt(null); onLogged(); onOpenChange(false); }}
+            >
+              Cancel — don't save this person
+            </Button>
           </div>
         ) : (
         <div className="space-y-3">
