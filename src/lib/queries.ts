@@ -615,7 +615,7 @@ export const createNote = async (note: {
     });
   }
   return data;
-}
+};
 
 // Momentum Goals
 export type MomentumPeriod = "weekly" | "monthly";
