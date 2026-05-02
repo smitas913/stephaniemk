@@ -30,6 +30,14 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
   Other: "bg-accent text-accent-foreground",
 };
 
+// result_type — surfaced as a distinct activity badge so Face / Career Chat /
+// Booking Conversation logs are visually obvious in the timeline.
+const RESULT_TYPE_META: Record<string, { icon: any; color: string; emoji: string }> = {
+  "Face": { icon: Users, color: "bg-pink-100 text-pink-700", emoji: "👤" },
+  "Career Chat": { icon: Briefcase, color: "bg-violet-100 text-violet-700", emoji: "💬" },
+  "Booking Conversation": { icon: Calendar, color: "bg-amber-100 text-amber-700", emoji: "📅" },
+};
+
 export default function CustomerNotesTimeline({ customerId }: { customerId: string }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
