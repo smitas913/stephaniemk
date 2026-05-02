@@ -425,7 +425,7 @@ export default function CustomerDetail() {
         />
 
         {/* Customer Info Card */}
-        <Card className="border-border/50 shadow-sm">
+        <Card id="customer-info-card" className="border-border/50 shadow-sm scroll-mt-20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Customer Info</CardTitle>
             {!editing ? (
