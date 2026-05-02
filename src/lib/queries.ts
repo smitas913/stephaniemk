@@ -173,6 +173,7 @@ export const createOrder = async (order: {
   tax_amount?: number;
   cc_fee_amount?: number;
   net_received?: number | null;
+  net_profit?: number | null;
   notes?: string;
   parent_event_id?: string | null;
 }) => {
