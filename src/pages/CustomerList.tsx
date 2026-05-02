@@ -50,7 +50,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [vipOpen, setVipOpen] = useState(false);
   const [actOpen, setActOpen] = useState(false);
   const [fuOpen, setFuOpen] = useState(false);
-  const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | null>(null);
+  const [sortCol, setSortCol] = useState<"last_contacted" | "last_order" | "follow_up" | "date_added" | "became_customer" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Read ?attention=1 (set by Business Reset banner) → enable combined filter
@@ -61,7 +61,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
   }, [searchParams]);
 
-  const toggleSort = (col: "last_contacted" | "last_order" | "follow_up") => {
+  const toggleSort = (col: "last_contacted" | "last_order" | "follow_up" | "date_added" | "became_customer") => {
     if (sortCol === col) {
       if (sortDir === "asc") setSortDir("desc");
       else { setSortCol(null); setSortDir("asc"); }
@@ -184,6 +184,8 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const getVal = (c: EnrichedCustomer): string | null => {
         if (sortCol === "last_contacted") return c.last_contacted;
         if (sortCol === "last_order") return c.last_order_effective;
+        if (sortCol === "date_added") return (c as any).date_added ?? null;
+        if (sortCol === "became_customer") return (c as any).became_customer_date ?? null;
         return c.next_follow_up;
       };
       const dir = sortDir === "asc" ? 1 : -1;
