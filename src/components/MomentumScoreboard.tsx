@@ -139,6 +139,7 @@ function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Pa
 
 export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthly" } = {}) {
   const queryClient = useQueryClient();
+  const [drill, setDrill] = useState<{ key: DrillMetricKey; label: string; period: "weekly" | "monthly" } | null>(null);
 
   const { data: goals = [] } = useQuery({ queryKey: ["momentum-goals"], queryFn: fetchMomentumGoals });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
