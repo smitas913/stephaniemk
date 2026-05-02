@@ -210,9 +210,40 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   );
 }
 
-function NoteItem({ note, onDelete, isLatest = false }: { note: Note; onDelete: () => void; isLatest?: boolean }) {
-  const Icon = NOTE_TYPE_ICONS[note.note_type] || FileText;
-  const colors = NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.Other;
+function NoteItem({
+  note,
+  onDelete,
+  onSaveEdit,
+  isSaving,
+  isLatest = false,
+}: {
+  note: Note;
+  onDelete: () => void;
+  onSaveEdit: (updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null }) => void;
+  isSaving?: boolean;
+  isLatest?: boolean;
+}) {
+  const resultMeta = note.result_type ? RESULT_TYPE_META[note.result_type] : null;
+  const Icon = resultMeta?.icon || NOTE_TYPE_ICONS[note.note_type] || FileText;
+  const colors = resultMeta?.color || NOTE_TYPE_COLORS[note.note_type] || NOTE_TYPE_COLORS.Other;
+
+  const [editing, setEditing] = useState(false);
+  const [body, setBody] = useState(note.note_body || "");
+  const [date, setDate] = useState(note.note_date || "");
+  const [followUp, setFollowUp] = useState(note.next_follow_up_date || "");
+
+  const handleSave = () => {
+    if (!body.trim()) {
+      toast.error("Note text required");
+      return;
+    }
+    onSaveEdit({
+      note_body: body.trim(),
+      note_date: date,
+      next_follow_up_date: followUp || null,
+    });
+    setEditing(false);
+  };
 
   return (
     <div className="relative pl-9 group">
@@ -225,30 +256,102 @@ function NoteItem({ note, onDelete, isLatest = false }: { note: Note; onDelete: 
       )}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{note.note_type}</span>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              {note.result_type && (
+                <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-semibold", colors)}>
+                  {resultMeta?.emoji} {note.result_type}
+                </span>
+              )}
+              <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium",
+                note.result_type ? "bg-muted text-muted-foreground" : colors)}>
+                {note.note_type}
+              </span>
               {isLatest && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
               )}
               <span className="text-[11px] text-muted-foreground">
                 {new Date(note.note_date + "T00:00:00").toLocaleDateString()}
               </span>
-              {note.next_follow_up_date && (
+              {note.next_follow_up_date && !editing && (
                 <span className="text-[11px] text-primary font-medium">
                   → Follow-up: {new Date(note.next_follow_up_date + "T00:00:00").toLocaleDateString()}
                 </span>
               )}
             </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
+
+            {editing ? (
+              <div className="space-y-2 mt-2">
+                <Textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  className="min-h-[70px] text-sm"
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Date</label>
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[140px]">
+                    <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Follow-up</label>
+                    <Input
+                      type="date"
+                      value={followUp}
+                      onChange={(e) => setFollowUp(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={isSaving}>
+                    <Check className="w-3 h-3" />Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => {
+                      setEditing(false);
+                      setBody(note.note_body || "");
+                      setDate(note.note_date || "");
+                      setFollowUp(note.next_follow_up_date || "");
+                    }}
+                  >
+                    <X className="w-3 h-3" />Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-            onClick={onDelete}
-          >
-            <Trash2 className="w-3 h-3 text-destructive" />
-          </Button>
+          {!editing && (
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setEditing(true)}
+                title="Edit"
+              >
+                <Pencil className="w-3 h-3 text-muted-foreground" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={onDelete}
+                title="Delete"
+              >
+                <Trash2 className="w-3 h-3 text-destructive" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
