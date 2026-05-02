@@ -726,6 +726,7 @@ export default function FollowUps() {
     // dates from sliding into the past while the user is away.
     return customers
       .filter((c) => c.is_active !== false && c.relationship_status !== "Consultant")
+      .filter((c) => !(Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")))
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
         const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined);
