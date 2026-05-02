@@ -179,16 +179,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     }
   }, [isToday, configs, upsertProgress]);
 
-  const handleManualAdjust = useCallback(
-    (sortOrder: number, delta: number) => {
-      const existing = progress.find((p) => p.sort_order === sortOrder);
-      const currentAdj = existing?.manual_adjustment ?? 0;
-      const autoCount = existing?.auto_count ?? 0;
-      const newAdj = Math.max(-autoCount, currentAdj + delta);
-      upsertProgress({ sort_order: sortOrder, manual_adjustment: newAdj, day_type: dayType });
-    },
-    [progress, upsertProgress, dayType]
-  );
+  // Manual +/- adjustment removed — counts come solely from logged activity.
 
   const handleToggleComplete = useCallback(
     (sortOrder: number) => {
