@@ -1,16 +1,25 @@
 import { createNote, updateCustomer } from "@/lib/queries";
-import { toLocalDateKey } from "@/lib/dateOnly";
+import { toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 
 export type FollowUpChoice = "222" | "custom" | "default";
 
+/**
+ * Apply a new-customer follow-up plan.
+ *
+ * @param baseDate Optional anchor date (YYYY-MM-DD). When provided, the 2+2+2
+ *   and 90-Day Care Cycle offsets are calculated from this date — typically the
+ *   order date / Became Customer Date — instead of today. This keeps the
+ *   product-experience cadence aligned with the actual purchase timeline.
+ */
 export async function applyNewCustomerFollowUp(
   customerId: string,
   choice: FollowUpChoice,
   customDate?: string,
+  baseDate?: string,
 ): Promise<{ nextDate: string; reason: string }> {
-  const today = new Date();
+  const anchor = baseDate ? parseLocalDate(baseDate) : new Date();
   const addDays = (n: number) => {
-    const d = new Date(today);
+    const d = new Date(anchor);
     d.setDate(d.getDate() + n);
     return toLocalDateKey(d);
   };
@@ -26,7 +35,7 @@ export async function applyNewCustomerFollowUp(
     nextDate = d2;
     reason = "2+2+2 Sequence — Step 1 of 3 (initial check-in)";
     planNote =
-      `2+2+2 follow-up sequence started:\n` +
+      `2+2+2 follow-up sequence started${baseDate ? ` from order date ${baseDate}` : ""}:\n` +
       `• Step 1 — ${d2}: Initial product experience check-in\n` +
       `• Step 2 — ${d2w}: Reorder / appointment opportunity\n` +
       `• Step 3 — ${d2m}: Transition to long-term care`;
