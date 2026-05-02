@@ -311,6 +311,27 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
           </Button>
         </div>
 
+        {filterAttention && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
+            <span className="text-sm font-medium text-foreground">
+              Showing: Items to Complete ({filtered.length})
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                setFilterAttention(false);
+                const sp = new URLSearchParams(searchParams);
+                sp.delete("attention");
+                setSearchParams(sp, { replace: true });
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+        )}
+
         {/* Table */}
         {isLoading ? (
           <p className="text-muted-foreground text-center py-12">Loading...</p>

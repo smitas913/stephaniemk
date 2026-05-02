@@ -108,6 +108,13 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 const ADMIN_ROLES = ["owner", "admin"];
 const INTERNAL_ROLES = ["owner", "admin", "consultant"];
 
+function CustomersRedirect() {
+  const search = window.location.search;
+  const params = new URLSearchParams(search);
+  params.set("tab", "customers");
+  return <Navigate to={`/clients?${params.toString()}`} replace />;
+}
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
@@ -130,7 +137,7 @@ const AppRoutes = () => (
     <Route path="/scoreboard" element={<Navigate to="/dashboard" replace />} />
     <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
     <Route path="/clients" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Clients /></ProtectedRoute>} />
-    <Route path="/customers" element={<Navigate to="/clients?tab=customers" replace />} />
+    <Route path="/customers" element={<CustomersRedirect />} />
     <Route path="/booking-leads/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><LeadDetail /></ProtectedRoute>} />
     <Route path="/booking-leads" element={<Navigate to="/clients?tab=leads" replace />} />
     <Route path="/customers/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddCustomer /></ProtectedRoute>} />
