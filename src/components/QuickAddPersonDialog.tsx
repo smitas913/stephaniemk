@@ -60,6 +60,8 @@ export default function QuickAddPersonDialog({
   const [busy, setBusy] = useState(false);
   // Step 2: optional "Add person?" capture for brand-new names on Face logs
   const [capturePrompt, setCapturePrompt] = useState<{ name: string; noteBody: string } | null>(null);
+  // Step 3: optional "Flag for follow-up?" prompt after a customer-linked log
+  const [flagPrompt, setFlagPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -70,6 +72,7 @@ export default function QuickAddPersonDialog({
       setNote("");
       setBusy(false);
       setCapturePrompt(null);
+      setFlagPrompt(null);
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
