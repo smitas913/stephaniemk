@@ -207,31 +207,105 @@ export default function QuickAddPersonDialog({
     }
   };
 
-  // "Add person?" handler: captures a Customer / Lead / Skip choice
-  const handleCaptureChoice = async (choice: "customer" | "lead" | "skip") => {
+  // "Add person?" handler: captures a Customer / Lead choice (Skip removed —
+  // closing the dialog without choosing leaves the activity unlogged for that name).
+  const handleCaptureChoice = async (choice: "customer" | "lead") => {
     if (!capturePrompt || !resultType) return;
     setBusy(true);
     try {
       let person: PersonMatch | null = null;
+      let isNewCustomer = false;
       if (choice === "customer") {
         const c = await createCustomer({ full_name: capturePrompt.name, relationship_status: "Customer" } as any);
         person = { kind: "customer", id: (c as any).id, name: capturePrompt.name };
+        isNewCustomer = true;
         toast.success(`Customer added: ${capturePrompt.name}`);
-      } else if (choice === "lead") {
+      } else {
         const l = await createBookingLead({ name: capturePrompt.name, status: "New" as any });
         person = { kind: "lead", id: (l as any).id, name: capturePrompt.name };
         toast.success(`Lead added: ${capturePrompt.name}`);
-      } else {
-        toast.success(`Face logged for ${capturePrompt.name}`);
       }
       await logActivity(person, capturePrompt.name);
       setBusy(false);
       setCapturePrompt(null);
-      finishOrPromptFlag(person, capturePrompt.name);
+      finishOrPromptFlag(person, capturePrompt.name, { newCustomer: isNewCustomer });
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed: ${msg}`);
       setBusy(false);
+    }
+  };
+
+  // Apply selected follow-up path for a newly-created customer.
+  // Choices:
+  //   "222"     — 2+2+2 sequence: stamp +2 days as next follow-up; record full sequence in a note
+  //   "custom"  — user-picked date
+  //   "default" — 90-Day Care Cycle (~75 days from today, matches long-term cadence)
+  // If user closes without choosing, we still apply "default" (no dead-end actions).
+  const applyFollowUpChoice = async (choice: "222" | "custom" | "default", customDate?: string) => {
+    if (!followUpPrompt) return;
+    setBusy(true);
+    try {
+      const today = new Date();
+      const addDays = (n: number) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() + n);
+        return toLocalDateKey(d);
+      };
+
+      let nextDate: string;
+      let reason: string;
+      let planNote: string | null = null;
+
+      if (choice === "222") {
+        const d2 = addDays(2);
+        const d2w = addDays(14);
+        const d2m = addDays(60);
+        nextDate = d2;
+        reason = "2+2+2 Sequence — Step 1 of 3 (initial check-in)";
+        planNote =
+          `2+2+2 follow-up sequence started:\n` +
+          `• Step 1 — ${d2}: Initial product experience check-in\n` +
+          `• Step 2 — ${d2w}: Reorder / appointment opportunity\n` +
+          `• Step 3 — ${d2m}: Transition to long-term care`;
+      } else if (choice === "custom" && customDate) {
+        nextDate = customDate;
+        reason = "Custom follow-up";
+      } else {
+        // Default — 90-Day Care Cycle
+        nextDate = addDays(75);
+        reason = "90-Day Care Cycle";
+      }
+
+      await updateCustomer(followUpPrompt.customerId, {
+        next_follow_up_date: nextDate,
+        follow_up_reason: reason,
+      } as any);
+
+      if (planNote) {
+        await createNote({
+          entity_type: "Customer",
+          customer_id: followUpPrompt.customerId,
+          person_id: followUpPrompt.customerId,
+          person_type: "customer",
+          note_body: planNote,
+          note_type: "Follow-Up",
+          next_follow_up_date: nextDate,
+          is_booking_attempt: false,
+          is_follow_up: true,
+        });
+      }
+
+      toast.success(`Follow-up set: ${reason}`);
+    } catch (e: any) {
+      toast.error(`Failed to set follow-up: ${e?.message ?? "Unknown error"}`);
+    } finally {
+      setBusy(false);
+      setFollowUpPrompt(null);
+      setCustomFollowUpDate("");
+      // After follow-up is set, still offer the flag prompt for items-to-complete tracking
+      onLogged();
+      onOpenChange(false);
     }
   };
 
