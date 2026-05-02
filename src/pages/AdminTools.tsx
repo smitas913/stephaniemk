@@ -107,6 +107,9 @@ export default function AdminTools() {
             <div className="mt-4">
               <MergeDuplicates />
             </div>
+            <div className="mt-4 max-w-xl">
+              <ResetMomentumTestData />
+            </div>
           </TabsContent>
 
           <TabsContent value="deliveries">
