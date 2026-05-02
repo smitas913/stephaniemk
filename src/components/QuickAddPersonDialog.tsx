@@ -222,6 +222,53 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {capturePrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium">Add person?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Save <span className="font-semibold">{capturePrompt.name}</span> to your contacts so they show up in follow-ups.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1 hover:bg-blue-50 hover:border-blue-300"
+                disabled={busy}
+                onClick={() => handleCaptureChoice("customer")}
+              >
+                <Users className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-semibold">Customer</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1 hover:bg-amber-50 hover:border-amber-300"
+                disabled={busy}
+                onClick={() => handleCaptureChoice("lead")}
+              >
+                <UserPlus className="w-4 h-4 text-amber-600" />
+                <span className="text-xs font-semibold">Lead</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1"
+                disabled={busy}
+                onClick={() => handleCaptureChoice("skip")}
+              >
+                <span className="text-base">⏭️</span>
+                <span className="text-xs font-semibold">Skip</span>
+              </Button>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground text-center">
+              Skip just logs the Face — no contact is created.
+            </p>
+          </div>
+        ) : (
         <div className="space-y-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Name *</label>
@@ -271,7 +318,11 @@ export default function QuickAddPersonDialog({
                     className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2 text-sm"
                   >
                     <UserPlus className="w-4 h-4 text-primary" />
-                    <span>Create new lead: <span className="font-semibold">{query.trim()}</span></span>
+                    <span>
+                      {resultType === "Face"
+                        ? <>Use new name: <span className="font-semibold">{query.trim()}</span></>
+                        : <>Create new lead: <span className="font-semibold">{query.trim()}</span></>}
+                    </span>
                   </button>
                 )}
               </div>
@@ -303,10 +354,11 @@ export default function QuickAddPersonDialog({
               Cancel
             </Button>
             <Button className="flex-1" onClick={handleSave} disabled={busy || !query.trim()}>
-              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : "Save"}
+              {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : (resultType === "Face" ? "Continue" : "Save")}
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
