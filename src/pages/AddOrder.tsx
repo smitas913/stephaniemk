@@ -252,9 +252,9 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
       });
 
-      // Auto-schedule post-order follow-up — SKIP for non-customer orders so
-      // one-time/online buyers do not enter the follow-up system.
-      if (!isNonCustomer) {
+      // Auto-schedule post-order follow-up — SKIP for non-customer orders and
+      // for DNC customers when the user opted to keep the DNC tag.
+      if (!isNonCustomer && !dncSuppressFollowUp) {
         try {
           await applyPostOrderFollowUp({
             customerId: resolvedCustomerId,
