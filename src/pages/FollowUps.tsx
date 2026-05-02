@@ -794,6 +794,7 @@ export default function FollowUps() {
 
     // Prospect items
     const prospectItems: ActionItem[] = prospects
+      .filter((p) => !(p.customer_id && customerDncSet.has(p.customer_id)))
       .filter((p) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
       .map((p) => {
         const effectiveFollowUp = normalizeFollowUpDate(p.next_step_date) || normalizeFollowUpDate(p.next_follow_up_date);
