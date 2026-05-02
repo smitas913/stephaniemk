@@ -18,6 +18,7 @@ import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2,
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
+import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
