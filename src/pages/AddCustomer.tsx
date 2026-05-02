@@ -156,6 +156,11 @@ export default function AddCustomer() {
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Next Follow-Up</label>
                 <Input type="date" value={nextFollowUp} min={toLocalDateKey()} onChange={(e) => setNextFollowUp(e.target.value)} className="h-10" />
               </div>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Date Added</label>
+                <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
+                <p className="text-xs text-muted-foreground mt-1">Defaults to today. Adjust if backdating.</p>
+              </div>
             </div>
 
             {/* Notes */}
