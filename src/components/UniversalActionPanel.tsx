@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Mail, Users,
   CheckCircle2, Calendar, ArrowRight, ExternalLink,
-  CalendarCheck, Clock, SkipForward,
+  CalendarCheck, Clock, SkipForward, ShoppingCart,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
@@ -81,6 +82,16 @@ const SUGGESTED_REASONS_BY_PERSON: Partial<Record<PersonType, string[]>> = {
   consultant: ["Coaching", "Accountability", "Training / Support"],
 };
 
+/** Which intent categories are visible per person type. Reduces decision fatigue. */
+const ALLOWED_CATEGORIES_BY_PERSON: Record<PersonType, IntentCategory[]> = {
+  customer: ["Follow-Up", "Booking"],
+  lead: ["Follow-Up", "Booking"],
+  hostess: ["Coaching", "Booking", "Follow-Up"],
+  event_task: ["Coaching", "Booking"],
+  prospect: ["Recruiting", "Follow-Up"],
+  consultant: ["Coaching", "Team Building"],
+};
+
 const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> = {
   customer: { label: "Customer", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
   prospect: { label: "Prospect", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
@@ -134,6 +145,7 @@ interface Props {
 }
 
 export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<ActionStep>("action");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -232,7 +244,10 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
-  const suggestedReasons = SUGGESTED_REASONS_BY_PERSON[item.personType] || [];
+  const allowedCategories = ALLOWED_CATEGORIES_BY_PERSON[item.personType] || INTENT_CATEGORIES;
+  const suggestedReasons = (SUGGESTED_REASONS_BY_PERSON[item.personType] || [])
+    .filter((r) => allowedCategories.includes(resolveIntentCategory(r)));
+  const canAddOrder = item.personType === "customer" || item.personType === "hostess";
   const resolvedCategory = resolveIntentCategory(selectedReason);
 
   return (
@@ -295,6 +310,20 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
             {item.email && (
               <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
                 <a href={`mailto:${item.email}`} onClick={(e) => openEmail(item.email!, e)}><Mail className="w-3 h-3 mr-1" />Email</a>
+              </Button>
+            )}
+            {canAddOrder && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => {
+                  navigate(`/orders/new?customer=${encodeURIComponent(item.id)}`);
+                  handleClose();
+                }}
+              >
+                <ShoppingCart className="w-3 h-3 mr-1" />
+                + Order
               </Button>
             )}
           </div>
@@ -435,7 +464,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
                   {/* Full library, grouped by category */}
                   <div className="space-y-1.5 pt-1">
-                    {INTENT_CATEGORIES.map((cat) => {
+                    {INTENT_CATEGORIES.filter((c) => allowedCategories.includes(c)).map((cat) => {
                       const reasons = REASONS_BY_CATEGORY[cat].filter((r) => !suggestedReasons.includes(r));
                       if (reasons.length === 0) return null;
                       return (
