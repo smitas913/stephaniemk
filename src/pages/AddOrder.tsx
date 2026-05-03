@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
-import { applyPostOrderFollowUp } from "@/lib/postOrderFollowUp";
+import { applyPostOrderFollowUp, FOLLOW_UP_INTENT_OPTIONS, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
 import { PAYMENT_TYPES } from "@/lib/types";
