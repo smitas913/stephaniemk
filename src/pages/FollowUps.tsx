@@ -24,6 +24,8 @@ import Layout from "@/components/Layout";
 import ClientCleanupCard from "@/components/ClientCleanupCard";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
+import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDialog";
+import { logCatalogSent } from "@/lib/catalogTracking";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
 import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
