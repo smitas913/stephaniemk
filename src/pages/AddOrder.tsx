@@ -349,20 +349,31 @@ export default function AddOrder() {
       return;
     }
 
+    // Reorder → ensure linked person is marked Customer (one-time prompt per customer)
+    if (
+      orderType === "Reorder" &&
+      !isNonCustomer &&
+      customerId &&
+      !reorderConvertPrompt &&
+      !reorderConvertHandled.has(customerId)
+    ) {
+      const cust = customers.find(c => c.id === customerId) as any;
+      const status = (cust?.relationship_status || "").toLowerCase();
+      if (cust && status !== "customer") {
+        setReorderConvertPrompt({ customerId, addAnother });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       let resolvedCustomerId = customerId;
       let resolvedCustomerName = customerName;
 
       if (isNonCustomer) {
-        // Route the order to the per-owner archived "Non-Customer Orders" bucket.
-        // Bucket is is_active=false + archived → excluded from customer lists,
-        // follow-ups, and customer metrics. The free-text label below is shown
-        // as the buyer name on the order itself.
         resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
         resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
       } else if (isNewCustomer && newCustName.trim() && !customerId) {
-        // Create new customer if needed
         const birthdayMMDD = newCustBirthday ? (() => {
           const parts = newCustBirthday.split("-");
           return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
@@ -381,23 +392,32 @@ export default function AddOrder() {
         } as any);
         resolvedCustomerId = newCust.id;
         resolvedCustomerName = newCust.full_name;
-        // Trigger 2+2+2 follow-up prompt for newly-created customers
-        setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
+        if (!isEditMode) {
+          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
+        }
       }
 
       let eventId: string | null = null;
+      if (isEventBased && selectedEventId) eventId = selectedEventId;
 
-      if (isEventBased && selectedEventId) {
-        eventId = selectedEventId;
-      }
+      // Resolve face_type:
+      // - Non-customer → "Non-Customer"
+      // - Reorder → default "Customer" unless user override
+      // - Otherwise use override (edit mode prefill) or leave undefined
+      const resolvedFaceType =
+        isNonCustomer
+          ? "Non-Customer"
+          : orderType === "Reorder"
+            ? (faceTypeOverride || "Customer")
+            : (faceTypeOverride || undefined);
 
-      await createOrder({
+      const orderPayload: any = {
         customer_id: resolvedCustomerId,
         customer_name: resolvedCustomerName,
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
-        face_type: isNonCustomer ? "Non-Customer" : undefined,
+        face_type: resolvedFaceType,
         payment_status: paymentStatus,
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
@@ -408,7 +428,7 @@ export default function AddOrder() {
         cc_transaction_type: isCreditCard ? ccTxType : null,
         net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
-        notes: notes || undefined,
+        notes: notes || (isEditMode ? null : undefined),
         parent_event_id: isEventBased ? selectedEventId : null,
         is_myshop_order: !!orderTags.myshop,
         hostess: orderTags.hostess,
@@ -416,41 +436,37 @@ export default function AddOrder() {
         birthday: orderTags.birthday,
         referral: orderTags.referral,
         discount_type_ids: discountTypeIds,
-      } as any);
+      };
 
-      // Persist Skincare Customer toggle to the customer profile
-      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
-        try {
-          await supabase
-            .from("customers")
-            .update({ is_skincare_customer: true })
-            .eq("id", resolvedCustomerId);
-        } catch (e) {
-          console.error("Failed to update skincare flag", e);
-        }
+      if (isEditMode && editOrderId) {
+        await updateOrder(editOrderId, orderPayload);
+      } else {
+        await createOrder(orderPayload);
       }
 
-      // Auto-schedule post-order follow-up — SKIP for non-customer orders and
-      // for DNC customers when the user opted to keep the DNC tag.
-      if (!isNonCustomer && !dncSuppressFollowUp) {
+      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
         try {
-          await applyPostOrderFollowUp({
-            customerId: resolvedCustomerId,
-            orderDate,
-          });
-        } catch (e) {
-          console.error("Post-order follow-up failed", e);
-        }
+          await supabase.from("customers").update({ is_skincare_customer: true }).eq("id", resolvedCustomerId);
+        } catch (e) { console.error("Failed to update skincare flag", e); }
+      }
+
+      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp) {
+        try {
+          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate });
+        } catch (e) { console.error("Post-order follow-up failed", e); }
       }
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
+      if (isEditMode && editOrderId) queryClient.invalidateQueries({ queryKey: ["order", editOrderId] });
 
       setSavedCount(prev => prev + 1);
-      toast.success(`Order saved for ${resolvedCustomerName}`);
+      toast.success(isEditMode ? "Order updated" : `Order saved for ${resolvedCustomerName}`);
 
-      if (addAnother || bulkMode) {
+      if (isEditMode) {
+        navigate("/orders");
+      } else if (addAnother || bulkMode) {
         setCustomerId("");
         setCustomerName("");
         setCustomerSearch("");
@@ -468,20 +484,18 @@ export default function AddOrder() {
         setPaymentType("");
         setPaymentStatus("Paid");
         setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
-        
+        setFaceTypeOverride(null);
         setAttempted(false);
       } else if (!isNewCustomer) {
-        // For existing-customer orders, navigate immediately. New-customer
-        // orders defer navigation until the 2+2+2 follow-up prompt closes.
         navigate("/orders");
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to create order");
+      toast.error(err.message || (isEditMode ? "Failed to update order" : "Failed to create order"));
     } finally {
       setSubmitting(false);
       setDncSuppressFollowUp(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
