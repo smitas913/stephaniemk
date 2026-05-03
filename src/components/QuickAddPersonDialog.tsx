@@ -90,6 +90,10 @@ export default function QuickAddPersonDialog({
       setFollowUpPrompt(null);
       setCustomFollowUpDate("");
       setCreateNewIntent(false);
+      setFaceOutcomePrompt(null);
+      setNonCustomerPrompt(null);
+      setNonCustomerTags({ lead: false, prospect: false, dnc: false });
+      setNonCustomerFollowUpDate("");
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
