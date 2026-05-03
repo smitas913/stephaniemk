@@ -387,8 +387,12 @@ export default function CustomerDetail() {
               {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New Customer</span>}
               {(customer as any).is_skincare_customer && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium">Skincare</span>}
               {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
-              <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">{customer.relationship_status || "Customer"}</span>
-              <CustomerTagChips customerId={customer.id} tags={(customer as any).tags || []} className="ml-1" />
+              <CustomerTagChips
+                customerId={customer.id}
+                tags={(customer as any).tags || []}
+                isCustomer={(customer.relationship_status || "Customer") === "Customer"}
+                className="ml-1"
+              />
             </div>
           </div>
           <div className="flex gap-1">
