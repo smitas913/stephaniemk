@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin } from "lucide-react";
+import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
   { value: "Party", label: "Party", icon: PartyPopper },
   { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "Career Chat", label: "Career Chat", icon: MessageSquare },
   { value: "Sharing Appointment", label: "Sharing Appt", icon: Share2 },
   { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
@@ -65,7 +66,7 @@ export default function NewEvent() {
     const t = searchParams.get("type");
     const h = searchParams.get("hostess");
     const p = searchParams.get("phone");
-    if (t && ["Party", "Facial", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
+    if (t && ["Party", "Facial", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
       setEventType(t);
     }
     if (h) setHostessName(h);
@@ -162,7 +163,7 @@ export default function NewEvent() {
             {/* Event Type */}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Event Type *</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                 {EVENT_TYPES.map((t) => {
                   const Icon = t.icon;
                   return (
