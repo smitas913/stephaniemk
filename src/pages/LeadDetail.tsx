@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -263,9 +264,10 @@ export default function LeadDetail() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
                     <MapPin className="w-3 h-3" /> Address
                   </label>
-                  <Input
+                  <AddressAutocomplete
                     value={form.address_line_1}
-                    onChange={(e) => setForm({ ...form, address_line_1: e.target.value })}
+                    onChange={(v) => setForm({ ...form, address_line_1: v })}
+                    onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: p.state, postal_code: p.zip_code })}
                     placeholder="Street address"
                     className="h-9 mb-2"
                   />
@@ -298,7 +300,7 @@ export default function LeadDetail() {
               <dl className="text-sm space-y-2">
                 <Row icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={lead.phone ? formatPhone(lead.phone) : "—"} />
                 <Row icon={<Mail className="w-3.5 h-3.5" />} label="Email" value={lead.email || "—"} />
-                <Row icon={<MapPin className="w-3.5 h-3.5" />} label="Address" value={fullAddress || "—"} />
+                <Row icon={<MapPin className="w-3.5 h-3.5" />} label="Address" value={fullAddress ? (<a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{fullAddress}</a>) : "—"} />
               </dl>
             )}
           </CardContent>
@@ -387,7 +389,7 @@ export default function LeadDetail() {
   );
 }
 
-function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
       <span className="text-muted-foreground mt-0.5">{icon}</span>

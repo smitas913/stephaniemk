@@ -563,7 +563,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                         {address && (
                           <div className="flex items-start gap-2 text-xs">
                             <MapPin className="w-3 h-3 text-muted-foreground mt-0.5" />
-                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{address}</a>
+                            <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{address}</a>
                           </div>
                         )}
                       </div>
