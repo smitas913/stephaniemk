@@ -839,8 +839,24 @@ export default function AddOrder() {
           </div>
         )}
 
-        {/* Row 3: Payment Method (left) + Payment Status (right) */}
+        {/* Row 3: Payment Status (left) + Payment Method (right) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium text-foreground">Payment Status</label>
+            <div className="flex gap-1.5 mt-1">
+              {(["Paid", "Unpaid"] as const).map(s => (
+                <button key={s} type="button"
+                  className={cn("h-9 px-4 rounded-md text-xs font-medium border transition-colors",
+                    paymentStatus === s
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+                >{s}</button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="text-sm font-medium text-foreground">
               Payment Method {paymentStatus === "Paid" && "*"}
@@ -875,22 +891,6 @@ export default function AddOrder() {
             ) : (
               <p className="text-xs text-muted-foreground mt-2 italic">Mark as Paid to choose a method</p>
             )}
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground">Payment Status</label>
-            <div className="flex gap-1.5 mt-1">
-              {(["Paid", "Unpaid"] as const).map(s => (
-                <button key={s} type="button"
-                  className={cn("h-9 px-4 rounded-md text-xs font-medium border transition-colors",
-                    paymentStatus === s
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted"
-                  )}
-                  onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
-                >{s}</button>
-              ))}
-            </div>
           </div>
         </div>
 
