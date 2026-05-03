@@ -740,6 +740,8 @@ export default function CustomerDetail() {
         {/* Beauty Notes */}
         <BeautyNotesCard customerId={id!} value={(customer as any)?.beauty_notes} />
 
+        <ThoughtfulTouchesCard customerId={id!} customerName={customer?.full_name} />
+
         {/* Order History */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
