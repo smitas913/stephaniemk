@@ -251,6 +251,27 @@ export default function EditOrder() {
             </div>
 
             <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Discount Amount ($)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={discountAmount}
+                onChange={(e) => setDiscountAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Discount Type</label>
+              <DiscountTypeChips
+                value={discountTypeIds}
+                onChange={setDiscountTypeIds}
+                showArchivedSelected
+              />
+            </div>
+
+            <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Notes</label>
               <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional notes..." />
             </div>
