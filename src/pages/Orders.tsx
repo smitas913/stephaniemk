@@ -522,6 +522,42 @@ export default function Orders() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!noteEditOrder} onOpenChange={(v) => { if (!v) setNoteEditOrder(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="w-4 h-4 text-primary" />
+              Order Note
+            </DialogTitle>
+          </DialogHeader>
+          {noteEditOrder && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                {noteEditOrder.customer_name || noteEditOrder.customers?.full_name || "Order"} · {formatDateOnly(noteEditOrder.order_date)}
+              </p>
+              <Textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Add a note about this order..."
+                className="min-h-[120px] text-sm"
+                autoFocus
+              />
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setNoteEditOrder(null)} disabled={notesMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => noteEditOrder && notesMutation.mutate({ id: noteEditOrder.id, notes: noteDraft.trim() || null })}
+              disabled={notesMutation.isPending}
+            >
+              {notesMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
