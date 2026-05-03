@@ -921,6 +921,7 @@ export default function AddOrder() {
             <div className="flex-1 flex flex-col gap-1">
               <div className="flex gap-2">
                 <Button
+                  ref={saveButtonRef}
                   type="button"
                   className="flex-1 h-11"
                   disabled={!canSubmit}
