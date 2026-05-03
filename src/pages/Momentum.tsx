@@ -324,12 +324,22 @@ export default function Momentum() {
   ].map((m) => ({ ...m, value: computeActuals(m.key, monthStart, monthEnd, dataBundle) }));
 
   // Activity support metrics for current period
+  const bookingActivityValue = computeActuals("booking_activity", start, end, dataBundle);
+  const bookingAttemptsValue = computeActuals("booking_attempts", start, end, dataBundle);
   const supportMetrics = [
-    { key: "follow_ups", label: "Follow-ups Completed", icon: Phone },
-    { key: "booking_attempts", label: "Booking Attempts", icon: Calendar },
-    { key: "coaching_touches", label: "Coaching Touches", icon: Crown },
-    { key: "relationship_touches", label: "Relationship Touches", icon: Users },
-  ].map((m) => ({ ...m, value: computeActuals(m.key, start, end, dataBundle) }));
+    { key: "follow_ups", label: "Follow-ups Completed", icon: Phone, value: computeActuals("follow_ups", start, end, dataBundle), sub: undefined as string | undefined },
+    {
+      key: "booking_activity",
+      label: "Booking Activity",
+      icon: Calendar,
+      value: bookingActivityValue,
+      sub: bookingActivityValue > 0
+        ? `${bookingAttemptsValue} ask${bookingAttemptsValue === 1 ? "" : "s"} (${Math.round((bookingAttemptsValue / bookingActivityValue) * 100)}%)`
+        : `${bookingAttemptsValue} asks`,
+    },
+    { key: "coaching_touches", label: "Coaching Touches", icon: Crown, value: computeActuals("coaching_touches", start, end, dataBundle), sub: undefined },
+    { key: "relationship_touches", label: "Relationship Touches", icon: Users, value: computeActuals("relationship_touches", start, end, dataBundle), sub: undefined },
+  ];
 
   // Business growth goals for current period
   const growthGoals = businessGoals
