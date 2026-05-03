@@ -36,6 +36,7 @@ import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type Cata
 import { BookOpen } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import BeautyNotesCard from "@/components/BeautyNotesCard";
+import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
