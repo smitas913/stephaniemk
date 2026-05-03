@@ -668,6 +668,7 @@ export default function AddOrder() {
           ) : (
             <div className="space-y-1">
               <Input
+                ref={customerSearchRef}
                 placeholder="Search by name, phone, or email..."
                 value={customerSearch}
                 onChange={e => setCustomerSearch(e.target.value)}
