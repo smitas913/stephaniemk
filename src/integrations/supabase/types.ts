@@ -549,6 +549,36 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_archived: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_guests: {
         Row: {
           attending: boolean | null
@@ -1173,6 +1203,7 @@ export type Database = {
           customer_id: string
           customer_name: string | null
           discount_amount: number
+          discount_type_ids: string[]
           event_id: string | null
           face_type: string | null
           half_price_deal: boolean | null
@@ -1203,6 +1234,7 @@ export type Database = {
           customer_id: string
           customer_name?: string | null
           discount_amount?: number
+          discount_type_ids?: string[]
           event_id?: string | null
           face_type?: string | null
           half_price_deal?: boolean | null
@@ -1233,6 +1265,7 @@ export type Database = {
           customer_id?: string
           customer_name?: string | null
           discount_amount?: number
+          discount_type_ids?: string[]
           event_id?: string | null
           face_type?: string | null
           half_price_deal?: boolean | null

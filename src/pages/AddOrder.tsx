@@ -24,6 +24,7 @@ import { fetchFinancialSettings, computeOrderFinancials, getProcessorFee, type C
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
+import DiscountTypeChips from "@/components/DiscountTypeChips";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -67,6 +68,7 @@ export default function AddOrder() {
   const [wholesaleManual, setWholesaleManual] = useState(false);
   const [discountValue, setDiscountValue] = useState("");
   const [discountMode, setDiscountMode] = useState<"$" | "%">("$");
+  const [discountTypeIds, setDiscountTypeIds] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [ccTxType, setCcTxType] = useState<CcTransactionType>("in_person");
   const [ccFeeOverride, setCcFeeOverride] = useState<string>("");
@@ -363,7 +365,8 @@ export default function AddOrder() {
         half_price_deal: orderTags.half_price,
         birthday: orderTags.birthday,
         referral: orderTags.referral,
-      });
+        discount_type_ids: discountTypeIds,
+      } as any);
 
       // Persist Skincare Customer toggle to the customer profile
       if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
@@ -808,8 +811,14 @@ export default function AddOrder() {
                   onClick={() => setDiscountMode(m)}
                 >{m}</button>
               ))}
-            </div>
           </div>
+          {Number(discountValue) > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
+              <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Live Financial Summary */}

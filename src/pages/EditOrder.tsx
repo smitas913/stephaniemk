@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDateOnly } from "@/lib/dateOnly";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
+import DiscountTypeChips from "@/components/DiscountTypeChips";
 
 export default function EditOrder() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,8 @@ export default function EditOrder() {
   const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+  const [discountAmount, setDiscountAmount] = useState("");
+  const [discountTypeIds, setDiscountTypeIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (order) {
@@ -55,6 +58,8 @@ export default function EditOrder() {
         referral: !!order.referral,
         myshop: !!(order as any).is_myshop_order,
       });
+      setDiscountAmount((order as any).discount_amount != null ? String((order as any).discount_amount) : "");
+      setDiscountTypeIds(Array.isArray((order as any).discount_type_ids) ? (order as any).discount_type_ids : []);
     }
   }, [order]);
 
@@ -104,6 +109,8 @@ export default function EditOrder() {
       birthday: tags.birthday,
       referral: tags.referral,
       is_myshop_order: !!tags.myshop,
+      discount_amount: discountAmount ? parseFloat(discountAmount) : 0,
+      discount_type_ids: discountTypeIds,
     });
   };
 
@@ -240,6 +247,27 @@ export default function EditOrder() {
                 value={tags}
                 onChange={setTags}
                 include={["hostess", "half_price", "birthday", "referral", "myshop"]}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Discount Amount ($)</label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={discountAmount}
+                onChange={(e) => setDiscountAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Discount Type</label>
+              <DiscountTypeChips
+                value={discountTypeIds}
+                onChange={setDiscountTypeIds}
+                showArchivedSelected
               />
             </div>
 
