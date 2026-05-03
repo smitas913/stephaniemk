@@ -802,25 +802,30 @@ export default function AddOrder() {
               </Button>
             </>
           ) : (
-            <>
-              <Button
-                type="button"
-                className="flex-1 h-11"
-                disabled={!canSubmit}
-                onClick={() => handleSubmit(false)}
-              >
-                {submitting ? "Saving..." : "Save Order"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 gap-1"
-                disabled={!canSubmit}
-                onClick={() => handleSubmit(true)}
-              >
-                <Plus className="w-4 h-4" /> Save & Add
-              </Button>
-            </>
+            <div className="flex-1 flex flex-col gap-1">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  className="flex-1 h-11"
+                  disabled={!canSubmit}
+                  onClick={() => handleSubmit(false)}
+                >
+                  {submitting ? "Saving..." : "Save Order"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 gap-1"
+                  disabled={!canSubmit}
+                  onClick={() => handleSubmit(true)}
+                >
+                  <Plus className="w-4 h-4" /> Save & Add Another Order
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground text-right">
+                Use "Save & Add Another" when entering multiple orders
+              </p>
+            </div>
           )}
         </div>
 
