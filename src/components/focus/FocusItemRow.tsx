@@ -72,12 +72,12 @@ export default function FocusItemRow({
               <span title="Auto-tracked"><Zap className="w-3 h-3 text-amber-500" /></span>
             )}
             <span className={cn("text-xs font-medium", done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-              {current}/{item.target}
+              {lightDay ? `${current} · optional` : `${current}/${item.target}`}
             </span>
             <ChevronRight className="w-3 h-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
-        <Progress value={pct} className="h-1.5" />
+        {!lightDay && <Progress value={pct} className="h-1.5" />}
       </button>
     </div>
   );
