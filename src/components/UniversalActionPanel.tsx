@@ -52,6 +52,7 @@ const QUICK_ACTIONS = [
   { key: "Call", label: "Called", icon: Phone, emoji: "📞" },
   { key: "In Person", label: "Spoke", icon: Users, emoji: "🤝" },
   { key: "Email", label: "Emailed", icon: Mail, emoji: "📧" },
+  { key: "Inbound", label: "Inbound Response", icon: MessageSquare, emoji: "📥" },
   { key: "Did Not Connect", label: "No Response", icon: Phone, emoji: "📵" },
 ] as const;
 
