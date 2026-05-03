@@ -278,6 +278,7 @@ export function useFocusItems(dateKey?: string) {
     isLoading: configsLoading || progressLoading,
     isToday,
     isOOO: isOOO(selectedDate),
+    isNonWorkday: isNonWorkday(selectedDate),
     getTargetForItem,
     seedDefaults: seedDefaults.mutateAsync,
     saveConfigs: saveConfigs.mutateAsync,
