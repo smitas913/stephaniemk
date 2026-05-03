@@ -234,19 +234,13 @@ export default function EditOrder() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-5">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={hostess} onCheckedChange={(v) => setHostess(!!v)} /> Hostess
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={halfPrice} onCheckedChange={(v) => setHalfPrice(!!v)} /> Half Price
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={birthday} onCheckedChange={(v) => setBirthday(!!v)} /> Birthday
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={referral} onCheckedChange={(v) => setReferral(!!v)} /> Referral
-              </label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Order Tags</label>
+              <OrderTagChips
+                value={tags}
+                onChange={setTags}
+                include={["hostess", "half_price", "birthday", "referral", "myshop"]}
+              />
             </div>
 
             <div className="space-y-1.5">
