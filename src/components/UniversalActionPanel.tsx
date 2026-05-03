@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Mail, Users,
   CheckCircle2, Calendar, ArrowRight, ExternalLink,
-  CalendarCheck, Clock, SkipForward,
+  CalendarCheck, Clock, SkipForward, ShoppingCart,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
