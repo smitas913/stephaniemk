@@ -3077,6 +3077,14 @@ export default function FollowUps() {
           isPending={contactMutation.isPending || skipFollowUpMutation.isPending}
         />
 
+        <SkipFollowUpDialog
+          open={!!skipDialogItem}
+          onOpenChange={(o) => { if (!o) setSkipDialogItem(null); }}
+          personName={skipDialogItem?.name}
+          allowPcp={skipDialogItem?.itemType === "customer"}
+          onChoose={(choice) => { if (skipDialogItem) applySkipChoice(skipDialogItem, choice); }}
+        />
+
         {/* Detail Sheet */}
         <Sheet open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
           <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
