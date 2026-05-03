@@ -350,10 +350,15 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               weekStart={selectedWeekStart}
             />
           ) : (
-            <div className="space-y-3">
+            <div className={cn("space-y-3", isLightDay && !isOOO && "opacity-90")}>
               {isOOO && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1 font-medium">
                   Out of Office — targets set to zero
+                </p>
+              )}
+              {isNonWorkday && !isOOO && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1 italic">
+                  Light day — log anything you do
                 </p>
               )}
               {noHistoricalData ? (
@@ -371,6 +376,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                           onToggleComplete={() => handleToggleComplete(item.sort_order)}
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
                           readOnly={!isToday}
+                          lightDay={isLightDay}
                         />
                       ) : (
                         <FocusItemRow
@@ -380,6 +386,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
                           readOnly={!isToday}
                           isMobile={isMobile}
+                          lightDay={isLightDay}
                         />
                       )
                     )}
