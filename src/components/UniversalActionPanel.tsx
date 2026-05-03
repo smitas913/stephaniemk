@@ -528,6 +528,52 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   );
                 })()}
 
+                {/* Booking Created — appointment actually scheduled */}
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <Checkbox
+                      checked={bookingCreated}
+                      onCheckedChange={(v) => {
+                        const checked = v === true;
+                        setBookingCreated(checked);
+                        if (!checked) setBookingCreatedType(null);
+                      }}
+                    />
+                    <span className="text-sm font-medium text-foreground">Booking Created</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Appointment scheduled</span>
+                  </label>
+                  {bookingCreated && (
+                    <div className="pl-6 space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground">Type *</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(["Facial", "Party", "Career Chat"] as const).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setBookingCreatedType(t)}
+                            className={cn(
+                              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                              bookingCreatedType === t
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                            )}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                      {!bookingCreatedType && (
+                        <p className="text-[10px] text-destructive">Pick a type to continue.</p>
+                      )}
+                      {bookingCreatedType && bookingCreatedType !== "Career Chat" && (
+                        <p className="text-[10px] text-muted-foreground italic">
+                          You'll be sent to New Event after saving to set the date & details.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">What's next?</p>
                   <div className="space-y-1.5">
