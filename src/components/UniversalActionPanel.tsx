@@ -218,12 +218,13 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
     const tags = getAutoTags(item.personType, selectedReason);
     const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
       actionType: selectedAction || "Call",
       note: buildNote(),
       isBookingAttempt,
-      isFollowUp: tags.isFollowUp,
+      isFollowUp,
       nextFollowUpDate: nextDate ?? undefined,
       followUpReason: reasonForLog,
       category: tags.category,
