@@ -230,7 +230,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       category: tags.category,
     });
     handleClose();
-  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, onLogAction, handleClose]);
+  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
