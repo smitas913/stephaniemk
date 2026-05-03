@@ -12,7 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag, Sparkles, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
 import { openEmail } from "@/lib/emailPreference";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -48,6 +50,32 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterAttention, setFilterAttention] = useState(false);
   const [attentionView, setAttentionView] = useState<"all" | "followup" | "missing">("all");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const bulkSkincareMutation = useMutation({
+    mutationFn: async ({ ids, value }: { ids: string[]; value: boolean }) => {
+      const { error } = await supabase
+        .from("customers")
+        .update({ is_skincare_customer: value })
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(`${vars.value ? "Marked" : "Removed"} skincare on ${vars.ids.length} customer${vars.ids.length === 1 ? "" : "s"}`);
+      clearSelection();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
   const [actOpen, setActOpen] = useState(false);
@@ -251,6 +279,39 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
           </Dialog>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/30 sticky top-0 z-10">
+            <span className="text-sm font-medium text-foreground">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex flex-wrap gap-1.5 ml-auto">
+              <Button
+                size="sm"
+                variant="default"
+                className="h-8"
+                disabled={bulkSkincareMutation.isPending}
+                onClick={() => bulkSkincareMutation.mutate({ ids: Array.from(selectedIds), value: true })}
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                Mark as Skincare
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                disabled={bulkSkincareMutation.isPending}
+                onClick={() => bulkSkincareMutation.mutate({ ids: Array.from(selectedIds), value: false })}
+              >
+                Remove Skincare
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={clearSelection}>
+                <X className="w-3.5 h-3.5 mr-1" />
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Search + Archive Toggle */}
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
@@ -453,6 +514,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8 px-2">
+                    <Checkbox
+                      checked={filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id))}
+                      onCheckedChange={(v) => {
+                        if (v) setSelectedIds(new Set(filtered.map((c) => c.id)));
+                        else clearSelection();
+                      }}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead className="min-w-[140px]">Name</TableHead>
                   <TableHead className="whitespace-nowrap min-w-[140px]">Phone</TableHead>
                   <TableHead>
@@ -630,9 +701,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
+                  <TableRow key={c.id} className={cn("cursor-pointer hover:bg-muted/50", selectedIds.has(c.id) && "bg-primary/5")} onClick={() => navigate(`/customers/${c.id}`)}>
+                    <TableCell className="px-2 w-8" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(c.id)}
+                        onCheckedChange={() => toggleSelect(c.id)}
+                        aria-label={`Select ${c.full_name}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       {c.phone ? (
