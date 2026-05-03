@@ -193,6 +193,18 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     return parts.join(" ");
   }, [selectedReason, noteText, selectedAction, isInbound, bookingCreated, bookingCreatedType]);
 
+  const navigateToCreateEvent = useCallback(() => {
+    if (!item || !bookingCreated || !bookingCreatedType) return false;
+    if (bookingCreatedType === "Career Chat") return false; // logged on note only
+    const params = new URLSearchParams({
+      type: bookingCreatedType,
+      hostess: item.name || "",
+      ...(item.phone ? { phone: item.phone } : {}),
+    });
+    navigate(`/events/new?${params.toString()}`);
+    return true;
+  }, [item, bookingCreated, bookingCreatedType, navigate]);
+
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
     setNextOption(optionKey);
@@ -214,7 +226,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     }
 
     const tags = getAutoTags(item.personType, selectedReason);
-    const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isBookingAttempt = bookingCreated ? true : (bookingAttemptOverride ?? tags.isBookingAttempt);
     const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
@@ -226,13 +238,15 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       followUpReason: reasonForLog,
       category: tags.category,
     });
+    const navigated = navigateToCreateEvent();
     handleClose();
-  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
+    if (navigated) return;
+  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, bookingCreated, onLogAction, handleClose, navigateToCreateEvent]);
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
     const tags = getAutoTags(item.personType, selectedReason);
-    const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isBookingAttempt = bookingCreated ? true : (bookingAttemptOverride ?? tags.isBookingAttempt);
     const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
@@ -244,8 +258,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       followUpReason: selectedReason,
       category: tags.category,
     });
+    navigateToCreateEvent();
     handleClose();
-  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
+  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, bookingCreated, onLogAction, handleClose, navigateToCreateEvent]);
 
   if (!item) return null;
 
