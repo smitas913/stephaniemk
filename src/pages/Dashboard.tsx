@@ -166,8 +166,7 @@ export default function Dashboard() {
           suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
         />
 
-        {/* WEEKLY BUSINESS RESET — only on user's reset day, dismissible */}
-        <BusinessResetBanner />
+        {/* Client Cleanup moved to Today page (/follow-ups). */}
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
