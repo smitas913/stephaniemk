@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import { useQuery as useRQ } from "@tanstack/react-query";
-import { fetchFinancialSettings, computeOrderFinancials } from "@/lib/financialSettings";
+import { fetchFinancialSettings, computeOrderFinancials, getProcessorFee, type CcTransactionType } from "@/lib/financialSettings";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -66,6 +66,8 @@ export default function AddOrder() {
   const [discountValue, setDiscountValue] = useState("");
   const [discountMode, setDiscountMode] = useState<"$" | "%">("$");
   const [notes, setNotes] = useState("");
+  const [ccTxType, setCcTxType] = useState<CcTransactionType>("in_person");
+  const [ccFeeOverride, setCcFeeOverride] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
@@ -163,20 +165,29 @@ export default function AddOrder() {
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
-  // --- Auto financial calc ---
+  const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card";
+  const processorFee = useMemo(
+    () => getProcessorFee(financialSettings, isCreditCard ? ccTxType : null),
+    [financialSettings, isCreditCard, ccTxType]
+  );
+
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
     const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
+    const overrideRaw = ccFeeOverride.trim();
+    const override = overrideRaw === "" ? null : Number(overrideRaw);
     return computeOrderFinancials({
       orderTotal,
       discount,
       taxRate: financialSettings?.tax_rate ?? 0,
-      ccFeeRate: financialSettings?.cc_fee_rate ?? 0,
+      ccFeePct: processorFee.pct,
+      ccFeeFlat: processorFee.flat,
+      ccFeeOverride: override != null && !Number.isNaN(override) ? override : null,
       profitMarginRate: financialSettings?.profit_margin_rate ?? 50,
-      isCreditCard: paymentStatus === "Paid" && paymentType === "Credit Card",
+      isCreditCard,
     });
-  }, [retailAmount, discountValue, discountMode, financialSettings, paymentStatus, paymentType]);
+  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
@@ -252,6 +263,7 @@ export default function AddOrder() {
         discount_amount: financials.discount,
         tax_amount: financials.tax,
         cc_fee_amount: financials.ccFee,
+        cc_transaction_type: isCreditCard ? ccTxType : null,
         net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
         notes: notes || undefined,
@@ -693,6 +705,40 @@ export default function AddOrder() {
                   onClick={() => setPaymentType(paymentType === p ? "" : p)}
                 >{p}</button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Credit Card transaction type + manual fee override */}
+        {isCreditCard && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
+            <div>
+              <label className="text-xs font-medium text-foreground">Card transaction type</label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {([
+                  { v: "in_person", l: "In-person" },
+                  { v: "online", l: "Online / invoice" },
+                  { v: "keyed", l: "Manually entered" },
+                ] as const).map(t => (
+                  <button key={t.v} type="button"
+                    className={cn("h-7 px-2.5 rounded-md text-xs font-medium border transition-colors",
+                      ccTxType === t.v
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setCcTxType(t.v)}
+                  >{t.l}</button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Estimated fee: {processorFee.pct}% + ${processorFee.flat.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-foreground">Override fee ($) <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Input type="number" step="0.01" min="0" placeholder="Auto"
+                value={ccFeeOverride} onChange={e => setCcFeeOverride(e.target.value)}
+                className="h-8 mt-1 max-w-[140px]" />
             </div>
           </div>
         )}
