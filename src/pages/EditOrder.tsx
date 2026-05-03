@@ -58,7 +58,7 @@ export default function EditOrder() {
         referral: !!order.referral,
         myshop: !!(order as any).is_myshop_order,
       });
-      setDiscountAmount(order.discount_amount != null ? String(order.discount_amount) : "");
+      setDiscountAmount((order as any).discount_amount != null ? String((order as any).discount_amount) : "");
       setDiscountTypeIds(Array.isArray((order as any).discount_type_ids) ? (order as any).discount_type_ids : []);
     }
   }, [order]);
