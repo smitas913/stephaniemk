@@ -161,6 +161,23 @@ export function useFocusItems(dateKey?: string) {
     return date >= start && date <= end;
   };
 
+  const isNonWorkday = (date: string): boolean => {
+    if (!scheduleSettings) return false;
+    const d = new Date(date + "T12:00:00");
+    const dow = d.getDay();
+    const flags = [
+      scheduleSettings.workday_sunday,
+      scheduleSettings.workday_monday,
+      scheduleSettings.workday_tuesday,
+      scheduleSettings.workday_wednesday,
+      scheduleSettings.workday_thursday,
+      scheduleSettings.workday_friday,
+      scheduleSettings.workday_saturday,
+    ];
+    const flag = flags[dow];
+    return flag === false; // explicit false = non-workday
+  };
+
   const getTargetForItem = (sortOrder: number, dayType: DayType): number => {
     const custom = dayTypeTargets.find(t => t.day_type === dayType && t.sort_order === sortOrder);
     if (custom) return custom.target;
