@@ -181,6 +181,7 @@ export const createOrder = async (order: {
   net_profit?: number | null;
   notes?: string;
   parent_event_id?: string | null;
+  is_myshop_order?: boolean;
 }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase.from("orders").insert({ ...order, owner_user_id: userId } as any).select().single();

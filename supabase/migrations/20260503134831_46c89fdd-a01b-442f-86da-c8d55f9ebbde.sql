@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS is_myshop_order boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_orders_is_myshop ON public.orders(is_myshop_order) WHERE is_myshop_order = true;

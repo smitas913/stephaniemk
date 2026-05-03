@@ -74,6 +74,7 @@ export default function AddOrder() {
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   
   const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
+  const [isMyShopOrder, setIsMyShopOrder] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
@@ -234,7 +235,7 @@ export default function AddOrder() {
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
-  const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card";
+  const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card" && !isMyShopOrder;
   const processorFee = useMemo(
     () => getProcessorFee(financialSettings, isCreditCard ? ccTxType : null),
     [financialSettings, isCreditCard, ccTxType]
@@ -337,6 +338,7 @@ export default function AddOrder() {
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
+        is_myshop_order: isMyShopOrder,
       });
 
       // Persist Skincare Customer toggle to the customer profile
@@ -387,6 +389,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
+        setIsMyShopOrder(false);
         
         setAttempted(false);
       } else if (!isNewCustomer) {
@@ -857,9 +860,25 @@ export default function AddOrder() {
           </div>
         )}
 
-        {paymentStatus === "Paid" && paymentType === "MyShop" && (
+        {/* MyShop Order tag — combinable with any order type/payment method */}
+        <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+          <input
+            type="checkbox"
+            checked={isMyShopOrder}
+            onChange={e => setIsMyShopOrder(e.target.checked)}
+            className="mt-0.5 rounded border-border"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground">MyShop Order</span>
+            <span className="block text-xs text-muted-foreground">
+              Mark if this order came through MyShop. Skips credit card processing fees; retail and profit still count.
+            </span>
+          </span>
+        </label>
+
+        {paymentStatus === "Paid" && paymentType === "MyShop" && !isMyShopOrder && (
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">MyShop order:</span> no processing fees applied. Retail amount counts toward sales totals and profit uses your default margin.
+            <span className="font-medium text-foreground">MyShop payment:</span> no processing fees applied.
           </div>
         )}
 
