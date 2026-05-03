@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchOrders, deleteOrder, updateOrder } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
+import { backfillDefaultDiscountTypes, type DiscountType } from "@/lib/discountTypes";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { OrderWithCustomer } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,17 @@ import { formatDateOnly } from "@/lib/dateOnly";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 import FinancialSnapshot from "@/components/FinancialSnapshot";
 
-type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_status" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_status" | "face_type";
+
+const SHORT_LABEL: Record<string, string> = {
+  "Birthday Discount": "Bday",
+  "Half Price Deal": "½ Price",
+  "Hostess Credit": "Hostess",
+  "Referral Gift": "Referral",
+  "Sets Sheet": "Sets Sheet",
+  "Other": "Other",
+};
+const shortLabel = (name: string) => SHORT_LABEL[name] ?? name;
 type SortDir = "asc" | "desc" | null;
 
 export default function Orders() {
@@ -38,13 +50,20 @@ export default function Orders() {
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [filterFaceType, setFilterFaceType] = useState("all");
-  const [filterHostess, setFilterHostess] = useState(false);
-  const [filterBirthday, setFilterBirthday] = useState(false);
-  const [filterReferral, setFilterReferral] = useState(false);
+  const [filterDiscountIds, setFilterDiscountIds] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>("order_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: discountTypes = [] } = useQuery<DiscountType[]>({
+    queryKey: ["discount_types"],
+    queryFn: backfillDefaultDiscountTypes,
+  });
+  const discountById = useMemo(() => {
+    const m = new Map<string, DiscountType>();
+    for (const d of discountTypes) m.set(d.id, d);
+    return m;
+  }, [discountTypes]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteOrder,
@@ -77,12 +96,12 @@ export default function Orders() {
 
   const hasActiveFilters = search || filterCustomer !== "all" || period.type !== "mtd" ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
-    filterHostess || filterBirthday || filterReferral;
+    filterDiscountIds.length > 0;
 
   const clearFilters = useCallback(() => {
     setSearch(""); setFilterCustomer("all"); setPeriod({ type: "mtd" });
     setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
-    setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
+    setFilterDiscountIds([]);
   }, []);
 
   const filtered = useMemo(() => {
@@ -111,9 +130,21 @@ export default function Orders() {
     if (filterPayment === "__unpaid__") result = result.filter((o) => o.payment_status === "Unpaid" || (!o.payment_status && !o.payment_type));
     else if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
     if (filterFaceType !== "all") result = result.filter((o) => o.face_type === filterFaceType);
-    if (filterHostess) result = result.filter((o) => o.hostess);
-    if (filterBirthday) result = result.filter((o) => o.birthday);
-    if (filterReferral) result = result.filter((o) => o.referral);
+    if (filterDiscountIds.length > 0) {
+      const set = new Set(filterDiscountIds);
+      result = result.filter((o) => {
+        const ids: string[] = Array.isArray((o as any).discount_type_ids) ? (o as any).discount_type_ids : [];
+        // Include legacy boolean flags by mapping to known default names
+        const legacy: string[] = [];
+        for (const t of discountTypes) {
+          if (t.name === "Hostess Credit" && (o as any).hostess) legacy.push(t.id);
+          if (t.name === "Half Price Deal" && (o as any).half_price_deal) legacy.push(t.id);
+          if (t.name === "Birthday Discount" && (o as any).birthday) legacy.push(t.id);
+          if (t.name === "Referral Gift" && (o as any).referral) legacy.push(t.id);
+        }
+        return [...ids, ...legacy].some((id) => set.has(id));
+      });
+    }
 
     if (sortDir === null) return result;
 
@@ -126,16 +157,12 @@ export default function Orders() {
         case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
         case "payment_status": cmp = (a.payment_status || "").localeCompare(b.payment_status || ""); break;
         case "face_type": cmp = (a.face_type || "").localeCompare(b.face_type || ""); break;
-        case "hostess": cmp = Number(!!a.hostess) - Number(!!b.hostess); break;
-        case "half_price_deal": cmp = Number(!!a.half_price_deal) - Number(!!b.half_price_deal); break;
-        case "birthday": cmp = Number(!!a.birthday) - Number(!!b.birthday); break;
-        case "referral": cmp = Number(!!a.referral) - Number(!!b.referral); break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
 
     return sorted;
-  }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
+  }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterDiscountIds, discountTypes, sortField, sortDir]);
 
   const summary = useMemo(() => {
     const totalOrders = filtered.length;
@@ -286,17 +313,38 @@ export default function Orders() {
               {FACE_TYPES.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={filterHostess} onCheckedChange={(v) => setFilterHostess(!!v)} /> Hostess
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={filterBirthday} onCheckedChange={(v) => setFilterBirthday(!!v)} /> Birthday
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={filterReferral} onCheckedChange={(v) => setFilterReferral(!!v)} /> Referral
-            </label>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 text-xs">
+                Discount Tags{filterDiscountIds.length > 0 ? ` (${filterDiscountIds.length})` : ""}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start">
+              <div className="space-y-1 max-h-64 overflow-auto">
+                {discountTypes.filter((d) => !d.is_archived).map((d) => {
+                  const checked = filterDiscountIds.includes(d.id);
+                  return (
+                    <label key={d.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted px-2 py-1 rounded">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setFilterDiscountIds((prev) =>
+                            v ? [...prev, d.id] : prev.filter((id) => id !== d.id),
+                          )
+                        }
+                      />
+                      {shortLabel(d.name)}
+                    </label>
+                  );
+                })}
+                {filterDiscountIds.length > 0 && (
+                  <button type="button" className="text-[11px] text-primary hover:underline px-2 pt-1" onClick={() => setFilterDiscountIds([])}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" className="h-9 text-xs text-muted-foreground" onClick={clearFilters}>
               <X className="w-3 h-3 mr-1" />Clear
@@ -331,18 +379,7 @@ export default function Orders() {
                   <TableHead className="text-xs w-[60px] cursor-pointer select-none" onClick={() => toggleSort("face_type")}>
                     <span className="flex items-center">Face<SortIcon field="face_type" /></span>
                   </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("hostess")}>
-                    <span className="flex items-center justify-center">H<SortIcon field="hostess" /></span>
-                  </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("half_price_deal")}>
-                    <span className="flex items-center justify-center">½<SortIcon field="half_price_deal" /></span>
-                  </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("birthday")}>
-                    <span className="flex items-center justify-center">BD<SortIcon field="birthday" /></span>
-                  </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("referral")}>
-                    <span className="flex items-center justify-center">Ref<SortIcon field="referral" /></span>
-                  </TableHead>
+                  <TableHead className="text-xs w-[180px]">Discount Tags</TableHead>
                   <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_status")}>
                     <span className="flex items-center">Pay<SortIcon field="payment_status" /></span>
                   </TableHead>
@@ -366,10 +403,42 @@ export default function Orders() {
                       )}
                     </TableCell>
                     <TableCell className="text-xs">{o.face_type || "—"}</TableCell>
-                    <TableCell className="text-center">{o.hostess ? "✓" : ""}</TableCell>
-                    <TableCell className="text-center">{o.half_price_deal ? "✓" : ""}</TableCell>
-                    <TableCell className="text-center">{o.birthday ? "✓" : ""}</TableCell>
-                    <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const tags: string[] = [];
+                        const ids: string[] = Array.isArray((o as any).discount_type_ids) ? (o as any).discount_type_ids : [];
+                        for (const id of ids) {
+                          const t = discountById.get(id);
+                          if (t) tags.push(shortLabel(t.name));
+                        }
+                        // Add legacy boolean flags if not already represented
+                        const has = (name: string) => tags.includes(shortLabel(name));
+                        if ((o as any).hostess && !has("Hostess Credit")) tags.push("Hostess");
+                        if ((o as any).half_price_deal && !has("Half Price Deal")) tags.push("½ Price");
+                        if ((o as any).birthday && !has("Birthday Discount")) tags.push("Bday");
+                        if ((o as any).referral && !has("Referral Gift")) tags.push("Referral");
+                        if (tags.length === 0) return <span className="text-muted-foreground">—</span>;
+                        const visible = tags.slice(0, 2);
+                        const extra = tags.length - visible.length;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {visible.map((t) => (
+                              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground/80 font-medium">{t}</span>
+                            ))}
+                            {extra > 0 && (
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground cursor-default">+{extra}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">{tags.join(", ")}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         {(o.payment_status === "Unpaid" || (!o.payment_status && !o.payment_type)) && (
