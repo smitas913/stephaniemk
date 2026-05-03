@@ -289,7 +289,6 @@ export default function AddOrder() {
           await applyPostOrderFollowUp({
             customerId: resolvedCustomerId,
             orderDate,
-            needsCatalog,
           });
         } catch (e) {
           console.error("Post-order follow-up failed", e);
