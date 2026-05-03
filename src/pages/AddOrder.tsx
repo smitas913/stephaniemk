@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer } from "@/lib/queries";
@@ -133,15 +133,35 @@ export default function AddOrder() {
 
   const existingEventIds = useMemo(() => events.map(e => e.event_id), [events]);
 
+  const recentCustomers = useMemo(() => {
+    return [...customers]
+      .filter((c: any) => !!(c.last_order_mk || c.last_order_date_order_log || c.last_contacted || c.updated_at))
+      .sort((a: any, b: any) => {
+        const av = a.last_order_mk || a.last_order_date_order_log || a.last_contacted || a.updated_at || "";
+        const bv = b.last_order_mk || b.last_order_date_order_log || b.last_contacted || b.updated_at || "";
+        return String(bv).localeCompare(String(av));
+      })
+      .slice(0, 5);
+  }, [customers]);
+
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return customers.slice(0, 8);
+    if (!customerSearch) return recentCustomers;
     const q = customerSearch.toLowerCase();
     return customers.filter(c =>
       c.full_name.toLowerCase().includes(q) ||
       c.phone?.includes(q) ||
       c.email?.toLowerCase().includes(q)
     ).slice(0, 8);
-  }, [customers, customerSearch]);
+  }, [customers, customerSearch, recentCustomers]);
+
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
+  const retailInputRef = useRef<HTMLInputElement>(null);
+  const selectCustomer = useCallback((id: string) => {
+    setCustomerId(id);
+    setCustomerSearch("");
+    setTimeout(() => retailInputRef.current?.focus(), 50);
+  }, []);
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedEvent = events.find(e => e.event_id === selectedEventId);
@@ -598,19 +618,50 @@ export default function AddOrder() {
             </div>
           ) : (
             <div className="space-y-1">
-              <Input placeholder="Search by name, phone, or email..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} autoFocus className="h-9" />
-              {customerSearch && (
-                <div className="border border-border rounded-lg max-h-48 overflow-auto">
-                  {filteredCustomers.map(c => (
-                    <button key={c.id} type="button" className="w-full text-left px-3 py-2 hover:bg-muted text-sm transition-colors"
-                      onClick={() => { setCustomerId(c.id); setCustomerSearch(""); }}>
-                      <span className="font-medium">{c.full_name}</span>
-                      {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
-                    </button>
-                  ))}
-                  {filteredCustomers.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>}
-                </div>
-              )}
+              <Input
+                placeholder="Search by name, phone, or email..."
+                value={customerSearch}
+                onChange={e => setCustomerSearch(e.target.value)}
+                autoFocus
+                className="h-9"
+                onKeyDown={(e) => {
+                  if (filteredCustomers.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIdx(i => Math.min(i + 1, filteredCustomers.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIdx(i => Math.max(i - 1, 0));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const c = filteredCustomers[highlightIdx];
+                    if (c) selectCustomer(c.id);
+                  }
+                }}
+              />
+              <div className="border border-border rounded-lg max-h-48 overflow-auto">
+                {!customerSearch && filteredCustomers.length > 0 && (
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground px-3 pt-2 pb-1">Recent</p>
+                )}
+                {filteredCustomers.map((c, idx) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors",
+                      idx === highlightIdx ? "bg-muted" : "hover:bg-muted"
+                    )}
+                    onMouseEnter={() => setHighlightIdx(idx)}
+                    onClick={() => selectCustomer(c.id)}
+                  >
+                    <span className="font-medium">{c.full_name}</span>
+                    {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
+                  </button>
+                ))}
+                {customerSearch && filteredCustomers.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>
+                )}
+              </div>
               <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => { setIsNewCustomer(true); setCustomerSearch(""); }}>
                 <UserPlus className="w-3.5 h-3.5" /> Add New Customer
               </Button>
@@ -626,7 +677,7 @@ export default function AddOrder() {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Retail Amount *</label>
-            <Input type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} className="h-9" />
+            <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} className="h-9" />
           </div>
         </div>
 
