@@ -236,18 +236,19 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     if (!item || !customDate) return;
     const tags = getAutoTags(item.personType, selectedReason);
     const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
       actionType: selectedAction || "Call",
       note: buildNote(),
       isBookingAttempt,
-      isFollowUp: tags.isFollowUp,
+      isFollowUp,
       nextFollowUpDate: customDate,
       followUpReason: selectedReason,
       category: tags.category,
     });
     handleClose();
-  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, onLogAction, handleClose]);
+  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
 
   if (!item) return null;
 
