@@ -2462,123 +2462,123 @@ export default function FollowUps() {
                        );
                      };
 
-                     return (
-                       <div className="space-y-4">
-                         {/* Customer Follow-Ups (capped, overflow auto-distributed) */}
-                         {renderCategoryCard(
-                           "Customer Follow-Ups",
-                           customerVisible,
-                           customerSorted.length,
-                           customerLimit,
-                           customerOverflow,
-                           "bg-blue-50 dark:bg-blue-950/30",
-                           "text-blue-600",
-                         )}
+                      return (
+                        <div className="space-y-4">
+                          {/* Booking Activity — any lead interaction counts */}
+                          {renderCategoryCard(
+                            "Booking Activity",
+                            leadVisible,
+                            leadSorted.length,
+                            leadLimit,
+                            leadOverflow,
+                            "bg-amber-50 dark:bg-amber-950/30",
+                            "text-amber-600",
+                          )}
 
-                         {/* Booking Activity — any lead interaction counts */}
-                         {renderCategoryCard(
-                           "Booking Activity",
-                           leadVisible,
-                           leadSorted.length,
-                           leadLimit,
-                           leadOverflow,
-                           "bg-amber-50 dark:bg-amber-950/30",
-                           "text-amber-600",
-                         )}
+                          {/* Customer Follow-Ups (capped, overflow auto-distributed) */}
+                          {renderCategoryCard(
+                            "Customer Follow-Ups",
+                            customerVisible,
+                            customerSorted.length,
+                            customerLimit,
+                            customerOverflow,
+                            "bg-blue-50 dark:bg-blue-950/30",
+                            "text-blue-600",
+                          )}
 
-                         {/* Recruiting (Prospects) — unlimited */}
-                         {prospectItems.length > 0 && (
-                           <Card className="border-border/50 shadow-sm">
-                             <CardHeader className="pb-2">
-                               <div className="flex items-center gap-2">
-                                 <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30">
-                                   <Users className="w-4 h-4 text-purple-600" />
-                                 </div>
-                                 <CardTitle className="text-sm font-semibold text-foreground">Recruiting</CardTitle>
-                                 <Badge variant="secondary" className="text-xs">{prospectItems.length}</Badge>
-                               </div>
-                             </CardHeader>
-                             <CardContent className="pt-0">
-                               <div className="space-y-4">
-                                 {(() => {
-                                   const buckets = splitBuckets(prioritySort(prospectItems));
-                                   return (
-                                     <>
-                                       {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
-                                       {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
-                                       {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
-                                     </>
-                                   );
-                                 })()}
-                               </div>
-                             </CardContent>
-                           </Card>
-                         )}
+                          {/* Prospect Follow-Ups (Recruiting) — unlimited */}
+                          {prospectItems.length > 0 && (
+                            <Card className="border-border/50 shadow-sm">
+                              <CardHeader className="pb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30">
+                                    <Users className="w-4 h-4 text-purple-600" />
+                                  </div>
+                                  <CardTitle className="text-sm font-semibold text-foreground">Prospect Follow-Ups</CardTitle>
+                                  <Badge variant="secondary" className="text-xs">{prospectItems.length}</Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="pt-0">
+                                <div className="space-y-4">
+                                  {(() => {
+                                    const buckets = splitBuckets(prioritySort(prospectItems));
+                                    return (
+                                      <>
+                                        {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
+                                        {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
+                                        {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      );
+                   })()}
 
-                         {/* Reschedule Follow-Ups (event reschedules — unlimited) */}
-                         {reschedulingFollowUp.length > 0 && (
-                           <Card className="border-border/50 shadow-sm">
-                             <CardHeader className="pb-2">
-                               <div className="flex items-center gap-2">
-                                 <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30">
-                                   <RefreshCw className="w-4 h-4 text-orange-600" />
-                                 </div>
-                                 <CardTitle className="text-sm font-semibold text-foreground">Reschedule Follow-Ups</CardTitle>
-                                 <Badge variant="secondary" className="text-xs">{reschedulingFollowUp.length}</Badge>
-                               </div>
-                             </CardHeader>
-                             <CardContent className="pt-0">
-                               <div className="divide-y divide-border/40">
-                                 {reschedulingFollowUp.map((evt) => {
-                                   const todayKey = toLocalDateKey();
-                                   const fuDate = evt.reschedule_next_follow_up_date;
-                                   const isDueNow = !fuDate || fuDate <= todayKey;
-                                   return (
-                                     <div key={evt.id} className="py-2 px-1 space-y-1">
-                                       <div className="flex items-center gap-3">
-                                         <div className="flex-1 min-w-0">
-                                           <p className="text-sm font-medium text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
-                                           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                                             {evt.event_type && <span>{evt.event_type}</span>}
-                                             {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
-                                             <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
-                                             {evt.reschedule_last_contact_date && <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>}
-                                             {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
-                                             {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
-                                           </div>
-                                         </div>
-                                         <div className="flex items-center gap-1 shrink-0">
-                                           {evt.hostess_phone && (
-                                             <>
-                                               <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                 <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                               </Button>
-                                                <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-7 w-7" />
-                                             </>
-                                           )}
-                                         </div>
-                                       </div>
-                                       <div className="flex items-center gap-1.5 mt-1">
-                                         {evt.requires_manual_next_step ? (
-                                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
-                                         ) : (
-                                           <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRescheduleUniversalPanel(evt)}>Log Activity</Button>
-                                         )}
-                                         <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
-                                         <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-                                         </Button>
-                                       </div>
-                                     </div>
-                                   );
-                                 })}
-                               </div>
-                             </CardContent>
-                           </Card>
-                         )}
-                       </div>
-                     );
-                  })()}
+                  {/* Event reschedule queue — folded into Event Follow-Ups */}
+                  {!hideWorkflow && reschedulingFollowUp.length > 0 && (
+                    <Card className="border-border/50 shadow-sm">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30">
+                            <RefreshCw className="w-4 h-4 text-orange-600" />
+                          </div>
+                          <CardTitle className="text-sm font-semibold text-foreground">Event Reschedules</CardTitle>
+                          <Badge variant="secondary" className="text-xs">{reschedulingFollowUp.length}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="divide-y divide-border/40">
+                          {reschedulingFollowUp.map((evt) => {
+                            const todayKey = toLocalDateKey();
+                            const fuDate = evt.reschedule_next_follow_up_date;
+                            const isDueNow = !fuDate || fuDate <= todayKey;
+                            return (
+                              <div key={evt.id} className="py-2 px-1 space-y-1">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
+                                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                      {evt.event_type && <span>{evt.event_type}</span>}
+                                      {evt.event_date && <span>• Orig: {formatDateOnly(evt.event_date)}</span>}
+                                      <span>• Attempt {evt.reschedule_attempt_number || 0}</span>
+                                      {evt.reschedule_last_contact_date && <span>• Last: {formatDateOnly(evt.reschedule_last_contact_date)}</span>}
+                                      {isDueNow && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">Due</Badge>}
+                                      {evt.requires_manual_next_step && <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Manual</Badge>}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {evt.hostess_phone && (
+                                      <>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                          <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                        </Button>
+                                        <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-7 w-7" />
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  {evt.requires_manual_next_step ? (
+                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setManualNextStepEvent(evt)}>Choose Next Step</Button>
+                                  ) : (
+                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRescheduleUniversalPanel(evt)}>Log Activity</Button>
+                                  )}
+                                  <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}>Set New Date</Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto" onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
 
 
