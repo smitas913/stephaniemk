@@ -47,6 +47,7 @@ const QUICK_ADD_OPTIONS = [
 ] as const;
 
 function QuickAddBar({ onLogged }: { onLogged: () => void }) {
+  const navigate = useNavigate();
   const [openType, setOpenType] = useState<"Face" | "Career Chat" | "Booking Conversation" | null>(null);
 
   return (
@@ -59,7 +60,7 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
             <span className="text-[11px] text-muted-foreground ml-auto">Tap to log</span>
           </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-2">
+        <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {QUICK_ADD_OPTIONS.map((opt) => (
             <Button
               key={opt.key}
@@ -71,6 +72,14 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
               <span className="text-xs font-semibold">{opt.label}</span>
             </Button>
           ))}
+          <Button
+            variant="outline"
+            className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+            onClick={() => navigate("/orders/new")}
+          >
+            <span className="text-2xl">🛒</span>
+            <span className="text-xs font-semibold">Order</span>
+          </Button>
         </CardContent>
       </Card>
 
