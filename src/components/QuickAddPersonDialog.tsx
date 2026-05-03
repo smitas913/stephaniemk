@@ -484,7 +484,7 @@ export default function QuickAddPersonDialog({
                 Save <span className="font-semibold">{capturePrompt.name}</span> to your contacts so they show up in follow-ups.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className={cn("grid gap-2", resultType === "Face" ? "grid-cols-1" : "grid-cols-2")}>
               <Button
                 variant="outline"
                 className="h-auto py-3 flex flex-col gap-1 hover:bg-blue-50 hover:border-blue-300"
@@ -494,15 +494,17 @@ export default function QuickAddPersonDialog({
                 <Users className="w-4 h-4 text-blue-600" />
                 <span className="text-xs font-semibold">Customer</span>
               </Button>
-              <Button
-                variant="outline"
-                className="h-auto py-3 flex flex-col gap-1 hover:bg-amber-50 hover:border-amber-300"
-                disabled={busy}
-                onClick={() => handleCaptureChoice("lead")}
-              >
-                <UserPlus className="w-4 h-4 text-amber-600" />
-                <span className="text-xs font-semibold">Lead</span>
-              </Button>
+              {resultType !== "Face" && (
+                <Button
+                  variant="outline"
+                  className="h-auto py-3 flex flex-col gap-1 hover:bg-amber-50 hover:border-amber-300"
+                  disabled={busy}
+                  onClick={() => handleCaptureChoice("lead")}
+                >
+                  <UserPlus className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-semibold">Lead</span>
+                </Button>
+              )}
             </div>
             {busy && (
               <div className="flex items-center justify-center text-xs text-muted-foreground">
