@@ -82,6 +82,16 @@ const SUGGESTED_REASONS_BY_PERSON: Partial<Record<PersonType, string[]>> = {
   consultant: ["Coaching", "Accountability", "Training / Support"],
 };
 
+/** Which intent categories are visible per person type. Reduces decision fatigue. */
+const ALLOWED_CATEGORIES_BY_PERSON: Record<PersonType, IntentCategory[]> = {
+  customer: ["Follow-Up", "Booking"],
+  lead: ["Follow-Up", "Booking"],
+  hostess: ["Coaching", "Booking", "Follow-Up"],
+  event_task: ["Coaching", "Booking"],
+  prospect: ["Recruiting", "Follow-Up"],
+  consultant: ["Coaching", "Team Building"],
+};
+
 const TYPE_BADGE_MAP: Record<PersonType, { label: string; className: string }> = {
   customer: { label: "Customer", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
   prospect: { label: "Prospect", className: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
