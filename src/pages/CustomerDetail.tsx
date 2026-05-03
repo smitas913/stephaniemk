@@ -523,8 +523,13 @@ export default function CustomerDetail() {
                   <FormField label="Email">
                     <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9" />
                   </FormField>
-                  <FormField label="Birthday">
-                    <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} className="h-9" />
+                  <FormField label="Birthday (MM/DD or MM/DD/YYYY)">
+                    <Input
+                      value={form.birthday_input || ""}
+                      onChange={(e) => setForm({ ...form, birthday_input: e.target.value })}
+                      placeholder="MM/DD or MM/DD/YYYY"
+                      className="h-9"
+                    />
                   </FormField>
                   <FormField label="Address Line 1">
                     <AddressAutocomplete
