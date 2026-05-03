@@ -557,6 +557,7 @@ export default function AddOrder() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => {
+            if (isEditMode) { navigate("/orders"); return; }
             if (bulkMode && savedCount > 0) { navigate("/orders"); return; }
             setOrderType("");
           }}>
@@ -564,7 +565,7 @@ export default function AddOrder() {
           </Button>
           <div className="flex-1">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              {orderType} Order
+              {isEditMode ? `Edit ${orderType} Order` : `${orderType} Order`}
             </h2>
             {bulkMode && savedCount > 0 && (
               <p className="text-xs text-primary font-medium flex items-center gap-1">
@@ -572,23 +573,54 @@ export default function AddOrder() {
               </p>
             )}
           </div>
-          {/* Type switcher pills */}
-          <div className="flex gap-1">
-            {ORDER_TYPE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setOrderType(opt.value)}
-                className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                  orderType === opt.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          {isEditMode ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="w-4 h-4 mr-1" />Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                  <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => {
+                    if (!editOrderId) return;
+                    try {
+                      await deleteOrder(editOrderId);
+                      queryClient.invalidateQueries({ queryKey: ["orders"] });
+                      queryClient.invalidateQueries({ queryKey: ["customers"] });
+                      toast.success("Order deleted");
+                      navigate("/orders");
+                    } catch (e: any) {
+                      toast.error(e.message || "Failed to delete order");
+                    }
+                  }}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            /* Type switcher pills */
+            <div className="flex gap-1">
+              {ORDER_TYPE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setOrderType(opt.value)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    orderType === opt.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Event selector — only for event-based types */}
