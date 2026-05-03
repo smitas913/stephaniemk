@@ -3539,6 +3539,11 @@ export default function FollowUps() {
             )}
           </DialogContent>
         </Dialog>
+        <ThoughtfulTouchDialog
+          open={!!thoughtfulTouchType}
+          onClose={() => setThoughtfulTouchType(null)}
+          defaultType={thoughtfulTouchType || undefined}
+        />
       </div>
     </Layout>
   );
