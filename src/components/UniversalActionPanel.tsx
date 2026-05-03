@@ -180,6 +180,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const handleActionClick = useCallback((actionKey: string) => {
     if (!item) return;
     setSelectedAction(actionKey);
+    if (actionKey === "Inbound") setIsInbound(true);
     setActionLogged(true);
     setStep("whats-next");
   }, [item]);
