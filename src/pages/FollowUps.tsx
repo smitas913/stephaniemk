@@ -927,10 +927,8 @@ export default function FollowUps() {
 
     const todayActions = sortItems(allItems.filter((item) => {
       if (!item.next_follow_up || !isDueTodayOrEarlier(item.next_follow_up, todayKey)) return false;
-      // On non-working days, hide items DUE today unless override is set.
-      // Overdue items must always remain visible — if the profile says OVERDUE,
-      // the person must appear in the follow-up list regardless of weekday.
-      if (isNonWorkday && !item.allow_non_working_day && item.follow_up_status !== "OVERDUE") return false;
+      // Non-working days: still show all already-due/overdue work. We just don't
+      // auto-generate new tasks elsewhere — existing scheduled items remain visible.
       return true;
     }));
 
@@ -2203,7 +2201,7 @@ export default function FollowUps() {
                 {isNonWorkday && !isOOOActive && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown.</p>
+                    <p className="text-sm text-muted-foreground">Today is a non-working day. Showing existing due/overdue items only — no new tasks will be generated.</p>
                   </div>
                 )}
 
