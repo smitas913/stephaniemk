@@ -86,11 +86,13 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   bookings: number;
   sharing: number;
   bookingAttempts: number;
+  bookingActivity: number;
   bookingConversionRate: number;
   reachOutDetails: FocusDetailItem[];
   bookingDetails: FocusDetailItem[];
   sharingDetails: FocusDetailItem[];
   bookingAttemptDetails: FocusDetailItem[];
+  bookingActivityDetails: FocusDetailItem[];
   coachingDetails: FocusDetailItem[];
   clientFollowUpDetails: FocusDetailItem[];
   customerFollowUpDetails: FocusDetailItem[];
