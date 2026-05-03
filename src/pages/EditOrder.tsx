@@ -38,6 +38,8 @@ export default function EditOrder() {
   const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+  const [discountAmount, setDiscountAmount] = useState("");
+  const [discountTypeIds, setDiscountTypeIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (order) {
