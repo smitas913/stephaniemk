@@ -37,10 +37,10 @@ export async function upsertFinancialSettings(values: { tax_rate: number; cc_fee
 }
 
 /**
- * Final Total = Order Total - Discount
- * Tax (informational) = Order Total × tax%
+ * Tax = Order Total (retail, pre-discount) × tax%
+ * Final Total = Order Total - Discount + Tax
  * CC Fee = Final Total × ccFee%  (only when paying by Credit Card)
- * Net Revenue = Final Total - CC Fee
+ * Net Revenue = Final Total - Tax - CC Fee  (tax is pass-through, not income)
  * Net Profit = Net Revenue × profit margin %
  */
 export function computeOrderFinancials(input: {
@@ -53,12 +53,11 @@ export function computeOrderFinancials(input: {
 }) {
   const orderTotal = Math.max(0, input.orderTotal || 0);
   const discount = Math.max(0, Math.min(orderTotal, input.discount || 0));
-  const finalTotal = +(orderTotal - discount).toFixed(2);
   const tax = +(orderTotal * (input.taxRate || 0) / 100).toFixed(2);
+  const finalTotal = +(orderTotal - discount + tax).toFixed(2);
   const ccFee = input.isCreditCard ? +(finalTotal * (input.ccFeeRate || 0) / 100).toFixed(2) : 0;
-  const netRevenue = +(finalTotal - ccFee).toFixed(2);
+  const netRevenue = +(finalTotal - tax - ccFee).toFixed(2);
   const netProfit = +(netRevenue * (input.profitMarginRate || 0) / 100).toFixed(2);
-  // Backward-compat alias used by some consumers
   const netReceived = netRevenue;
   return { orderTotal, discount, finalTotal, tax, ccFee, netRevenue, netReceived, netProfit };
 }
