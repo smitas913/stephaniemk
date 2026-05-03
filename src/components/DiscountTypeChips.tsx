@@ -32,7 +32,7 @@ export default function DiscountTypeChips({
     "Half Price Deal",
     "Referral Gift",
     "Hostess Credit",
-    "Closing Sheet Deal",
+    "Sets Sheet",
   ];
   const orderRank = (name: string) => {
     if (/^other$/i.test(name)) return 999;

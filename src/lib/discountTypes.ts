@@ -15,7 +15,7 @@ export const DEFAULT_DISCOUNT_TYPES = [
   "Half Price Deal",
   "Hostess Credit",
   "Referral Gift",
-  "Closing Sheet Deal",
+  "Sets Sheet",
   "Other",
 ];
 
