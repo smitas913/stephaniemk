@@ -292,16 +292,29 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const bookingsCount = bookingItems.length;
   const conversionRate = bookingAttemptsCount > 0 ? Math.round((bookingsCount / bookingAttemptsCount) * 100) : 0;
 
+  // ─── Booking Activity (any lead interaction + any booking attempt, deduplicated) ───
+  const bookingActivitySeen = new Set<string>();
+  const bookingActivityItems: FocusDetailItem[] = [];
+  for (const item of [...leadFollowUpItems, ...allBookingAttemptItems]) {
+    const k = `${item.type}:${item.id}`;
+    if (!bookingActivitySeen.has(k)) {
+      bookingActivitySeen.add(k);
+      bookingActivityItems.push(item);
+    }
+  }
+
   return {
     reachOuts: allReachOutItems.length,
     bookings: bookingsCount,
     sharing: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
     bookingAttempts: bookingAttemptsCount,
+    bookingActivity: bookingActivityItems.length,
     bookingConversionRate: conversionRate,
     reachOutDetails: allReachOutItems,
     bookingDetails: bookingItems,
     sharingDetails: sharingItems,
     bookingAttemptDetails: allBookingAttemptItems,
+    bookingActivityDetails: bookingActivityItems,
     coachingDetails: consultantCoachingItems,
     clientFollowUpDetails: clientFollowUpItems,
     customerFollowUpDetails: customerFollowUpItems,
