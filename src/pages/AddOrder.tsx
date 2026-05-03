@@ -581,8 +581,9 @@ export default function AddOrder() {
           </div>
         )}
 
-        {/* Customer selection */}
-        <div className="space-y-1.5">
+        {/* Row 1: Customer (left) + Date (right, inline) */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
+          <div className="space-y-1.5 flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-foreground">Customer *</label>
             {!selectedCustomer && !isNewCustomer && (
@@ -746,14 +747,17 @@ export default function AddOrder() {
               </Button>
             </div>
           )}
-        </div>
+          </div>
 
-        {/* Row 1: Date + Retail + Wholesale */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
+          {/* Date (inline with Customer on desktop, stacks on mobile) */}
+          <div className="sm:w-44 sm:shrink-0 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Date</label>
             <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="h-9" />
           </div>
+        </div>
+
+        {/* Row 2: Retail + Wholesale + Discount */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-sm font-medium text-foreground">Retail Amount *</label>
             <CurrencyInput ref={retailInputRef} placeholder="$0.00" value={retailAmount} onValueChange={setRetailAmount} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
@@ -781,50 +785,49 @@ export default function AddOrder() {
               {wholesaleManual ? "Manual override" : "Auto-calculated based on margin"}
             </p>
           </div>
+          <div>
+            <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(opt.)</span></label>
+            <div className="flex gap-1.5">
+              {discountMode === "$" ? (
+                <CurrencyInput
+                  ref={discountInputRef}
+                  placeholder="$0.00"
+                  value={discountValue}
+                  onValueChange={setDiscountValue}
+                  onKeyDown={enterAdvance(notesInputRef)}
+                  className="h-9 flex-1 min-w-0"
+                />
+              ) : (
+                <Input
+                  ref={discountInputRef}
+                  type="number" step="0.01" min="0" placeholder="0"
+                  value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+                  onKeyDown={enterAdvance(notesInputRef)}
+                  className="h-9 flex-1 min-w-0"
+                />
+              )}
+              <div className="flex shrink-0">
+                {(["$", "%"] as const).map(m => (
+                  <button key={m} type="button"
+                    className={cn("h-9 w-9 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                      discountMode === m
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setDiscountMode(m)}
+                  >{m}</button>
+                ))}
+              </div>
+            </div>
+            {Number(discountValue) > 0 && (
+              <div className="mt-2">
+                <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
+                <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Row 2: Discount (full width) */}
-        <div>
-          <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
-          <div className="flex gap-1.5 mt-1">
-            {discountMode === "$" ? (
-              <CurrencyInput
-                ref={discountInputRef}
-                placeholder="$0.00"
-                value={discountValue}
-                onValueChange={setDiscountValue}
-                onKeyDown={enterAdvance(notesInputRef)}
-                className="h-9 flex-1"
-              />
-            ) : (
-              <Input
-                ref={discountInputRef}
-                type="number" step="0.01" min="0" placeholder="0"
-                value={discountValue} onChange={e => setDiscountValue(e.target.value)}
-                onKeyDown={enterAdvance(notesInputRef)}
-                className="h-9 flex-1"
-              />
-            )}
-            <div className="flex">
-              {(["$", "%"] as const).map(m => (
-                <button key={m} type="button"
-                  className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
-                    discountMode === m
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted"
-                  )}
-                  onClick={() => setDiscountMode(m)}
-                >{m}</button>
-              ))}
-            </div>
-          </div>
-          {Number(discountValue) > 0 && (
-            <div className="mt-2">
-              <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
-              <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
-            </div>
-          )}
-        </div>
 
         {/* Live Financial Summary */}
         {Number(retailAmount) > 0 && (
