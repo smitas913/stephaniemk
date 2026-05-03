@@ -170,7 +170,7 @@ export interface EventGuest {
 }
 
 export const RELATIONSHIP_STATUSES = ["Customer", "Former Consultant"] as const;
-export const ORDER_TYPES = ["Reorder", "Party", "Facial", "Sharing Appointment", "Lead Generating Event", "Other"] as const;
+export const ORDER_TYPES = ["Reorder", "Party", "Facial", "Other"] as const;
 export const FACE_TYPES = ["Customer", "Guest", "Hostess", "Non-Customer"] as const;
 export const PAYMENT_TYPES = ["Cash", "Venmo", "Zelle", "Check", "Credit Card", "CashApp", "Paypal", "MyShop", "Other"] as const;
 export const FOLLOW_UP_STAGES = ["2 Day", "2 Week", "2 Month", "Complete"] as const;
