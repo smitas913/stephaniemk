@@ -1261,6 +1261,62 @@ export default function AddOrder() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!reorderConvertPrompt}
+        onOpenChange={(o) => { if (!o) setReorderConvertPrompt(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark this person as Customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const cust = customers.find(c => c.id === reorderConvertPrompt?.customerId) as any;
+                const name = cust?.full_name || "This person";
+                const status = cust?.relationship_status || "not set";
+                return <>Reorders are typically tied to existing customers. <strong>{name}</strong> is currently marked as <strong>{status}</strong>. Update their relationship to Customer?</>;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                const pending = reorderConvertPrompt;
+                if (pending) {
+                  setReorderConvertHandled(prev => new Set(prev).add(pending.customerId));
+                }
+                setReorderConvertPrompt(null);
+                if (pending) {
+                  setTimeout(() => handleSubmit(pending.addAnother), 0);
+                }
+              }}
+            >
+              Not now
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const pending = reorderConvertPrompt;
+                setReorderConvertPrompt(null);
+                if (!pending) return;
+                try {
+                  await supabase
+                    .from("customers")
+                    .update({ relationship_status: "Customer" } as any)
+                    .eq("id", pending.customerId);
+                  await queryClient.invalidateQueries({ queryKey: ["customers"] });
+                  toast.success("Marked as Customer");
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to update relationship");
+                }
+                setReorderConvertHandled(prev => new Set(prev).add(pending.customerId));
+                setTimeout(() => handleSubmit(pending.addAnother), 0);
+              }}
+            >
+              Yes, mark as Customer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
