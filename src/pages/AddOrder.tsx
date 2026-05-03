@@ -810,8 +810,14 @@ export default function AddOrder() {
                   onClick={() => setDiscountMode(m)}
                 >{m}</button>
               ))}
-            </div>
           </div>
+          {Number(discountValue) > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
+              <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Live Financial Summary */}
