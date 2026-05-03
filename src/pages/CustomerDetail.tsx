@@ -547,7 +547,14 @@ export default function CustomerDetail() {
                     <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="h-9" />
                   </FormField>
                   <FormField label="State">
-                    <Input value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} className="h-9" />
+                    <Input
+                      value={form.state_territory}
+                      onChange={(e) => setForm({ ...form, state_territory: e.target.value })}
+                      onBlur={(e) => setForm({ ...form, state_territory: normalizeStateAbbreviation(e.target.value) })}
+                      placeholder="FL"
+                      maxLength={20}
+                      className="h-9"
+                    />
                   </FormField>
                   <FormField label="Zip Code">
                     <Input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} className="h-9" />
