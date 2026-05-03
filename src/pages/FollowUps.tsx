@@ -927,8 +927,10 @@ export default function FollowUps() {
 
     const todayActions = sortItems(allItems.filter((item) => {
       if (!item.next_follow_up || !isDueTodayOrEarlier(item.next_follow_up, todayKey)) return false;
-      // On non-working days, only show items with override enabled
-      if (isNonWorkday && !item.allow_non_working_day) return false;
+      // On non-working days, hide items DUE today unless override is set.
+      // Overdue items must always remain visible — if the profile says OVERDUE,
+      // the person must appear in the follow-up list regardless of weekday.
+      if (isNonWorkday && !item.allow_non_working_day && item.follow_up_status !== "OVERDUE") return false;
       return true;
     }));
 
