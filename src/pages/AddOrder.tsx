@@ -402,6 +402,7 @@ export default function AddOrder() {
         setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
         setRetailAmount("");
         setWholesaleAmount("");
+        setWholesaleManual(false);
         setDiscountValue("");
         setNotes("");
         setPaymentType("");
