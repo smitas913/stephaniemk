@@ -52,6 +52,7 @@ const QUICK_ACTIONS = [
   { key: "Call", label: "Called", icon: Phone, emoji: "📞" },
   { key: "In Person", label: "Spoke", icon: Users, emoji: "🤝" },
   { key: "Email", label: "Emailed", icon: Mail, emoji: "📧" },
+  { key: "Inbound", label: "Inbound Response", icon: MessageSquare, emoji: "📥" },
   { key: "Did Not Connect", label: "No Response", icon: Phone, emoji: "📵" },
 ] as const;
 
@@ -179,6 +180,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const handleActionClick = useCallback((actionKey: string) => {
     if (!item) return;
     setSelectedAction(actionKey);
+    if (actionKey === "Inbound") setIsInbound(true);
     setActionLogged(true);
     setStep("whats-next");
   }, [item]);
@@ -216,35 +218,37 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
     const tags = getAutoTags(item.personType, selectedReason);
     const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
       actionType: selectedAction || "Call",
       note: buildNote(),
       isBookingAttempt,
-      isFollowUp: tags.isFollowUp,
+      isFollowUp,
       nextFollowUpDate: nextDate ?? undefined,
       followUpReason: reasonForLog,
       category: tags.category,
     });
     handleClose();
-  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, onLogAction, handleClose]);
+  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
     const tags = getAutoTags(item.personType, selectedReason);
     const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
       actionType: selectedAction || "Call",
       note: buildNote(),
       isBookingAttempt,
-      isFollowUp: tags.isFollowUp,
+      isFollowUp,
       nextFollowUpDate: customDate,
       followUpReason: selectedReason,
       category: tags.category,
     });
     handleClose();
-  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, onLogAction, handleClose]);
+  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
 
   if (!item) return null;
 
