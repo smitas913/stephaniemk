@@ -145,6 +145,7 @@ interface Props {
 }
 
 export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<ActionStep>("action");
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
