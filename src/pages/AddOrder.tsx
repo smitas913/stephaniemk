@@ -787,13 +787,24 @@ export default function AddOrder() {
         <div>
           <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
           <div className="flex gap-1.5 mt-1">
-            <Input
-              ref={discountInputRef}
-              type="number" step="0.01" min="0" placeholder="0.00"
-              value={discountValue} onChange={e => setDiscountValue(e.target.value)}
-              onKeyDown={enterAdvance(notesInputRef)}
-              className="h-9 flex-1"
-            />
+            {discountMode === "$" ? (
+              <CurrencyInput
+                ref={discountInputRef}
+                placeholder="$0.00"
+                value={discountValue}
+                onValueChange={setDiscountValue}
+                onKeyDown={enterAdvance(notesInputRef)}
+                className="h-9 flex-1"
+              />
+            ) : (
+              <Input
+                ref={discountInputRef}
+                type="number" step="0.01" min="0" placeholder="0"
+                value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+                onKeyDown={enterAdvance(notesInputRef)}
+                className="h-9 flex-1"
+              />
+            )}
             <div className="flex">
               {(["$", "%"] as const).map(m => (
                 <button key={m} type="button"
