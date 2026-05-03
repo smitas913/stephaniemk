@@ -71,6 +71,7 @@ export default function AddOrder() {
   const [savedCount, setSavedCount] = useState(0);
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   const [needsCatalog, setNeedsCatalog] = useState(false);
+  const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
@@ -101,7 +102,12 @@ export default function AddOrder() {
   useEffect(() => {
     if (customerId) {
       const c = customers.find(c => c.id === customerId);
-      if (c) setCustomerName(c.full_name);
+      if (c) {
+        setCustomerName(c.full_name);
+        setIsSkincareCustomer(!!(c as any).is_skincare_customer);
+      }
+    } else {
+      setIsSkincareCustomer(false);
     }
   }, [customerId, customers]);
 
@@ -251,6 +257,18 @@ export default function AddOrder() {
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
       });
+
+      // Persist Skincare Customer toggle to the customer profile
+      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
+        try {
+          await supabase
+            .from("customers")
+            .update({ is_skincare_customer: true })
+            .eq("id", resolvedCustomerId);
+        } catch (e) {
+          console.error("Failed to update skincare flag", e);
+        }
+      }
 
       // Auto-schedule post-order follow-up — SKIP for non-customer orders and
       // for DNC customers when the user opted to keep the DNC tag.
