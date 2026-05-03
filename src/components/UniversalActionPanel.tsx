@@ -455,27 +455,10 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                     </span>
                   </div>
 
-                  {/* Suggested for this person type — surfaced first as a UX nudge */}
-                  {suggestedReasons.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 font-semibold">Suggested</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {suggestedReasons.map((reason) => (
-                          <ReasonChip
-                            key={`suggested-${reason}`}
-                            reason={reason}
-                            selected={selectedReason === reason}
-                            onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Full library, grouped by category */}
+                  {/* Full library, grouped by category — no suggestions, no duplication */}
                   <div className="space-y-1.5 pt-1">
                     {INTENT_CATEGORIES.filter((c) => allowedCategories.includes(c)).map((cat) => {
-                      const reasons = REASONS_BY_CATEGORY[cat].filter((r) => !suggestedReasons.includes(r));
+                      const reasons = REASONS_BY_CATEGORY[cat];
                       if (reasons.length === 0) return null;
                       return (
                         <div key={cat} className="space-y-0.5">
