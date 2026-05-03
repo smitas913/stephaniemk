@@ -244,8 +244,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
-  const suggestedReasons = SUGGESTED_REASONS_BY_PERSON[item.personType] || [];
   const allowedCategories = ALLOWED_CATEGORIES_BY_PERSON[item.personType] || INTENT_CATEGORIES;
+  const suggestedReasons = (SUGGESTED_REASONS_BY_PERSON[item.personType] || [])
+    .filter((r) => allowedCategories.includes(resolveIntentCategory(r)));
   const canAddOrder = item.personType === "customer" || item.personType === "hostess";
   const resolvedCategory = resolveIntentCategory(selectedReason);
 
