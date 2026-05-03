@@ -12,11 +12,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Plus, Trash2, Search, Copy, ShoppingBag,
   DollarSign, RotateCcw, Sparkles, ArrowUpDown, ArrowUp, ArrowDown,
-  X, Download, CalendarIcon,
+  X, Download, CalendarIcon, StickyNote, Pencil,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -82,6 +84,23 @@ export default function Orders() {
       toast.success("Payment updated");
     },
   });
+
+  const [noteEditOrder, setNoteEditOrder] = useState<OrderWithCustomer | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+
+  const notesMutation = useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string | null }) => updateOrder(id, { notes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setNoteEditOrder(null);
+      toast.success("Note saved");
+    },
+  });
+
+  const openNoteEditor = (o: OrderWithCustomer) => {
+    setNoteEditOrder(o);
+    setNoteDraft(o.notes || "");
+  };
 
   const customerOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -462,7 +481,28 @@ export default function Orders() {
                         </Select>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
+                    <TableCell className="p-1" onClick={(e) => e.stopPropagation()}>
+                      {o.notes ? (
+                        <button
+                          type="button"
+                          onClick={() => openNoteEditor(o)}
+                          title={o.notes}
+                          className="flex items-center gap-1 text-xs max-w-[140px] text-left hover:text-primary transition-colors group"
+                        >
+                          <span className="truncate">{o.notes}</span>
+                          <Pencil className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openNoteEditor(o)}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <StickyNote className="w-3 h-3" />
+                          <span>Add note</span>
+                        </button>
+                      )}
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate"
@@ -482,6 +522,42 @@ export default function Orders() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!noteEditOrder} onOpenChange={(v) => { if (!v) setNoteEditOrder(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="w-4 h-4 text-primary" />
+              Order Note
+            </DialogTitle>
+          </DialogHeader>
+          {noteEditOrder && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                {noteEditOrder.customer_name || noteEditOrder.customers?.full_name || "Order"} · {formatDateOnly(noteEditOrder.order_date)}
+              </p>
+              <Textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Add a note about this order..."
+                className="min-h-[120px] text-sm"
+                autoFocus
+              />
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="ghost" onClick={() => setNoteEditOrder(null)} disabled={notesMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => noteEditOrder && notesMutation.mutate({ id: noteEditOrder.id, notes: noteDraft.trim() || null })}
+              disabled={notesMutation.isPending}
+            >
+              {notesMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
