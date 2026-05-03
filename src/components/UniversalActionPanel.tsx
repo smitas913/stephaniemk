@@ -156,6 +156,8 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   // Manual booking-attempt override. `null` = use auto-derived value from intent;
   // `true`/`false` = user explicitly toggled it on/off.
   const [bookingAttemptOverride, setBookingAttemptOverride] = useState<boolean | null>(null);
+  // "Inbound Response" toggle — independent of category/booking. Reactive vs outbound.
+  const [isInbound, setIsInbound] = useState(false);
 
   const resetState = useCallback(() => {
     setStep("action");
@@ -166,6 +168,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setActionLogged(false);
     setSelectedReason(null);
     setBookingAttemptOverride(null);
+    setIsInbound(false);
   }, []);
 
   const handleClose = useCallback(() => {
