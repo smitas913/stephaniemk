@@ -184,13 +184,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (isInbound) parts.push("[Inbound]");
+    if (bookingCreated && bookingCreatedType) parts.push(`[Booking Created: ${bookingCreatedType}]`);
     if (selectedReason) parts.push(`[${selectedReason}]`);
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0 || (parts.length === 1 && isInbound)) {
       parts.push(`${selectedAction || "Call"} contact`);
     }
     return parts.join(" ");
-  }, [selectedReason, noteText, selectedAction, isInbound]);
+  }, [selectedReason, noteText, selectedAction, isInbound, bookingCreated, bookingCreatedType]);
 
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
