@@ -709,6 +709,40 @@ export default function AddOrder() {
           </div>
         )}
 
+        {/* Credit Card transaction type + manual fee override */}
+        {isCreditCard && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
+            <div>
+              <label className="text-xs font-medium text-foreground">Card transaction type</label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {([
+                  { v: "in_person", l: "In-person" },
+                  { v: "online", l: "Online / invoice" },
+                  { v: "keyed", l: "Manually entered" },
+                ] as const).map(t => (
+                  <button key={t.v} type="button"
+                    className={cn("h-7 px-2.5 rounded-md text-xs font-medium border transition-colors",
+                      ccTxType === t.v
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setCcTxType(t.v)}
+                  >{t.l}</button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Estimated fee: {processorFee.pct}% + ${processorFee.flat.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-foreground">Override fee ($) <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Input type="number" step="0.01" min="0" placeholder="Auto"
+                value={ccFeeOverride} onChange={e => setCcFeeOverride(e.target.value)}
+                className="h-8 mt-1 max-w-[140px]" />
+            </div>
+          </div>
+        )}
+
         {paymentStatus === "Unpaid" && (
           <p className="text-xs text-muted-foreground">Payment method is optional for unpaid orders and will be saved blank.</p>
         )}
