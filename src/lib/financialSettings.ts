@@ -127,6 +127,9 @@ export function computeOrderFinancials(input: {
   ccFeeRate?: number;
   // Manual override takes precedence when set (>= 0).
   ccFeeOverride?: number | null;
+  // When provided, profit = finalTotal - tax - ccFee - wholesale.
+  // Otherwise falls back to margin% × netRevenue.
+  wholesale?: number | null;
 }) {
   const orderTotal = Math.max(0, input.orderTotal || 0);
   const discount = Math.max(0, Math.min(orderTotal, input.discount || 0));
@@ -145,7 +148,10 @@ export function computeOrderFinancials(input: {
   }
 
   const netRevenue = +(finalTotal - tax - ccFee).toFixed(2);
-  const netProfit = +(netRevenue * (input.profitMarginRate || 0) / 100).toFixed(2);
+  const wholesale = input.wholesale != null && input.wholesale >= 0 ? +input.wholesale : null;
+  const netProfit = wholesale != null
+    ? +(netRevenue - wholesale).toFixed(2)
+    : +(netRevenue * (input.profitMarginRate || 0) / 100).toFixed(2);
   const netReceived = netRevenue;
   return { orderTotal, discount, finalTotal, tax, ccFee, netRevenue, netReceived, netProfit };
 }
