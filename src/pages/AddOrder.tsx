@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
-import { applyPostOrderFollowUp } from "@/lib/postOrderFollowUp";
+import { applyPostOrderFollowUp, FOLLOW_UP_INTENT_OPTIONS, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
 import { PAYMENT_TYPES } from "@/lib/types";
@@ -86,6 +86,7 @@ export default function AddOrder() {
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   
   const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
+  const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
   const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
@@ -485,11 +486,11 @@ export default function AddOrder() {
         } catch (e) { console.error("Failed to update skincare flag", e); }
       }
 
-      // Only auto-schedule a follow-up when the order is dated today or in the
-      // future. Backdated/historical orders should not create follow-ups.
-      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && orderDate >= toLocalDateKey()) {
+      // Only create a follow-up when the user explicitly selected an intent.
+      // Backdated orders default the intent to "none" via the form UI.
+      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && followUpIntent !== "none") {
         try {
-          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate });
+          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
         } catch (e) { console.error("Post-order follow-up failed", e); }
       }
 
@@ -521,6 +522,7 @@ export default function AddOrder() {
         setPaymentType("");
         setPaymentStatus("Paid");
         setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+        setFollowUpIntent("none");
         setFaceTypeOverride(null);
         setAttempted(false);
       } else if (!isNewCustomer) {
@@ -1142,7 +1144,31 @@ export default function AddOrder() {
         </div>
 
 
-        {/* Skincare Customer toggle */}
+        {/* Follow-Up Intent — only when creating an order for a real customer */}
+        {!isEditMode && !isNonCustomer && (
+          <div>
+            <label className="text-sm font-medium text-foreground">
+              Follow-Up Intent <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <select
+              value={orderDate < toLocalDateKey() ? "none" : followUpIntent}
+              disabled={orderDate < toLocalDateKey()}
+              onChange={(e) => setFollowUpIntent(e.target.value as FollowUpIntent)}
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            >
+              {FOLLOW_UP_INTENT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              {orderDate < toLocalDateKey()
+                ? "Backdated orders won't auto-create follow-ups."
+                : "No follow-up is created unless you choose one."}
+            </p>
+          </div>
+        )}
+
+
         {!isNonCustomer && (
           <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
             <input

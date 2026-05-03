@@ -4678,6 +4678,18 @@ function ActionRow({
           </span>
         </div>
 
+        {/* Optional: most recent note preview (1 line, ellipsis) */}
+        {item.lastNotePreview && (
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            className="block text-left text-xs text-muted-foreground/80 italic mt-0.5 truncate w-full hover:text-primary transition-colors"
+            title={item.lastNotePreview}
+          >
+            Last note: {item.lastNotePreview}
+          </button>
+        )}
+
         {/* Line 2: Follow-up type */}
         <p className="text-sm text-foreground/80 mt-0.5">{followUpTypeLabel}</p>
 
