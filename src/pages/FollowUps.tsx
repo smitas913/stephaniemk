@@ -633,6 +633,7 @@ export default function FollowUps() {
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
   const [inlineNoteId, setInlineNoteId] = useState<string | null>(null);
+  const [expandedEventGroups, setExpandedEventGroups] = useState<Set<string>>(new Set());
   const [inlineNoteText, setInlineNoteText] = useState("");
   const [inlineNextStep, setInlineNextStep] = useState("");
   const [inlineNoteType, setInlineNoteType] = useState("Call");
@@ -2661,6 +2662,41 @@ export default function FollowUps() {
                     const eventTaskActions = todayActions.filter(i => i.itemType === "hostess" || i.itemType === "event_task");
                     if (eventTaskActions.length === 0) return null;
 
+                    // Group by person+event. Hostess items use their own id; event_task items use eventId.
+                    type Group = { key: string; personName: string; eventLabel: string; items: ActionItem[]; next: ActionItem; eventId?: string };
+                    const priority = (i: ActionItem) => {
+                      const s = i.follow_up_status;
+                      if (s === "OVERDUE") return 0;
+                      if (s === "TODAY") return 1;
+                      return 2;
+                    };
+                    const sortGroup = (a: ActionItem, b: ActionItem) => {
+                      const pa = priority(a), pb = priority(b);
+                      if (pa !== pb) return pa - pb;
+                      const ta = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
+                      const tb = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
+                      return ta - tb;
+                    };
+                    const groupsMap = new Map<string, Group>();
+                    for (const it of eventTaskActions) {
+                      const key = it._eventId ? `evt:${it._eventId}:${it.name}` : `${it.itemType}:${it.id}`;
+                      const matchedEvent = it._eventId ? events.find(e => e.event_id === it._eventId) : null;
+                      const eventLabel = matchedEvent
+                        ? `${matchedEvent.event_type || "Event"}${matchedEvent.event_date ? ` • ${(() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth()+1}/${d.getDate()}` : ""; })()}` : ""}`
+                        : (it._eventId || "");
+                      const existing = groupsMap.get(key);
+                      if (existing) {
+                        existing.items.push(it);
+                      } else {
+                        groupsMap.set(key, { key, personName: it.name, eventLabel, items: [it], next: it, eventId: it._eventId });
+                      }
+                    }
+                    const groups = Array.from(groupsMap.values()).map(g => {
+                      g.items.sort(sortGroup);
+                      g.next = g.items[0];
+                      return g;
+                    }).sort((a, b) => sortGroup(a.next, b.next));
+
                     if (isMobile) {
                       const toTeamItem = (item: ActionItem): MobileTeamItem => ({
                         id: item.id,
@@ -2673,18 +2709,42 @@ export default function FollowUps() {
                         followUpReason: item.followUpReason,
                         actionLabel: item.actionLabel,
                       });
-
+                      // Show only the next pending task per person on mobile
+                      const nextPerPerson = groups.map(g => g.next);
                       return (
                         <MobileTeamAttention
-                          items={eventTaskActions.map(toTeamItem)}
-                          onSchedule={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
-                          onCall={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onText={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onNote={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onOpen={(mi) => { const o = eventTaskActions.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
+                          items={nextPerPerson.map(toTeamItem)}
+                          onSchedule={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
+                          onCall={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onText={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onNote={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                          onOpen={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
                         />
                       );
                     }
+
+                    const renderRow = (item: ActionItem) => (
+                      <ActionRow
+                        key={`${item.itemType}-${item.id}`}
+                        item={item}
+                        inlineNoteId={inlineNoteId}
+                        inlineNoteText={inlineNoteText}
+                        inlineNextStep={inlineNextStep}
+                        inlineNoteType={inlineNoteType}
+                        inlineFollowUpDate={inlineFollowUpDate}
+                        setInlineNoteText={setInlineNoteText}
+                        setInlineNextStep={setInlineNextStep}
+                        setInlineNoteType={setInlineNoteType}
+                        setInlineFollowUpDate={setInlineFollowUpDate}
+                        onToggleInline={() => toggleInlineNote(item)}
+                        onInlineSave={() => handleInlineSave(item)}
+                        onOpenDetail={() => openDetailSheet(item)}
+                        isPending={contactMutation.isPending}
+                        onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
+                        onQuickLog={(type) => handleQuickLog(item, type)}
+                        onOpenQuickAction={() => openUniversalPanel(item)}
+                      />
+                    );
 
                     return (
                       <Card className="border-2 border-emerald-300/60 dark:border-emerald-800/60 shadow-sm bg-emerald-50/30 dark:bg-emerald-950/10">
@@ -2694,36 +2754,43 @@ export default function FollowUps() {
                               <CalendarCheck className="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
                             </div>
                             <CardTitle className="text-base font-bold text-emerald-900 dark:text-emerald-100 tracking-tight">Event Tasks</CardTitle>
-                            <Badge className="text-xs bg-emerald-600 hover:bg-emerald-600 text-white">{eventTaskActions.length}</Badge>
+                            <Badge className="text-xs bg-emerald-600 hover:bg-emerald-600 text-white">{groups.length}</Badge>
                           </div>
                           <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70 mt-1 ml-9">
-                            Hostess coaching, event prep & event-related follow-ups
+                            Next step per hostess • {eventTaskActions.length} task{eventTaskActions.length === 1 ? "" : "s"} total
                           </p>
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="divide-y divide-emerald-200/50 dark:divide-emerald-900/40">
-                            {eventTaskActions.map(item => (
-                              <ActionRow
-                                key={`${item.itemType}-${item.id}`}
-                                item={item}
-                                inlineNoteId={inlineNoteId}
-                                inlineNoteText={inlineNoteText}
-                                inlineNextStep={inlineNextStep}
-                                inlineNoteType={inlineNoteType}
-                                inlineFollowUpDate={inlineFollowUpDate}
-                                setInlineNoteText={setInlineNoteText}
-                                setInlineNextStep={setInlineNextStep}
-                                setInlineNoteType={setInlineNoteType}
-                                setInlineFollowUpDate={setInlineFollowUpDate}
-                                onToggleInline={() => toggleInlineNote(item)}
-                                onInlineSave={() => handleInlineSave(item)}
-                                onOpenDetail={() => openDetailSheet(item)}
-                                isPending={contactMutation.isPending}
-                                onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                                onQuickLog={(type) => handleQuickLog(item, type)}
-                                onOpenQuickAction={() => openUniversalPanel(item)}
-                              />
-                            ))}
+                            {groups.map((g) => {
+                              const isExpanded = expandedEventGroups.has(g.key);
+                              const more = g.items.length - 1;
+                              return (
+                                <div key={g.key} className="py-1">
+                                  {g.eventLabel && (
+                                    <div className="px-2 pt-2 pb-0.5 text-[10px] uppercase tracking-wider text-emerald-700/70 dark:text-emerald-300/70 font-semibold flex items-center justify-between">
+                                      <span>{g.personName} • {g.eventLabel}</span>
+                                      {more > 0 && (
+                                        <button
+                                          type="button"
+                                          className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:underline"
+                                          onClick={() => {
+                                            setExpandedEventGroups(prev => {
+                                              const next = new Set(prev);
+                                              if (next.has(g.key)) next.delete(g.key); else next.add(g.key);
+                                              return next;
+                                            });
+                                          }}
+                                        >
+                                          {isExpanded ? "Hide" : `+ ${more} more`}
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                  {(isExpanded ? g.items : [g.next]).map(renderRow)}
+                                </div>
+                              );
+                            })}
                           </div>
                         </CardContent>
                       </Card>
