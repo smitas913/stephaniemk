@@ -85,6 +85,23 @@ export default function Orders() {
     },
   });
 
+  const [noteEditOrder, setNoteEditOrder] = useState<OrderWithCustomer | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+
+  const notesMutation = useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string | null }) => updateOrder(id, { notes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setNoteEditOrder(null);
+      toast.success("Note saved");
+    },
+  });
+
+  const openNoteEditor = (o: OrderWithCustomer) => {
+    setNoteEditOrder(o);
+    setNoteDraft(o.notes || "");
+  };
+
   const customerOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const o of orders) {
