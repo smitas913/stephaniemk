@@ -187,7 +187,15 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       }
 
       const q = search.toLowerCase();
-      const matchSearch = !q || c.full_name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
+      const beauty = (c as any).beauty_notes;
+      const beautyText = beauty && typeof beauty === "object"
+        ? Object.values(beauty).filter((v) => typeof v === "string").join(" ").toLowerCase()
+        : "";
+      const matchSearch = !q
+        || c.full_name.toLowerCase().includes(q)
+        || c.email?.toLowerCase().includes(q)
+        || c.phone?.includes(q)
+        || beautyText.includes(q);
       const matchStatus = filterStatus === "all" || c.relationship_status === filterStatus;
       const matchCat = filterCategory === "all" || c.activity_status === filterCategory;
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
@@ -316,7 +324,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search name, phone, email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            <Input placeholder="Search name, phone, email, beauty notes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
           <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
             <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
