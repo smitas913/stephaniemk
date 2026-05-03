@@ -7,77 +7,92 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CheckSquare, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getLocalToday, toLocalDateKey } from "@/lib/dateOnly";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 type Todo = { id: string; text: string; done: boolean };
 
-const STORAGE_PREFIX = "today-todo-list:";
-
-function loadTodos(dateKey: string): Todo[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_PREFIX + dateKey);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveTodos(dateKey: string, todos: Todo[]) {
-  try {
-    localStorage.setItem(STORAGE_PREFIX + dateKey, JSON.stringify(todos));
-  } catch {
-    // ignore
-  }
-}
-
-function pruneOldKeys(currentKey: string) {
-  try {
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(STORAGE_PREFIX) && k !== STORAGE_PREFIX + currentKey) {
-        keys.push(k);
-      }
-    }
-    // keep last 7 days
-    keys.sort();
-    const toRemove = keys.slice(0, Math.max(0, keys.length - 7));
-    toRemove.forEach((k) => localStorage.removeItem(k));
-  } catch {
-    // ignore
-  }
-}
-
 export default function TodoListCard() {
+  const { user, loading: authLoading } = useAuth();
   const dateKey = useMemo(() => toLocalDateKey(getLocalToday()), []);
-  const [todos, setTodos] = useState<Todo[]>(() => loadTodos(dateKey));
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    saveTodos(dateKey, todos);
-  }, [dateKey, todos]);
+    if (authLoading || !user) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("todos")
+        .select("id, text, done")
+        .eq("user_id", user.id)
+        .eq("todo_date", dateKey)
+        .order("created_at", { ascending: false });
+      if (!cancelled) {
+        if (error) {
+          console.error("Failed to load todos:", error);
+        } else {
+          setTodos((data ?? []) as Todo[]);
+        }
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, authLoading, dateKey]);
 
-  useEffect(() => {
-    pruneOldKeys(dateKey);
-  }, [dateKey]);
-
-  const addTodo = () => {
+  const addTodo = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    setTodos((prev) => [
-      { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: trimmed, done: false },
-      ...prev,
-    ]);
+    if (!trimmed || !user || saving) return;
+    setSaving(true);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Todo = { id: tempId, text: trimmed, done: false };
+    setTodos((prev) => [optimistic, ...prev]);
     setText("");
+
+    const { data, error } = await supabase
+      .from("todos")
+      .insert({ user_id: user.id, text: trimmed, todo_date: dateKey })
+      .select("id, text, done")
+      .single();
+
+    if (error || !data) {
+      console.error("Failed to add todo:", error);
+      setTodos((prev) => prev.filter((t) => t.id !== tempId));
+      setText(trimmed);
+      toast({ title: "Couldn't save task", description: error?.message, variant: "destructive" });
+    } else {
+      setTodos((prev) => prev.map((t) => (t.id === tempId ? (data as Todo) : t)));
+    }
+    setSaving(false);
   };
 
-  const toggleTodo = (id: string) => {
-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  const toggleTodo = async (id: string) => {
+    const target = todos.find((t) => t.id === id);
+    if (!target || id.startsWith("temp-")) return;
+    const nextDone = !target.done;
+    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: nextDone } : t)));
+    const { error } = await supabase.from("todos").update({ done: nextDone }).eq("id", id);
+    if (error) {
+      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: !nextDone } : t)));
+      toast({ title: "Couldn't update task", variant: "destructive" });
+    }
   };
 
-  const removeTodo = (id: string) => {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
+  const removeTodo = async (id: string) => {
+    if (id.startsWith("temp-")) return;
+    const prev = todos;
+    setTodos((p) => p.filter((t) => t.id !== id));
+    const { error } = await supabase.from("todos").delete().eq("id", id);
+    if (error) {
+      setTodos(prev);
+      toast({ title: "Couldn't delete task", variant: "destructive" });
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -113,22 +128,25 @@ export default function TodoListCard() {
             onKeyDown={handleKeyDown}
             placeholder="Add a task…"
             className="h-9 text-sm"
+            disabled={!user || authLoading}
           />
           <Button
             type="button"
             size="icon"
             className="h-9 w-9 shrink-0"
             onClick={addTodo}
-            disabled={!text.trim()}
+            disabled={!text.trim() || !user || saving}
             aria-label="Add task"
           >
             <Plus className="w-4 h-4" />
           </Button>
         </div>
 
-        {todos.length === 0 ? (
+        {loading ? (
+          <p className="text-xs text-muted-foreground py-4 text-center">Loading…</p>
+        ) : todos.length === 0 ? (
           <p className="text-xs text-muted-foreground py-4 text-center">
-            Brain-dump tasks for today — they reset tomorrow.
+            No tasks yet — add one above.
           </p>
         ) : (
           <div className="mt-3 divide-y divide-border/40">
