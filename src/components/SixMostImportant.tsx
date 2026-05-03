@@ -136,7 +136,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
         : prog?.auto_count ?? 0;
       // Manual +/- adjustment removed: counts now reflect only real logged activity.
       const current = Math.max(0, autoCount);
-      const target = isOOO ? 0 : getTargetForItem(config.sort_order, dayType);
+      const target = isLightDay ? 0 : getTargetForItem(config.sort_order, dayType);
       const isComplete = prog?.is_complete ?? false;
       const isAutoTracked = !!autoKey;
       return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
