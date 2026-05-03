@@ -141,7 +141,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
       const isAutoTracked = !!autoKey;
       return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
     });
-  }, [configs, progress, dayType, getTargetForItem, isOOO, isToday, autoCounts]);
+  }, [configs, progress, dayType, getTargetForItem, isLightDay, isToday, autoCounts]);
 
   const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
