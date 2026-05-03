@@ -751,10 +751,31 @@ export default function AddOrder() {
           </div>
         </div>
 
-        {/* Wholesale (optional) */}
+        {/* Wholesale — auto-filled from profit margin, editable */}
         <div>
-          <label className="text-sm font-medium text-foreground">Wholesale Cost <span className="text-muted-foreground font-normal">(optional)</span></label>
-          <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={e => setWholesaleAmount(e.target.value)} className="h-9" />
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
+            {wholesaleManual && (
+              <button
+                type="button"
+                className="text-[11px] text-primary hover:underline"
+                onClick={() => setWholesaleManual(false)}
+              >
+                Reset to auto
+              </button>
+            )}
+          </div>
+          <Input
+            type="number" step="0.01" min="0" placeholder="0.00"
+            value={wholesaleAmount}
+            onChange={e => { setWholesaleManual(true); setWholesaleAmount(e.target.value); }}
+            className="h-9"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {wholesaleManual
+              ? "Manual override"
+              : `Auto-calculated based on ${profitMarginRate}% margin`}
+          </p>
         </div>
 
         {/* Discount (optional) */}
