@@ -37,10 +37,13 @@ export async function applyPostOrderFollowUp({
 }: ApplyPostOrderFollowUpInput): Promise<void> {
   if (!customerId || !orderDate) return;
 
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  // Backdated orders should not (re)schedule any follow-up.
+  if (orderDate < todayKey) return;
+
   const baseDate = parseISO(orderDate);
   const offset = needsCatalog ? CATALOG_FOLLOWUP_DAYS : ORDER_FOLLOWUP_DAYS;
   const proposed = format(addDays(baseDate, offset), "yyyy-MM-dd");
-  const todayKey = format(new Date(), "yyyy-MM-dd");
 
   // Read existing follow-up
   const { data: cust, error: readErr } = await supabase
