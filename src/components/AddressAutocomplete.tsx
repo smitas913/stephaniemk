@@ -43,23 +43,31 @@ export default function AddressAutocomplete({
   const suppressFetch = useRef(false);
 
   const fetchSuggestions = useCallback(async (input: string) => {
-    if (input.length < 3) {
+    if (input.trim().length < 2) {
       setSuggestions([]);
       setIsOpen(false);
+      setIsLoading(false);
       return;
     }
     setIsLoading(true);
+    // Hard timeout so the spinner never spins forever if the edge function hangs.
+    const timeout = new Promise<{ data: any; error: any }>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: new Error("timeout") }), 5000),
+    );
     try {
-      const { data, error } = await supabase.functions.invoke("places-autocomplete", {
+      const fetchPromise = supabase.functions.invoke("places-autocomplete", {
         body: { action: "autocomplete", input },
       });
+      const { data, error } = (await Promise.race([fetchPromise, timeout])) as any;
       if (error) throw error;
       const items: Suggestion[] = data?.suggestions || [];
       setSuggestions(items);
       setIsOpen(items.length > 0);
     } catch (e) {
-      console.error("Autocomplete error:", e);
+      // Silent fail — user can still type the address manually.
+      console.warn("Autocomplete unavailable:", e);
       setSuggestions([]);
+      setIsOpen(false);
     } finally {
       setIsLoading(false);
     }

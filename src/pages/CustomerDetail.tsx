@@ -29,6 +29,7 @@ import { addDays as addDaysFn } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { normalizeStateAbbreviation } from "@/lib/usStates";
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
@@ -77,8 +78,16 @@ export default function CustomerDetail() {
         full_name: customer.full_name || "",
         phone: customer.phone || "",
         email: customer.email || "",
-        birthday: (customer as any).birthday || "",
-        birthday_mmdd: customer.birthday_mmdd || "",
+        // Display birthday as MM/DD when only mmdd known, or MM/DD/YYYY when full date known.
+        birthday_input: (() => {
+          const full = (customer as any).birthday as string | null;
+          if (full) {
+            const [y, m, d] = full.split("-");
+            return `${m}/${d}/${y}`;
+          }
+          const mmdd = customer.birthday_mmdd || "";
+          return mmdd; // already MM/DD
+        })(),
         address_line_1: customer.address_line_1 || "",
         address_line_2: customer.address_line_2 || "",
         city: customer.city || "",
@@ -285,10 +294,41 @@ export default function CustomerDetail() {
     mutationFn: (data: Record<string, string>) => {
       const cleaned: Record<string, any> = {};
       for (const [k, v] of Object.entries(data)) {
+        if (k === "birthday_input") continue; // handled separately below
         if (k === "new_customer_flag" || k === "is_skincare_customer") {
           cleaned[k] = v === "true";
+        } else if (k === "state_territory") {
+          const norm = normalizeStateAbbreviation(v);
+          cleaned[k] = norm === "" ? null : norm;
         } else {
           cleaned[k] = v === "" ? null : v;
+        }
+      }
+      // Birthday: accept MM/DD, MM/DD/YYYY, M/D, M/D/YYYY, or YYYY-MM-DD.
+      const raw = (data.birthday_input || "").trim();
+      if (!raw) {
+        cleaned.birthday = null;
+        cleaned.birthday_mmdd = null;
+      } else {
+        const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+        if (isoMatch) {
+          const [, y, m, d] = isoMatch;
+          const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
+          cleaned.birthday = `${y}-${mm}-${dd}`;
+          cleaned.birthday_mmdd = `${mm}/${dd}`;
+        } else if (slashMatch) {
+          const [, m, d, y] = slashMatch;
+          const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
+          cleaned.birthday_mmdd = `${mm}/${dd}`;
+          if (y) {
+            const fullYear = y.length === 2 ? `19${y}` : y;
+            cleaned.birthday = `${fullYear}-${mm}-${dd}`;
+          } else {
+            cleaned.birthday = null;
+          }
+        } else {
+          throw new Error("Birthday must be MM/DD or MM/DD/YYYY");
         }
       }
       if (cleaned.full_name === null) cleaned.full_name = customer!.full_name;
@@ -483,14 +523,19 @@ export default function CustomerDetail() {
                   <FormField label="Email">
                     <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9" />
                   </FormField>
-                  <FormField label="Birthday">
-                    <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} className="h-9" />
+                  <FormField label="Birthday (MM/DD or MM/DD/YYYY)">
+                    <Input
+                      value={form.birthday_input || ""}
+                      onChange={(e) => setForm({ ...form, birthday_input: e.target.value })}
+                      placeholder="MM/DD or MM/DD/YYYY"
+                      className="h-9"
+                    />
                   </FormField>
                   <FormField label="Address Line 1">
                     <AddressAutocomplete
                       value={form.address_line_1}
                       onChange={(v) => setForm({ ...form, address_line_1: v })}
-                      onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: p.state, postal_code: p.zip_code })}
+                      onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: normalizeStateAbbreviation(p.state), postal_code: p.zip_code })}
                       placeholder="Street address"
                       className="h-9"
                     />
@@ -502,7 +547,14 @@ export default function CustomerDetail() {
                     <Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="h-9" />
                   </FormField>
                   <FormField label="State">
-                    <Input value={form.state_territory} onChange={(e) => setForm({ ...form, state_territory: e.target.value })} className="h-9" />
+                    <Input
+                      value={form.state_territory}
+                      onChange={(e) => setForm({ ...form, state_territory: e.target.value })}
+                      onBlur={(e) => setForm({ ...form, state_territory: normalizeStateAbbreviation(e.target.value) })}
+                      placeholder="FL"
+                      maxLength={20}
+                      className="h-9"
+                    />
                   </FormField>
                   <FormField label="Zip Code">
                     <Input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} className="h-9" />
