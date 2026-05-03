@@ -48,10 +48,13 @@ export default function EditOrder() {
       setPaymentType(order.payment_type || "");
       setPaymentStatus(order.payment_status === "Unpaid" || !order.payment_type ? "Unpaid" : "Paid");
       setNotes(order.notes || "");
-      setHostess(!!order.hostess);
-      setHalfPrice(!!order.half_price_deal);
-      setBirthday(!!order.birthday);
-      setReferral(!!order.referral);
+      setTags({
+        hostess: !!order.hostess,
+        half_price: !!order.half_price_deal,
+        birthday: !!order.birthday,
+        referral: !!order.referral,
+        myshop: !!(order as any).is_myshop_order,
+      });
     }
   }, [order]);
 
