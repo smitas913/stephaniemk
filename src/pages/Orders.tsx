@@ -481,7 +481,28 @@ export default function Orders() {
                         </Select>
                       </div>
                     </TableCell>
-                    <TableCell className="text-xs max-w-[120px] truncate" title={o.notes || ""}>{o.notes || ""}</TableCell>
+                    <TableCell className="p-1" onClick={(e) => e.stopPropagation()}>
+                      {o.notes ? (
+                        <button
+                          type="button"
+                          onClick={() => openNoteEditor(o)}
+                          title={o.notes}
+                          className="flex items-center gap-1 text-xs max-w-[140px] text-left hover:text-primary transition-colors group"
+                        >
+                          <span className="truncate">{o.notes}</span>
+                          <Pencil className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openNoteEditor(o)}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <StickyNote className="w-3 h-3" />
+                          <span>Add note</span>
+                        </button>
+                      )}
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate"
