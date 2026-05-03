@@ -72,16 +72,7 @@ import { LONG_TERM_TOUCH_DAYS, resolveLongTermFollowUpDate } from "@/lib/longTer
 // canonical reason list, grouped by the category that reason routes to. The
 // default (no reason selected) is the "Follow-Up" category.
 //
-// Suggested reasons surface first per person type purely as a UX nudge, but
-// users can always pick any reason from any category.
-const SUGGESTED_REASONS_BY_PERSON: Partial<Record<PersonType, string[]>> = {
-  customer: ["General Check-In", "Booking Ask", "Trial / Sample Follow-Up", "Product Check-In"],
-  lead: ["Booking Ask", "General Check-In", "Trial / Sample Follow-Up"],
-  hostess: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up", "Rescheduling"],
-  event_task: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up"],
-  prospect: ["Initial Outreach", "Recruiting Follow-Up", "Interview / Info Shared"],
-  consultant: ["Coaching", "Accountability", "Training / Support"],
-};
+// Suggested reasons removed — chips are now shown grouped by category only.
 
 /** Which intent categories are visible per person type. Reduces decision fatigue. */
 const ALLOWED_CATEGORIES_BY_PERSON: Record<PersonType, IntentCategory[]> = {
@@ -255,8 +246,6 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
   const allowedCategories = ALLOWED_CATEGORIES_BY_PERSON[item.personType] || INTENT_CATEGORIES;
-  const suggestedReasons = (SUGGESTED_REASONS_BY_PERSON[item.personType] || [])
-    .filter((r) => allowedCategories.includes(resolveIntentCategory(r)));
   const canAddOrder = item.personType === "customer" || item.personType === "hostess";
   const resolvedCategory = resolveIntentCategory(selectedReason);
 
@@ -455,27 +444,10 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                     </span>
                   </div>
 
-                  {/* Suggested for this person type — surfaced first as a UX nudge */}
-                  {suggestedReasons.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70 font-semibold">Suggested</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {suggestedReasons.map((reason) => (
-                          <ReasonChip
-                            key={`suggested-${reason}`}
-                            reason={reason}
-                            selected={selectedReason === reason}
-                            onClick={() => setSelectedReason(selectedReason === reason ? null : reason)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Full library, grouped by category */}
+                  {/* Full library, grouped by category — no suggestions, no duplication */}
                   <div className="space-y-1.5 pt-1">
                     {INTENT_CATEGORIES.filter((c) => allowedCategories.includes(c)).map((cat) => {
-                      const reasons = REASONS_BY_CATEGORY[cat].filter((r) => !suggestedReasons.includes(r));
+                      const reasons = REASONS_BY_CATEGORY[cat];
                       if (reasons.length === 0) return null;
                       return (
                         <div key={cat} className="space-y-0.5">

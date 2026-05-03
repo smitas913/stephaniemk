@@ -32,15 +32,14 @@ export const INTENT_CATEGORIES: IntentCategory[] = [
  */
 export const REASONS_BY_CATEGORY: Record<IntentCategory, string[]> = {
   "Follow-Up": [
-    "General Check-In",
-    "Trial / Sample Follow-Up",
     "Product Check-In",
+    "Trial / Sample Follow-Up",
     "Post-Appointment Follow-Up",
     "Relationship Touch",
     "Birthday Reach-Out",
     "Catalog Follow-Up",
   ],
-  Booking: ["Booking Ask", "Rescheduling"],
+  Booking: ["Booking Ask", "Booking Reschedule", "Booking Check-In"],
   Coaching: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up", "Post-Event Follow-Up"],
   Recruiting: ["Initial Outreach", "Interview / Info Shared", "Recruiting Follow-Up"],
   "Team Building": ["Coaching", "Accountability", "Training / Support"],
