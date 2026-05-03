@@ -99,10 +99,11 @@ export default function EditOrder() {
       payment_status: paymentStatus,
       payment_type: paymentStatus === "Unpaid" ? null : (paymentType || null),
       notes: notes || null,
-      hostess,
-      half_price_deal: halfPrice,
-      birthday,
-      referral,
+      hostess: tags.hostess,
+      half_price_deal: tags.half_price,
+      birthday: tags.birthday,
+      referral: tags.referral,
+      is_myshop_order: !!tags.myshop,
     });
   };
 
