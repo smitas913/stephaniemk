@@ -78,8 +78,16 @@ export default function CustomerDetail() {
         full_name: customer.full_name || "",
         phone: customer.phone || "",
         email: customer.email || "",
-        birthday: (customer as any).birthday || "",
-        birthday_mmdd: customer.birthday_mmdd || "",
+        // Display birthday as MM/DD when only mmdd known, or MM/DD/YYYY when full date known.
+        birthday_input: (() => {
+          const full = (customer as any).birthday as string | null;
+          if (full) {
+            const [y, m, d] = full.split("-");
+            return `${m}/${d}/${y}`;
+          }
+          const mmdd = customer.birthday_mmdd || "";
+          return mmdd; // already MM/DD
+        })(),
         address_line_1: customer.address_line_1 || "",
         address_line_2: customer.address_line_2 || "",
         city: customer.city || "",
