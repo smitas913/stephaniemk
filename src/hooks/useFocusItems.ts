@@ -29,16 +29,14 @@ export interface DayTypeTarget {
 }
 
 // Canonical category auto_track_keys — used to detect stale/legacy configs.
-// Slot 6 is a user-customizable "Custom Focus" slot; we accept either no
-// auto_track_key (pure manual) or the legacy "personal_appointments" key.
 const CANONICAL_AUTO_KEYS = new Set([
-  "customer_followup", "lead_followup", "hostess_coaching",
+  "customer_followup", "booking_activity", "hostess_coaching",
   "consultant_coaching", "relationship",
 ]);
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 0, label: "Customer Follow-Ups", default_target: 10, auto_track_key: "customer_followup" },
-  { sort_order: 1, label: "Lead Follow-Ups", default_target: 10, auto_track_key: "lead_followup" },
+  { sort_order: 1, label: "Booking Activity", default_target: 10, auto_track_key: "booking_activity" },
   { sort_order: 2, label: "Hostess / Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
   { sort_order: 3, label: "Consultant Coaching", default_target: 2, auto_track_key: "consultant_coaching" },
   { sort_order: 4, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
@@ -47,7 +45,7 @@ export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
 /** Returns true if saved configs match the canonical 5-slot structure. */
 export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
   if (configs.length !== 5) return false;
-  const expected = ["customer_followup", "lead_followup", "hostess_coaching", "consultant_coaching", "relationship"];
+  const expected = ["customer_followup", "booking_activity", "hostess_coaching", "consultant_coaching", "relationship"];
   for (let i = 0; i < 5; i++) {
     const c = configs.find(cfg => cfg.sort_order === i);
     if (!c || c.auto_track_key !== expected[i]) return false;
