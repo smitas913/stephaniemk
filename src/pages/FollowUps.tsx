@@ -2366,7 +2366,7 @@ export default function FollowUps() {
                              }}
                              onSkipItem={(mi) => {
                                const original = combined.find(i => i.id === mi.id);
-                               if (original) skipFollowUpMutation.mutate({ item: original });
+                               if (original) setSkipDialogItem(original);
                              }}
                              onAddNoteItem={(mi) => {
                                const original = combined.find(i => i.id === mi.id);
