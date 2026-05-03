@@ -133,15 +133,35 @@ export default function AddOrder() {
 
   const existingEventIds = useMemo(() => events.map(e => e.event_id), [events]);
 
+  const recentCustomers = useMemo(() => {
+    return [...customers]
+      .filter((c: any) => !!(c.last_order_mk || c.last_order_date_order_log || c.last_contacted || c.updated_at))
+      .sort((a: any, b: any) => {
+        const av = a.last_order_mk || a.last_order_date_order_log || a.last_contacted || a.updated_at || "";
+        const bv = b.last_order_mk || b.last_order_date_order_log || b.last_contacted || b.updated_at || "";
+        return String(bv).localeCompare(String(av));
+      })
+      .slice(0, 5);
+  }, [customers]);
+
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return customers.slice(0, 8);
+    if (!customerSearch) return recentCustomers;
     const q = customerSearch.toLowerCase();
     return customers.filter(c =>
       c.full_name.toLowerCase().includes(q) ||
       c.phone?.includes(q) ||
       c.email?.toLowerCase().includes(q)
     ).slice(0, 8);
-  }, [customers, customerSearch]);
+  }, [customers, customerSearch, recentCustomers]);
+
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
+  const retailInputRef = useRef<HTMLInputElement>(null);
+  const selectCustomer = useCallback((id: string) => {
+    setCustomerId(id);
+    setCustomerSearch("");
+    setTimeout(() => retailInputRef.current?.focus(), 50);
+  }, []);
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedEvent = events.find(e => e.event_id === selectedEventId);
