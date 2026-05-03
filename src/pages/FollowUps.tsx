@@ -2228,6 +2228,9 @@ export default function FollowUps() {
                     );
                   })()}
 
+                   {/* Client Cleanup — secondary, low-pressure maintenance card */}
+                   <ClientCleanupCard />
+
                    {/* 6 Most Important Things now lives on the Dashboard (/dashboard).
                        Today is execution-only. */}
 
