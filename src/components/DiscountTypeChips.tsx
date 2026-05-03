@@ -26,9 +26,24 @@ export default function DiscountTypeChips({
     queryFn: seedDefaults ? backfillDefaultDiscountTypes : fetchDiscountTypes,
   });
 
-  const visible = types.filter(
-    (t) => !t.is_archived || (showArchivedSelected && value.includes(t.id)),
-  );
+  // Preferred display order; "Other" always last, unknown names slot before "Other".
+  const PREFERRED_ORDER = [
+    "Birthday Discount",
+    "Half Price Deal",
+    "Referral Gift",
+    "Hostess Credit",
+    "Closing Sheet Deal",
+  ];
+  const orderRank = (name: string) => {
+    if (/^other$/i.test(name)) return 999;
+    const idx = PREFERRED_ORDER.findIndex((n) => n.toLowerCase() === name.toLowerCase());
+    return idx === -1 ? 500 : idx;
+  };
+
+  const visible = types
+    .filter((t) => !t.is_archived || (showArchivedSelected && value.includes(t.id)))
+    .slice()
+    .sort((a, b) => orderRank(a.name) - orderRank(b.name) || a.name.localeCompare(b.name));
 
   const toggle = (id: string) => {
     onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
