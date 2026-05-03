@@ -860,9 +860,25 @@ export default function AddOrder() {
           </div>
         )}
 
-        {paymentStatus === "Paid" && paymentType === "MyShop" && (
+        {/* MyShop Order tag — combinable with any order type/payment method */}
+        <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+          <input
+            type="checkbox"
+            checked={isMyShopOrder}
+            onChange={e => setIsMyShopOrder(e.target.checked)}
+            className="mt-0.5 rounded border-border"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-foreground">MyShop Order</span>
+            <span className="block text-xs text-muted-foreground">
+              Mark if this order came through MyShop. Skips credit card processing fees; retail and profit still count.
+            </span>
+          </span>
+        </label>
+
+        {paymentStatus === "Paid" && paymentType === "MyShop" && !isMyShopOrder && (
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">MyShop order:</span> no processing fees applied. Retail amount counts toward sales totals and profit uses your default margin.
+            <span className="font-medium text-foreground">MyShop payment:</span> no processing fees applied.
           </div>
         )}
 
