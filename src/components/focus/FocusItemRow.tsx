@@ -35,7 +35,8 @@ export default function FocusItemRow({
         "flex items-center gap-2 p-2 rounded-lg border transition-colors",
         done
           ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800/40 dark:bg-emerald-900/10"
-          : "border-border/50 bg-background/80"
+          : "border-border/50 bg-background/80",
+        lightDay && "opacity-80"
       )}
     >
       {/* Status indicator (read-only, derived from progress) */}
