@@ -263,6 +263,7 @@ export default function AddOrder() {
         discount_amount: financials.discount,
         tax_amount: financials.tax,
         cc_fee_amount: financials.ccFee,
+        cc_transaction_type: isCreditCard ? ccTxType : null,
         net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
         notes: notes || undefined,
