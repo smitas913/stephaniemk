@@ -1,0 +1,1 @@
+UPDATE public.discount_types SET name = 'Sets Sheet' WHERE name = 'Closing Sheet Deal';
