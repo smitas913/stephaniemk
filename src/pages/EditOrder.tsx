@@ -109,6 +109,8 @@ export default function EditOrder() {
       birthday: tags.birthday,
       referral: tags.referral,
       is_myshop_order: !!tags.myshop,
+      discount_amount: discountAmount ? parseFloat(discountAmount) : 0,
+      discount_type_ids: discountTypeIds,
     });
   };
 
