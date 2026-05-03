@@ -36,10 +36,7 @@ export default function EditOrder() {
   const [paymentType, setPaymentType] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [notes, setNotes] = useState("");
-  const [hostess, setHostess] = useState(false);
-  const [halfPrice, setHalfPrice] = useState(false);
-  const [birthday, setBirthday] = useState(false);
-  const [referral, setReferral] = useState(false);
+  const [tags, setTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
 
   useEffect(() => {
     if (order) {
