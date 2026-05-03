@@ -294,16 +294,53 @@ export default function CustomerDetail() {
     mutationFn: (data: Record<string, string>) => {
       const cleaned: Record<string, any> = {};
       for (const [k, v] of Object.entries(data)) {
+        if (k === "birthday_input") continue; // handled separately below
         if (k === "new_customer_flag" || k === "is_skincare_customer") {
           cleaned[k] = v === "true";
+        } else if (k === "state_territory") {
+          const norm = normalizeStateAbbreviation(v);
+          cleaned[k] = norm === "" ? null : norm;
         } else {
           cleaned[k] = v === "" ? null : v;
+        }
+      }
+      // Birthday: accept MM/DD, MM/DD/YYYY, M/D, M/D/YYYY, or YYYY-MM-DD.
+      const raw = (data.birthday_input || "").trim();
+      if (!raw) {
+        cleaned.birthday = null;
+        cleaned.birthday_mmdd = null;
+      } else {
+        const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+        if (isoMatch) {
+          const [, y, m, d] = isoMatch;
+          const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
+          cleaned.birthday = `${y}-${mm}-${dd}`;
+          cleaned.birthday_mmdd = `${mm}/${dd}`;
+        } else if (slashMatch) {
+          const [, m, d, y] = slashMatch;
+          const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
+          cleaned.birthday_mmdd = `${mm}/${dd}`;
+          if (y) {
+            const fullYear = y.length === 2 ? `19${y}` : y;
+            cleaned.birthday = `${fullYear}-${mm}-${dd}`;
+          } else {
+            cleaned.birthday = null;
+          }
+        } else {
+          throw new Error("Birthday must be MM/DD or MM/DD/YYYY");
         }
       }
       if (cleaned.full_name === null) cleaned.full_name = customer!.full_name;
       return updateCustomer(id!, cleaned as any);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      setEditing(false);
+      toast.success("Customer updated!");
+    },
       queryClient.invalidateQueries({ queryKey: ["customer", id] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
