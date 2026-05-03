@@ -389,6 +389,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
+        setIsMyShopOrder(false);
         
         setAttempted(false);
       } else if (!isNewCustomer) {
