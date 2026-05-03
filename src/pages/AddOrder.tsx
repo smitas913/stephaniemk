@@ -152,14 +152,14 @@ export default function AddOrder() {
   }, [customers]);
 
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return recentCustomers;
+    if (customerSearch.trim().length < 2) return [];
     const q = customerSearch.toLowerCase();
     return customers.filter(c =>
       c.full_name.toLowerCase().includes(q) ||
       c.phone?.includes(q) ||
       c.email?.toLowerCase().includes(q)
     ).slice(0, 8);
-  }, [customers, customerSearch, recentCustomers]);
+  }, [customers, customerSearch]);
 
   const [highlightIdx, setHighlightIdx] = useState(0);
   useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
@@ -718,29 +718,28 @@ export default function AddOrder() {
                   }
                 }}
               />
-              <div className="border border-border rounded-lg max-h-48 overflow-auto">
-                {!customerSearch && filteredCustomers.length > 0 && (
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground px-3 pt-2 pb-1">Recent</p>
-                )}
-                {filteredCustomers.map((c, idx) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm transition-colors",
-                      idx === highlightIdx ? "bg-muted" : "hover:bg-muted"
-                    )}
-                    onMouseEnter={() => setHighlightIdx(idx)}
-                    onClick={() => selectCustomer(c.id)}
-                  >
-                    <span className="font-medium">{c.full_name}</span>
-                    {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
-                  </button>
-                ))}
-                {customerSearch && filteredCustomers.length === 0 && (
-                  <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>
-                )}
-              </div>
+              {customerSearch.trim().length >= 2 && (
+                <div className="border border-border rounded-lg max-h-48 overflow-auto">
+                  {filteredCustomers.map((c, idx) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm transition-colors",
+                        idx === highlightIdx ? "bg-muted" : "hover:bg-muted"
+                      )}
+                      onMouseEnter={() => setHighlightIdx(idx)}
+                      onClick={() => selectCustomer(c.id)}
+                    >
+                      <span className="font-medium">{c.full_name}</span>
+                      {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
+                    </button>
+                  ))}
+                  {filteredCustomers.length === 0 && (
+                    <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>
+                  )}
+                </div>
+              )}
               <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => { setIsNewCustomer(true); setCustomerSearch(""); }}>
                 <UserPlus className="w-3.5 h-3.5" /> Add New Customer
               </Button>
