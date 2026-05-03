@@ -9,25 +9,20 @@ import { Ban } from "lucide-react";
 interface Props {
   customerId: string;
   tags: string[];
+  isCustomer?: boolean;
   className?: string;
 }
 
-const tagStyle: Record<CustomerTag, { active: string; inactive: string }> = {
-  Lead: {
-    active: "bg-blue-500 text-white border-blue-500",
-    inactive: "bg-background text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950",
-  },
-  Prospect: {
-    active: "bg-purple-500 text-white border-purple-500",
-    inactive: "bg-background text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950",
-  },
-  DNC: {
-    active: "bg-destructive text-destructive-foreground border-destructive",
-    inactive: "bg-background text-destructive border-destructive/40 hover:bg-destructive/10",
-  },
+const tagStyle: Record<CustomerTag, { active: string }> = {
+  Lead: { active: "bg-blue-500 text-white border-blue-500 shadow-sm" },
+  Prospect: { active: "bg-purple-500 text-white border-purple-500 shadow-sm" },
+  DNC: { active: "bg-destructive text-destructive-foreground border-destructive shadow-sm" },
 };
 
-export default function CustomerTagChips({ customerId, tags, className }: Props) {
+const inactiveStyle =
+  "bg-muted/40 text-muted-foreground border-muted-foreground/20 border-dashed hover:bg-muted hover:text-foreground";
+
+export default function CustomerTagChips({ customerId, tags, isCustomer, className }: Props) {
   const qc = useQueryClient();
   const [pending, setPending] = useState<string | null>(null);
   const current = tags || [];
@@ -40,7 +35,7 @@ export default function CustomerTagChips({ customerId, tags, className }: Props)
         .eq("id", customerId);
       if (error) throw error;
     },
-    onSuccess: (_d, newTags) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customer", customerId] });
       qc.invalidateQueries({ queryKey: ["customers"] });
     },
@@ -58,10 +53,17 @@ export default function CustomerTagChips({ customerId, tags, className }: Props)
   };
 
   return (
-    <div className={cn("flex gap-1.5 flex-wrap", className)}>
+    <div className={cn("flex gap-1.5 flex-wrap items-center", className)}>
+      {isCustomer && (
+        <span
+          className="text-[11px] px-2 py-0.5 rounded-full border font-medium bg-emerald-500 text-white border-emerald-500 shadow-sm"
+          title="This person is an active customer"
+        >
+          Customer
+        </span>
+      )}
       {CUSTOMER_TAGS.map((tag) => {
         const active = current.includes(tag);
-        const style = active ? tagStyle[tag].active : tagStyle[tag].inactive;
         return (
           <button
             key={tag}
@@ -70,10 +72,11 @@ export default function CustomerTagChips({ customerId, tags, className }: Props)
             disabled={mut.isPending}
             className={cn(
               "text-[11px] px-2 py-0.5 rounded-full border font-medium transition-colors disabled:opacity-50",
-              style,
+              active ? tagStyle[tag].active : inactiveStyle,
               pending === tag && "opacity-60",
             )}
             aria-pressed={active}
+            title={active ? `Click to remove ${tag}` : `Click to add ${tag}`}
           >
             {tag === "DNC" ? "DNC" : tag}
           </button>
