@@ -718,10 +718,27 @@ export default function AddOrder() {
           <span className="text-sm">
             <span className="font-medium text-foreground">Needs new catalog follow-up</span>
             <span className="block text-xs text-muted-foreground">
-              Schedules follow-up at order date + 25 days instead of the default + 14 days.
             </span>
           </span>
         </label>
+
+        {/* Skincare Customer toggle */}
+        {!isNonCustomer && (
+          <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+            <input
+              type="checkbox"
+              checked={isSkincareCustomer}
+              onChange={e => setIsSkincareCustomer(e.target.checked)}
+              className="mt-0.5 rounded border-border"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-foreground">Skincare Customer</span>
+              <span className="block text-xs text-muted-foreground">
+                Tag this customer as a skincare customer. Editable later from their profile.
+              </span>
+            </span>
+          </label>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
