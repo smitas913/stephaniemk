@@ -342,7 +342,7 @@ export default function Events() {
                   const isHeld = e.event_status === "Held";
 
                   return (
-                    <>
+                    <Fragment key={e.id}>
                     <TableRow
                       key={e.id}
                       className="hover:bg-muted/50 cursor-pointer transition-colors"
@@ -489,7 +489,7 @@ export default function Events() {
                         </TableCell>
                       </TableRow>
                     )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </TableBody>
