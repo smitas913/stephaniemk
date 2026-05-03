@@ -25,6 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 import DiscountTypeChips from "@/components/DiscountTypeChips";
+import CurrencyInput from "@/components/CurrencyInput";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
