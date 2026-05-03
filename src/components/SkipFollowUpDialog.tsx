@@ -149,9 +149,6 @@ export default function SkipFollowUpDialog({ open, onOpenChange, personName, all
 
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <span className="hidden" />
-          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
