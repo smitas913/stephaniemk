@@ -69,6 +69,12 @@ export default function QuickAddPersonDialog({
   const [followUpPrompt, setFollowUpPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const [customFollowUpDate, setCustomFollowUpDate] = useState<string>("");
   const [createNewIntent, setCreateNewIntent] = useState(false);
+  // Face flow: Outcome step (Customer vs Non-Customer) for brand-new names on Face logs
+  const [faceOutcomePrompt, setFaceOutcomePrompt] = useState<{ name: string } | null>(null);
+  // Face flow: Non-customer post-step (tags + follow-up + DNC + Skip)
+  const [nonCustomerPrompt, setNonCustomerPrompt] = useState<{ customerId: string; name: string } | null>(null);
+  const [nonCustomerTags, setNonCustomerTags] = useState<{ lead: boolean; prospect: boolean; dnc: boolean }>({ lead: false, prospect: false, dnc: false });
+  const [nonCustomerFollowUpDate, setNonCustomerFollowUpDate] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
