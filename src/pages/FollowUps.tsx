@@ -4604,9 +4604,30 @@ function ActionRow({
   const badge = TYPE_BADGE[item.itemType];
   const isOpen = inlineNoteId === item.id;
 
+  // Build a clean, single-line context string instead of multiple stacked labels.
+  // Examples: "Order follow-up • 27d since order", "Hostess Coaching", "Booking Lead - Web"
+  const GENERIC_REASONS = new Set([
+    "Manual Follow-Up", "Manual Follow Up", "Follow-Up", "Follow Up",
+    "Customer Follow-Up", "Customer Follow Up",
+  ]);
+  const isGeneric = (s?: string) => !s || GENERIC_REASONS.has(s.trim());
+  const baseReason = isGeneric(item.followUpReason) ? "" : (item.followUpReason || "");
+  // For customers: prefer compact "Order follow-up" framing when we have order recency
+  const hasOrderRecency = item.itemType === "customer" && item.days_since_last_order != null;
+  const contextParts: string[] = [];
+  if (hasOrderRecency) {
+    contextParts.push(baseReason || "Order follow-up");
+    contextParts.push(`${item.days_since_last_order}d since order`);
+  } else if (baseReason) {
+    contextParts.push(baseReason);
+  } else if (!isGeneric(item.actionLabel)) {
+    contextParts.push(item.actionLabel);
+  }
+  const contextLine = contextParts.join(" • ");
+
   return (
     <div>
-      <div className="py-2.5 group">
+      <div className="py-3 px-1 group hover:bg-muted/30 transition-colors rounded-md">
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenQuickAction || onOpenDetail}>
             <div className="flex items-center gap-2">
@@ -4616,13 +4637,9 @@ function ActionRow({
                 {badge.label}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-              <span className="px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium text-[10px]">{item.actionLabel}</span>
-              {item.followUpReason && item.followUpReason !== item.actionLabel && (
-                <span className="text-[10px] text-muted-foreground">{item.followUpReason}</span>
-              )}
-              {item.lastContacted && <span>Last: {formatLastContacted(item.lastContacted)}</span>}
-              {item.days_since_last_order != null && <span>{item.days_since_last_order}d since order</span>}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+              {contextLine && <span>{contextLine}</span>}
+              {item.lastContacted && <span>• Last contact: {formatLastContacted(item.lastContacted)}</span>}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
