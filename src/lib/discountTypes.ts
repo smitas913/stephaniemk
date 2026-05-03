@@ -15,8 +15,32 @@ export const DEFAULT_DISCOUNT_TYPES = [
   "Half Price Deal",
   "Hostess Credit",
   "Referral Gift",
+  "Closing Sheet Deal",
   "Other",
 ];
+
+/** Backfills any missing default discount types for the current user. */
+export async function backfillDefaultDiscountTypes(): Promise<DiscountType[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const existing = await fetchDiscountTypes();
+  if (existing.length === 0) return ensureDefaultDiscountTypes();
+  const existingNames = new Set(existing.map((t) => t.name.trim().toLowerCase()));
+  const missing = DEFAULT_DISCOUNT_TYPES.filter(
+    (n) => !existingNames.has(n.trim().toLowerCase()),
+  );
+  if (missing.length === 0) return existing;
+  const maxSort = existing.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0);
+  const rows = missing.map((name, i) => ({
+    user_id: userId,
+    name,
+    sort_order: maxSort + 1 + i,
+    is_archived: false,
+  }));
+  const { error } = await supabase.from("discount_types").insert(rows);
+  if (error) throw error;
+  return fetchDiscountTypes();
+}
 
 const getUserId = async () => {
   const { data } = await supabase.auth.getUser();

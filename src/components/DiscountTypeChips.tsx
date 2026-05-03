@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchDiscountTypes, ensureDefaultDiscountTypes, type DiscountType } from "@/lib/discountTypes";
+import { backfillDefaultDiscountTypes, fetchDiscountTypes, type DiscountType } from "@/lib/discountTypes";
 import { cn } from "@/lib/utils";
 import { Tag } from "lucide-react";
 
@@ -23,7 +23,7 @@ export default function DiscountTypeChips({
 }: Props) {
   const { data: types = [] } = useQuery<DiscountType[]>({
     queryKey: ["discount-types", { seed: seedDefaults }],
-    queryFn: seedDefaults ? ensureDefaultDiscountTypes : fetchDiscountTypes,
+    queryFn: seedDefaults ? backfillDefaultDiscountTypes : fetchDiscountTypes,
   });
 
   const visible = types.filter(
