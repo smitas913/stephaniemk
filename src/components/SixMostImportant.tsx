@@ -25,7 +25,6 @@ interface AutoCounts {
   booking_attempts: number;
   booking_activity: number;
   customer_followup: number;
-  lead_followup: number; // legacy: kept so old saved configs still resolve
   client_followup: number; // legacy combined; kept for back-compat
   hostess_coaching: number;
   recruiting_followup: number;
@@ -48,7 +47,7 @@ const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsF
   booking_attempts: "bookingAttemptDetails",
   booking_activity: "bookingActivityDetails",
   customer_followup: "customerFollowUpDetails",
-  lead_followup: "leadFollowUpDetails",
+  lead_followup: "bookingActivityDetails", // legacy alias → Booking Activity
   client_followup: "clientFollowUpDetails",
   hostess_coaching: "hostessCoachingDetails",
   recruiting_followup: "recruitingFollowUpDetails",

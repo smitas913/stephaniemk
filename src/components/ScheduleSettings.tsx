@@ -451,7 +451,7 @@ function DailyLimitsCard({ settings }: { settings: any }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Cap how many follow-ups appear in Today for each category. Anything over the limit is automatically pushed to upcoming workdays. Customers and Leads are counted independently.
+          Cap how many follow-ups appear in Today for each category. Anything over the limit is automatically pushed to upcoming workdays. Customer Follow-Ups and Booking Activity are counted independently.
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div>

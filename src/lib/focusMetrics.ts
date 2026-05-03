@@ -96,7 +96,6 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   coachingDetails: FocusDetailItem[];
   clientFollowUpDetails: FocusDetailItem[];
   customerFollowUpDetails: FocusDetailItem[];
-  leadFollowUpDetails: FocusDetailItem[];
   hostessCoachingDetails: FocusDetailItem[];
   recruitingFollowUpDetails: FocusDetailItem[];
   relationshipDetails: FocusDetailItem[];
@@ -318,7 +317,6 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     coachingDetails: consultantCoachingItems,
     clientFollowUpDetails: clientFollowUpItems,
     customerFollowUpDetails: customerFollowUpItems,
-    leadFollowUpDetails: leadFollowUpItems,
     hostessCoachingDetails: hostessCoachingItems,
     recruitingFollowUpDetails: recruitingFollowUpItems,
     relationshipDetails: dedupedRelationship,
