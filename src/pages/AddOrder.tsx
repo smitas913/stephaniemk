@@ -165,20 +165,29 @@ export default function AddOrder() {
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
-  // --- Auto financial calc ---
+  const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card";
+  const processorFee = useMemo(
+    () => getProcessorFee(financialSettings, isCreditCard ? ccTxType : null),
+    [financialSettings, isCreditCard, ccTxType]
+  );
+
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
     const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
+    const overrideRaw = ccFeeOverride.trim();
+    const override = overrideRaw === "" ? null : Number(overrideRaw);
     return computeOrderFinancials({
       orderTotal,
       discount,
       taxRate: financialSettings?.tax_rate ?? 0,
-      ccFeeRate: financialSettings?.cc_fee_rate ?? 0,
+      ccFeePct: processorFee.pct,
+      ccFeeFlat: processorFee.flat,
+      ccFeeOverride: override != null && !Number.isNaN(override) ? override : null,
       profitMarginRate: financialSettings?.profit_margin_rate ?? 50,
-      isCreditCard: paymentStatus === "Paid" && paymentType === "Credit Card",
+      isCreditCard,
     });
-  }, [retailAmount, discountValue, discountMode, financialSettings, paymentStatus, paymentType]);
+  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
