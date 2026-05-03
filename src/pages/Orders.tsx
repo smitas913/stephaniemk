@@ -483,23 +483,30 @@ export default function Orders() {
                     </TableCell>
                     <TableCell className="p-1" onClick={(e) => e.stopPropagation()}>
                       {o.notes ? (
-                        <button
-                          type="button"
-                          onClick={() => openNoteEditor(o)}
-                          title={o.notes}
-                          className="flex items-center gap-1 text-xs max-w-[140px] text-left hover:text-primary transition-colors group"
-                        >
-                          <span className="truncate">{o.notes}</span>
-                          <Pencil className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground" />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => openNoteEditor(o)}
+                              className="flex items-center gap-1.5 text-xs max-w-[160px] text-left hover:text-primary transition-colors"
+                            >
+                              <StickyNote className="w-3.5 h-3.5 shrink-0 text-primary/70" />
+                              <span className="truncate">{o.notes}</span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="start" className="max-w-xs whitespace-pre-wrap text-xs">
+                            {o.notes}
+                          </TooltipContent>
+                        </Tooltip>
                       ) : (
                         <button
                           type="button"
                           onClick={() => openNoteEditor(o)}
-                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                          title="Add note"
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-primary transition-colors"
                         >
-                          <StickyNote className="w-3 h-3" />
-                          <span>Add note</span>
+                          <StickyNote className="w-3.5 h-3.5" />
+                          <span className="opacity-70">Add note</span>
                         </button>
                       )}
                     </TableCell>
