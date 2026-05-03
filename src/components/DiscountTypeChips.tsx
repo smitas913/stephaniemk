@@ -58,7 +58,7 @@ export default function DiscountTypeChips({
   }
 
   return (
-    <div className={cn("flex flex-wrap gap-2", className)}>
+    <div className={cn("grid grid-cols-3 gap-1.5", className)}>
       {visible.map((t) => {
         const active = value.includes(t.id);
         return (
@@ -68,16 +68,15 @@ export default function DiscountTypeChips({
             onClick={() => toggle(t.id)}
             aria-pressed={active}
             className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition-all active:scale-[0.97]",
+              "inline-flex items-center justify-center gap-1 px-2 py-1 rounded-full border text-[11px] font-medium transition-all active:scale-[0.97] truncate",
               active
                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                 : "border-border bg-card text-muted-foreground hover:border-primary/60 hover:text-foreground",
               t.is_archived && "opacity-70",
             )}
           >
-            <Tag className="w-3 h-3" />
-            {t.name}
-            {t.is_archived && <span className="text-[10px]">(archived)</span>}
+            <Tag className="w-2.5 h-2.5 shrink-0" />
+            <span className="truncate">{t.name}</span>
           </button>
         );
       })}
