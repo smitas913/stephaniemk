@@ -782,36 +782,86 @@ export default function AddOrder() {
           </div>
         </div>
 
-        {/* Row 2: Discount + Payment Status */}
+        {/* Row 2: Discount (full width) */}
+        <div>
+          <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
+          <div className="flex gap-1.5 mt-1">
+            <Input
+              ref={discountInputRef}
+              type="number" step="0.01" min="0" placeholder="0.00"
+              value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+              onKeyDown={enterAdvance(notesInputRef)}
+              className="h-9 flex-1"
+            />
+            <div className="flex">
+              {(["$", "%"] as const).map(m => (
+                <button key={m} type="button"
+                  className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                    discountMode === m
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                  onClick={() => setDiscountMode(m)}
+                >{m}</button>
+              ))}
+            </div>
+          </div>
+          {Number(discountValue) > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
+              <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+            </div>
+          )}
+        </div>
+
+        {/* Live Financial Summary */}
+        {Number(retailAmount) > 0 && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-1">
+            <div className="flex justify-between"><span className="text-muted-foreground">Retail Amount</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
+            {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>
+            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
+            {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
+            <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
+          </div>
+        )}
+
+        {/* Row 3: Payment Method (left) + Payment Status (right) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
-            <div className="flex gap-1.5 mt-1">
-              <Input
-                ref={discountInputRef}
-                type="number" step="0.01" min="0" placeholder="0.00"
-                value={discountValue} onChange={e => setDiscountValue(e.target.value)}
-                onKeyDown={enterAdvance(notesInputRef)}
-                className="h-9 flex-1"
-              />
-              <div className="flex">
-                {(["$", "%"] as const).map(m => (
-                  <button key={m} type="button"
-                    className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
-                      discountMode === m
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-background text-muted-foreground hover:bg-muted"
-                    )}
-                    onClick={() => setDiscountMode(m)}
-                  >{m}</button>
-                ))}
-              </div>
-            </div>
-            {Number(discountValue) > 0 && (
-              <div className="mt-2">
-                <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
-                <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
-              </div>
+            <label className="text-sm font-medium text-foreground">
+              Payment Method {paymentStatus === "Paid" && "*"}
+            </label>
+            {paymentStatus === "Paid" ? (
+              <>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {PAYMENT_TYPES.map(p => {
+                    const shortcutMap: Record<string, string> = {
+                      Cash: "C", Venmo: "V", Zelle: "Z", Check: "K",
+                      "Credit Card": "R", CashApp: "A", Paypal: "P", MyShop: "M",
+                    };
+                    const sc = shortcutMap[p];
+                    return (
+                      <button key={p} type="button"
+                        title={sc ? `Shortcut: ${sc}` : undefined}
+                        className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
+                          paymentType === p
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                        onClick={() => setPaymentType(paymentType === p ? "" : p)}
+                      >
+                        {p}
+                        {sc && <span className="ml-1 opacity-60 text-[10px]">({sc})</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Tip: press a shortcut letter to select.</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-2 italic">Mark as Paid to choose a method</p>
             )}
           </div>
 
@@ -831,50 +881,6 @@ export default function AddOrder() {
             </div>
           </div>
         </div>
-
-        {/* Live Financial Summary */}
-        {Number(retailAmount) > 0 && (
-          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-1">
-            <div className="flex justify-between"><span className="text-muted-foreground">Retail Amount</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
-            {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
-            <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>
-            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
-            {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
-            <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
-            <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
-          </div>
-        )}
-
-        {/* Payment Type — button pills (only when Paid) */}
-        {paymentStatus === "Paid" && (
-          <div>
-            <label className="text-sm font-medium text-foreground">Payment Method *</label>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {PAYMENT_TYPES.map(p => {
-                const shortcutMap: Record<string, string> = {
-                  Cash: "C", Venmo: "V", Zelle: "Z", Check: "K",
-                  "Credit Card": "R", CashApp: "A", Paypal: "P", MyShop: "M",
-                };
-                const sc = shortcutMap[p];
-                return (
-                  <button key={p} type="button"
-                    title={sc ? `Shortcut: ${sc}` : undefined}
-                    className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
-                      paymentType === p
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-background text-muted-foreground hover:bg-muted"
-                    )}
-                    onClick={() => setPaymentType(paymentType === p ? "" : p)}
-                  >
-                    {p}
-                    {sc && <span className="ml-1 opacity-60 text-[10px]">({sc})</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Tip: press a shortcut letter to select.</p>
-          </div>
-        )}
 
         {/* Credit Card transaction type + manual fee override */}
         {isCreditCard && (
