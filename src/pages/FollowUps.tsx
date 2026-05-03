@@ -2477,9 +2477,9 @@ export default function FollowUps() {
                            "text-blue-600",
                          )}
 
-                         {/* Lead Follow-Ups (capped, overflow auto-distributed) */}
+                         {/* Booking Activity (was "Lead Follow-Ups" — any lead interaction counts) */}
                          {renderCategoryCard(
-                           "Lead Follow-Ups",
+                           "Booking Activity",
                            leadVisible,
                            leadSorted.length,
                            leadLimit,
