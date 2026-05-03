@@ -694,8 +694,8 @@ export default function FollowUps() {
   // Mobile detection
   const isMobile = useIsMobile();
 
-  // Relationship Touches collapsed state
-  const [touchesOpen, setTouchesOpen] = useState(false);
+  // Thoughtful Touches quick-log state
+  const [thoughtfulTouchType, setThoughtfulTouchType] = useState<import("@/components/ThoughtfulTouchDialog").TouchType | null>(null);
 
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
