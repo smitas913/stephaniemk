@@ -135,6 +135,12 @@ export default function AdminTools() {
               <ZoomDefaultsSettings />
             </div>
           </TabsContent>
+
+          <TabsContent value="orders">
+            <div className="mt-4">
+              <DiscountTypeSettings />
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>
