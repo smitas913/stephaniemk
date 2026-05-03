@@ -152,14 +152,14 @@ export default function AddOrder() {
   }, [customers]);
 
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch) return recentCustomers;
+    if (customerSearch.trim().length < 2) return [];
     const q = customerSearch.toLowerCase();
     return customers.filter(c =>
       c.full_name.toLowerCase().includes(q) ||
       c.phone?.includes(q) ||
       c.email?.toLowerCase().includes(q)
     ).slice(0, 8);
-  }, [customers, customerSearch, recentCustomers]);
+  }, [customers, customerSearch]);
 
   const [highlightIdx, setHighlightIdx] = useState(0);
   useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
