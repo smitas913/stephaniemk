@@ -264,9 +264,10 @@ export default function LeadDetail() {
                   <label className="text-xs font-medium text-muted-foreground mb-1 block flex items-center gap-1">
                     <MapPin className="w-3 h-3" /> Address
                   </label>
-                  <Input
+                  <AddressAutocomplete
                     value={form.address_line_1}
-                    onChange={(e) => setForm({ ...form, address_line_1: e.target.value })}
+                    onChange={(v) => setForm({ ...form, address_line_1: v })}
+                    onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: p.state, postal_code: p.zip_code })}
                     placeholder="Street address"
                     className="h-9 mb-2"
                   />
