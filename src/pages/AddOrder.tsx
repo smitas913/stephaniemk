@@ -365,7 +365,8 @@ export default function AddOrder() {
         half_price_deal: orderTags.half_price,
         birthday: orderTags.birthday,
         referral: orderTags.referral,
-      });
+        discount_type_ids: discountTypeIds,
+      } as any);
 
       // Persist Skincare Customer toggle to the customer profile
       if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
