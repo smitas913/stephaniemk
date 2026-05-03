@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer } from "@/lib/queries";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
 import { applyPostOrderFollowUp } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,14 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users, Store, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users, Store, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import { useQuery as useRQ } from "@tanstack/react-query";
 import { fetchFinancialSettings, computeOrderFinancials, getProcessorFee, type CcTransactionType } from "@/lib/financialSettings";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 import DiscountTypeChips from "@/components/DiscountTypeChips";
@@ -40,6 +40,8 @@ export default function AddOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
+  const { id: editOrderId } = useParams<{ id: string }>();
+  const isEditMode = !!editOrderId;
   const preselectedCustomer = params.get("customer") || "";
   const preselectedEvent = params.get("event") || "";
   const preselectedType = params.get("type") || "";
@@ -48,6 +50,11 @@ export default function AddOrder() {
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: financialSettings } = useRQ({ queryKey: ["financial-settings"], queryFn: fetchFinancialSettings });
+  const { data: editOrder } = useQuery({
+    queryKey: ["order", editOrderId],
+    queryFn: () => fetchOrder(editOrderId!),
+    enabled: isEditMode,
+  });
 
   // --- State ---
   const [orderType, setOrderType] = useState<OrderTypeValue | "">(() => {
@@ -85,6 +92,10 @@ export default function AddOrder() {
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
   const [dncSuppressFollowUp, setDncSuppressFollowUp] = useState(false);
+  const [faceTypeOverride, setFaceTypeOverride] = useState<string | null>(null);
+  const [reorderConvertPrompt, setReorderConvertPrompt] = useState<null | { customerId: string; addAnother: boolean }>(null);
+  const [reorderConvertHandled, setReorderConvertHandled] = useState<Set<string>>(new Set());
+  const [editPrefilled, setEditPrefilled] = useState(false);
 
   // New customer inline form
   const [isNewCustomer, setIsNewCustomer] = useState(false);
@@ -126,6 +137,43 @@ export default function AddOrder() {
       setSelectedEventId("");
     }
   }, [isEventBased]);
+
+  // Prefill from existing order in edit mode
+  useEffect(() => {
+    if (!isEditMode || !editOrder || editPrefilled) return;
+    const o: any = editOrder;
+    setOrderType((o.order_type as OrderTypeValue) || "Reorder");
+    setCustomerId(o.customer_id || "");
+    setCustomerName(o.customer_name || o.customers?.full_name || "");
+    setOrderDate(o.order_date || toLocalDateKey());
+    setSelectedEventId(o.event_id || "");
+    setRetailAmount(o.retail_amount != null ? String(o.retail_amount) : "");
+    setWholesaleAmount(o.wholesale_amount != null ? String(o.wholesale_amount) : "");
+    setWholesaleManual(o.wholesale_amount != null);
+    setDiscountValue(o.discount_amount ? String(o.discount_amount) : "");
+    setDiscountMode("$");
+    setDiscountTypeIds(Array.isArray(o.discount_type_ids) ? o.discount_type_ids : []);
+    setPaymentStatus(o.payment_status === "Unpaid" ? "Unpaid" : "Paid");
+    setPaymentType(o.payment_type || "");
+    setNotes(o.notes || "");
+    setOrderTags({
+      hostess: !!o.hostess,
+      half_price: !!o.half_price_deal,
+      birthday: !!o.birthday,
+      referral: !!o.referral,
+      myshop: !!o.is_myshop_order,
+    });
+    setFaceTypeOverride(o.face_type ?? null);
+    if (o.cc_transaction_type) setCcTxType(o.cc_transaction_type);
+    setEditPrefilled(true);
+  }, [isEditMode, editOrder, editPrefilled]);
+
+  // Default Face Type to "Customer" when Order Type = Reorder (unless overridden)
+  useEffect(() => {
+    if (orderType === "Reorder" && faceTypeOverride == null) {
+      setFaceTypeOverride("Customer");
+    }
+  }, [orderType, faceTypeOverride]);
 
   // Event options: upcoming first (asc), then past (desc)
   const eventOptions = useMemo(() => {
@@ -301,20 +349,31 @@ export default function AddOrder() {
       return;
     }
 
+    // Reorder → ensure linked person is marked Customer (one-time prompt per customer)
+    if (
+      orderType === "Reorder" &&
+      !isNonCustomer &&
+      customerId &&
+      !reorderConvertPrompt &&
+      !reorderConvertHandled.has(customerId)
+    ) {
+      const cust = customers.find(c => c.id === customerId) as any;
+      const status = (cust?.relationship_status || "").toLowerCase();
+      if (cust && status !== "customer") {
+        setReorderConvertPrompt({ customerId, addAnother });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       let resolvedCustomerId = customerId;
       let resolvedCustomerName = customerName;
 
       if (isNonCustomer) {
-        // Route the order to the per-owner archived "Non-Customer Orders" bucket.
-        // Bucket is is_active=false + archived → excluded from customer lists,
-        // follow-ups, and customer metrics. The free-text label below is shown
-        // as the buyer name on the order itself.
         resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
         resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
       } else if (isNewCustomer && newCustName.trim() && !customerId) {
-        // Create new customer if needed
         const birthdayMMDD = newCustBirthday ? (() => {
           const parts = newCustBirthday.split("-");
           return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
@@ -333,23 +392,32 @@ export default function AddOrder() {
         } as any);
         resolvedCustomerId = newCust.id;
         resolvedCustomerName = newCust.full_name;
-        // Trigger 2+2+2 follow-up prompt for newly-created customers
-        setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
+        if (!isEditMode) {
+          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
+        }
       }
 
       let eventId: string | null = null;
+      if (isEventBased && selectedEventId) eventId = selectedEventId;
 
-      if (isEventBased && selectedEventId) {
-        eventId = selectedEventId;
-      }
+      // Resolve face_type:
+      // - Non-customer → "Non-Customer"
+      // - Reorder → default "Customer" unless user override
+      // - Otherwise use override (edit mode prefill) or leave undefined
+      const resolvedFaceType =
+        isNonCustomer
+          ? "Non-Customer"
+          : orderType === "Reorder"
+            ? (faceTypeOverride || "Customer")
+            : (faceTypeOverride || undefined);
 
-      await createOrder({
+      const orderPayload: any = {
         customer_id: resolvedCustomerId,
         customer_name: resolvedCustomerName,
         order_date: orderDate,
         event_id: eventId || undefined,
         order_type: orderType,
-        face_type: isNonCustomer ? "Non-Customer" : undefined,
+        face_type: resolvedFaceType,
         payment_status: paymentStatus,
         payment_type: paymentStatus === "Unpaid" ? null : paymentType,
         retail_amount: Number(retailAmount) || 0,
@@ -360,7 +428,7 @@ export default function AddOrder() {
         cc_transaction_type: isCreditCard ? ccTxType : null,
         net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
-        notes: notes || undefined,
+        notes: notes || (isEditMode ? null : undefined),
         parent_event_id: isEventBased ? selectedEventId : null,
         is_myshop_order: !!orderTags.myshop,
         hostess: orderTags.hostess,
@@ -368,41 +436,37 @@ export default function AddOrder() {
         birthday: orderTags.birthday,
         referral: orderTags.referral,
         discount_type_ids: discountTypeIds,
-      } as any);
+      };
 
-      // Persist Skincare Customer toggle to the customer profile
-      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
-        try {
-          await supabase
-            .from("customers")
-            .update({ is_skincare_customer: true })
-            .eq("id", resolvedCustomerId);
-        } catch (e) {
-          console.error("Failed to update skincare flag", e);
-        }
+      if (isEditMode && editOrderId) {
+        await updateOrder(editOrderId, orderPayload);
+      } else {
+        await createOrder(orderPayload);
       }
 
-      // Auto-schedule post-order follow-up — SKIP for non-customer orders and
-      // for DNC customers when the user opted to keep the DNC tag.
-      if (!isNonCustomer && !dncSuppressFollowUp) {
+      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
         try {
-          await applyPostOrderFollowUp({
-            customerId: resolvedCustomerId,
-            orderDate,
-          });
-        } catch (e) {
-          console.error("Post-order follow-up failed", e);
-        }
+          await supabase.from("customers").update({ is_skincare_customer: true }).eq("id", resolvedCustomerId);
+        } catch (e) { console.error("Failed to update skincare flag", e); }
+      }
+
+      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp) {
+        try {
+          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate });
+        } catch (e) { console.error("Post-order follow-up failed", e); }
       }
 
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
+      if (isEditMode && editOrderId) queryClient.invalidateQueries({ queryKey: ["order", editOrderId] });
 
       setSavedCount(prev => prev + 1);
-      toast.success(`Order saved for ${resolvedCustomerName}`);
+      toast.success(isEditMode ? "Order updated" : `Order saved for ${resolvedCustomerName}`);
 
-      if (addAnother || bulkMode) {
+      if (isEditMode) {
+        navigate("/orders");
+      } else if (addAnother || bulkMode) {
         setCustomerId("");
         setCustomerName("");
         setCustomerSearch("");
@@ -420,22 +484,31 @@ export default function AddOrder() {
         setPaymentType("");
         setPaymentStatus("Paid");
         setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
-        
+        setFaceTypeOverride(null);
         setAttempted(false);
       } else if (!isNewCustomer) {
-        // For existing-customer orders, navigate immediately. New-customer
-        // orders defer navigation until the 2+2+2 follow-up prompt closes.
         navigate("/orders");
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to create order");
+      toast.error(err.message || (isEditMode ? "Failed to update order" : "Failed to create order"));
     } finally {
       setSubmitting(false);
       setDncSuppressFollowUp(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
 
-  // --- Step 1: Order Type Selection ---
+  // Edit mode: show loading until prefill complete
+  if (isEditMode && !editPrefilled) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // --- Step 1: Order Type Selection (skipped in edit mode) ---
   if (!orderType) {
     return (
       <Layout>
@@ -484,6 +557,7 @@ export default function AddOrder() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => {
+            if (isEditMode) { navigate("/orders"); return; }
             if (bulkMode && savedCount > 0) { navigate("/orders"); return; }
             setOrderType("");
           }}>
@@ -491,7 +565,7 @@ export default function AddOrder() {
           </Button>
           <div className="flex-1">
             <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              {orderType} Order
+              {isEditMode ? `Edit ${orderType} Order` : `${orderType} Order`}
             </h2>
             {bulkMode && savedCount > 0 && (
               <p className="text-xs text-primary font-medium flex items-center gap-1">
@@ -499,23 +573,54 @@ export default function AddOrder() {
               </p>
             )}
           </div>
-          {/* Type switcher pills */}
-          <div className="flex gap-1">
-            {ORDER_TYPE_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setOrderType(opt.value)}
-                className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                  orderType === opt.value
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+          {isEditMode ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="w-4 h-4 mr-1" />Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                  <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => {
+                    if (!editOrderId) return;
+                    try {
+                      await deleteOrder(editOrderId);
+                      queryClient.invalidateQueries({ queryKey: ["orders"] });
+                      queryClient.invalidateQueries({ queryKey: ["customers"] });
+                      toast.success("Order deleted");
+                      navigate("/orders");
+                    } catch (e: any) {
+                      toast.error(e.message || "Failed to delete order");
+                    }
+                  }}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            /* Type switcher pills */
+            <div className="flex gap-1">
+              {ORDER_TYPE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setOrderType(opt.value)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                    orderType === opt.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Event selector — only for event-based types */}
@@ -1004,7 +1109,22 @@ export default function AddOrder() {
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          {bulkMode ? (
+          {isEditMode ? (
+            <div className="flex-1 flex gap-2">
+              <Button
+                ref={saveButtonRef}
+                type="button"
+                className="flex-1 h-11"
+                disabled={!canSubmit}
+                onClick={() => handleSubmit(false)}
+              >
+                {submitting ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button type="button" variant="outline" className="h-11" onClick={() => navigate("/orders")}>
+                Cancel
+              </Button>
+            </div>
+          ) : bulkMode ? (
             <>
               <Button
                 type="button"
@@ -1137,6 +1257,62 @@ export default function AddOrder() {
               }}
             >
               Remove DNC & convert
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!reorderConvertPrompt}
+        onOpenChange={(o) => { if (!o) setReorderConvertPrompt(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark this person as Customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                const cust = customers.find(c => c.id === reorderConvertPrompt?.customerId) as any;
+                const name = cust?.full_name || "This person";
+                const status = cust?.relationship_status || "not set";
+                return <>Reorders are typically tied to existing customers. <strong>{name}</strong> is currently marked as <strong>{status}</strong>. Update their relationship to Customer?</>;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                const pending = reorderConvertPrompt;
+                if (pending) {
+                  setReorderConvertHandled(prev => new Set(prev).add(pending.customerId));
+                }
+                setReorderConvertPrompt(null);
+                if (pending) {
+                  setTimeout(() => handleSubmit(pending.addAnother), 0);
+                }
+              }}
+            >
+              Not now
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const pending = reorderConvertPrompt;
+                setReorderConvertPrompt(null);
+                if (!pending) return;
+                try {
+                  await supabase
+                    .from("customers")
+                    .update({ relationship_status: "Customer" } as any)
+                    .eq("id", pending.customerId);
+                  await queryClient.invalidateQueries({ queryKey: ["customers"] });
+                  toast.success("Marked as Customer");
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to update relationship");
+                }
+                setReorderConvertHandled(prev => new Set(prev).add(pending.customerId));
+                setTimeout(() => handleSubmit(pending.addAnother), 0);
+              }}
+            >
+              Yes, mark as Customer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
