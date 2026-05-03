@@ -1341,10 +1341,28 @@ export default function FollowUps() {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         const updates: Record<string, string | null> = { last_contacted: today };
+        // 2+2+2 stage advancement: when a customer is on an active 2+2+2 stage,
+        // advance to the next step on completion. Auto-set the date to the step
+        // offset only when the user did not explicitly choose one.
+        const currentStage = (item as any).new_follow_up_stage as string | null | undefined;
+        let computedNextDate = nextDate || null;
+        if (currentStage === "2 Day") {
+          updates.new_follow_up_stage = "2 Week";
+          updates.follow_up_reason = "Product Check-In / Order Follow-Up";
+          if (!nextDate) computedNextDate = format(addDays(new Date(), 12), "yyyy-MM-dd");
+        } else if (currentStage === "2 Week") {
+          updates.new_follow_up_stage = "2 Month";
+          updates.follow_up_reason = "Product Check-In / Order Follow-Up";
+          if (!nextDate) computedNextDate = format(addDays(new Date(), 46), "yyyy-MM-dd");
+        } else if (currentStage === "2 Month") {
+          updates.new_follow_up_stage = "Complete";
+          updates.follow_up_reason = "90-Day Care Cycle";
+          if (!nextDate) computedNextDate = format(addDays(new Date(), 75), "yyyy-MM-dd");
+        }
         // Always update next_follow_up_date: set it to the new date or clear it
-        updates.next_follow_up_date = nextDate || null;
+        updates.next_follow_up_date = computedNextDate;
         await updateCustomer(item.id, updates as any);
-        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: nextDate ?? null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: isFollowUp ?? true });
+        await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: computedNextDate ?? null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: isFollowUp ?? true });
       } else if (item.itemType === "prospect") {
         const updates: Record<string, string | null> = { last_contact_date: today };
         updates.next_follow_up_date = nextDate || null;
