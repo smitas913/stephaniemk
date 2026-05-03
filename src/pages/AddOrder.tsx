@@ -25,6 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 import DiscountTypeChips from "@/components/DiscountTypeChips";
+import CurrencyInput from "@/components/CurrencyInput";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -755,7 +756,7 @@ export default function AddOrder() {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Retail Amount *</label>
-            <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
+            <CurrencyInput ref={retailInputRef} placeholder="$0.00" value={retailAmount} onValueChange={setRetailAmount} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
           </div>
           <div>
             <div className="flex items-center justify-between">
@@ -770,10 +771,10 @@ export default function AddOrder() {
                 </button>
               )}
             </div>
-            <Input
-              type="number" step="0.01" min="0" placeholder="0.00"
+            <CurrencyInput
+              placeholder="$0.00"
               value={wholesaleAmount}
-              onChange={e => { setWholesaleManual(true); setWholesaleAmount(e.target.value); }}
+              onValueChange={(v) => { setWholesaleManual(true); setWholesaleAmount(v); }}
               className="h-9"
             />
             <p className="text-[11px] text-muted-foreground mt-1">
@@ -786,13 +787,24 @@ export default function AddOrder() {
         <div>
           <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
           <div className="flex gap-1.5 mt-1">
-            <Input
-              ref={discountInputRef}
-              type="number" step="0.01" min="0" placeholder="0.00"
-              value={discountValue} onChange={e => setDiscountValue(e.target.value)}
-              onKeyDown={enterAdvance(notesInputRef)}
-              className="h-9 flex-1"
-            />
+            {discountMode === "$" ? (
+              <CurrencyInput
+                ref={discountInputRef}
+                placeholder="$0.00"
+                value={discountValue}
+                onValueChange={setDiscountValue}
+                onKeyDown={enterAdvance(notesInputRef)}
+                className="h-9 flex-1"
+              />
+            ) : (
+              <Input
+                ref={discountInputRef}
+                type="number" step="0.01" min="0" placeholder="0"
+                value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+                onKeyDown={enterAdvance(notesInputRef)}
+                className="h-9 flex-1"
+              />
+            )}
             <div className="flex">
               {(["$", "%"] as const).map(m => (
                 <button key={m} type="button"
