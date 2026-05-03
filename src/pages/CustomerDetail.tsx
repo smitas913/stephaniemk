@@ -35,6 +35,7 @@ import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
+import BeautyNotesCard from "@/components/BeautyNotesCard";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
