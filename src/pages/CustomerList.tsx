@@ -46,7 +46,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
   const [filterAttention, setFilterAttention] = useState(false);
-  const [attentionView, setAttentionView] = useState<"all" | "incomplete" | "followup" | "missing">("all");
+  const [attentionView, setAttentionView] = useState<"all" | "followup" | "missing">("all");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [relOpen, setRelOpen] = useState(false);
   const [vipOpen, setVipOpen] = useState(false);
@@ -62,7 +62,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       setFilterMissing(["phone", "email", "address"]);
     }
     const v = searchParams.get("view");
-    if (v === "incomplete" || v === "followup" || v === "missing" || v === "all") {
+    if (v === "followup" || v === "missing" || v === "all") {
       setAttentionView(v);
     }
   }, [searchParams]);
@@ -177,21 +177,17 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         }
       }
 
-      // Items-to-Complete combined filter — show if flagged OR missing key info
+      // Items-to-Complete combined filter — show if missing contact info OR needs follow-up
       if (filterAttention) {
-        const flagged = (c as any).needs_attention === true;
-        const incomplete = !c.phone?.trim() || !c.email?.trim() || !c.address_line_1?.trim();
+        const missingContact = !c.phone?.trim() || !c.email?.trim() || !c.address_line_1?.trim() || !(c.birthday || (c as any).birthday_mmdd);
         const needsFollowUp = c.follow_up_status === "OVERDUE" || c.follow_up_status === "TODAY";
-        if (attentionView === "incomplete") {
-          // "Incomplete Profiles" = flagged (finish later)
-          if (!flagged) return false;
-        } else if (attentionView === "followup") {
+        if (attentionView === "followup") {
           if (!needsFollowUp) return false;
         } else if (attentionView === "missing") {
-          if (!incomplete) return false;
+          if (!missingContact) return false;
         } else {
           // all
-          if (!flagged && !incomplete && !needsFollowUp) return false;
+          if (!missingContact && !needsFollowUp) return false;
         }
       }
 
@@ -369,9 +365,8 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             <div className="flex flex-wrap gap-1.5">
               {([
                 { key: "all", label: "All" },
-                { key: "incomplete", label: "Incomplete Profiles" },
+                { key: "missing", label: "Missing Contact Info" },
                 { key: "followup", label: "Needs Follow-Up" },
-                { key: "missing", label: "Missing Info" },
               ] as const).map((t) => (
                 <button
                   key={t.key}
