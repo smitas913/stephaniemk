@@ -176,6 +176,7 @@ export const createOrder = async (order: {
   discount_amount?: number;
   tax_amount?: number;
   cc_fee_amount?: number;
+  cc_transaction_type?: string | null;
   net_received?: number | null;
   net_profit?: number | null;
   notes?: string;
