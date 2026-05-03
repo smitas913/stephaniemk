@@ -18,10 +18,11 @@ interface FocusItemRowProps {
   onDrillDown?: () => void;
   readOnly?: boolean;
   isMobile?: boolean;
+  lightDay?: boolean;
 }
 
 export default function FocusItemRow({
-  item, onDrillDown,
+  item, onDrillDown, lightDay,
 }: FocusItemRowProps) {
   // Completion is purely data-driven: target reached.
   const current = Math.max(0, item.current);
