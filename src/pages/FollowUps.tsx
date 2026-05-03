@@ -2958,55 +2958,37 @@ export default function FollowUps() {
 
                   {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
-                  {/* ═══ SECTION 6: Relationship Touches (Collapsed) — hidden in OOO unless overridden ═══ */}
+                  {/* ═══ SECTION 6: Thoughtful Touches — quick-log card (no required tasks) ═══ */}
                   {!hideWorkflow && (
-                    <Collapsible open={touchesOpen} onOpenChange={setTouchesOpen}>
-                      <Card className="border-border/50 shadow-sm">
-                        <CollapsibleTrigger className="w-full">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
-                                  <Heart className="w-4 h-4 text-pink-600" />
-                                </div>
-                                <CardTitle className="text-sm font-semibold text-foreground">Relationship Touches</CardTitle>
-                              </div>
-                              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", touchesOpen && "rotate-180")} />
+                    <Card className="border-border/50 shadow-sm">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
+                              <Heart className="w-4 h-4 text-pink-600" />
                             </div>
-                          </CardHeader>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <CardContent className="pt-0 space-y-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                                  <span className="text-xs font-semibold text-foreground">Notes</span>
-                                </div>
-                                <p className="text-[11px] text-muted-foreground">Send a personal note or thank-you card</p>
-                              </div>
-                              <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Gift className="w-3.5 h-3.5 text-muted-foreground" />
-                                  <span className="text-xs font-semibold text-foreground">Gifts</span>
-                                </div>
-                                <p className="text-[11px] text-muted-foreground">Surprise a customer or team member with a small gift</p>
-                              </div>
-                              <div className="p-3 rounded-lg border border-border/50 bg-muted/20 space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                                  <span className="text-xs font-semibold text-foreground">Check-ins</span>
-                                </div>
-                                <p className="text-[11px] text-muted-foreground">Quick call or text just to say hi — no sales agenda</p>
-                              </div>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground text-center italic">
-                              Coming soon: Track and log relationship touches to strengthen connections
-                            </p>
-                          </CardContent>
-                        </CollapsibleContent>
-                      </Card>
-                    </Collapsible>
+                            <CardTitle className="text-sm font-semibold text-foreground">Thoughtful Touches</CardTitle>
+                            {monthlyTouchCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">{monthlyTouchCount} this month</Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground hidden sm:block">Cards · gifts · personal check-ins</p>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex flex-wrap gap-1.5">
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
+                            <FileText className="w-3.5 h-3.5" /> Sent a Card
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
+                            <Gift className="w-3.5 h-3.5" /> Gave a Gift
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
+                            <Phone className="w-3.5 h-3.5" /> Personal Check-In
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               </TabsContent>
