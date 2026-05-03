@@ -463,7 +463,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
                   {/* Full library, grouped by category */}
                   <div className="space-y-1.5 pt-1">
-                    {INTENT_CATEGORIES.map((cat) => {
+                    {INTENT_CATEGORIES.filter((c) => allowedCategories.includes(c)).map((cat) => {
                       const reasons = REASONS_BY_CATEGORY[cat].filter((r) => !suggestedReasons.includes(r));
                       if (reasons.length === 0) return null;
                       return (
