@@ -1458,8 +1458,8 @@ export default function FollowUps() {
       noFollowUp?: boolean;
       note?: string;
     }) => {
-      const defaultDays = item.itemType === "consultant" ? 3 : 2;
-      const computed = noFollowUp ? null : (nextDate || format(addDays(new Date(), defaultDays), "yyyy-MM-dd"));
+      // Caller MUST pass either nextDate or noFollowUp (no auto +2/+3 day defaults).
+      const computed = noFollowUp ? null : (nextDate || null);
       const skipNoteBody = note?.trim() || "Skipped — did not reach out";
 
       if (item.itemType === "customer") {
