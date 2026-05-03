@@ -47,6 +47,29 @@ export default function Events() {
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: allTasks = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const [expandedTasksFor, setExpandedTasksFor] = useState<string | null>(null);
+
+  // Next pending task per event_id (overdue/due-today first, then soonest)
+  const nextTaskByEvent = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const grouped = new Map<string, EventTask[]>();
+    for (const t of allTasks) {
+      if (t.is_completed) continue;
+      if (!grouped.has(t.event_id)) grouped.set(t.event_id, []);
+      grouped.get(t.event_id)!.push(t);
+    }
+    const map = new Map<string, { next: EventTask; remaining: number; all: EventTask[] }>();
+    for (const [eid, tasks] of grouped.entries()) {
+      const sorted = [...tasks].sort((a, b) => {
+        const ad = a.due_date || "9999-12-31";
+        const bd = b.due_date || "9999-12-31";
+        return ad.localeCompare(bd);
+      });
+      map.set(eid, { next: sorted[0], remaining: sorted.length - 1, all: sorted });
+    }
+    return { map, today };
+  }, [allTasks]);
 
   // ─── Universal Action Panel for Hostess ───
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
