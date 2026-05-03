@@ -60,6 +60,20 @@ export default function NewEvent() {
   const [platformLink, setPlatformLink] = useState("");
   const [virtualNotes, setVirtualNotes] = useState("");
 
+  // Prefill from query params (e.g. when navigated from "Booking Created" in interaction panel)
+  useEffect(() => {
+    const t = searchParams.get("type");
+    const h = searchParams.get("hostess");
+    const p = searchParams.get("phone");
+    if (t && ["Party", "Facial", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
+      setEventType(t);
+    }
+    if (h) setHostessName(h);
+    if (p) setHostessPhone(p);
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isLeadGen = eventType === "Lead Generating Event";
   const isVirtual = eventFormat === "Virtual";
 
