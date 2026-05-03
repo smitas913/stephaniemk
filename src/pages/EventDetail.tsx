@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare } from "lucide-react";
+import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare, Plus } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
@@ -57,8 +57,11 @@ export default function EventDetail() {
   );
 
   const totalSales = linkedOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+  const totalDiscounts = linkedOrders.reduce((s, o: any) => s + Number(o.discount_amount || 0), 0);
+  const totalNetProfit = linkedOrders.reduce((s, o: any) => s + Number(o.net_profit || 0), 0);
   const guestCount = event?.guest_count || 0;
   const orderCount = linkedOrders.length;
+  const avgOrder = orderCount > 0 ? totalSales / orderCount : 0;
   const convRate = guestCount > 0 ? ((orderCount / guestCount) * 100).toFixed(0) : null;
 
   // ─── Universal Action Panel for Hostess ───
@@ -760,9 +763,59 @@ export default function EventDetail() {
           </CardContent>
         </Card>
 
+        {/* Performance Summary */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-primary" />
+              Performance Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Guests</div>
+                <div className="text-base font-bold text-foreground">{guestCount || "—"}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Orders</div>
+                <div className="text-base font-bold text-foreground">{orderCount}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Sales</div>
+                <div className="text-base font-bold text-green-600">${totalSales.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Order</div>
+                <div className="text-base font-bold text-foreground">${avgOrder.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Discounts</div>
+                <div className="text-base font-bold text-amber-600">${totalDiscounts.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. Net Profit</div>
+                <div className="text-base font-bold text-primary">${totalNetProfit.toFixed(2)}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Linked Orders */}
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Linked Orders ({orderCount})</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground">Linked Orders ({orderCount})</h3>
+            {event && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8"
+                onClick={() => navigate(`/orders/new?eventId=${event.event_id}&type=${event.event_type || "Party"}`)}
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Order
+              </Button>
+            )}
+          </div>
           {linkedOrders.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">No orders linked to this event.</p>
           ) : (
