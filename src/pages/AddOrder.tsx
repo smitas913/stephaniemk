@@ -216,6 +216,7 @@ export default function AddOrder() {
 
   // Field refs for keyboard tab/Enter flow
   const customerSearchRef = useRef<HTMLInputElement>(null);
+  const newCustPhoneRef = useRef<HTMLInputElement>(null);
   const retailInputRef = useRef<HTMLInputElement>(null);
   const discountInputRef = useRef<HTMLInputElement>(null);
   const notesInputRef = useRef<HTMLTextAreaElement>(null);
@@ -777,9 +778,9 @@ export default function AddOrder() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="sm:col-span-2">
-                  <Input placeholder="Name *" value={newCustName} onChange={e => setNewCustName(e.target.value)} className="h-9" autoFocus />
+                  <Input placeholder="Name *" value={newCustName} onChange={e => setNewCustName(e.target.value)} className="h-9" />
                 </div>
-                <Input placeholder="Phone" value={newCustPhone} onChange={e => setNewCustPhone(e.target.value)} className="h-9" />
+                <Input ref={newCustPhoneRef} placeholder="Phone" value={newCustPhone} onChange={e => setNewCustPhone(e.target.value)} className="h-9" autoFocus />
                 <Input placeholder="Email" value={newCustEmail} onChange={e => setNewCustEmail(e.target.value)} className="h-9" />
               </div>
 
@@ -850,7 +851,13 @@ export default function AddOrder() {
                   )}
                 </div>
               )}
-              <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => { setIsNewCustomer(true); setCustomerSearch(""); }}>
+              <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => {
+                const typed = customerSearch.trim();
+                setNewCustName(typed);
+                setIsNewCustomer(true);
+                setCustomerSearch("");
+                setTimeout(() => newCustPhoneRef.current?.focus(), 50);
+              }}>
                 <UserPlus className="w-3.5 h-3.5" /> Add New Customer
               </Button>
             </div>
