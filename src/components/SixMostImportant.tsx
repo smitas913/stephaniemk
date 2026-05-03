@@ -23,8 +23,9 @@ import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
 
 interface AutoCounts {
   booking_attempts: number;
+  booking_activity: number;
   customer_followup: number;
-  lead_followup: number;
+  lead_followup: number; // legacy: kept so old saved configs still resolve
   client_followup: number; // legacy combined; kept for back-compat
   hostess_coaching: number;
   recruiting_followup: number;
@@ -45,6 +46,7 @@ interface SixMostImportantProps {
 // Map auto_track_key to the correct detail category
 const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsForDate>> = {
   booking_attempts: "bookingAttemptDetails",
+  booking_activity: "bookingActivityDetails",
   customer_followup: "customerFollowUpDetails",
   lead_followup: "leadFollowUpDetails",
   client_followup: "clientFollowUpDetails",
@@ -58,9 +60,10 @@ function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key"
   if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
 
   const normalizedLabel = config.label.trim().toLowerCase();
+  if (normalizedLabel.includes("booking activity")) return "booking_activity";
   if (normalizedLabel.includes("booking attempt")) return "booking_attempts";
   if (normalizedLabel.includes("customer follow")) return "customer_followup";
-  if (normalizedLabel.includes("lead follow")) return "lead_followup";
+  if (normalizedLabel.includes("lead follow")) return "booking_activity";
   if (normalizedLabel.includes("client")) return "client_followup";
   if (normalizedLabel.includes("hostess") || normalizedLabel.includes("event coach")) return "hostess_coaching";
   if (normalizedLabel.includes("recruiting")) return "recruiting_followup";
@@ -241,9 +244,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     }
     // Fallback by label
     const label = config.label.toLowerCase();
+    if (label.includes("booking activity")) return metrics.bookingActivityDetails;
     if (label.includes("booking")) return metrics.bookingAttemptDetails;
     if (label.includes("customer follow")) return metrics.customerFollowUpDetails;
-    if (label.includes("lead follow")) return metrics.leadFollowUpDetails;
+    if (label.includes("lead follow")) return metrics.bookingActivityDetails;
     if (label.includes("client")) return metrics.clientFollowUpDetails;
     if (label.includes("hostess") || label.includes("event")) return metrics.hostessCoachingDetails;
     if (label.includes("recruiting") || label.includes("prospect")) return metrics.recruitingFollowUpDetails;

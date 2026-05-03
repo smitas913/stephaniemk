@@ -115,6 +115,7 @@ export default function Dashboard() {
     } as any);
     return {
       booking_attempts: metrics.bookingAttempts,
+      booking_activity: metrics.bookingActivity,
       customer_followup: metrics.customerFollowUpDetails.length,
       lead_followup: metrics.leadFollowUpDetails.length,
       client_followup: metrics.clientFollowUpDetails.length,

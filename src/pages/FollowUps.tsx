@@ -680,6 +680,7 @@ export default function FollowUps() {
        });
 
        const booking_attempts = metrics.bookingAttempts;
+       const booking_activity = metrics.bookingActivity;
        const client_followup = metrics.clientFollowUpDetails.length;
        const customer_followup = metrics.customerFollowUpDetails.length;
        const lead_followup = metrics.leadFollowUpDetails.length;
@@ -688,7 +689,7 @@ export default function FollowUps() {
        const consultant_coaching = metrics.coachingDetails.length;
        const relationship = metrics.relationshipDetails.length;
 
-       return { booking_attempts, customer_followup, lead_followup, client_followup, hostess_coaching, recruiting_followup, consultant_coaching, relationship };
+       return { booking_attempts, booking_activity, customer_followup, lead_followup, client_followup, hostess_coaching, recruiting_followup, consultant_coaching, relationship };
     }, [unifiedNotes, prospects, events, allNotes, bookingLeads, customers, consultants]);
 
   // Mobile detection
@@ -2476,9 +2477,9 @@ export default function FollowUps() {
                            "text-blue-600",
                          )}
 
-                         {/* Lead Follow-Ups (capped, overflow auto-distributed) */}
+                         {/* Booking Activity (was "Lead Follow-Ups" — any lead interaction counts) */}
                          {renderCategoryCard(
-                           "Lead Follow-Ups",
+                           "Booking Activity",
                            leadVisible,
                            leadSorted.length,
                            leadLimit,

@@ -112,6 +112,21 @@ function computeActuals(
       return notes.filter((n) => n.note_type !== "Skipped" && inRange(n.note_date, start, end)).length;
     case "booking_attempts":
       return notes.filter((n) => n.is_booking_attempt && inRange(n.note_date, start, end)).length;
+    case "booking_activity": {
+      // Any lead interaction OR any booking attempt — deduplicated by person.
+      const seen = new Set<string>();
+      let count = 0;
+      for (const n of notes) {
+        if (!inRange(n.note_date, start, end)) continue;
+        const isLead = (n as any).person_type === "lead" || (n as any).entity_type === "Lead";
+        if (!isLead && !n.is_booking_attempt) continue;
+        const key = `${(n as any).person_type || (n as any).entity_type || "?"}:${(n as any).person_id || (n as any).id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        count += 1;
+      }
+      return count;
+    }
     default:
       return 0;
   }
@@ -309,12 +324,22 @@ export default function Momentum() {
   ].map((m) => ({ ...m, value: computeActuals(m.key, monthStart, monthEnd, dataBundle) }));
 
   // Activity support metrics for current period
+  const bookingActivityValue = computeActuals("booking_activity", start, end, dataBundle);
+  const bookingAttemptsValue = computeActuals("booking_attempts", start, end, dataBundle);
   const supportMetrics = [
-    { key: "follow_ups", label: "Follow-ups Completed", icon: Phone },
-    { key: "booking_attempts", label: "Booking Attempts", icon: Calendar },
-    { key: "coaching_touches", label: "Coaching Touches", icon: Crown },
-    { key: "relationship_touches", label: "Relationship Touches", icon: Users },
-  ].map((m) => ({ ...m, value: computeActuals(m.key, start, end, dataBundle) }));
+    { key: "follow_ups", label: "Follow-ups Completed", icon: Phone, value: computeActuals("follow_ups", start, end, dataBundle), sub: undefined as string | undefined },
+    {
+      key: "booking_activity",
+      label: "Booking Activity",
+      icon: Calendar,
+      value: bookingActivityValue,
+      sub: bookingActivityValue > 0
+        ? `${bookingAttemptsValue} ask${bookingAttemptsValue === 1 ? "" : "s"} (${Math.round((bookingAttemptsValue / bookingActivityValue) * 100)}%)`
+        : `${bookingAttemptsValue} asks`,
+    },
+    { key: "coaching_touches", label: "Coaching Touches", icon: Crown, value: computeActuals("coaching_touches", start, end, dataBundle), sub: undefined },
+    { key: "relationship_touches", label: "Relationship Touches", icon: Users, value: computeActuals("relationship_touches", start, end, dataBundle), sub: undefined },
+  ];
 
   // Business growth goals for current period
   const growthGoals = businessGoals
@@ -523,6 +548,9 @@ export default function Momentum() {
                   <div>
                     <p className="text-lg font-semibold text-foreground tabular-nums leading-tight">{m.value}</p>
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{m.label}</p>
+                    {m.sub && (
+                      <p className="text-[10px] text-muted-foreground tabular-nums">{m.sub}</p>
+                    )}
                   </div>
                 </div>
               ))}

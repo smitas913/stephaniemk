@@ -466,7 +466,7 @@ function DailyLimitsCard({ settings }: { settings: any }) {
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Lead Follow-Ups / day</label>
+            <label className="text-xs text-muted-foreground">Booking Activity / day</label>
             <Input
               type="number"
               min={1}
