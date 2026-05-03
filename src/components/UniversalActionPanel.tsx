@@ -583,7 +583,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                         <button
                           key={option.key}
                           type="button"
-                          disabled={isPending}
+                          disabled={isPending || (bookingCreated && !bookingCreatedType)}
                           onClick={() => handleWhatsNext(option.key)}
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left",
