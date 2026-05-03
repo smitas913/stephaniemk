@@ -522,6 +522,7 @@ export default function AddOrder() {
         setPaymentType("");
         setPaymentStatus("Paid");
         setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+        setFollowUpIntent("none");
         setFaceTypeOverride(null);
         setAttempted(false);
       } else if (!isNewCustomer) {
