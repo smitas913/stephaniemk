@@ -55,10 +55,12 @@ const QUICK_ACTIONS = [
 ] as const;
 
 const WHATS_NEXT_OPTIONS = [
-  { key: "schedule", label: "Schedule a date", icon: Calendar },
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
   { key: "next-week", label: "Move to next week", icon: CalendarCheck },
-  { key: "none", label: "No follow-up needed (long-term touch)", icon: CheckCircle2 },
+  { key: "30d", label: "30 Days — Check-in", icon: CheckCircle2 },
+  { key: "60d", label: "60 Days — Mid-cycle", icon: CheckCircle2 },
+  { key: "90d", label: "90 Days — Reorder / Reconnect", icon: CheckCircle2 },
+  { key: "schedule", label: "Custom Date", icon: Calendar },
 ] as const;
 
 import { LONG_TERM_TOUCH_DAYS, resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
@@ -183,11 +185,15 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     let reasonForLog = selectedReason;
     if (optionKey === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (optionKey === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
-    else if (optionKey === "none") {
-      // Long-term maintenance touch — keep customer in lifecycle, push out ~75 days.
-      // Priority override: if a higher-priority (sooner) follow-up already exists, keep it.
-      nextDate = resolveLongTermFollowUpDate(item.nextFollowUpDate);
-      reasonForLog = selectedReason || "No Follow-Up Needed (Long-Term Touch)";
+    else if (optionKey === "30d") {
+      nextDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "30-Day Check-In";
+    } else if (optionKey === "60d") {
+      nextDate = format(addDays(new Date(), 60), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "60-Day Mid-Cycle";
+    } else if (optionKey === "90d") {
+      nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "90-Day Reorder / Reconnect";
     }
 
     const tags = getAutoTags(item.personType, selectedReason);

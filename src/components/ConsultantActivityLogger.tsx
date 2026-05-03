@@ -25,8 +25,10 @@ const QUICK_ACTIONS = [
 const WHATS_NEXT_OPTIONS = [
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
   { key: "next-week", label: "Move to next week", icon: CalendarCheck },
-  { key: "schedule", label: "Schedule a date", icon: Calendar },
-  { key: "none", label: "No follow-up needed", icon: CheckCircle2 },
+  { key: "30d", label: "30 Days — Check-in", icon: CheckCircle2 },
+  { key: "60d", label: "60 Days — Mid-cycle", icon: CheckCircle2 },
+  { key: "90d", label: "90 Days — Reorder / Reconnect", icon: CheckCircle2 },
+  { key: "schedule", label: "Custom Date", icon: Calendar },
 ] as const;
 
 interface Props {
@@ -105,11 +107,11 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
     let nextDate: string | null = null;
     if (nextOption === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (nextOption === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
+    else if (nextOption === "30d") nextDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
+    else if (nextOption === "60d") nextDate = format(addDays(new Date(), 60), "yyyy-MM-dd");
+    else if (nextOption === "90d") nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
     else if (nextOption === "schedule" && customDate) nextDate = customDate;
-    else if (nextOption === "none") {
-      // Long-term touch: +75d, preserve sooner existing coaching date if any.
-      nextDate = resolveLongTermFollowUpDate(null);
-    } else if (!nextOption) {
+    else if (!nextOption) {
       // No What's Next chosen but real activity logged → default to long-term touch.
       nextDate = resolveLongTermFollowUpDate(null);
     }
