@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDateOnly } from "@/lib/dateOnly";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
+import DiscountTypeChips from "@/components/DiscountTypeChips";
 
 export default function EditOrder() {
   const { id } = useParams<{ id: string }>();
