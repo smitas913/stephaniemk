@@ -86,6 +86,7 @@ export default function AddOrder() {
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   
   const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
+  const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
   const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
