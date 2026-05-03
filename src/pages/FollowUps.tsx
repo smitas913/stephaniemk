@@ -2503,94 +2503,78 @@ export default function FollowUps() {
                             ) : (
                               <div className="divide-y divide-border/40">
                                 {reschedulingFollowUp.map((evt) => {
-                                  const todayKey = toLocalDateKey();
-                                  const fuDate = evt.reschedule_next_follow_up_date;
-                                  const isDueNow = !fuDate || fuDate <= todayKey;
-                                  // Build single-line subtext: "Reschedule • Party • Orig Mar 4 • Attempt 2"
-                                  const ctxParts: string[] = ["Reschedule"];
-                                  if (evt.event_type) ctxParts.push(evt.event_type);
-                                  if (evt.event_date) ctxParts.push(`Orig ${formatDateOnly(evt.event_date)}`);
-                                  if (evt.reschedule_attempt_number) ctxParts.push(`Attempt ${evt.reschedule_attempt_number}`);
-                                  const ctxLine = ctxParts.join(" • ");
+                                  const metaParts: string[] = [];
+                                  if (evt.reschedule_last_contact_date) {
+                                    metaParts.push(`Last contacted: ${formatLastContacted(evt.reschedule_last_contact_date)}`);
+                                  }
+                                  if (evt.event_date) metaParts.push(`Orig ${formatDateOnly(evt.event_date)}`);
                                   return (
-                                    <div key={evt.id} className="py-3 px-1 group hover:bg-muted/30 transition-colors rounded-md">
-                                      <div className="flex items-center gap-3">
-                                        <div
-                                          className="flex-1 min-w-0 cursor-pointer"
-                                          onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}
+                                    <div key={evt.id} className="py-3 px-2 group hover:bg-muted/30 transition-colors rounded-md">
+                                      {/* Line 1: Name */}
+                                      <div
+                                        className="flex items-center gap-2 cursor-pointer"
+                                        onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}
+                                      >
+                                        <p className="text-base font-semibold text-foreground break-words">
+                                          {evt.hostess_name || evt.event_id}
+                                        </p>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                                          Event
+                                        </span>
+                                      </div>
+
+                                      {/* Line 2: Follow-up type */}
+                                      <p className="text-sm text-foreground/80 mt-0.5">Event Follow-Up</p>
+
+                                      {/* Line 3: Meta */}
+                                      {metaParts.length > 0 && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">{metaParts.join(" • ")}</p>
+                                      )}
+
+                                      {/* Line 4: Actions */}
+                                      <div className="flex items-center gap-1 mt-2">
+                                        {evt.hostess_phone && (
+                                          <>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Call" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                              <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-4 h-4 text-primary" /></a>
+                                            </Button>
+                                            <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-8 w-8" />
+                                          </>
+                                        )}
+                                        {evt.hostess_email && (
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Email">
+                                            <a href={`mailto:${evt.hostess_email}`} onClick={(e) => openEmail(evt.hostess_email!, e)}>
+                                              <Mail className="w-4 h-4 text-primary" />
+                                            </a>
+                                          </Button>
+                                        )}
+                                        {evt.requires_manual_next_step ? (
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setManualNextStepEvent(evt)} title="Choose Next Step">
+                                            <FileText className="w-4 h-4 text-primary" />
+                                          </Button>
+                                        ) : (
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRescheduleUniversalPanel(evt)} title="Log Activity">
+                                            <FileText className="w-4 h-4 text-primary" />
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}
+                                          title="Set New Date"
                                         >
-                                          <div className="flex items-center gap-2">
-                                            <p className="text-sm font-semibold text-foreground truncate">{evt.hostess_name || evt.event_id}</p>
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                              Event
-                                            </span>
-                                            {evt.requires_manual_next_step && (
-                                              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-secondary text-secondary-foreground">
-                                                Manual
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-                                            <span>{ctxLine}</span>
-                                            {evt.reschedule_last_contact_date && (
-                                              <span>• Last contact: {formatLastContacted(evt.reschedule_last_contact_date)}</span>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                          {isDueNow && (
-                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
-                                              Due
-                                            </span>
-                                          )}
-                                          {evt.hostess_phone && (
-                                            <>
-                                              <Button variant="ghost" size="icon" className="h-8 w-8" asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                                <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                              </Button>
-                                              <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-8 w-8" />
-                                            </>
-                                          )}
-                                          {evt.requires_manual_next_step ? (
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8"
-                                              onClick={() => setManualNextStepEvent(evt)}
-                                              title="Choose Next Step"
-                                            >
-                                              <FileText className="w-3.5 h-3.5 text-primary" />
-                                            </Button>
-                                          ) : (
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-8 w-8"
-                                              onClick={() => openRescheduleUniversalPanel(evt)}
-                                              title="Log Activity"
-                                            >
-                                              <FileText className="w-3.5 h-3.5 text-primary" />
-                                            </Button>
-                                          )}
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}
-                                            title="Set New Date"
-                                          >
-                                            <CalendarCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}
-                                            title="Open Event"
-                                          >
-                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                          </Button>
-                                        </div>
+                                          <CalendarCheck className="w-4 h-4 text-muted-foreground" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}
+                                          title="Open Event"
+                                        >
+                                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                        </Button>
                                       </div>
                                     </div>
                                   );
@@ -4654,78 +4638,78 @@ function ActionRow({
   const badge = TYPE_BADGE[item.itemType];
   const isOpen = inlineNoteId === item.id;
 
-  // Build a clean, single-line context string instead of multiple stacked labels.
-  // Examples: "Order follow-up • 27d since order", "Hostess Coaching", "Booking Lead - Web"
+  // Map itemType → follow-up type label (Line 2). Prefer specific reason when present.
   const GENERIC_REASONS = new Set([
     "Manual Follow-Up", "Manual Follow Up", "Follow-Up", "Follow Up",
     "Customer Follow-Up", "Customer Follow Up",
   ]);
   const isGeneric = (s?: string) => !s || GENERIC_REASONS.has(s.trim());
   const baseReason = isGeneric(item.followUpReason) ? "" : (item.followUpReason || "");
-  // For customers: prefer compact "Order follow-up" framing when we have order recency
-  const hasOrderRecency = item.itemType === "customer" && item.days_since_last_order != null;
-  const contextParts: string[] = [];
-  if (hasOrderRecency) {
-    contextParts.push(baseReason || "Order follow-up");
-    contextParts.push(`${item.days_since_last_order}d since order`);
-  } else if (baseReason) {
-    contextParts.push(baseReason);
-  } else if (!isGeneric(item.actionLabel)) {
-    contextParts.push(item.actionLabel);
+  const defaultTypeByItem: Record<string, string> = {
+    customer: "Order Follow-Up",
+    lead: "Booking Follow-Up",
+    prospect: "Booking Follow-Up",
+    hostess: "Event Follow-Up",
+    event_task: "Event Follow-Up",
+    consultant: "Consultant Follow-Up",
+  };
+  const followUpTypeLabel = baseReason || defaultTypeByItem[item.itemType] || "Follow-Up";
+
+  const metaParts: string[] = [];
+  if (item.lastContacted) metaParts.push(`Last contacted: ${formatLastContacted(item.lastContacted)}`);
+  if (item.itemType === "customer" && item.days_since_last_order != null) {
+    metaParts.push(`${item.days_since_last_order}d since order`);
   }
-  const contextLine = contextParts.join(" • ");
 
   return (
     <div>
-      <div className="py-3 px-1 group hover:bg-muted/30 transition-colors rounded-md">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenQuickAction || onOpenDetail}>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
-              {item.vip === "VIP" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>}
-              <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", badge.className)}>
-                {badge.label}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-              {contextLine && <span>{contextLine}</span>}
-              {item.lastContacted && <span>• Last contact: {formatLastContacted(item.lastContacted)}</span>}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {item.allow_non_working_day && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">Any Day</span>
-            )}
-            {item.follow_up_status === "OVERDUE" ? (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">
-                {item.daysOverdue ? `${item.daysOverdue}d overdue` : "Overdue"}
-              </span>
-            ) : (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Today</span>
-            )}
-            {onToggleWorkdayOverride && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn("h-8 w-8", item.allow_non_working_day ? "text-primary" : "text-muted-foreground")}
-                onClick={(e) => { e.stopPropagation(); onToggleWorkdayOverride(!item.allow_non_working_day); }}
-                title={item.allow_non_working_day ? "Remove non-working day override" : "Allow on non-working days"}
-              >
-                <CalendarCheck className="w-3.5 h-3.5" />
-              </Button>
-            )}
-            {item.phone && (
-              <>
-                <Button variant="ghost" size="icon" className="h-8 w-8" asChild><a href={`tel:${item.phone}`}><Phone className="w-3.5 h-3.5 text-primary" /></a></Button>
-                <TextActionButton phone={item.phone} trigger="icon" className="h-8 w-8" />
-              </>
-            )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleInline} title="Log Activity"><FileText className="w-3.5 h-3.5 text-primary" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenDetail}><ChevronRight className="w-4 h-4 text-muted-foreground" /></Button>
-          </div>
+      <div className="py-3 px-2 group hover:bg-muted/30 transition-colors rounded-md">
+        {/* Line 1: Name (full, never truncated) */}
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={onOpenQuickAction || onOpenDetail}
+        >
+          <p className="text-base font-semibold text-foreground break-words">{item.name}</p>
+          {item.vip === "VIP" && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>
+          )}
+          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", badge.className)}>
+            {badge.label}
+          </span>
         </div>
-        {item.lastNotePreview && <p className="text-[11px] text-muted-foreground truncate mt-1 italic">📝 {item.lastNotePreview}</p>}
-        {item.lastNextStep && <p className="text-[11px] text-primary truncate mt-0.5">➡️ Next: {item.lastNextStep}</p>}
+
+        {/* Line 2: Follow-up type */}
+        <p className="text-sm text-foreground/80 mt-0.5">{followUpTypeLabel}</p>
+
+        {/* Line 3: Meta (smaller) */}
+        {metaParts.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-0.5">{metaParts.join(" • ")}</p>
+        )}
+
+        {/* Line 4: Actions */}
+        <div className="flex items-center gap-1 mt-2">
+          {item.phone && (
+            <>
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Call">
+                <a href={`tel:${item.phone}`}><Phone className="w-4 h-4 text-primary" /></a>
+              </Button>
+              <TextActionButton phone={item.phone} trigger="icon" className="h-8 w-8" />
+            </>
+          )}
+          {item.email && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Email">
+              <a href={`mailto:${item.email}`} onClick={(e) => openEmail(item.email!, e)}>
+                <Mail className="w-4 h-4 text-primary" />
+              </a>
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleInline} title="Log Activity">
+            <FileText className="w-4 h-4 text-primary" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenDetail} title="Open profile">
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </Button>
+        </div>
       </div>
       {isOpen && (
         <div className="pb-3 space-y-2 border-t border-border/30 pt-2 bg-muted/20 rounded-b-md px-3">
