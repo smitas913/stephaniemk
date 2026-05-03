@@ -242,12 +242,27 @@ export default function AddOrder() {
     [financialSettings, isCreditCard, ccTxType]
   );
 
+  const profitMarginRate = financialSettings?.profit_margin_rate ?? 50;
+
+  // Auto-fill wholesale = retail × (1 − margin%) unless user overrode it.
+  useEffect(() => {
+    if (wholesaleManual) return;
+    const r = Number(retailAmount) || 0;
+    if (r <= 0) {
+      setWholesaleAmount("");
+      return;
+    }
+    const auto = +(r * (1 - profitMarginRate / 100)).toFixed(2);
+    setWholesaleAmount(auto.toFixed(2));
+  }, [retailAmount, profitMarginRate, wholesaleManual]);
+
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
     const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
     const overrideRaw = ccFeeOverride.trim();
     const override = overrideRaw === "" ? null : Number(overrideRaw);
+    const wholesaleNum = wholesaleAmount === "" ? null : Number(wholesaleAmount);
     return computeOrderFinancials({
       orderTotal,
       discount,
@@ -255,10 +270,11 @@ export default function AddOrder() {
       ccFeePct: processorFee.pct,
       ccFeeFlat: processorFee.flat,
       ccFeeOverride: override != null && !Number.isNaN(override) ? override : null,
-      profitMarginRate: financialSettings?.profit_margin_rate ?? 50,
+      profitMarginRate,
       isCreditCard,
+      wholesale: wholesaleNum != null && !Number.isNaN(wholesaleNum) ? wholesaleNum : null,
     });
-  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard]);
+  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard, wholesaleAmount, profitMarginRate]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
