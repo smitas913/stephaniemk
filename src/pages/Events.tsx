@@ -158,6 +158,15 @@ export default function Events() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const markHeldMutation = useMutation({
+    mutationFn: (e: EventRecord) => upsertEvent({ event_id: e.event_id, event_status: "Held" } as any),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Event marked complete");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const eventSales = useMemo(() => {
     const map = new Map<string, { total: number; orderCount: number }>();
     for (const o of orders) {
@@ -261,9 +270,6 @@ export default function Events() {
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="Party">Party</SelectItem>
               <SelectItem value="Facial">Facial</SelectItem>
-              <SelectItem value="Sharing Appointment">Sharing Appt</SelectItem>
-              <SelectItem value="Networking Event">Networking</SelectItem>
-              <SelectItem value="Vendor Event">Vendor</SelectItem>
             </SelectContent>
           </Select>
           <Select value={formatFilter} onValueChange={setFormatFilter}>
