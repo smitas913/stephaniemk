@@ -587,7 +587,7 @@ export default function CustomerDetail() {
                   <InfoRow label="Birthday" value={(customer as any).birthday ? formatDate((customer as any).birthday) : customer.birthday_mmdd} />
                   {(() => {
                     const fullAddress = [customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
-                    const mapsUrl = fullAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}` : null;
+                    const mapsUrl = fullAddress ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}` : null;
                     return (
                       <div className="flex flex-col gap-0.5 py-1.5 sm:col-span-1">
                         <span className="text-muted-foreground text-xs">Address</span>
