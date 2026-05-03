@@ -2997,38 +2997,7 @@ export default function FollowUps() {
 
                   {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
-                  {/* ═══ SECTION 6: Thoughtful Touches — quick-log card (no required tasks) ═══ */}
-                  {!hideWorkflow && (
-                    <Card className="border-border/50 shadow-sm">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
-                              <Heart className="w-4 h-4 text-pink-600" />
-                            </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Thoughtful Touches</CardTitle>
-                            {monthlyTouchCount > 0 && (
-                              <Badge variant="secondary" className="text-xs">{monthlyTouchCount} this month</Badge>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground hidden sm:block">Cards · gifts · personal check-ins</p>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex flex-wrap gap-1.5">
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
-                            <FileText className="w-3.5 h-3.5" /> Sent a Card
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
-                            <Gift className="w-3.5 h-3.5" /> Gave a Gift
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
-                            <Phone className="w-3.5 h-3.5" /> Personal Check-In
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                  {/* Thoughtful Touches merged into Relationships card above */}
                 </div>
               </TabsContent>
 
