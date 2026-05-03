@@ -313,17 +313,38 @@ export default function Orders() {
               {FACE_TYPES.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={filterHostess} onCheckedChange={(v) => setFilterHostess(!!v)} /> Hostess
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={filterBirthday} onCheckedChange={(v) => setFilterBirthday(!!v)} /> Birthday
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox checked={filterReferral} onCheckedChange={(v) => setFilterReferral(!!v)} /> Referral
-            </label>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 text-xs">
+                Discount Tags{filterDiscountIds.length > 0 ? ` (${filterDiscountIds.length})` : ""}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start">
+              <div className="space-y-1 max-h-64 overflow-auto">
+                {discountTypes.filter((d) => !d.is_archived).map((d) => {
+                  const checked = filterDiscountIds.includes(d.id);
+                  return (
+                    <label key={d.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted px-2 py-1 rounded">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setFilterDiscountIds((prev) =>
+                            v ? [...prev, d.id] : prev.filter((id) => id !== d.id),
+                          )
+                        }
+                      />
+                      {shortLabel(d.name)}
+                    </label>
+                  );
+                })}
+                {filterDiscountIds.length > 0 && (
+                  <button type="button" className="text-[11px] text-primary hover:underline px-2 pt-1" onClick={() => setFilterDiscountIds([])}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" className="h-9 text-xs text-muted-foreground" onClick={clearFilters}>
               <X className="w-3 h-3 mr-1" />Clear
@@ -358,18 +379,7 @@ export default function Orders() {
                   <TableHead className="text-xs w-[60px] cursor-pointer select-none" onClick={() => toggleSort("face_type")}>
                     <span className="flex items-center">Face<SortIcon field="face_type" /></span>
                   </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("hostess")}>
-                    <span className="flex items-center justify-center">H<SortIcon field="hostess" /></span>
-                  </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("half_price_deal")}>
-                    <span className="flex items-center justify-center">½<SortIcon field="half_price_deal" /></span>
-                  </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("birthday")}>
-                    <span className="flex items-center justify-center">BD<SortIcon field="birthday" /></span>
-                  </TableHead>
-                  <TableHead className="text-xs text-center w-[40px] cursor-pointer select-none" onClick={() => toggleSort("referral")}>
-                    <span className="flex items-center justify-center">Ref<SortIcon field="referral" /></span>
-                  </TableHead>
+                  <TableHead className="text-xs w-[180px]">Discount Tags</TableHead>
                   <TableHead className="text-xs w-[90px] cursor-pointer select-none" onClick={() => toggleSort("payment_status")}>
                     <span className="flex items-center">Pay<SortIcon field="payment_status" /></span>
                   </TableHead>
