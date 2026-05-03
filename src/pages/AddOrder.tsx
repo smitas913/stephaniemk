@@ -71,6 +71,7 @@ export default function AddOrder() {
   const [savedCount, setSavedCount] = useState(0);
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   const [needsCatalog, setNeedsCatalog] = useState(false);
+  const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
@@ -101,7 +102,12 @@ export default function AddOrder() {
   useEffect(() => {
     if (customerId) {
       const c = customers.find(c => c.id === customerId);
-      if (c) setCustomerName(c.full_name);
+      if (c) {
+        setCustomerName(c.full_name);
+        setIsSkincareCustomer(!!(c as any).is_skincare_customer);
+      }
+    } else {
+      setIsSkincareCustomer(false);
     }
   }, [customerId, customers]);
 
@@ -251,6 +257,18 @@ export default function AddOrder() {
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
       });
+
+      // Persist Skincare Customer toggle to the customer profile
+      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
+        try {
+          await supabase
+            .from("customers")
+            .update({ is_skincare_customer: true })
+            .eq("id", resolvedCustomerId);
+        } catch (e) {
+          console.error("Failed to update skincare flag", e);
+        }
+      }
 
       // Auto-schedule post-order follow-up — SKIP for non-customer orders and
       // for DNC customers when the user opted to keep the DNC tag.
@@ -700,10 +718,27 @@ export default function AddOrder() {
           <span className="text-sm">
             <span className="font-medium text-foreground">Needs new catalog follow-up</span>
             <span className="block text-xs text-muted-foreground">
-              Schedules follow-up at order date + 25 days instead of the default + 14 days.
             </span>
           </span>
         </label>
+
+        {/* Skincare Customer toggle */}
+        {!isNonCustomer && (
+          <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+            <input
+              type="checkbox"
+              checked={isSkincareCustomer}
+              onChange={e => setIsSkincareCustomer(e.target.checked)}
+              className="mt-0.5 rounded border-border"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-foreground">Skincare Customer</span>
+              <span className="block text-xs text-muted-foreground">
+                Tag this customer as a skincare customer. Editable later from their profile.
+              </span>
+            </span>
+          </label>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
