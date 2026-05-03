@@ -30,6 +30,7 @@ import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { normalizeStateAbbreviation } from "@/lib/usStates";
+import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEditFieldDialog";
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
@@ -358,6 +359,7 @@ export default function CustomerDetail() {
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [quickEditField, setQuickEditField] = useState<QuickEditField | null>(null);
 
   const convertToConsultantMut = useMutation({
     mutationFn: () => convertCustomerToConsultant(customer!),
@@ -484,6 +486,7 @@ export default function CustomerDetail() {
         {/* Profile Completion */}
         <ProfileCompletionCard
           customer={customer as any}
+          onQuickEdit={(f) => setQuickEditField(f)}
           onEditField={() => {
             setEditing(true);
             // Scroll the customer info card into view on next tick
@@ -491,6 +494,11 @@ export default function CustomerDetail() {
               document.getElementById("customer-info-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
             }, 50);
           }}
+        />
+        <QuickEditFieldDialog
+          customer={customer as any}
+          field={quickEditField}
+          onClose={() => setQuickEditField(null)}
         />
 
         {/* Customer Info Card */}
