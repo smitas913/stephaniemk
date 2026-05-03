@@ -185,11 +185,15 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     let reasonForLog = selectedReason;
     if (optionKey === "tomorrow") nextDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
     else if (optionKey === "next-week") nextDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
-    else if (optionKey === "none") {
-      // Long-term maintenance touch — keep customer in lifecycle, push out ~75 days.
-      // Priority override: if a higher-priority (sooner) follow-up already exists, keep it.
-      nextDate = resolveLongTermFollowUpDate(item.nextFollowUpDate);
-      reasonForLog = selectedReason || "No Follow-Up Needed (Long-Term Touch)";
+    else if (optionKey === "30d") {
+      nextDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "30-Day Check-In";
+    } else if (optionKey === "60d") {
+      nextDate = format(addDays(new Date(), 60), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "60-Day Mid-Cycle";
+    } else if (optionKey === "90d") {
+      nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
+      reasonForLog = selectedReason || "90-Day Reorder / Reconnect";
     }
 
     const tags = getAutoTags(item.personType, selectedReason);
