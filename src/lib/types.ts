@@ -60,6 +60,7 @@ export interface Order {
   payout_amount: number | null;
   notes: string | null;
   parent_event_id: string | null;
+  is_myshop_order?: boolean;
   created_at: string;
   updated_at: string;
 }
