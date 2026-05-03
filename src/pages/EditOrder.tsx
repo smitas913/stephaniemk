@@ -15,6 +15,7 @@ import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDateOnly } from "@/lib/dateOnly";
+import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 
 export default function EditOrder() {
   const { id } = useParams<{ id: string }>();
@@ -35,10 +36,7 @@ export default function EditOrder() {
   const [paymentType, setPaymentType] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"Paid" | "Unpaid">("Paid");
   const [notes, setNotes] = useState("");
-  const [hostess, setHostess] = useState(false);
-  const [halfPrice, setHalfPrice] = useState(false);
-  const [birthday, setBirthday] = useState(false);
-  const [referral, setReferral] = useState(false);
+  const [tags, setTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
 
   useEffect(() => {
     if (order) {
@@ -50,10 +48,13 @@ export default function EditOrder() {
       setPaymentType(order.payment_type || "");
       setPaymentStatus(order.payment_status === "Unpaid" || !order.payment_type ? "Unpaid" : "Paid");
       setNotes(order.notes || "");
-      setHostess(!!order.hostess);
-      setHalfPrice(!!order.half_price_deal);
-      setBirthday(!!order.birthday);
-      setReferral(!!order.referral);
+      setTags({
+        hostess: !!order.hostess,
+        half_price: !!order.half_price_deal,
+        birthday: !!order.birthday,
+        referral: !!order.referral,
+        myshop: !!(order as any).is_myshop_order,
+      });
     }
   }, [order]);
 
@@ -98,10 +99,11 @@ export default function EditOrder() {
       payment_status: paymentStatus,
       payment_type: paymentStatus === "Unpaid" ? null : (paymentType || null),
       notes: notes || null,
-      hostess,
-      half_price_deal: halfPrice,
-      birthday,
-      referral,
+      hostess: tags.hostess,
+      half_price_deal: tags.half_price,
+      birthday: tags.birthday,
+      referral: tags.referral,
+      is_myshop_order: !!tags.myshop,
     });
   };
 
@@ -232,19 +234,13 @@ export default function EditOrder() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-5">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={hostess} onCheckedChange={(v) => setHostess(!!v)} /> Hostess
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={halfPrice} onCheckedChange={(v) => setHalfPrice(!!v)} /> Half Price
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={birthday} onCheckedChange={(v) => setBirthday(!!v)} /> Birthday
-              </label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={referral} onCheckedChange={(v) => setReferral(!!v)} /> Referral
-              </label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Order Tags</label>
+              <OrderTagChips
+                value={tags}
+                onChange={setTags}
+                include={["hostess", "half_price", "birthday", "referral", "myshop"]}
+              />
             </div>
 
             <div className="space-y-1.5">
