@@ -300,7 +300,7 @@ export default function LeadDetail() {
               <dl className="text-sm space-y-2">
                 <Row icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={lead.phone ? formatPhone(lead.phone) : "—"} />
                 <Row icon={<Mail className="w-3.5 h-3.5" />} label="Email" value={lead.email || "—"} />
-                <Row icon={<MapPin className="w-3.5 h-3.5" />} label="Address" value={fullAddress || "—"} />
+                <Row icon={<MapPin className="w-3.5 h-3.5" />} label="Address" value={fullAddress ? (<a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{fullAddress}</a>) : "—"} />
               </dl>
             )}
           </CardContent>
