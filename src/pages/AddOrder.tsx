@@ -156,12 +156,61 @@ export default function AddOrder() {
 
   const [highlightIdx, setHighlightIdx] = useState(0);
   useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
+
+  // Field refs for keyboard tab/Enter flow
+  const customerSearchRef = useRef<HTMLInputElement>(null);
   const retailInputRef = useRef<HTMLInputElement>(null);
+  const discountInputRef = useRef<HTMLInputElement>(null);
+  const notesInputRef = useRef<HTMLTextAreaElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+
   const selectCustomer = useCallback((id: string) => {
     setCustomerId(id);
     setCustomerSearch("");
     setTimeout(() => retailInputRef.current?.focus(), 50);
   }, []);
+
+  // Auto-focus on mount: Retail if customer already chosen, else Customer search
+  useEffect(() => {
+    if (!orderType) return;
+    const t = setTimeout(() => {
+      if (customerId || isNonCustomer) retailInputRef.current?.focus();
+      else customerSearchRef.current?.focus();
+    }, 80);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderType]);
+
+  // Payment Method keyboard shortcuts (only when not typing in text input)
+  useEffect(() => {
+    const PAYMENT_SHORTCUTS: Record<string, string> = {
+      c: "Cash", v: "Venmo", z: "Zelle", k: "Check",
+      r: "Credit Card", a: "CashApp", p: "Paypal", m: "MyShop",
+    };
+    const handler = (e: KeyboardEvent) => {
+      if (paymentStatus !== "Paid") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tgt = e.target as HTMLElement | null;
+      const tag = tgt?.tagName;
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || (tgt as any)?.isContentEditable;
+      if (isEditable) return;
+      const key = e.key.toLowerCase();
+      const match = PAYMENT_SHORTCUTS[key];
+      if (match) {
+        e.preventDefault();
+        setPaymentType(match);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [paymentStatus]);
+
+  const enterAdvance = (target: React.RefObject<HTMLElement>) => (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      target.current?.focus();
+    }
+  };
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedEvent = events.find(e => e.event_id === selectedEventId);
