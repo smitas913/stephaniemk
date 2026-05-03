@@ -27,18 +27,20 @@ export async function applyNewCustomerFollowUp(
   let nextDate: string;
   let reason: string;
   let planNote: string | null = null;
+  let stage: string | null = null;
 
   if (choice === "222") {
     const d2 = addDays(2);
     const d2w = addDays(14);
     const d2m = addDays(60);
     nextDate = d2;
-    reason = "2+2+2 Sequence — Step 1 of 3 (initial check-in)";
+    reason = "Product Check-In / Order Follow-Up";
+    stage = "2 Day";
     planNote =
       `2+2+2 follow-up sequence started${baseDate ? ` from order date ${baseDate}` : ""}:\n` +
-      `• Step 1 — ${d2}: Initial product experience check-in\n` +
-      `• Step 2 — ${d2w}: Reorder / appointment opportunity\n` +
-      `• Step 3 — ${d2m}: Transition to long-term care`;
+      `• Step 1 — ${d2}: 2 Day — Initial product experience check-in\n` +
+      `• Step 2 — ${d2w}: 2 Week — Reorder / appointment opportunity\n` +
+      `• Step 3 — ${d2m}: 2 Month / PCP — Transition to long-term care`;
   } else if (choice === "custom" && customDate) {
     nextDate = customDate;
     reason = "Custom follow-up";
@@ -50,6 +52,7 @@ export async function applyNewCustomerFollowUp(
   await updateCustomer(customerId, {
     next_follow_up_date: nextDate,
     follow_up_reason: reason,
+    new_follow_up_stage: stage,
   } as any);
 
   if (planNote) {
