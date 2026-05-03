@@ -185,11 +185,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
+    if (isInbound) parts.push("[Inbound]");
     if (selectedReason) parts.push(`[${selectedReason}]`);
     if (noteText.trim()) parts.push(noteText.trim());
-    if (parts.length === 0) parts.push(`${selectedAction || "Call"} contact`);
+    if (parts.length === 0 || (parts.length === 1 && isInbound)) {
+      parts.push(`${selectedAction || "Call"} contact`);
+    }
     return parts.join(" ");
-  }, [selectedReason, noteText, selectedAction]);
+  }, [selectedReason, noteText, selectedAction, isInbound]);
 
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
