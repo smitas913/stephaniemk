@@ -338,7 +338,8 @@ export default function AddOrder() {
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
         notes: notes || undefined,
         parent_event_id: isEventBased ? selectedEventId : null,
-      });
+        is_myshop_order: isMyShopOrder,
+      } as any);
 
       // Persist Skincare Customer toggle to the customer profile
       if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
