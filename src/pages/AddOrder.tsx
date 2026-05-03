@@ -797,17 +797,29 @@ export default function AddOrder() {
           <div>
             <label className="text-sm font-medium text-foreground">Payment Method *</label>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              {PAYMENT_TYPES.map(p => (
-                <button key={p} type="button"
-                  className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
-                    paymentType === p
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted"
-                  )}
-                  onClick={() => setPaymentType(paymentType === p ? "" : p)}
-                >{p}</button>
-              ))}
+              {PAYMENT_TYPES.map(p => {
+                const shortcutMap: Record<string, string> = {
+                  Cash: "C", Venmo: "V", Zelle: "Z", Check: "K",
+                  "Credit Card": "R", CashApp: "A", Paypal: "P", MyShop: "M",
+                };
+                const sc = shortcutMap[p];
+                return (
+                  <button key={p} type="button"
+                    title={sc ? `Shortcut: ${sc}` : undefined}
+                    className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
+                      paymentType === p
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setPaymentType(paymentType === p ? "" : p)}
+                  >
+                    {p}
+                    {sc && <span className="ml-1 opacity-60 text-[10px]">({sc})</span>}
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-[11px] text-muted-foreground mt-1">Tip: press a shortcut letter to select.</p>
           </div>
         )}
 
