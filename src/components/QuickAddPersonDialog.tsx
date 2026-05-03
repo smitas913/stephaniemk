@@ -374,6 +374,40 @@ export default function QuickAddPersonDialog({
     }
   };
 
+  // Non-customer Face follow-up: applies optional tags + optional follow-up date.
+  // DNC short-circuits any follow-up. Lead/Prospect tags only added if explicitly toggled.
+  const applyNonCustomerChoice = async (action: "save" | "skip") => {
+    if (!nonCustomerPrompt) return;
+    setBusy(true);
+    try {
+      if (action === "save") {
+        const updates: any = {};
+        const tagSet = new Set<string>();
+        if (nonCustomerTags.lead) tagSet.add("Lead");
+        if (nonCustomerTags.prospect) tagSet.add("Prospect");
+        if (nonCustomerTags.dnc) tagSet.add("DNC");
+        if (tagSet.size > 0) updates.tags = Array.from(tagSet);
+        if (!nonCustomerTags.dnc && nonCustomerFollowUpDate) {
+          updates.next_follow_up_date = nonCustomerFollowUpDate;
+          updates.follow_up_reason = "Face — non-customer follow-up";
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateCustomer(nonCustomerPrompt.customerId, updates);
+        }
+        toast.success(nonCustomerTags.dnc ? "Marked Do Not Contact" : "Saved");
+      }
+    } catch (e: any) {
+      toast.error(`Failed: ${e?.message ?? "Unknown error"}`);
+    } finally {
+      setBusy(false);
+      setNonCustomerPrompt(null);
+      setNonCustomerTags({ lead: false, prospect: false, dnc: false });
+      setNonCustomerFollowUpDate("");
+      onLogged();
+      onOpenChange(false);
+    }
+  };
+
   const meta = resultType ? TITLES[resultType] : null;
 
   return (
