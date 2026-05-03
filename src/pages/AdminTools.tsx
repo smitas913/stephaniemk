@@ -60,6 +60,10 @@ export default function AdminTools() {
               <Monitor className="w-4 h-4" />
               Zoom
             </TabsTrigger>
+            <TabsTrigger value="orders" className="gap-1.5">
+              <ShoppingBag className="w-4 h-4" />
+              Order Options
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
