@@ -150,6 +150,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const [bookingAttemptOverride, setBookingAttemptOverride] = useState<boolean | null>(null);
   // "Inbound Response" toggle — independent of category/booking. Reactive vs outbound.
   const [isInbound, setIsInbound] = useState(false);
+  // Booking Created — appointment was actually scheduled (not just asked for).
+  const [bookingCreated, setBookingCreated] = useState(false);
+  const [bookingCreatedType, setBookingCreatedType] = useState<"Facial" | "Party" | "Career Chat" | null>(null);
 
   const resetState = useCallback(() => {
     setStep("action");
@@ -161,6 +164,8 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setSelectedReason(null);
     setBookingAttemptOverride(null);
     setIsInbound(false);
+    setBookingCreated(false);
+    setBookingCreatedType(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -179,13 +184,26 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (isInbound) parts.push("[Inbound]");
+    if (bookingCreated && bookingCreatedType) parts.push(`[Booking Created: ${bookingCreatedType}]`);
     if (selectedReason) parts.push(`[${selectedReason}]`);
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0 || (parts.length === 1 && isInbound)) {
       parts.push(`${selectedAction || "Call"} contact`);
     }
     return parts.join(" ");
-  }, [selectedReason, noteText, selectedAction, isInbound]);
+  }, [selectedReason, noteText, selectedAction, isInbound, bookingCreated, bookingCreatedType]);
+
+  const navigateToCreateEvent = useCallback(() => {
+    if (!item || !bookingCreated || !bookingCreatedType) return false;
+    if (bookingCreatedType === "Career Chat") return false; // logged on note only
+    const params = new URLSearchParams({
+      type: bookingCreatedType,
+      hostess: item.name || "",
+      ...(item.phone ? { phone: item.phone } : {}),
+    });
+    navigate(`/events/new?${params.toString()}`);
+    return true;
+  }, [item, bookingCreated, bookingCreatedType, navigate]);
 
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
@@ -208,7 +226,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     }
 
     const tags = getAutoTags(item.personType, selectedReason);
-    const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isBookingAttempt = bookingCreated ? true : (bookingAttemptOverride ?? tags.isBookingAttempt);
     const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
@@ -220,13 +238,15 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       followUpReason: reasonForLog,
       category: tags.category,
     });
+    const navigated = navigateToCreateEvent();
     handleClose();
-  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
+    if (navigated) return;
+  }, [item, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, bookingCreated, onLogAction, handleClose, navigateToCreateEvent]);
 
   const handleScheduleDate = useCallback(() => {
     if (!item || !customDate) return;
     const tags = getAutoTags(item.personType, selectedReason);
-    const isBookingAttempt = bookingAttemptOverride ?? tags.isBookingAttempt;
+    const isBookingAttempt = bookingCreated ? true : (bookingAttemptOverride ?? tags.isBookingAttempt);
     const isFollowUp = isInbound && !isBookingAttempt ? false : tags.isFollowUp;
     onLogAction({
       item,
@@ -238,8 +258,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
       followUpReason: selectedReason,
       category: tags.category,
     });
+    navigateToCreateEvent();
     handleClose();
-  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, onLogAction, handleClose]);
+  }, [item, customDate, selectedAction, buildNote, selectedReason, bookingAttemptOverride, isInbound, bookingCreated, onLogAction, handleClose, navigateToCreateEvent]);
 
   if (!item) return null;
 
@@ -507,6 +528,52 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   );
                 })()}
 
+                {/* Booking Created — appointment actually scheduled */}
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <Checkbox
+                      checked={bookingCreated}
+                      onCheckedChange={(v) => {
+                        const checked = v === true;
+                        setBookingCreated(checked);
+                        if (!checked) setBookingCreatedType(null);
+                      }}
+                    />
+                    <span className="text-sm font-medium text-foreground">Booking Created</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Appointment scheduled</span>
+                  </label>
+                  {bookingCreated && (
+                    <div className="pl-6 space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground">Type *</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(["Facial", "Party", "Career Chat"] as const).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setBookingCreatedType(t)}
+                            className={cn(
+                              "px-3 py-1 rounded-full text-xs font-medium border transition-all",
+                              bookingCreatedType === t
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-background text-muted-foreground hover:border-primary/50"
+                            )}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                      {!bookingCreatedType && (
+                        <p className="text-[10px] text-destructive">Pick a type to continue.</p>
+                      )}
+                      {bookingCreatedType && bookingCreatedType !== "Career Chat" && (
+                        <p className="text-[10px] text-muted-foreground italic">
+                          You'll be sent to New Event after saving to set the date & details.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">What's next?</p>
                   <div className="space-y-1.5">
@@ -516,7 +583,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                         <button
                           key={option.key}
                           type="button"
-                          disabled={isPending}
+                          disabled={isPending || (bookingCreated && !bookingCreatedType)}
                           onClick={() => handleWhatsNext(option.key)}
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left",

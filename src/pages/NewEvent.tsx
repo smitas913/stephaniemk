@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEvents, upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
@@ -35,6 +36,7 @@ const VIRTUAL_PLATFORMS = [
 
 export default function NewEvent() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
@@ -57,6 +59,20 @@ export default function NewEvent() {
   const [platformName, setPlatformName] = useState("");
   const [platformLink, setPlatformLink] = useState("");
   const [virtualNotes, setVirtualNotes] = useState("");
+
+  // Prefill from query params (e.g. when navigated from "Booking Created" in interaction panel)
+  useEffect(() => {
+    const t = searchParams.get("type");
+    const h = searchParams.get("hostess");
+    const p = searchParams.get("phone");
+    if (t && ["Party", "Facial", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
+      setEventType(t);
+    }
+    if (h) setHostessName(h);
+    if (p) setHostessPhone(p);
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isLeadGen = eventType === "Lead Generating Event";
   const isVirtual = eventFormat === "Virtual";
