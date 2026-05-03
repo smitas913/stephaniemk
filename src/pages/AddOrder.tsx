@@ -727,7 +727,7 @@ export default function AddOrder() {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Retail Amount *</label>
-            <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} className="h-9" />
+            <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
           </div>
         </div>
 
