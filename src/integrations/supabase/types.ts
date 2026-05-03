@@ -1178,6 +1178,7 @@ export type Database = {
           half_price_deal: boolean | null
           hostess: boolean | null
           id: string
+          is_myshop_order: boolean
           net_profit: number | null
           net_received: number | null
           notes: string | null
@@ -1207,6 +1208,7 @@ export type Database = {
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          is_myshop_order?: boolean
           net_profit?: number | null
           net_received?: number | null
           notes?: string | null
@@ -1236,6 +1238,7 @@ export type Database = {
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          is_myshop_order?: boolean
           net_profit?: number | null
           net_received?: number | null
           notes?: string | null
