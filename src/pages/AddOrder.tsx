@@ -486,11 +486,11 @@ export default function AddOrder() {
         } catch (e) { console.error("Failed to update skincare flag", e); }
       }
 
-      // Only auto-schedule a follow-up when the order is dated today or in the
-      // future. Backdated/historical orders should not create follow-ups.
-      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && orderDate >= toLocalDateKey()) {
+      // Only create a follow-up when the user explicitly selected an intent.
+      // Backdated orders default the intent to "none" via the form UI.
+      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && followUpIntent !== "none") {
         try {
-          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate });
+          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
         } catch (e) { console.error("Post-order follow-up failed", e); }
       }
 
