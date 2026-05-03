@@ -497,7 +497,18 @@ export default function AddOrder() {
     }
   }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
 
-  // --- Step 1: Order Type Selection ---
+  // Edit mode: show loading until prefill complete
+  if (isEditMode && !editPrefilled) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // --- Step 1: Order Type Selection (skipped in edit mode) ---
   if (!orderType) {
     return (
       <Layout>
