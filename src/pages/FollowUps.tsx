@@ -22,6 +22,7 @@ import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLea
 import Layout from "@/components/Layout";
 // SixMostImportant moved to Dashboard (/dashboard)
 import ClientCleanupCard from "@/components/ClientCleanupCard";
+import ThoughtfulTouchDialog from "@/components/ThoughtfulTouchDialog";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDialog";
