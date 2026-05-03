@@ -89,6 +89,39 @@ export default function AddOrder() {
   const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
+
+  // Mapping from discount type name → order tag key for auto-sync
+  const { data: allDiscountTypes = [] } = useQuery<DiscountType[]>({
+    queryKey: ["discount-types-map"],
+    queryFn: fetchDiscountTypes,
+  });
+  const discountNameToTagKey = (name: string): keyof OrderTagState | null => {
+    const n = name.trim().toLowerCase();
+    if (n === "birthday discount") return "birthday";
+    if (n === "half price deal") return "half_price";
+    if (n === "hostess credit") return "hostess";
+    if (n === "referral gift") return "referral";
+    if (n === "myshop order") return "myshop";
+    return null;
+  };
+  const handleDiscountTypeChange = useCallback((next: string[]) => {
+    const prev = discountTypeIds;
+    const added = next.filter((id) => !prev.includes(id));
+    if (added.length > 0) {
+      const tagsToAdd: Partial<OrderTagState> = {};
+      for (const id of added) {
+        const t = allDiscountTypes.find((x) => x.id === id);
+        if (!t) continue;
+        const key = discountNameToTagKey(t.name);
+        if (key) tagsToAdd[key] = true;
+      }
+      if (Object.keys(tagsToAdd).length > 0) {
+        setOrderTags((cur) => ({ ...cur, ...tagsToAdd }));
+      }
+    }
+    // Removals: intentionally leave matching Order Tags in place to avoid accidental data loss
+    setDiscountTypeIds(next);
+  }, [discountTypeIds, allDiscountTypes]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
