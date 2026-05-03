@@ -72,7 +72,7 @@ export default function AddOrder() {
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
-  const [needsCatalog, setNeedsCatalog] = useState(false);
+  
   const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -289,7 +289,6 @@ export default function AddOrder() {
           await applyPostOrderFollowUp({
             customerId: resolvedCustomerId,
             orderDate,
-            needsCatalog,
           });
         } catch (e) {
           console.error("Post-order follow-up failed", e);
@@ -319,7 +318,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
-        setNeedsCatalog(false);
+        
         setAttempted(false);
       } else if (!isNewCustomer) {
         // For existing-customer orders, navigate immediately. New-customer
@@ -332,7 +331,7 @@ export default function AddOrder() {
       setSubmitting(false);
       setDncSuppressFollowUp(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, needsCatalog, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp]);
 
   // --- Step 1: Order Type Selection ---
   if (!orderType) {
@@ -759,20 +758,6 @@ export default function AddOrder() {
           <Textarea placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none" />
         </div>
 
-        {/* Catalog follow-up option */}
-        <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
-          <input
-            type="checkbox"
-            checked={needsCatalog}
-            onChange={e => setNeedsCatalog(e.target.checked)}
-            className="mt-0.5 rounded border-border"
-          />
-          <span className="text-sm">
-            <span className="font-medium text-foreground">Needs new catalog follow-up</span>
-            <span className="block text-xs text-muted-foreground">
-            </span>
-          </span>
-        </label>
 
         {/* Skincare Customer toggle */}
         {!isNonCustomer && (
