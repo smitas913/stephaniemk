@@ -244,9 +244,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     }
     // Fallback by label
     const label = config.label.toLowerCase();
+    if (label.includes("booking activity")) return metrics.bookingActivityDetails;
     if (label.includes("booking")) return metrics.bookingAttemptDetails;
     if (label.includes("customer follow")) return metrics.customerFollowUpDetails;
-    if (label.includes("lead follow")) return metrics.leadFollowUpDetails;
+    if (label.includes("lead follow")) return metrics.bookingActivityDetails;
     if (label.includes("client")) return metrics.clientFollowUpDetails;
     if (label.includes("hostess") || label.includes("event")) return metrics.hostessCoachingDetails;
     if (label.includes("recruiting") || label.includes("prospect")) return metrics.recruitingFollowUpDetails;
