@@ -25,6 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 import DiscountTypeChips from "@/components/DiscountTypeChips";
+import { fetchDiscountTypes, type DiscountType } from "@/lib/discountTypes";
 import CurrencyInput from "@/components/CurrencyInput";
 
 const ORDER_TYPE_OPTIONS = [
@@ -943,7 +944,7 @@ export default function AddOrder() {
               </div>
               {(Number(discountValue) > 0 || discountFocused) && (
                 <div className="mt-1.5">
-                  <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+                  <DiscountTypeChips value={discountTypeIds} onChange={handleDiscountTypeChange} seedDefaults />
                 </div>
               )}
             </div>
