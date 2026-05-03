@@ -15,6 +15,7 @@ import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDateOnly } from "@/lib/dateOnly";
+import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 
 export default function EditOrder() {
   const { id } = useParams<{ id: string }>();
