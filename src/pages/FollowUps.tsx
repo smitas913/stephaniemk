@@ -2998,6 +2998,9 @@ export default function FollowUps() {
                   {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
                   {/* Thoughtful Touches merged into Relationships card above */}
+
+                  {/* ═══ SECTION: To-Do List ═══ */}
+                  <TodoListCard />
                 </div>
               </TabsContent>
 
