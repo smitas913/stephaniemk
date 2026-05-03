@@ -7,11 +7,23 @@ import { DollarSign, TrendingUp, Tag, CreditCard, Wallet, PiggyBank } from "luci
 
 type Range = "mtd" | "ytd" | "all";
 
-function startOf(range: Range): Date | null {
+const pad = (n: number) => String(n).padStart(2, "0");
+const localKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/** Returns inclusive [startKey, endKey] in YYYY-MM-DD local format, or nulls for "all". */
+function rangeKeys(range: Range): { startKey: string | null; endKey: string | null } {
   const now = new Date();
-  if (range === "mtd") return new Date(now.getFullYear(), now.getMonth(), 1);
-  if (range === "ytd") return new Date(now.getFullYear(), 0, 1);
-  return null;
+  if (range === "mtd") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { startKey: localKey(start), endKey: localKey(end) };
+  }
+  if (range === "ytd") {
+    const start = new Date(now.getFullYear(), 0, 1);
+    const end = new Date(now.getFullYear(), 11, 31);
+    return { startKey: localKey(start), endKey: localKey(end) };
+  }
+  return { startKey: null, endKey: null };
 }
 
 export default function FinancialSnapshot({ range = "mtd", compact = false }: { range?: Range; compact?: boolean }) {
@@ -20,10 +32,15 @@ export default function FinancialSnapshot({ range = "mtd", compact = false }: { 
   const margin = (settings?.profit_margin_rate ?? 50) / 100;
 
   const totals = useMemo(() => {
-    const start = startOf(range);
+    const { startKey, endKey } = rangeKeys(range);
     const filtered = (orders as any[]).filter(o => {
-      if (!start) return true;
-      return new Date(o.order_date) >= start;
+      // order_date is stored as a YYYY-MM-DD string; compare as strings to
+      // avoid UTC/local timezone slippage on month boundaries.
+      const key = typeof o.order_date === "string" ? o.order_date.slice(0, 10) : "";
+      if (!key) return false;
+      if (startKey && key < startKey) return false;
+      if (endKey && key > endKey) return false;
+      return true;
     });
     let sales = 0, discounts = 0, fees = 0, netRev = 0, netProfit = 0;
     for (const o of filtered) {
