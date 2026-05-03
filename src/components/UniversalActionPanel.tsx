@@ -55,10 +55,12 @@ const QUICK_ACTIONS = [
 ] as const;
 
 const WHATS_NEXT_OPTIONS = [
-  { key: "schedule", label: "Schedule a date", icon: Calendar },
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
   { key: "next-week", label: "Move to next week", icon: CalendarCheck },
-  { key: "none", label: "No follow-up needed (long-term touch)", icon: CheckCircle2 },
+  { key: "30d", label: "30 Days — Check-in", icon: CheckCircle2 },
+  { key: "60d", label: "60 Days — Mid-cycle", icon: CheckCircle2 },
+  { key: "90d", label: "90 Days — Reorder / Reconnect", icon: CheckCircle2 },
+  { key: "schedule", label: "Custom Date", icon: Calendar },
 ] as const;
 
 import { LONG_TERM_TOUCH_DAYS, resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
