@@ -2201,7 +2201,7 @@ export default function FollowUps() {
                 {isNonWorkday && !isOOOActive && (
                   <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
                     <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is a non-working day. Only tasks with "Allow on Non-Working Day" enabled are shown.</p>
+                    <p className="text-sm text-muted-foreground">Today is a non-working day. Showing existing due/overdue items only — no new tasks will be generated.</p>
                   </div>
                 )}
 
