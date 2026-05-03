@@ -138,6 +138,43 @@ export default function AddOrder() {
     }
   }, [isEventBased]);
 
+  // Prefill from existing order in edit mode
+  useEffect(() => {
+    if (!isEditMode || !editOrder || editPrefilled) return;
+    const o: any = editOrder;
+    setOrderType((o.order_type as OrderTypeValue) || "Reorder");
+    setCustomerId(o.customer_id || "");
+    setCustomerName(o.customer_name || o.customers?.full_name || "");
+    setOrderDate(o.order_date || toLocalDateKey());
+    setSelectedEventId(o.event_id || "");
+    setRetailAmount(o.retail_amount != null ? String(o.retail_amount) : "");
+    setWholesaleAmount(o.wholesale_amount != null ? String(o.wholesale_amount) : "");
+    setWholesaleManual(o.wholesale_amount != null);
+    setDiscountValue(o.discount_amount ? String(o.discount_amount) : "");
+    setDiscountMode("$");
+    setDiscountTypeIds(Array.isArray(o.discount_type_ids) ? o.discount_type_ids : []);
+    setPaymentStatus(o.payment_status === "Unpaid" ? "Unpaid" : "Paid");
+    setPaymentType(o.payment_type || "");
+    setNotes(o.notes || "");
+    setOrderTags({
+      hostess: !!o.hostess,
+      half_price: !!o.half_price_deal,
+      birthday: !!o.birthday,
+      referral: !!o.referral,
+      myshop: !!o.is_myshop_order,
+    });
+    setFaceTypeOverride(o.face_type ?? null);
+    if (o.cc_transaction_type) setCcTxType(o.cc_transaction_type);
+    setEditPrefilled(true);
+  }, [isEditMode, editOrder, editPrefilled]);
+
+  // Default Face Type to "Customer" when Order Type = Reorder (unless overridden)
+  useEffect(() => {
+    if (orderType === "Reorder" && faceTypeOverride == null) {
+      setFaceTypeOverride("Customer");
+    }
+  }, [orderType, faceTypeOverride]);
+
   // Event options: upcoming first (asc), then past (desc)
   const eventOptions = useMemo(() => {
     if (!isEventBased) return [];
