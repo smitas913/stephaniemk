@@ -279,6 +279,39 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
           </Dialog>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/30 sticky top-0 z-10">
+            <span className="text-sm font-medium text-foreground">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex flex-wrap gap-1.5 ml-auto">
+              <Button
+                size="sm"
+                variant="default"
+                className="h-8"
+                disabled={bulkSkincareMutation.isPending}
+                onClick={() => bulkSkincareMutation.mutate({ ids: Array.from(selectedIds), value: true })}
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                Mark as Skincare
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                disabled={bulkSkincareMutation.isPending}
+                onClick={() => bulkSkincareMutation.mutate({ ids: Array.from(selectedIds), value: false })}
+              >
+                Remove Skincare
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={clearSelection}>
+                <X className="w-3.5 h-3.5 mr-1" />
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Search + Archive Toggle */}
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
