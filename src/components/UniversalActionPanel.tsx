@@ -164,6 +164,8 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setSelectedReason(null);
     setBookingAttemptOverride(null);
     setIsInbound(false);
+    setBookingCreated(false);
+    setBookingCreatedType(null);
   }, []);
 
   const handleClose = useCallback(() => {
