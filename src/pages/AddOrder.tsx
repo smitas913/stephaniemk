@@ -63,6 +63,7 @@ export default function AddOrder() {
   const [paymentType, setPaymentType] = useState("");
   const [retailAmount, setRetailAmount] = useState("");
   const [wholesaleAmount, setWholesaleAmount] = useState("");
+  const [wholesaleManual, setWholesaleManual] = useState(false);
   const [discountValue, setDiscountValue] = useState("");
   const [discountMode, setDiscountMode] = useState<"$" | "%">("$");
   const [notes, setNotes] = useState("");
@@ -241,12 +242,27 @@ export default function AddOrder() {
     [financialSettings, isCreditCard, ccTxType]
   );
 
+  const profitMarginRate = financialSettings?.profit_margin_rate ?? 50;
+
+  // Auto-fill wholesale = retail × (1 − margin%) unless user overrode it.
+  useEffect(() => {
+    if (wholesaleManual) return;
+    const r = Number(retailAmount) || 0;
+    if (r <= 0) {
+      setWholesaleAmount("");
+      return;
+    }
+    const auto = +(r * (1 - profitMarginRate / 100)).toFixed(2);
+    setWholesaleAmount(auto.toFixed(2));
+  }, [retailAmount, profitMarginRate, wholesaleManual]);
+
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
     const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
     const overrideRaw = ccFeeOverride.trim();
     const override = overrideRaw === "" ? null : Number(overrideRaw);
+    const wholesaleNum = wholesaleAmount === "" ? null : Number(wholesaleAmount);
     return computeOrderFinancials({
       orderTotal,
       discount,
@@ -254,10 +270,11 @@ export default function AddOrder() {
       ccFeePct: processorFee.pct,
       ccFeeFlat: processorFee.flat,
       ccFeeOverride: override != null && !Number.isNaN(override) ? override : null,
-      profitMarginRate: financialSettings?.profit_margin_rate ?? 50,
+      profitMarginRate,
       isCreditCard,
+      wholesale: wholesaleNum != null && !Number.isNaN(wholesaleNum) ? wholesaleNum : null,
     });
-  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard]);
+  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard, wholesaleAmount, profitMarginRate]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
@@ -385,6 +402,7 @@ export default function AddOrder() {
         setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
         setRetailAmount("");
         setWholesaleAmount("");
+        setWholesaleManual(false);
         setDiscountValue("");
         setNotes("");
         setPaymentType("");
@@ -734,10 +752,31 @@ export default function AddOrder() {
           </div>
         </div>
 
-        {/* Wholesale (optional) */}
+        {/* Wholesale — auto-filled from profit margin, editable */}
         <div>
-          <label className="text-sm font-medium text-foreground">Wholesale Cost <span className="text-muted-foreground font-normal">(optional)</span></label>
-          <Input type="number" step="0.01" min="0" placeholder="0.00" value={wholesaleAmount} onChange={e => setWholesaleAmount(e.target.value)} className="h-9" />
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
+            {wholesaleManual && (
+              <button
+                type="button"
+                className="text-[11px] text-primary hover:underline"
+                onClick={() => setWholesaleManual(false)}
+              >
+                Reset to auto
+              </button>
+            )}
+          </div>
+          <Input
+            type="number" step="0.01" min="0" placeholder="0.00"
+            value={wholesaleAmount}
+            onChange={e => { setWholesaleManual(true); setWholesaleAmount(e.target.value); }}
+            className="h-9"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            {wholesaleManual
+              ? "Manual override"
+              : `Auto-calculated based on ${profitMarginRate}% margin`}
+          </p>
         </div>
 
         {/* Discount (optional) */}
