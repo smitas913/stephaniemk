@@ -696,6 +696,10 @@ export default function FollowUps() {
 
   // Thoughtful Touches quick-log state
   const [thoughtfulTouchType, setThoughtfulTouchType] = useState<import("@/components/ThoughtfulTouchDialog").TouchType | null>(null);
+  const monthlyTouchCount = useMemo(() => {
+    const monthStart = new Date().toISOString().slice(0, 7);
+    return (unifiedNotes as any[]).filter((n) => n.note_type === "Thoughtful Touch" && (n.note_date || n.created_at || "").slice(0, 7) === monthStart).length;
+  }, [unifiedNotes]);
 
   // Reschedule workflow state
   const [rescheduleActivityEvent, setRescheduleActivityEvent] = useState<EventRecord | null>(null);
