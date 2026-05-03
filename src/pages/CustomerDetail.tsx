@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
+import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDialog";
+import { addDays as addDaysFn } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import TextActionButton from "@/components/TextActionButton";
@@ -184,14 +186,9 @@ export default function CustomerDetail() {
   // Default: customers reschedule +2 days. Does not count toward Daily Reach Outs
   // (is_follow_up:false, is_booking_attempt:false) and does not update last_contacted.
   const skipMutation = useMutation({
-    mutationFn: async () => {
-      const today = toLocalDateKey();
-      const nextDateObj = new Date();
-      nextDateObj.setDate(nextDateObj.getDate() + 2);
-      const nextDate = format(nextDateObj, "yyyy-MM-dd");
+    mutationFn: async ({ nextDate, noFollowUp }: { nextDate: string | null; noFollowUp?: boolean }) => {
+      const computed = noFollowUp ? null : nextDate;
       const noteBody = "Skipped — did not reach out";
-
-      // 1) Log activity first. If this fails, nothing else runs.
       await createNote({
         entity_type: "Customer",
         customer_id: id!,
@@ -199,20 +196,18 @@ export default function CustomerDetail() {
         person_type: "customer",
         note_body: noteBody,
         note_type: "Skipped",
-        next_follow_up_date: nextDate,
+        next_follow_up_date: computed,
         is_booking_attempt: false,
         is_follow_up: false,
       });
-      // 2) Best-effort timeline mirror (non-critical)
       try {
         await createCustomerNote({ customer_id: id!, note_text: noteBody, note_type: "Skipped" });
       } catch { /* non-critical */ }
-      // 3) Move follow-up date forward (last_contacted intentionally NOT updated)
       await updateCustomer(id!, {
-        next_follow_up_date: nextDate,
-        follow_up_reason: "Skipped — rescheduled",
+        next_follow_up_date: computed,
+        follow_up_reason: noFollowUp ? "No follow-up needed" : "Skipped — rescheduled",
       } as any);
-      return nextDate;
+      return computed;
     },
     onSuccess: (nextDate) => {
       queryClient.invalidateQueries({ queryKey: ["customer", id] });
@@ -222,7 +217,7 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
-      toast.success(`Skipped — rescheduled to ${formatDateOnly(nextDate as string)}`);
+      toast.success(nextDate ? `Skipped — rescheduled to ${formatDateOnly(nextDate as string)}` : "Skipped — follow-up cleared");
     },
     onError: (err: any) => {
       toast.error(`Failed to skip: ${err?.message || "unknown error"}`);

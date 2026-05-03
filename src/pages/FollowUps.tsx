@@ -24,6 +24,8 @@ import Layout from "@/components/Layout";
 import ClientCleanupCard from "@/components/ClientCleanupCard";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
+import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDialog";
+import { logCatalogSent } from "@/lib/catalogTracking";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
 import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
@@ -1458,8 +1460,8 @@ export default function FollowUps() {
       noFollowUp?: boolean;
       note?: string;
     }) => {
-      const defaultDays = item.itemType === "consultant" ? 3 : 2;
-      const computed = noFollowUp ? null : (nextDate || format(addDays(new Date(), defaultDays), "yyyy-MM-dd"));
+      // Caller MUST pass either nextDate or noFollowUp (no auto +2/+3 day defaults).
+      const computed = noFollowUp ? null : (nextDate || null);
       const skipNoteBody = note?.trim() || "Skipped — did not reach out";
 
       if (item.itemType === "customer") {
@@ -1554,8 +1556,7 @@ export default function FollowUps() {
     // Optimistic clearance: immediately patch the relevant React Query cache so the
     // person disappears from Today before the network round-trip completes.
     onMutate: async ({ item, nextDate, noFollowUp }) => {
-      const defaultDays = item.itemType === "consultant" ? 3 : 2;
-      const computed = noFollowUp ? null : (nextDate || format(addDays(new Date(), defaultDays), "yyyy-MM-dd"));
+      const computed = noFollowUp ? null : (nextDate || null);
       if (item.itemType === "customer") {
         await queryClient.cancelQueries({ queryKey: ["customers"] });
         const prev = queryClient.getQueryData<any[]>(["customers"]);
@@ -1691,28 +1692,53 @@ export default function FollowUps() {
     setUniversalPanelOpen(true);
   }, [unifiedNotes]);
 
-  const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
-    // Skip from a reschedule row: push the reschedule follow-up date out by 2 days, no activity counted.
+  const [skipDialogItem, setSkipDialogItem] = useState<ActionItem | null>(null);
+
+  const applySkipChoice = useCallback(async (item: ActionItem, choice: SkipChoice) => {
     if (universalRescheduleEvent) {
-      const nextDate = toLocalDateKey(addDays(new Date(), 2));
-      updateEvent(universalRescheduleEvent.id, { reschedule_next_follow_up_date: nextDate } as any)
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: ["events"] });
-          toast.success("Skipped — rescheduled");
-        })
-        .catch((err: any) => toast.error(err?.message || "Failed to skip"));
+      let nextDate: string | null = null;
+      if (choice.kind === "days") nextDate = format(addDays(new Date(), choice.days), "yyyy-MM-dd");
+      else if (choice.kind === "custom") nextDate = choice.date;
+      else if (choice.kind === "clear") nextDate = null;
+      try {
+        await updateEvent(universalRescheduleEvent.id, { reschedule_next_follow_up_date: nextDate } as any);
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        toast.success(nextDate ? "Skipped — rescheduled" : "Follow-up cleared");
+      } catch (err: any) { toast.error(err?.message || "Failed to skip"); }
       setUniversalRescheduleEvent(null);
       setUniversalPanelOpen(false);
       setUniversalPanelItem(null);
       return;
     }
+    if (choice.kind === "pcp" && item.itemType === "customer") {
+      try {
+        await logCatalogSent({ customerId: item.id, campaignType: "Spring", mailingDate: toLocalDateKey(), scheduleFollowUp: true });
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+        toast.success("Added to PCP — follow-up in 6 days");
+      } catch (err: any) { toast.error(err?.message || "Failed to add to PCP"); }
+      return;
+    }
+    if (choice.kind === "clear") {
+      skipFollowUpMutation.mutate({ item, noFollowUp: true });
+      return;
+    }
+    const nextDate = choice.kind === "days"
+      ? format(addDays(new Date(), choice.days), "yyyy-MM-dd")
+      : choice.kind === "custom" ? choice.date : null;
+    if (!nextDate) return;
+    skipFollowUpMutation.mutate({ item, nextDate });
+  }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
+
+  const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
     const ai: ActionItem = {
       id: uItem.id, itemType: uItem.personType, name: uItem.name,
       phone: uItem.phone, email: uItem.email,
       next_follow_up: null, follow_up_status: uItem.followUpStatus || "", actionLabel: "",
     };
-    skipFollowUpMutation.mutate({ item: ai });
-  }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
+    setSkipDialogItem(ai);
+  }, []);
 
   const handleInlineSave = (item: ActionItem) => {
     contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
@@ -2340,7 +2366,7 @@ export default function FollowUps() {
                              }}
                              onSkipItem={(mi) => {
                                const original = combined.find(i => i.id === mi.id);
-                               if (original) skipFollowUpMutation.mutate({ item: original });
+                               if (original) setSkipDialogItem(original);
                              }}
                              onAddNoteItem={(mi) => {
                                const original = combined.find(i => i.id === mi.id);
@@ -3049,6 +3075,14 @@ export default function FollowUps() {
             navigateToItem(ai);
           }}
           isPending={contactMutation.isPending || skipFollowUpMutation.isPending}
+        />
+
+        <SkipFollowUpDialog
+          open={!!skipDialogItem}
+          onOpenChange={(o) => { if (!o) setSkipDialogItem(null); }}
+          personName={skipDialogItem?.name}
+          allowPcp={skipDialogItem?.itemType === "customer"}
+          onChoose={(choice) => { if (skipDialogItem) applySkipChoice(skipDialogItem, choice); }}
         />
 
         {/* Detail Sheet */}
