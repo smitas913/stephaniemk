@@ -414,7 +414,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
-        setIsMyShopOrder(false);
+        setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
         
         setAttempted(false);
       } else if (!isNewCustomer) {
