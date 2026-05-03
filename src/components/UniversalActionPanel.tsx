@@ -72,16 +72,7 @@ import { LONG_TERM_TOUCH_DAYS, resolveLongTermFollowUpDate } from "@/lib/longTer
 // canonical reason list, grouped by the category that reason routes to. The
 // default (no reason selected) is the "Follow-Up" category.
 //
-// Suggested reasons surface first per person type purely as a UX nudge, but
-// users can always pick any reason from any category.
-const SUGGESTED_REASONS_BY_PERSON: Partial<Record<PersonType, string[]>> = {
-  customer: ["General Check-In", "Booking Ask", "Trial / Sample Follow-Up", "Product Check-In"],
-  lead: ["Booking Ask", "General Check-In", "Trial / Sample Follow-Up"],
-  hostess: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up", "Rescheduling"],
-  event_task: ["Hostess Coaching", "Event Prep", "Event Reminder", "Event Follow-Up"],
-  prospect: ["Initial Outreach", "Recruiting Follow-Up", "Interview / Info Shared"],
-  consultant: ["Coaching", "Accountability", "Training / Support"],
-};
+// Suggested reasons removed — chips are now shown grouped by category only.
 
 /** Which intent categories are visible per person type. Reduces decision fatigue. */
 const ALLOWED_CATEGORIES_BY_PERSON: Record<PersonType, IntentCategory[]> = {
