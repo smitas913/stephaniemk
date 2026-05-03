@@ -414,12 +414,24 @@ export default function QuickAddPersonDialog({
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        // Closing during follow-up step = Skip (customer already saved)
-        if (!v && followUpPrompt && !busy) {
-          setFollowUpPrompt(null);
-          onLogged();
-          onOpenChange(false);
-          return;
+        if (!v && !busy) {
+          // Closing during the Face Outcome step = cancel (customer not yet created)
+          if (faceOutcomePrompt) {
+            setFaceOutcomePrompt(null);
+            onOpenChange(false);
+            return;
+          }
+          // Closing during follow-up or non-customer step = Skip (customer already saved)
+          if (followUpPrompt) {
+            setFollowUpPrompt(null);
+            onLogged();
+            onOpenChange(false);
+            return;
+          }
+          if (nonCustomerPrompt) {
+            applyNonCustomerChoice("skip");
+            return;
+          }
         }
         onOpenChange(v);
       }}
@@ -432,7 +444,125 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {followUpPrompt ? (
+        {faceOutcomePrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium">Outcome?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Did <span className="font-semibold">{faceOutcomePrompt.name}</span> purchase?
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-950"
+                disabled={busy}
+                onClick={() => handleFaceOutcome("customer")}
+              >
+                <ShoppingBag className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Customer (purchased)</div>
+                  <div className="text-[11px] text-muted-foreground">Saves as customer · choose follow-up next</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-muted"
+                disabled={busy}
+                onClick={() => handleFaceOutcome("non-customer")}
+              >
+                <UserX className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Non-Customer</div>
+                  <div className="text-[11px] text-muted-foreground">Save contact · optional tags & follow-up next</div>
+                </div>
+              </Button>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              className="w-full h-8 text-xs text-muted-foreground"
+              disabled={busy}
+              onClick={() => { setFaceOutcomePrompt(null); onOpenChange(false); }}
+            >
+              Cancel — don't save
+            </Button>
+          </div>
+        ) : nonCustomerPrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium">Tag & follow-up</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Optional tags or follow-up for <span className="font-semibold">{nonCustomerPrompt.name}</span>.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { key: "lead", label: "Lead", icon: UserPlus, activeCls: "bg-blue-500 text-white border-blue-500", inactiveCls: "bg-background text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950" },
+                  { key: "prospect", label: "Prospect", icon: Tag, activeCls: "bg-purple-500 text-white border-purple-500", inactiveCls: "bg-background text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950" },
+                  { key: "dnc", label: "Do Not Contact", icon: Ban, activeCls: "bg-destructive text-destructive-foreground border-destructive", inactiveCls: "bg-background text-destructive border-destructive/40 hover:bg-destructive/10" },
+                ] as const).map((t) => {
+                  const active = nonCustomerTags[t.key];
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setNonCustomerTags((s) => ({ ...s, [t.key]: !s[t.key] }))}
+                      className={cn(
+                        "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors disabled:opacity-50",
+                        active ? t.activeCls : t.inactiveCls,
+                      )}
+                      aria-pressed={active}
+                    >
+                      <t.icon className="w-3 h-3" />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={cn("rounded-md border p-2.5 space-y-2", nonCustomerTags.dnc && "opacity-50")}>
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Follow-up date (optional)</span>
+                </div>
+                <Input
+                  type="date"
+                  min={toLocalDateKey()}
+                  value={nonCustomerFollowUpDate}
+                  onChange={(e) => setNonCustomerFollowUpDate(e.target.value)}
+                  className="h-9"
+                  disabled={busy || nonCustomerTags.dnc}
+                />
+                {nonCustomerTags.dnc && (
+                  <p className="text-[11px] text-destructive">DNC suppresses follow-ups.</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={busy}
+                onClick={() => applyNonCustomerChoice("skip")}
+              >
+                Skip
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={busy}
+                onClick={() => applyNonCustomerChoice("save")}
+              >
+                {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : "Save"}
+              </Button>
+            </div>
+          </div>
+        ) : followUpPrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium flex items-center gap-1.5">
