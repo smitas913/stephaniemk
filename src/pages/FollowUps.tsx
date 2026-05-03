@@ -1554,8 +1554,7 @@ export default function FollowUps() {
     // Optimistic clearance: immediately patch the relevant React Query cache so the
     // person disappears from Today before the network round-trip completes.
     onMutate: async ({ item, nextDate, noFollowUp }) => {
-      const defaultDays = item.itemType === "consultant" ? 3 : 2;
-      const computed = noFollowUp ? null : (nextDate || format(addDays(new Date(), defaultDays), "yyyy-MM-dd"));
+      const computed = noFollowUp ? null : (nextDate || null);
       if (item.itemType === "customer") {
         await queryClient.cancelQueries({ queryKey: ["customers"] });
         const prev = queryClient.getQueryData<any[]>(["customers"]);
