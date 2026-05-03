@@ -4627,7 +4627,7 @@ function ActionRow({
 
   return (
     <div>
-      <div className="py-2.5 group">
+      <div className="py-3 px-1 group hover:bg-muted/30 transition-colors rounded-md">
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenQuickAction || onOpenDetail}>
             <div className="flex items-center gap-2">
