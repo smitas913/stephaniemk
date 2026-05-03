@@ -29,8 +29,6 @@ import DiscountTypeChips from "@/components/DiscountTypeChips";
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
   { value: "Facial", label: "Facial", icon: Sparkles, eventBased: true },
-  { value: "Sharing Appointment", label: "Sharing", icon: Share2, eventBased: true },
-  { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone, eventBased: true },
   { value: "Reorder", label: "Reorder", icon: RotateCcw, eventBased: false },
   { value: "Other", label: "Other", icon: ShoppingBag, eventBased: false },
 ] as const;
