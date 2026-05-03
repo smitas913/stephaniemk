@@ -30,6 +30,7 @@ import { logCatalogSent } from "@/lib/catalogTracking";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
 import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
+import TodoListCard from "@/components/TodoListCard";
 import type { MobileTeamItem } from "@/components/mobile/MobileTeamAttention";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -2998,6 +2999,9 @@ export default function FollowUps() {
                   {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
                   {/* Thoughtful Touches merged into Relationships card above */}
+
+                  {/* ═══ SECTION: To-Do List ═══ */}
+                  <TodoListCard />
                 </div>
               </TabsContent>
 
