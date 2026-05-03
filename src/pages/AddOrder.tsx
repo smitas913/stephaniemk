@@ -858,7 +858,20 @@ export default function AddOrder() {
         {/* Notes */}
         <div>
           <label className="text-sm font-medium text-foreground">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
-          <Textarea placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none" />
+          <Textarea
+            ref={notesInputRef}
+            placeholder="Optional notes... (Ctrl+Enter to save)"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveButtonRef.current?.focus();
+                saveButtonRef.current?.click();
+              }
+            }}
+            className="h-16 resize-none"
+          />
         </div>
 
 
