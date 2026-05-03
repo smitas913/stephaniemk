@@ -826,6 +826,13 @@ export type Database = {
         Row: {
           cc_fee_rate: number
           created_at: string
+          fee_in_person_flat: number
+          fee_in_person_pct: number
+          fee_keyed_flat: number
+          fee_keyed_pct: number
+          fee_online_flat: number
+          fee_online_pct: number
+          payment_processor: string
           profit_margin_rate: number
           tax_rate: number
           updated_at: string
@@ -834,6 +841,13 @@ export type Database = {
         Insert: {
           cc_fee_rate?: number
           created_at?: string
+          fee_in_person_flat?: number
+          fee_in_person_pct?: number
+          fee_keyed_flat?: number
+          fee_keyed_pct?: number
+          fee_online_flat?: number
+          fee_online_pct?: number
+          payment_processor?: string
           profit_margin_rate?: number
           tax_rate?: number
           updated_at?: string
@@ -842,6 +856,13 @@ export type Database = {
         Update: {
           cc_fee_rate?: number
           created_at?: string
+          fee_in_person_flat?: number
+          fee_in_person_pct?: number
+          fee_keyed_flat?: number
+          fee_keyed_pct?: number
+          fee_online_flat?: number
+          fee_online_pct?: number
+          payment_processor?: string
           profit_margin_rate?: number
           tax_rate?: number
           updated_at?: string
@@ -1147,6 +1168,7 @@ export type Database = {
         Row: {
           birthday: boolean | null
           cc_fee_amount: number
+          cc_transaction_type: string | null
           created_at: string
           customer_id: string
           customer_name: string | null
@@ -1175,6 +1197,7 @@ export type Database = {
         Insert: {
           birthday?: boolean | null
           cc_fee_amount?: number
+          cc_transaction_type?: string | null
           created_at?: string
           customer_id: string
           customer_name?: string | null
@@ -1203,6 +1226,7 @@ export type Database = {
         Update: {
           birthday?: boolean | null
           cc_fee_amount?: number
+          cc_transaction_type?: string | null
           created_at?: string
           customer_id?: string
           customer_name?: string | null
