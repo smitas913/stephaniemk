@@ -1109,7 +1109,22 @@ export default function AddOrder() {
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          {bulkMode ? (
+          {isEditMode ? (
+            <div className="flex-1 flex gap-2">
+              <Button
+                ref={saveButtonRef}
+                type="button"
+                className="flex-1 h-11"
+                disabled={!canSubmit}
+                onClick={() => handleSubmit(false)}
+              >
+                {submitting ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button type="button" variant="outline" className="h-11" onClick={() => navigate("/orders")}>
+                Cancel
+              </Button>
+            </div>
+          ) : bulkMode ? (
             <>
               <Button
                 type="button"
