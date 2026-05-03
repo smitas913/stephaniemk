@@ -548,6 +548,9 @@ export default function Momentum() {
                   <div>
                     <p className="text-lg font-semibold text-foreground tabular-nums leading-tight">{m.value}</p>
                     <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{m.label}</p>
+                    {m.sub && (
+                      <p className="text-[10px] text-muted-foreground tabular-nums">{m.sub}</p>
+                    )}
                   </div>
                 </div>
               ))}
