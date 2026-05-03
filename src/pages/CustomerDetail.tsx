@@ -487,7 +487,13 @@ export default function CustomerDetail() {
                     <Input type="date" value={form.birthday} onChange={(e) => setForm({ ...form, birthday: e.target.value })} className="h-9" />
                   </FormField>
                   <FormField label="Address Line 1">
-                    <Input value={form.address_line_1} onChange={(e) => setForm({ ...form, address_line_1: e.target.value })} className="h-9" />
+                    <AddressAutocomplete
+                      value={form.address_line_1}
+                      onChange={(v) => setForm({ ...form, address_line_1: v })}
+                      onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: p.state, postal_code: p.zip_code })}
+                      placeholder="Street address"
+                      className="h-9"
+                    />
                   </FormField>
                   <FormField label="Address Line 2">
                     <Input value={form.address_line_2} onChange={(e) => setForm({ ...form, address_line_2: e.target.value })} className="h-9" />
