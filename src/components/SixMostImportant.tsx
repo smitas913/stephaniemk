@@ -84,10 +84,11 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
 
   const isToday = selectedDate === todayKey;
   const {
-    configs, progress, dayTypeTargets, isLoading, isOOO,
+    configs, progress, dayTypeTargets, isLoading, isOOO, isNonWorkday,
     getTargetForItem, seedDefaults, saveConfigs, upsertProgress,
     saveDayTypeTargets, fetchWeekProgress, noHistoricalData, progressFetching,
   } = useFocusItems(selectedDate);
+  const isLightDay = isOOO || isNonWorkday;
 
   // For past days, use the day_type saved in progress; for today use local state
   const savedDayType: DayType = progress.length > 0 ? (progress[0].day_type as DayType) || "power" : "power";
