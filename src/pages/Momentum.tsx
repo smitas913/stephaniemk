@@ -112,6 +112,21 @@ function computeActuals(
       return notes.filter((n) => n.note_type !== "Skipped" && inRange(n.note_date, start, end)).length;
     case "booking_attempts":
       return notes.filter((n) => n.is_booking_attempt && inRange(n.note_date, start, end)).length;
+    case "booking_activity": {
+      // Any lead interaction OR any booking attempt — deduplicated by person.
+      const seen = new Set<string>();
+      let count = 0;
+      for (const n of notes) {
+        if (!inRange(n.note_date, start, end)) continue;
+        const isLead = (n as any).person_type === "lead" || (n as any).entity_type === "Lead";
+        if (!isLead && !n.is_booking_attempt) continue;
+        const key = `${(n as any).person_type || (n as any).entity_type || "?"}:${(n as any).person_id || (n as any).id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        count += 1;
+      }
+      return count;
+    }
     default:
       return 0;
   }
