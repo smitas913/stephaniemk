@@ -896,6 +896,7 @@ export default function AddOrder() {
                 value={wholesaleAmount}
                 onValueChange={(v) => { setWholesaleManual(true); setWholesaleAmount(v); }}
                 className="h-9"
+                tabIndex={-1}
               />
               <p className="text-[11px] text-muted-foreground mt-1">
                 {wholesaleManual ? "Manual override" : "Auto-calculated based on margin"}
@@ -929,12 +930,13 @@ export default function AddOrder() {
                 <div className="flex shrink-0">
                   {(["$", "%"] as const).map(m => (
                     <button key={m} type="button"
+                      tabIndex={-1}
                       className={cn("h-9 w-9 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
                         discountMode === m
                           ? "bg-primary text-primary-foreground border-primary"
                           : "border-border bg-background text-muted-foreground hover:bg-muted"
                       )}
-                      onClick={() => setDiscountMode(m)}
+                      onMouseDown={(e) => { e.preventDefault(); setDiscountMode(m); }}
                     >{m}</button>
                   ))}
                 </div>
@@ -980,7 +982,11 @@ export default function AddOrder() {
                       ? "bg-primary text-primary-foreground border-primary"
                       : "border-border bg-background text-muted-foreground hover:bg-muted"
                   )}
-                  onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setPaymentStatus(s);
+                    if (s === "Unpaid") setPaymentType("");
+                  }}
                 >{s}</button>
               ))}
             </div>
@@ -1005,7 +1011,11 @@ export default function AddOrder() {
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-border bg-background text-muted-foreground hover:bg-muted"
                     )}
-                    onClick={() => setPaymentType(paymentType === p ? "" : p)}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      if (paymentStatus !== "Paid") setPaymentStatus("Paid");
+                      setPaymentType(p);
+                    }}
                   >
                     {p}
                     {sc && <span className="ml-1 opacity-60 text-[10px]">({sc})</span>}
