@@ -535,7 +535,7 @@ export default function CustomerDetail() {
                     <AddressAutocomplete
                       value={form.address_line_1}
                       onChange={(v) => setForm({ ...form, address_line_1: v })}
-                      onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: p.state, postal_code: p.zip_code })}
+                      onAddressSelect={(p) => setForm({ ...form, address_line_1: p.street_address, city: p.city, state_territory: normalizeStateAbbreviation(p.state), postal_code: p.zip_code })}
                       placeholder="Street address"
                       className="h-9"
                     />
