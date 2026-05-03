@@ -29,6 +29,7 @@ import { addDays as addDaysFn } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { normalizeStateAbbreviation } from "@/lib/usStates";
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen } from "lucide-react";
