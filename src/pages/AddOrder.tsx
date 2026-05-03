@@ -748,8 +748,8 @@ export default function AddOrder() {
           )}
         </div>
 
-        {/* Date + Retail Amount */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Row 1: Date + Retail + Wholesale */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-sm font-medium text-foreground">Date</label>
             <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="h-9" />
@@ -758,65 +758,79 @@ export default function AddOrder() {
             <label className="text-sm font-medium text-foreground">Retail Amount *</label>
             <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
           </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
+              {wholesaleManual && (
+                <button
+                  type="button"
+                  className="text-[11px] text-primary hover:underline"
+                  onClick={() => setWholesaleManual(false)}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+            <Input
+              type="number" step="0.01" min="0" placeholder="0.00"
+              value={wholesaleAmount}
+              onChange={e => { setWholesaleManual(true); setWholesaleAmount(e.target.value); }}
+              className="h-9"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {wholesaleManual ? "Manual override" : "Auto-calculated based on margin"}
+            </p>
+          </div>
         </div>
 
-        {/* Wholesale — auto-filled from profit margin, editable */}
-        <div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
-            {wholesaleManual && (
-              <button
-                type="button"
-                className="text-[11px] text-primary hover:underline"
-                onClick={() => setWholesaleManual(false)}
-              >
-                Reset to auto
-              </button>
+        {/* Row 2: Discount + Payment Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
+            <div className="flex gap-1.5 mt-1">
+              <Input
+                ref={discountInputRef}
+                type="number" step="0.01" min="0" placeholder="0.00"
+                value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+                onKeyDown={enterAdvance(notesInputRef)}
+                className="h-9 flex-1"
+              />
+              <div className="flex">
+                {(["$", "%"] as const).map(m => (
+                  <button key={m} type="button"
+                    className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                      discountMode === m
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setDiscountMode(m)}
+                  >{m}</button>
+                ))}
+              </div>
+            </div>
+            {Number(discountValue) > 0 && (
+              <div className="mt-2">
+                <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
+                <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+              </div>
             )}
           </div>
-          <Input
-            type="number" step="0.01" min="0" placeholder="0.00"
-            value={wholesaleAmount}
-            onChange={e => { setWholesaleManual(true); setWholesaleAmount(e.target.value); }}
-            className="h-9"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {wholesaleManual
-              ? "Manual override"
-              : `Auto-calculated based on ${profitMarginRate}% margin`}
-          </p>
-        </div>
 
-        {/* Discount (optional) */}
-        <div>
-          <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
-          <div className="flex gap-1.5 mt-1">
-            <Input
-              ref={discountInputRef}
-              type="number" step="0.01" min="0" placeholder="0.00"
-              value={discountValue} onChange={e => setDiscountValue(e.target.value)}
-              onKeyDown={enterAdvance(notesInputRef)}
-              className="h-9 flex-1"
-            />
-            <div className="flex">
-              {(["$", "%"] as const).map(m => (
-                <button key={m} type="button"
-                  className={cn("h-9 w-10 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
-                    discountMode === m
+          <div>
+            <label className="text-sm font-medium text-foreground">Payment Status</label>
+            <div className="flex gap-1.5 mt-1">
+              {(["Paid", "Unpaid"] as const).map(s => (
+                <button key={s} type="button"
+                  className={cn("h-9 px-4 rounded-md text-xs font-medium border transition-colors",
+                    paymentStatus === s
                       ? "bg-primary text-primary-foreground border-primary"
                       : "border-border bg-background text-muted-foreground hover:bg-muted"
                   )}
-                  onClick={() => setDiscountMode(m)}
-                >{m}</button>
+                  onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
+                >{s}</button>
               ))}
-          </div>
-          {Number(discountValue) > 0 && (
-            <div className="mt-2">
-              <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
-              <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
             </div>
-          )}
-        </div>
+          </div>
         </div>
 
         {/* Live Financial Summary */}
@@ -831,22 +845,6 @@ export default function AddOrder() {
             <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
           </div>
         )}
-
-        <div>
-          <label className="text-sm font-medium text-foreground">Payment Status</label>
-          <div className="flex gap-1.5 mt-1">
-            {(["Paid", "Unpaid"] as const).map(s => (
-              <button key={s} type="button"
-                className={cn("h-8 px-4 rounded-md text-xs font-medium border transition-colors",
-                  paymentStatus === s
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted"
-                )}
-                onClick={() => { setPaymentStatus(s); if (s === "Unpaid") setPaymentType(""); }}
-              >{s}</button>
-            ))}
-          </div>
-        </div>
 
         {/* Payment Type — button pills (only when Paid) */}
         {paymentStatus === "Paid" && (
