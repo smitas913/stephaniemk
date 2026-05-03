@@ -771,10 +771,10 @@ export default function AddOrder() {
                 </button>
               )}
             </div>
-            <Input
-              type="number" step="0.01" min="0" placeholder="0.00"
+            <CurrencyInput
+              placeholder="$0.00"
               value={wholesaleAmount}
-              onChange={e => { setWholesaleManual(true); setWholesaleAmount(e.target.value); }}
+              onValueChange={(v) => { setWholesaleManual(true); setWholesaleAmount(v); }}
               className="h-9"
             />
             <p className="text-[11px] text-muted-foreground mt-1">
