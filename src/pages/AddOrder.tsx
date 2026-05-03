@@ -156,12 +156,61 @@ export default function AddOrder() {
 
   const [highlightIdx, setHighlightIdx] = useState(0);
   useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
+
+  // Field refs for keyboard tab/Enter flow
+  const customerSearchRef = useRef<HTMLInputElement>(null);
   const retailInputRef = useRef<HTMLInputElement>(null);
+  const discountInputRef = useRef<HTMLInputElement>(null);
+  const notesInputRef = useRef<HTMLTextAreaElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+
   const selectCustomer = useCallback((id: string) => {
     setCustomerId(id);
     setCustomerSearch("");
     setTimeout(() => retailInputRef.current?.focus(), 50);
   }, []);
+
+  // Auto-focus on mount: Retail if customer already chosen, else Customer search
+  useEffect(() => {
+    if (!orderType) return;
+    const t = setTimeout(() => {
+      if (customerId || isNonCustomer) retailInputRef.current?.focus();
+      else customerSearchRef.current?.focus();
+    }, 80);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderType]);
+
+  // Payment Method keyboard shortcuts (only when not typing in text input)
+  useEffect(() => {
+    const PAYMENT_SHORTCUTS: Record<string, string> = {
+      c: "Cash", v: "Venmo", z: "Zelle", k: "Check",
+      r: "Credit Card", a: "CashApp", p: "Paypal", m: "MyShop",
+    };
+    const handler = (e: KeyboardEvent) => {
+      if (paymentStatus !== "Paid") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tgt = e.target as HTMLElement | null;
+      const tag = tgt?.tagName;
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || (tgt as any)?.isContentEditable;
+      if (isEditable) return;
+      const key = e.key.toLowerCase();
+      const match = PAYMENT_SHORTCUTS[key];
+      if (match) {
+        e.preventDefault();
+        setPaymentType(match);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [paymentStatus]);
+
+  const enterAdvance = (target: React.RefObject<HTMLElement>) => (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      target.current?.focus();
+    }
+  };
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const selectedEvent = events.find(e => e.event_id === selectedEventId);
@@ -619,6 +668,7 @@ export default function AddOrder() {
           ) : (
             <div className="space-y-1">
               <Input
+                ref={customerSearchRef}
                 placeholder="Search by name, phone, or email..."
                 value={customerSearch}
                 onChange={e => setCustomerSearch(e.target.value)}
@@ -677,7 +727,7 @@ export default function AddOrder() {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Retail Amount *</label>
-            <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} className="h-9" />
+            <Input ref={retailInputRef} type="number" step="0.01" min="0.01" placeholder="0.00" value={retailAmount} onChange={e => setRetailAmount(e.target.value)} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
           </div>
         </div>
 
@@ -692,8 +742,10 @@ export default function AddOrder() {
           <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(optional)</span></label>
           <div className="flex gap-1.5 mt-1">
             <Input
+              ref={discountInputRef}
               type="number" step="0.01" min="0" placeholder="0.00"
               value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+              onKeyDown={enterAdvance(notesInputRef)}
               className="h-9 flex-1"
             />
             <div className="flex">
@@ -745,17 +797,29 @@ export default function AddOrder() {
           <div>
             <label className="text-sm font-medium text-foreground">Payment Method *</label>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              {PAYMENT_TYPES.map(p => (
-                <button key={p} type="button"
-                  className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
-                    paymentType === p
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted"
-                  )}
-                  onClick={() => setPaymentType(paymentType === p ? "" : p)}
-                >{p}</button>
-              ))}
+              {PAYMENT_TYPES.map(p => {
+                const shortcutMap: Record<string, string> = {
+                  Cash: "C", Venmo: "V", Zelle: "Z", Check: "K",
+                  "Credit Card": "R", CashApp: "A", Paypal: "P", MyShop: "M",
+                };
+                const sc = shortcutMap[p];
+                return (
+                  <button key={p} type="button"
+                    title={sc ? `Shortcut: ${sc}` : undefined}
+                    className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
+                      paymentType === p
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                    onClick={() => setPaymentType(paymentType === p ? "" : p)}
+                  >
+                    {p}
+                    {sc && <span className="ml-1 opacity-60 text-[10px]">({sc})</span>}
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-[11px] text-muted-foreground mt-1">Tip: press a shortcut letter to select.</p>
           </div>
         )}
 
@@ -806,7 +870,20 @@ export default function AddOrder() {
         {/* Notes */}
         <div>
           <label className="text-sm font-medium text-foreground">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
-          <Textarea placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} className="h-16 resize-none" />
+          <Textarea
+            ref={notesInputRef}
+            placeholder="Optional notes... (Ctrl+Enter to save)"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveButtonRef.current?.focus();
+                saveButtonRef.current?.click();
+              }
+            }}
+            className="h-16 resize-none"
+          />
         </div>
 
 
@@ -856,6 +933,7 @@ export default function AddOrder() {
             <div className="flex-1 flex flex-col gap-1">
               <div className="flex gap-2">
                 <Button
+                  ref={saveButtonRef}
                   type="button"
                   className="flex-1 h-11"
                   disabled={!canSubmit}
