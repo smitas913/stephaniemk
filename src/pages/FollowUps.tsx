@@ -633,6 +633,7 @@ export default function FollowUps() {
   const [noteType, setNoteType] = useState("Call");
   const [followUpDate, setFollowUpDate] = useState("");
   const [inlineNoteId, setInlineNoteId] = useState<string | null>(null);
+  const [expandedEventGroups, setExpandedEventGroups] = useState<Set<string>>(new Set());
   const [inlineNoteText, setInlineNoteText] = useState("");
   const [inlineNextStep, setInlineNextStep] = useState("");
   const [inlineNoteType, setInlineNoteType] = useState("Call");
