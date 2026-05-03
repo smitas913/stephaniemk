@@ -403,10 +403,42 @@ export default function Orders() {
                       )}
                     </TableCell>
                     <TableCell className="text-xs">{o.face_type || "—"}</TableCell>
-                    <TableCell className="text-center">{o.hostess ? "✓" : ""}</TableCell>
-                    <TableCell className="text-center">{o.half_price_deal ? "✓" : ""}</TableCell>
-                    <TableCell className="text-center">{o.birthday ? "✓" : ""}</TableCell>
-                    <TableCell className="text-center">{o.referral ? "✓" : ""}</TableCell>
+                    <TableCell className="text-xs">
+                      {(() => {
+                        const tags: string[] = [];
+                        const ids: string[] = Array.isArray((o as any).discount_type_ids) ? (o as any).discount_type_ids : [];
+                        for (const id of ids) {
+                          const t = discountById.get(id);
+                          if (t) tags.push(shortLabel(t.name));
+                        }
+                        // Add legacy boolean flags if not already represented
+                        const has = (name: string) => tags.includes(shortLabel(name));
+                        if ((o as any).hostess && !has("Hostess Credit")) tags.push("Hostess");
+                        if ((o as any).half_price_deal && !has("Half Price Deal")) tags.push("½ Price");
+                        if ((o as any).birthday && !has("Birthday Discount")) tags.push("Bday");
+                        if ((o as any).referral && !has("Referral Gift")) tags.push("Referral");
+                        if (tags.length === 0) return <span className="text-muted-foreground">—</span>;
+                        const visible = tags.slice(0, 2);
+                        const extra = tags.length - visible.length;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {visible.map((t) => (
+                              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-foreground/80 font-medium">{t}</span>
+                            ))}
+                            {extra > 0 && (
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground cursor-default">+{extra}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">{tags.join(", ")}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell className="p-0.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
                         {(o.payment_status === "Unpaid" || (!o.payment_status && !o.payment_type)) && (
