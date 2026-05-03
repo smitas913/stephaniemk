@@ -15,9 +15,12 @@ interface ProfileLike {
   postal_code?: string | null;
 }
 
+type QuickField = "phone" | "email" | "birthday" | "address";
+
 interface ProfileCompletionCardProps {
   customer: ProfileLike;
   onEditField: () => void;
+  onQuickEdit?: (field: QuickField) => void;
 }
 
 /**
@@ -26,7 +29,7 @@ interface ProfileCompletionCardProps {
  * - <100%: compact progress bar + missing-field chips + Add button.
  *   Full checklist is hidden behind an expander.
  */
-export default function ProfileCompletionCard({ customer, onEditField }: ProfileCompletionCardProps) {
+export default function ProfileCompletionCard({ customer, onEditField, onQuickEdit }: ProfileCompletionCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const fields = useMemo(() => {
@@ -128,16 +131,23 @@ export default function ProfileCompletionCard({ customer, onEditField }: Profile
         {/* Missing field chips */}
         {missing.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {missing.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={onEditField}
-                className="px-2 py-0.5 rounded-full text-[11px] font-medium border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-              >
-                + {f.label}{f.required && "*"}
-              </button>
-            ))}
+            {missing.map((f) => {
+              const isQuick = f.key === "phone" || f.key === "email" || f.key === "birthday" || f.key === "address";
+              const handle = () => {
+                if (isQuick && onQuickEdit) onQuickEdit(f.key as QuickField);
+                else onEditField();
+              };
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={handle}
+                  className="px-2 py-0.5 rounded-full text-[11px] font-medium border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                >
+                  + {f.label}{f.required && "*"}
+                </button>
+              );
+            })}
           </div>
         )}
 
