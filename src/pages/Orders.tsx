@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchOrders, deleteOrder, updateOrder } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
+import { backfillDefaultDiscountTypes, type DiscountType } from "@/lib/discountTypes";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { OrderWithCustomer } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,17 @@ import { formatDateOnly } from "@/lib/dateOnly";
 import { usePeriodFilter, getDateRange, getShortLabel, MonthYearPicker, MONTHS, type PeriodValue } from "@/hooks/usePeriodFilter";
 import FinancialSnapshot from "@/components/FinancialSnapshot";
 
-type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_status" | "face_type" | "hostess" | "half_price_deal" | "birthday" | "referral";
+type SortField = "order_date" | "customer_name" | "retail_amount" | "order_type" | "payment_status" | "face_type";
+
+const SHORT_LABEL: Record<string, string> = {
+  "Birthday Discount": "Bday",
+  "Half Price Deal": "½ Price",
+  "Hostess Credit": "Hostess",
+  "Referral Gift": "Referral",
+  "Sets Sheet": "Sets Sheet",
+  "Other": "Other",
+};
+const shortLabel = (name: string) => SHORT_LABEL[name] ?? name;
 type SortDir = "asc" | "desc" | null;
 
 export default function Orders() {
@@ -38,13 +50,20 @@ export default function Orders() {
   const [filterOrderType, setFilterOrderType] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [filterFaceType, setFilterFaceType] = useState("all");
-  const [filterHostess, setFilterHostess] = useState(false);
-  const [filterBirthday, setFilterBirthday] = useState(false);
-  const [filterReferral, setFilterReferral] = useState(false);
+  const [filterDiscountIds, setFilterDiscountIds] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>("order_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: discountTypes = [] } = useQuery<DiscountType[]>({
+    queryKey: ["discount_types"],
+    queryFn: backfillDefaultDiscountTypes,
+  });
+  const discountById = useMemo(() => {
+    const m = new Map<string, DiscountType>();
+    for (const d of discountTypes) m.set(d.id, d);
+    return m;
+  }, [discountTypes]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteOrder,
@@ -77,12 +96,12 @@ export default function Orders() {
 
   const hasActiveFilters = search || filterCustomer !== "all" || period.type !== "mtd" ||
     filterOrderType !== "all" || filterPayment !== "all" || filterFaceType !== "all" ||
-    filterHostess || filterBirthday || filterReferral;
+    filterDiscountIds.length > 0;
 
   const clearFilters = useCallback(() => {
     setSearch(""); setFilterCustomer("all"); setPeriod({ type: "mtd" });
     setFilterOrderType("all"); setFilterPayment("all"); setFilterFaceType("all");
-    setFilterHostess(false); setFilterBirthday(false); setFilterReferral(false);
+    setFilterDiscountIds([]);
   }, []);
 
   const filtered = useMemo(() => {
@@ -111,9 +130,21 @@ export default function Orders() {
     if (filterPayment === "__unpaid__") result = result.filter((o) => o.payment_status === "Unpaid" || (!o.payment_status && !o.payment_type));
     else if (filterPayment !== "all") result = result.filter((o) => o.payment_type === filterPayment);
     if (filterFaceType !== "all") result = result.filter((o) => o.face_type === filterFaceType);
-    if (filterHostess) result = result.filter((o) => o.hostess);
-    if (filterBirthday) result = result.filter((o) => o.birthday);
-    if (filterReferral) result = result.filter((o) => o.referral);
+    if (filterDiscountIds.length > 0) {
+      const set = new Set(filterDiscountIds);
+      result = result.filter((o) => {
+        const ids: string[] = Array.isArray((o as any).discount_type_ids) ? (o as any).discount_type_ids : [];
+        // Include legacy boolean flags by mapping to known default names
+        const legacy: string[] = [];
+        for (const t of discountTypes) {
+          if (t.name === "Hostess Credit" && (o as any).hostess) legacy.push(t.id);
+          if (t.name === "Half Price Deal" && (o as any).half_price_deal) legacy.push(t.id);
+          if (t.name === "Birthday Discount" && (o as any).birthday) legacy.push(t.id);
+          if (t.name === "Referral Gift" && (o as any).referral) legacy.push(t.id);
+        }
+        return [...ids, ...legacy].some((id) => set.has(id));
+      });
+    }
 
     if (sortDir === null) return result;
 
@@ -126,16 +157,12 @@ export default function Orders() {
         case "order_type": cmp = (a.order_type || "").localeCompare(b.order_type || ""); break;
         case "payment_status": cmp = (a.payment_status || "").localeCompare(b.payment_status || ""); break;
         case "face_type": cmp = (a.face_type || "").localeCompare(b.face_type || ""); break;
-        case "hostess": cmp = Number(!!a.hostess) - Number(!!b.hostess); break;
-        case "half_price_deal": cmp = Number(!!a.half_price_deal) - Number(!!b.half_price_deal); break;
-        case "birthday": cmp = Number(!!a.birthday) - Number(!!b.birthday); break;
-        case "referral": cmp = Number(!!a.referral) - Number(!!b.referral); break;
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
 
     return sorted;
-  }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterHostess, filterBirthday, filterReferral, sortField, sortDir]);
+  }, [orders, search, filterCustomer, period, filterOrderType, filterPayment, filterFaceType, filterDiscountIds, discountTypes, sortField, sortDir]);
 
   const summary = useMemo(() => {
     const totalOrders = filtered.length;
