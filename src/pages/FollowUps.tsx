@@ -1692,28 +1692,52 @@ export default function FollowUps() {
     setUniversalPanelOpen(true);
   }, [unifiedNotes]);
 
-  const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
-    // Skip from a reschedule row: push the reschedule follow-up date out by 2 days, no activity counted.
+  const [skipDialogItem, setSkipDialogItem] = useState<ActionItem | null>(null);
+
+  const applySkipChoice = useCallback(async (item: ActionItem, choice: SkipChoice) => {
     if (universalRescheduleEvent) {
-      const nextDate = toLocalDateKey(addDays(new Date(), 2));
-      updateEvent(universalRescheduleEvent.id, { reschedule_next_follow_up_date: nextDate } as any)
-        .then(() => {
-          queryClient.invalidateQueries({ queryKey: ["events"] });
-          toast.success("Skipped — rescheduled");
-        })
-        .catch((err: any) => toast.error(err?.message || "Failed to skip"));
+      let nextDate: string | null = null;
+      if (choice.kind === "days") nextDate = format(addDays(new Date(), choice.days), "yyyy-MM-dd");
+      else if (choice.kind === "custom") nextDate = choice.date;
+      else if (choice.kind === "clear") nextDate = null;
+      try {
+        await updateEvent(universalRescheduleEvent.id, { reschedule_next_follow_up_date: nextDate } as any);
+        queryClient.invalidateQueries({ queryKey: ["events"] });
+        toast.success(nextDate ? "Skipped — rescheduled" : "Follow-up cleared");
+      } catch (err: any) { toast.error(err?.message || "Failed to skip"); }
       setUniversalRescheduleEvent(null);
       setUniversalPanelOpen(false);
       setUniversalPanelItem(null);
       return;
     }
+    if (choice.kind === "pcp" && item.itemType === "customer") {
+      try {
+        await logCatalogSent({ customerId: item.id, campaignType: "Spring", mailingDate: toLocalDateKey(), scheduleFollowUp: true });
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+        toast.success("Added to PCP — follow-up in 6 days");
+      } catch (err: any) { toast.error(err?.message || "Failed to add to PCP"); }
+      return;
+    }
+    if (choice.kind === "clear") {
+      skipFollowUpMutation.mutate({ item, noFollowUp: true });
+      return;
+    }
+    const nextDate = choice.kind === "days"
+      ? format(addDays(new Date(), choice.days), "yyyy-MM-dd")
+      : choice.date;
+    skipFollowUpMutation.mutate({ item, nextDate });
+  }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
+
+  const handleUniversalSkip = useCallback((uItem: UniversalActionItem) => {
     const ai: ActionItem = {
       id: uItem.id, itemType: uItem.personType, name: uItem.name,
       phone: uItem.phone, email: uItem.email,
       next_follow_up: null, follow_up_status: uItem.followUpStatus || "", actionLabel: "",
     };
-    skipFollowUpMutation.mutate({ item: ai });
-  }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
+    setSkipDialogItem(ai);
+  }, []);
 
   const handleInlineSave = (item: ActionItem) => {
     contactMutation.mutate({ item, note: inlineNoteText, nextStep: inlineNextStep, type: inlineNoteType, nextDate: normalizeFollowUpDate(inlineFollowUpDate) || undefined });
