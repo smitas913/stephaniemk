@@ -757,94 +757,102 @@ export default function AddOrder() {
           </div>
         </div>
 
-        {/* Row 2: Retail + Wholesale + Discount */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="text-sm font-medium text-foreground">Retail Amount *</label>
-            <CurrencyInput ref={retailInputRef} placeholder="$0.00" value={retailAmount} onValueChange={setRetailAmount} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
-          </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
-              {wholesaleManual && (
-                <button
-                  type="button"
-                  className="text-[11px] text-primary hover:underline"
-                  onClick={() => setWholesaleManual(false)}
-                >
-                  Reset
-                </button>
+        {/* Row 2: Pricing inputs (left) + Live Totals (right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm font-medium text-foreground">Retail Amount *</label>
+              <CurrencyInput ref={retailInputRef} placeholder="$0.00" value={retailAmount} onValueChange={setRetailAmount} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Wholesale Cost</label>
+                {wholesaleManual && (
+                  <button
+                    type="button"
+                    className="text-[11px] text-primary hover:underline"
+                    onClick={() => setWholesaleManual(false)}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              <CurrencyInput
+                placeholder="$0.00"
+                value={wholesaleAmount}
+                onValueChange={(v) => { setWholesaleManual(true); setWholesaleAmount(v); }}
+                className="h-9"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {wholesaleManual ? "Manual override" : "Auto-calculated based on margin"}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(opt.)</span></label>
+              <div className="flex gap-1.5">
+                {discountMode === "$" ? (
+                  <CurrencyInput
+                    ref={discountInputRef}
+                    placeholder="$0.00"
+                    value={discountValue}
+                    onValueChange={setDiscountValue}
+                    onKeyDown={enterAdvance(notesInputRef)}
+                    onFocus={() => setDiscountFocused(true)}
+                    onBlur={() => setDiscountFocused(false)}
+                    className="h-9 flex-1 min-w-0"
+                  />
+                ) : (
+                  <Input
+                    ref={discountInputRef}
+                    type="number" step="0.01" min="0" placeholder="0"
+                    value={discountValue} onChange={e => setDiscountValue(e.target.value)}
+                    onKeyDown={enterAdvance(notesInputRef)}
+                    onFocus={() => setDiscountFocused(true)}
+                    onBlur={() => setDiscountFocused(false)}
+                    className="h-9 flex-1 min-w-0"
+                  />
+                )}
+                <div className="flex shrink-0">
+                  {(["$", "%"] as const).map(m => (
+                    <button key={m} type="button"
+                      className={cn("h-9 w-9 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                        discountMode === m
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                      onClick={() => setDiscountMode(m)}
+                    >{m}</button>
+                  ))}
+                </div>
+              </div>
+              {(Number(discountValue) > 0 || discountFocused) && (
+                <div className="mt-1.5">
+                  <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
+                </div>
               )}
             </div>
-            <CurrencyInput
-              placeholder="$0.00"
-              value={wholesaleAmount}
-              onValueChange={(v) => { setWholesaleManual(true); setWholesaleAmount(v); }}
-              className="h-9"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {wholesaleManual ? "Manual override" : "Auto-calculated based on margin"}
-            </p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(opt.)</span></label>
-            <div className="flex gap-1.5">
-              {discountMode === "$" ? (
-                <CurrencyInput
-                  ref={discountInputRef}
-                  placeholder="$0.00"
-                  value={discountValue}
-                  onValueChange={setDiscountValue}
-                  onKeyDown={enterAdvance(notesInputRef)}
-                  onFocus={() => setDiscountFocused(true)}
-                  onBlur={() => setDiscountFocused(false)}
-                  className="h-9 flex-1 min-w-0"
-                />
-              ) : (
-                <Input
-                  ref={discountInputRef}
-                  type="number" step="0.01" min="0" placeholder="0"
-                  value={discountValue} onChange={e => setDiscountValue(e.target.value)}
-                  onKeyDown={enterAdvance(notesInputRef)}
-                  onFocus={() => setDiscountFocused(true)}
-                  onBlur={() => setDiscountFocused(false)}
-                  className="h-9 flex-1 min-w-0"
-                />
-              )}
-              <div className="flex shrink-0">
-                {(["$", "%"] as const).map(m => (
-                  <button key={m} type="button"
-                    className={cn("h-9 w-9 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
-                      discountMode === m
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-background text-muted-foreground hover:bg-muted"
-                    )}
-                    onClick={() => setDiscountMode(m)}
-                  >{m}</button>
-                ))}
-              </div>
+
+          {/* Live Financial Summary — beside inputs on desktop, below on mobile */}
+          {Number(retailAmount) > 0 ? (
+            <div className="rounded-lg border border-border bg-card p-3 text-xs space-y-1 shadow-sm lg:sticky lg:top-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Order Totals</div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Retail Amount</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
+              {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>
+              <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
+              {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
+              <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
             </div>
-            {(Number(discountValue) > 0 || discountFocused) && (
-              <div className="mt-1.5">
-                <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className="hidden lg:block rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground lg:sticky lg:top-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wide mb-1">Order Totals</div>
+              Enter a retail amount to see live totals.
+            </div>
+          )}
         </div>
 
-
-        {/* Live Financial Summary */}
-        {Number(retailAmount) > 0 && (
-          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-1">
-            <div className="flex justify-between"><span className="text-muted-foreground">Retail Amount</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
-            {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
-            <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>
-            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
-            {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
-            <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
-            <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
-          </div>
-        )}
 
         {/* Row 3: Payment Status (left) + Payment Method (right) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
