@@ -634,12 +634,12 @@ export default function AddOrder() {
         {/* Live Financial Summary */}
         {Number(retailAmount) > 0 && (
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-1">
-            <div className="flex justify-between"><span className="text-muted-foreground">Order Total</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Retail Amount</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
             {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
-            <div className="flex justify-between"><span className="text-muted-foreground">Final Total</span><span className="font-medium">${financials.finalTotal.toFixed(2)}</span></div>
-            {financials.tax > 0 && <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>
+            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
             {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
-            <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Net Revenue</span><span className="font-semibold text-foreground">${financials.netRevenue.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
             <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
           </div>
         )}
