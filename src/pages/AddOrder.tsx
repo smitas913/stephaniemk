@@ -743,6 +743,12 @@ export default function AddOrder() {
           </div>
         )}
 
+        {paymentStatus === "Paid" && paymentType === "MyShop" && (
+          <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">MyShop order:</span> no processing fees applied. Retail amount counts toward sales totals and profit uses your default margin.
+          </div>
+        )}
+
         {paymentStatus === "Unpaid" && (
           <p className="text-xs text-muted-foreground">Payment method is optional for unpaid orders and will be saved blank.</p>
         )}
