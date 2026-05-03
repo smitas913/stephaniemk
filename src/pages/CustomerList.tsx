@@ -514,6 +514,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8 px-2">
+                    <Checkbox
+                      checked={filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id))}
+                      onCheckedChange={(v) => {
+                        if (v) setSelectedIds(new Set(filtered.map((c) => c.id)));
+                        else clearSelection();
+                      }}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
                   <TableHead className="min-w-[140px]">Name</TableHead>
                   <TableHead className="whitespace-nowrap min-w-[140px]">Phone</TableHead>
                   <TableHead>
@@ -691,9 +701,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8">No customers found.</TableCell></TableRow>
                 ) : filtered.map((c) => (
-                  <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/customers/${c.id}`)}>
+                  <TableRow key={c.id} className={cn("cursor-pointer hover:bg-muted/50", selectedIds.has(c.id) && "bg-primary/5")} onClick={() => navigate(`/customers/${c.id}`)}>
+                    <TableCell className="px-2 w-8" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(c.id)}
+                        onCheckedChange={() => toggleSelect(c.id)}
+                        aria-label={`Select ${c.full_name}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{c.full_name}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       {c.phone ? (
