@@ -252,9 +252,33 @@ export default function CustomerDetail() {
     onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
   });
 
+  const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const handleSkip = useCallback(() => {
-    skipMutation.mutate();
-  }, [skipMutation]);
+    setSkipDialogOpen(true);
+  }, []);
+
+  const applySkipChoice = useCallback(async (choice: SkipChoice) => {
+    if (choice.kind === "pcp") {
+      try {
+        await logCatalogSent({ customerId: id!, campaignType: "Spring", mailingDate: todayKey(), scheduleFollowUp: true });
+        queryClient.invalidateQueries({ queryKey: ["customer", id] });
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+        toast.success("Added to PCP — follow-up in 6 days");
+      } catch (err: any) { toast.error(err?.message || "Failed to add to PCP"); }
+      return;
+    }
+    if (choice.kind === "clear") {
+      skipMutation.mutate({ nextDate: null, noFollowUp: true });
+      return;
+    }
+    const nextDate = choice.kind === "days"
+      ? format(addDaysFn(new Date(), choice.days), "yyyy-MM-dd")
+      : choice.date;
+    skipMutation.mutate({ nextDate });
+  }, [id, queryClient, skipMutation]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Record<string, string>) => {
@@ -742,6 +766,14 @@ export default function CustomerDetail() {
           onLogAction={handleLogAction}
           onSkip={handleSkip}
           isPending={actionMutation.isPending || skipMutation.isPending}
+        />
+
+        <SkipFollowUpDialog
+          open={skipDialogOpen}
+          onOpenChange={setSkipDialogOpen}
+          personName={customer?.full_name}
+          allowPcp
+          onChoose={applySkipChoice}
         />
 
         {/* Sent Catalog Dialog */}
