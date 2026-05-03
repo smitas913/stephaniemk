@@ -389,7 +389,7 @@ export default function LeadDetail() {
   );
 }
 
-function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
       <span className="text-muted-foreground mt-0.5">{icon}</span>
