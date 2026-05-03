@@ -150,6 +150,9 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   const [bookingAttemptOverride, setBookingAttemptOverride] = useState<boolean | null>(null);
   // "Inbound Response" toggle — independent of category/booking. Reactive vs outbound.
   const [isInbound, setIsInbound] = useState(false);
+  // Booking Created — appointment was actually scheduled (not just asked for).
+  const [bookingCreated, setBookingCreated] = useState(false);
+  const [bookingCreatedType, setBookingCreatedType] = useState<"Facial" | "Party" | "Career Chat" | null>(null);
 
   const resetState = useCallback(() => {
     setStep("action");
