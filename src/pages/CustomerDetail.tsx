@@ -768,6 +768,14 @@ export default function CustomerDetail() {
           isPending={actionMutation.isPending || skipMutation.isPending}
         />
 
+        <SkipFollowUpDialog
+          open={skipDialogOpen}
+          onOpenChange={setSkipDialogOpen}
+          personName={customer?.full_name}
+          allowPcp
+          onChoose={applySkipChoice}
+        />
+
         {/* Sent Catalog Dialog */}
         <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
           <DialogContent className="max-w-sm">
