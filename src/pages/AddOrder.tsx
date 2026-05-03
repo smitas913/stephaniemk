@@ -125,15 +125,17 @@ export default function AddOrder() {
     }
   }, [isEventBased]);
 
-  // Event options filtered by type
+  // Event options: upcoming first (asc), then past (desc)
   const eventOptions = useMemo(() => {
     if (!isEventBased) return [];
-    return events
-      .filter(e => {
-        // Show all events for event-based order types
-        return true;
-      })
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = events
+      .filter(e => (e.event_date || "") >= today)
+      .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
+    const past = events
+      .filter(e => (e.event_date || "") < today)
       .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || ""));
+    return [...upcoming, ...past];
   }, [events, orderType, isEventBased]);
 
   const existingEventIds = useMemo(() => events.map(e => e.event_id), [events]);
@@ -235,7 +237,7 @@ export default function AddOrder() {
     if (!isNonCustomer && !customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
     if (paymentStatus === "Paid" && !paymentType) errors.push("Select a payment type");
-    if (isEventBased && !selectedEventId) errors.push("Select an event");
+    // Event linking is optional for Party/Facial — user may pick "No event / standalone"
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
@@ -520,7 +522,7 @@ export default function AddOrder() {
             <div className="flex items-center justify-between">
               <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
-                Event *
+                Event <span className="text-muted-foreground font-normal">(optional)</span>
               </label>
               {selectedEvent && (
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -536,11 +538,17 @@ export default function AddOrder() {
             </div>
             <div className="flex gap-2">
               <div className="flex-1">
-                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                <Select
+                  value={selectedEventId || "__none__"}
+                  onValueChange={(v) => setSelectedEventId(v === "__none__" ? "" : v)}
+                >
                   <SelectTrigger className="h-10 bg-background">
-                    <SelectValue placeholder="Select an event..." />
+                    <SelectValue placeholder="Link to an event..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">
+                      <span className="text-muted-foreground">No event / standalone</span>
+                    </SelectItem>
                     {eventOptions.map(e => (
                       <SelectItem key={e.event_id} value={e.event_id}>
                         <span className="flex items-center gap-2">
@@ -549,9 +557,6 @@ export default function AddOrder() {
                         </span>
                       </SelectItem>
                     ))}
-                    {eventOptions.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">No {orderType.toLowerCase()} events found</div>
-                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -566,11 +571,6 @@ export default function AddOrder() {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            {!selectedEventId && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> An event must be selected for {orderType.toLowerCase()} orders
-              </p>
-            )}
             <AddEventDialog
               open={showCreateEvent}
               onOpenChange={setShowCreateEvent}
