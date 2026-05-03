@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag, Repeat, CalendarClock } from "lucide-react";
+import { Users, MessageSquare, Calendar, UserPlus, Search, Loader2, Flag, Repeat, CalendarClock, ShoppingBag, UserX, Ban, Tag } from "lucide-react";
 
 type ResultType = "Face" | "Career Chat" | "Booking Conversation";
 
@@ -69,6 +69,12 @@ export default function QuickAddPersonDialog({
   const [followUpPrompt, setFollowUpPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const [customFollowUpDate, setCustomFollowUpDate] = useState<string>("");
   const [createNewIntent, setCreateNewIntent] = useState(false);
+  // Face flow: Outcome step (Customer vs Non-Customer) for brand-new names on Face logs
+  const [faceOutcomePrompt, setFaceOutcomePrompt] = useState<{ name: string } | null>(null);
+  // Face flow: Non-customer post-step (tags + follow-up + DNC + Skip)
+  const [nonCustomerPrompt, setNonCustomerPrompt] = useState<{ customerId: string; name: string } | null>(null);
+  const [nonCustomerTags, setNonCustomerTags] = useState<{ lead: boolean; prospect: boolean; dnc: boolean }>({ lead: false, prospect: false, dnc: false });
+  const [nonCustomerFollowUpDate, setNonCustomerFollowUpDate] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Reset on open
@@ -84,6 +90,10 @@ export default function QuickAddPersonDialog({
       setFollowUpPrompt(null);
       setCustomFollowUpDate("");
       setCreateNewIntent(false);
+      setFaceOutcomePrompt(null);
+      setNonCustomerPrompt(null);
+      setNonCustomerTags({ lead: false, prospect: false, dnc: false });
+      setNonCustomerFollowUpDate("");
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
     }
@@ -201,12 +211,44 @@ export default function QuickAddPersonDialog({
       }
 
       // Brand-new name (or explicit "Create new person")
-      // Always route through the Customer/Lead capture prompt — defer activity log until user chooses.
-      setCapturePrompt({ name: trimmed, noteBody: note.trim() });
+      // Face → new Outcome step (Customer / Non-Customer). Other types → existing Customer/Lead capture.
+      if (resultType === "Face") {
+        setFaceOutcomePrompt({ name: trimmed });
+      } else {
+        setCapturePrompt({ name: trimmed, noteBody: note.trim() });
+      }
       setBusy(false);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
+      setBusy(false);
+    }
+  };
+
+  // Face Outcome handler — creates customer record either way (relationship_status = "Customer"),
+  // logs the Face activity, then routes to follow-up step (Customer) or non-customer step.
+  const handleFaceOutcome = async (outcome: "customer" | "non-customer") => {
+    if (!faceOutcomePrompt) return;
+    setBusy(true);
+    try {
+      const c = await createCustomer({
+        full_name: faceOutcomePrompt.name,
+        relationship_status: "Customer",
+      } as any);
+      const person: PersonMatch = { kind: "customer", id: (c as any).id, name: faceOutcomePrompt.name };
+      await logActivity(person, faceOutcomePrompt.name);
+      toast.success(outcome === "customer"
+        ? `Customer added: ${faceOutcomePrompt.name}`
+        : `Face logged: ${faceOutcomePrompt.name}`);
+      setFaceOutcomePrompt(null);
+      setBusy(false);
+      if (outcome === "customer") {
+        setFollowUpPrompt({ customerId: person.id, name: person.name });
+      } else {
+        setNonCustomerPrompt({ customerId: person.id, name: person.name });
+      }
+    } catch (e: any) {
+      toast.error(`Failed: ${e?.message ?? "Unknown error"}`);
       setBusy(false);
     }
   };
@@ -332,18 +374,64 @@ export default function QuickAddPersonDialog({
     }
   };
 
+  // Non-customer Face follow-up: applies optional tags + optional follow-up date.
+  // DNC short-circuits any follow-up. Lead/Prospect tags only added if explicitly toggled.
+  const applyNonCustomerChoice = async (action: "save" | "skip") => {
+    if (!nonCustomerPrompt) return;
+    setBusy(true);
+    try {
+      if (action === "save") {
+        const updates: any = {};
+        const tagSet = new Set<string>();
+        if (nonCustomerTags.lead) tagSet.add("Lead");
+        if (nonCustomerTags.prospect) tagSet.add("Prospect");
+        if (nonCustomerTags.dnc) tagSet.add("DNC");
+        if (tagSet.size > 0) updates.tags = Array.from(tagSet);
+        if (!nonCustomerTags.dnc && nonCustomerFollowUpDate) {
+          updates.next_follow_up_date = nonCustomerFollowUpDate;
+          updates.follow_up_reason = "Face — non-customer follow-up";
+        }
+        if (Object.keys(updates).length > 0) {
+          await updateCustomer(nonCustomerPrompt.customerId, updates);
+        }
+        toast.success(nonCustomerTags.dnc ? "Marked Do Not Contact" : "Saved");
+      }
+    } catch (e: any) {
+      toast.error(`Failed: ${e?.message ?? "Unknown error"}`);
+    } finally {
+      setBusy(false);
+      setNonCustomerPrompt(null);
+      setNonCustomerTags({ lead: false, prospect: false, dnc: false });
+      setNonCustomerFollowUpDate("");
+      onLogged();
+      onOpenChange(false);
+    }
+  };
+
   const meta = resultType ? TITLES[resultType] : null;
 
   return (
     <Dialog
       open={open}
       onOpenChange={(v) => {
-        // Closing during follow-up step = Skip (customer already saved)
-        if (!v && followUpPrompt && !busy) {
-          setFollowUpPrompt(null);
-          onLogged();
-          onOpenChange(false);
-          return;
+        if (!v && !busy) {
+          // Closing during the Face Outcome step = cancel (customer not yet created)
+          if (faceOutcomePrompt) {
+            setFaceOutcomePrompt(null);
+            onOpenChange(false);
+            return;
+          }
+          // Closing during follow-up or non-customer step = Skip (customer already saved)
+          if (followUpPrompt) {
+            setFollowUpPrompt(null);
+            onLogged();
+            onOpenChange(false);
+            return;
+          }
+          if (nonCustomerPrompt) {
+            applyNonCustomerChoice("skip");
+            return;
+          }
         }
         onOpenChange(v);
       }}
@@ -356,7 +444,125 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {followUpPrompt ? (
+        {faceOutcomePrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium">Outcome?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Did <span className="font-semibold">{faceOutcomePrompt.name}</span> purchase?
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-emerald-50 hover:border-emerald-300 dark:hover:bg-emerald-950"
+                disabled={busy}
+                onClick={() => handleFaceOutcome("customer")}
+              >
+                <ShoppingBag className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Customer (purchased)</div>
+                  <div className="text-[11px] text-muted-foreground">Saves as customer · choose follow-up next</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-3 justify-start gap-3 hover:bg-muted"
+                disabled={busy}
+                onClick={() => handleFaceOutcome("non-customer")}
+              >
+                <UserX className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Non-Customer</div>
+                  <div className="text-[11px] text-muted-foreground">Save contact · optional tags & follow-up next</div>
+                </div>
+              </Button>
+            </div>
+            {busy && (
+              <div className="flex items-center justify-center text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              className="w-full h-8 text-xs text-muted-foreground"
+              disabled={busy}
+              onClick={() => { setFaceOutcomePrompt(null); onOpenChange(false); }}
+            >
+              Cancel — don't save
+            </Button>
+          </div>
+        ) : nonCustomerPrompt ? (
+          <div className="space-y-3">
+            <div className="text-sm">
+              <p className="text-foreground font-medium">Tag & follow-up</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Optional tags or follow-up for <span className="font-semibold">{nonCustomerPrompt.name}</span>.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { key: "lead", label: "Lead", icon: UserPlus, activeCls: "bg-blue-500 text-white border-blue-500", inactiveCls: "bg-background text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950" },
+                  { key: "prospect", label: "Prospect", icon: Tag, activeCls: "bg-purple-500 text-white border-purple-500", inactiveCls: "bg-background text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950" },
+                  { key: "dnc", label: "Do Not Contact", icon: Ban, activeCls: "bg-destructive text-destructive-foreground border-destructive", inactiveCls: "bg-background text-destructive border-destructive/40 hover:bg-destructive/10" },
+                ] as const).map((t) => {
+                  const active = nonCustomerTags[t.key];
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setNonCustomerTags((s) => ({ ...s, [t.key]: !s[t.key] }))}
+                      className={cn(
+                        "inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors disabled:opacity-50",
+                        active ? t.activeCls : t.inactiveCls,
+                      )}
+                      aria-pressed={active}
+                    >
+                      <t.icon className="w-3 h-3" />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={cn("rounded-md border p-2.5 space-y-2", nonCustomerTags.dnc && "opacity-50")}>
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Follow-up date (optional)</span>
+                </div>
+                <Input
+                  type="date"
+                  min={toLocalDateKey()}
+                  value={nonCustomerFollowUpDate}
+                  onChange={(e) => setNonCustomerFollowUpDate(e.target.value)}
+                  className="h-9"
+                  disabled={busy || nonCustomerTags.dnc}
+                />
+                {nonCustomerTags.dnc && (
+                  <p className="text-[11px] text-destructive">DNC suppresses follow-ups.</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={busy}
+                onClick={() => applyNonCustomerChoice("skip")}
+              >
+                Skip
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={busy}
+                onClick={() => applyNonCustomerChoice("save")}
+              >
+                {busy ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Saving...</> : "Save"}
+              </Button>
+            </div>
+          </div>
+        ) : followUpPrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium flex items-center gap-1.5">
