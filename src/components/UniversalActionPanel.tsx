@@ -311,6 +311,20 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                 <a href={`mailto:${item.email}`} onClick={(e) => openEmail(item.email!, e)}><Mail className="w-3 h-3 mr-1" />Email</a>
               </Button>
             )}
+            {canAddOrder && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => {
+                  navigate(`/orders/new?customer=${encodeURIComponent(item.id)}`);
+                  handleClose();
+                }}
+              >
+                <ShoppingCart className="w-3 h-3 mr-1" />
+                + Order
+              </Button>
+            )}
           </div>
         </SheetHeader>
 
