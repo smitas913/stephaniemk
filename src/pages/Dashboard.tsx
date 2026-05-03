@@ -42,13 +42,12 @@ function getDailyQuote(): string {
 // ─── Quick Add ───
 const QUICK_ADD_OPTIONS = [
   { key: "Face", label: "Face", emoji: "👤" },
-  { key: "Career Chat", label: "Career Chat", emoji: "💬" },
   { key: "Booking Conversation", label: "Booking", emoji: "📅" },
 ] as const;
 
 function QuickAddBar({ onLogged }: { onLogged: () => void }) {
   const navigate = useNavigate();
-  const [openType, setOpenType] = useState<"Face" | "Career Chat" | "Booking Conversation" | null>(null);
+  const [openType, setOpenType] = useState<"Face" | "Booking Conversation" | null>(null);
 
   return (
     <>
@@ -72,6 +71,15 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
               <span className="text-xs font-semibold">{opt.label}</span>
             </Button>
           ))}
+          <Button
+            variant="outline"
+            className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+            onClick={() => navigate("/events/new?type=Career%20Chat")}
+            title="Career Chats are tracked as Events"
+          >
+            <span className="text-2xl">💬</span>
+            <span className="text-xs font-semibold">Career Chat</span>
+          </Button>
           <Button
             variant="outline"
             className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
