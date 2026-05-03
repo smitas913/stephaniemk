@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import { useQuery as useRQ } from "@tanstack/react-query";
-import { fetchFinancialSettings, computeOrderFinancials } from "@/lib/financialSettings";
+import { fetchFinancialSettings, computeOrderFinancials, getProcessorFee, type CcTransactionType } from "@/lib/financialSettings";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 
