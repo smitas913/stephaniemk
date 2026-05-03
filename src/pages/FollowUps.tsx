@@ -2863,15 +2863,15 @@ export default function FollowUps() {
                     );
                   })()}
 
-                  {/* ═══ SECTION 4: Today's Schedule ═══ */}
+                  {/* ═══ SECTION 4: Relationships ═══ */}
                   <Card className="border-border/50 shadow-sm">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                            <Calendar className="w-4 h-4 text-emerald-600" />
+                          <div className="p-1.5 rounded-md bg-pink-50 dark:bg-pink-950/30">
+                            <Heart className="w-4 h-4 text-pink-600" />
                           </div>
-                          <CardTitle className="text-sm font-semibold text-foreground">Today's Schedule</CardTitle>
+                          <CardTitle className="text-sm font-semibold text-foreground">Relationships</CardTitle>
                           <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
@@ -2881,117 +2881,117 @@ export default function FollowUps() {
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !isRelationshipDone(c)).length === 0 && birthdaysOverdue.filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) ? (
-                        <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {!hideWorkflow && todayEvents.length > 0 && (
-                            <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
-                              </p>
-                              <div className="divide-y divide-border/40">
-                                {todayEvents.map((evt) => (
-                                  <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                    onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                        {evt.event_type && <span>{evt.event_type}</span>}
-                                        {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                      </div>
+                      <div className="space-y-3">
+                        {!hideWorkflow && todayEvents.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
+                            </p>
+                            <div className="divide-y divide-border/40">
+                              {todayEvents.map((evt) => (
+                                <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
+                                  onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                      {evt.event_type && <span>{evt.event_type}</span>}
+                                      {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {!hideWorkflow && todayDeliveries.length > 0 && (
-                            <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
-                              </p>
-                              <div className="divide-y divide-border/40">
-                                {todayDeliveries.map((del: any) => (
-                                  <div key={del.id} className="py-2 flex items-center gap-3 px-1">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
-                                      {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
-                                      {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
-                                    </div>
-                                    {del.phone && (
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-                                        <a href={`tel:${phoneForLink(del.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                      </Button>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {/* Relationship touches: birthdays + anniversaries (overdue + today + upcoming) */}
-                          {(() => {
-                            const activeOverdue = birthdaysOverdue.filter(c => !isRelationshipDone(c));
-                            const activeToday = birthdaysToday.filter(c => !isRelationshipDone(c));
-                            const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => isRelationshipDone(c)).length;
-                            const totalActive = activeOverdue.length + activeToday.length;
-
-                            if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
-
-                            const rowKey = (c: ActionItem & { _eventType?: string }) => `${c.itemType}-${c.id}-${c._eventType || "birthday"}`;
-
-                            return (
-                              <div>
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                  <Cake className="w-3 h-3" /> Birthdays & Anniversaries ({totalActive})
-                                </p>
-                                <div className="space-y-1.5">
-                                  {/* Overdue */}
-                                  {activeOverdue.map((c) => (
-                                    <BirthdayRow
-                                      key={rowKey(c)}
-                                      item={c}
-                                      label={`Missed by ${Math.abs(c._daysUntil)}d`}
-                                      isOverdue
-                                      onNavigate={() => navigateToItem(c)}
-                                      onAction={(type) => openContactDialog(c, type)}
-                                      onDone={() => markBirthdayDone(c)}
-                                    />
-                                  ))}
-                                  {/* Today */}
-                                  {activeToday.map((c) => (
-                                    <BirthdayRow
-                                      key={rowKey(c)}
-                                      item={c}
-                                      label={c._eventType === "anniversary" ? "Today 🎉" : "Today 🎉"}
-                                      onNavigate={() => navigateToItem(c)}
-                                      onAction={(type) => openContactDialog(c, type)}
-                                      onDone={() => markBirthdayDone(c)}
-                                    />
-                                  ))}
-                                  {/* Completed summary */}
-                                  {completedCount > 0 && (
-                                    <p className="text-[10px] text-muted-foreground italic px-2 py-1">
-                                      ✓ {completedCount} relationship touch{completedCount > 1 ? "es" : ""} sent
-                                    </p>
-                                  )}
-                                  {/* Upcoming */}
-                                  {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                                    <BirthdayRow
-                                      key={rowKey(c)}
-                                      item={c}
-                                      label={`in ${c._daysUntil}d`}
-                                      onNavigate={() => navigateToItem(c)}
-                                      onAction={(type) => openContactDialog(c, type)}
-                                    />
-                                  ))}
+                                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                                 </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {!hideWorkflow && todayDeliveries.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                              <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
+                            </p>
+                            <div className="divide-y divide-border/40">
+                              {todayDeliveries.map((del: any) => (
+                                <div key={del.id} className="py-2 flex items-center gap-3 px-1">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
+                                    {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
+                                    {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
+                                  </div>
+                                  {del.phone && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+                                      <a href={`tel:${phoneForLink(del.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Birthdays + Anniversaries */}
+                        {(() => {
+                          const activeOverdue = birthdaysOverdue.filter(c => !isRelationshipDone(c));
+                          const activeToday = birthdaysToday.filter(c => !isRelationshipDone(c));
+                          const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => isRelationshipDone(c)).length;
+                          const totalActive = activeOverdue.length + activeToday.length;
+                          if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
+                          const rowKey = (c: ActionItem & { _eventType?: string }) => `${c.itemType}-${c.id}-${c._eventType || "birthday"}`;
+                          return (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                <Cake className="w-3 h-3" /> Birthdays & Anniversaries ({totalActive})
+                              </p>
+                              <div className="divide-y divide-border/40">
+                                {activeOverdue.map((c) => (
+                                  <BirthdayRow key={rowKey(c)} item={c} label={`Missed by ${Math.abs(c._daysUntil)}d`} isOverdue
+                                    onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
+                                ))}
+                                {activeToday.map((c) => (
+                                  <BirthdayRow key={rowKey(c)} item={c} label="Today"
+                                    onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
+                                ))}
+                                {showUpcoming7 && birthdaysUpcoming.map((c) => (
+                                  <BirthdayRow key={rowKey(c)} item={c} label={`in ${c._daysUntil}d`}
+                                    onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                ))}
                               </div>
-                            );
-                          })()}
-                        </div>
-                      )}
+                              {completedCount > 0 && (
+                                <p className="text-[10px] text-muted-foreground italic px-2 py-1 mt-1">
+                                  ✓ {completedCount} relationship touch{completedCount > 1 ? "es" : ""} sent
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Thoughtful Touches quick-log */}
+                        {!hideWorkflow && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                <Heart className="w-3 h-3" /> Thoughtful Touches
+                              </p>
+                              {monthlyTouchCount > 0 && (
+                                <span className="text-[10px] text-muted-foreground">{monthlyTouchCount} this month</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
+                                <FileText className="w-3.5 h-3.5" /> Card Sent
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
+                                <Gift className="w-3.5 h-3.5" /> Gift
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
+                                <Phone className="w-3.5 h-3.5" /> Check-in
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !isRelationshipDone(c)).length === 0 && birthdaysOverdue.filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && hideWorkflow && (
+                          <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
 
