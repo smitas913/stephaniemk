@@ -796,6 +796,8 @@ export default function AddOrder() {
                   value={discountValue}
                   onValueChange={setDiscountValue}
                   onKeyDown={enterAdvance(notesInputRef)}
+                  onFocus={() => setDiscountFocused(true)}
+                  onBlur={() => setDiscountFocused(false)}
                   className="h-9 flex-1 min-w-0"
                 />
               ) : (
@@ -804,6 +806,8 @@ export default function AddOrder() {
                   type="number" step="0.01" min="0" placeholder="0"
                   value={discountValue} onChange={e => setDiscountValue(e.target.value)}
                   onKeyDown={enterAdvance(notesInputRef)}
+                  onFocus={() => setDiscountFocused(true)}
+                  onBlur={() => setDiscountFocused(false)}
                   className="h-9 flex-1 min-w-0"
                 />
               )}
@@ -820,9 +824,8 @@ export default function AddOrder() {
                 ))}
               </div>
             </div>
-            {Number(discountValue) > 0 && (
-              <div className="mt-2">
-                <p className="text-[11px] text-muted-foreground mb-1">Discount type (optional)</p>
+            {(Number(discountValue) > 0 || discountFocused) && (
+              <div className="mt-1.5">
                 <DiscountTypeChips value={discountTypeIds} onChange={setDiscountTypeIds} seedDefaults />
               </div>
             )}
