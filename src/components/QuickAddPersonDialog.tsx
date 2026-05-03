@@ -211,12 +211,44 @@ export default function QuickAddPersonDialog({
       }
 
       // Brand-new name (or explicit "Create new person")
-      // Always route through the Customer/Lead capture prompt — defer activity log until user chooses.
-      setCapturePrompt({ name: trimmed, noteBody: note.trim() });
+      // Face → new Outcome step (Customer / Non-Customer). Other types → existing Customer/Lead capture.
+      if (resultType === "Face") {
+        setFaceOutcomePrompt({ name: trimmed });
+      } else {
+        setCapturePrompt({ name: trimmed, noteBody: note.trim() });
+      }
       setBusy(false);
     } catch (e: any) {
       const msg = e?.message || e?.error_description || "Unknown error";
       toast.error(`Failed to log: ${msg}`);
+      setBusy(false);
+    }
+  };
+
+  // Face Outcome handler — creates customer record either way (relationship_status = "Customer"),
+  // logs the Face activity, then routes to follow-up step (Customer) or non-customer step.
+  const handleFaceOutcome = async (outcome: "customer" | "non-customer") => {
+    if (!faceOutcomePrompt) return;
+    setBusy(true);
+    try {
+      const c = await createCustomer({
+        full_name: faceOutcomePrompt.name,
+        relationship_status: "Customer",
+      } as any);
+      const person: PersonMatch = { kind: "customer", id: (c as any).id, name: faceOutcomePrompt.name };
+      await logActivity(person, faceOutcomePrompt.name);
+      toast.success(outcome === "customer"
+        ? `Customer added: ${faceOutcomePrompt.name}`
+        : `Face logged: ${faceOutcomePrompt.name}`);
+      setFaceOutcomePrompt(null);
+      setBusy(false);
+      if (outcome === "customer") {
+        setFollowUpPrompt({ customerId: person.id, name: person.name });
+      } else {
+        setNonCustomerPrompt({ customerId: person.id, name: person.name });
+      }
+    } catch (e: any) {
+      toast.error(`Failed: ${e?.message ?? "Unknown error"}`);
       setBusy(false);
     }
   };
