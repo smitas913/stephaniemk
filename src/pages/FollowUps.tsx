@@ -2437,17 +2437,16 @@ export default function FollowUps() {
                                  <Users className={cn("w-4 h-4", accentIcon)} />
                                </div>
                                <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
-                               <Badge variant="secondary" className="text-xs">
-                                 {items.length}{totalCount > items.length ? ` / ${totalCount}` : ""}
-                               </Badge>
-                               <Badge variant="outline" className="text-[10px] px-1.5 py-0">Limit {limit}/day</Badge>
-                               {overflow > 0 && (
-                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
-                                   +{overflow} pushed to upcoming
-                                 </Badge>
-                               )}
-                             </div>
-                           </CardHeader>
+                                <Badge variant="secondary" className="text-xs">
+                                  {items.length}{totalCount > items.length ? ` / ${totalCount}` : ""}
+                                </Badge>
+                                {overflow > 0 && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
+                                    +{overflow} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardHeader>
                            <CardContent className="pt-0">
                              {items.length === 0 ? (
                                <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
