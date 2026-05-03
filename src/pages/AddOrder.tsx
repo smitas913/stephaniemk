@@ -40,6 +40,8 @@ export default function AddOrder() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
+  const { id: editOrderId } = useParams<{ id: string }>();
+  const isEditMode = !!editOrderId;
   const preselectedCustomer = params.get("customer") || "";
   const preselectedEvent = params.get("event") || "";
   const preselectedType = params.get("type") || "";
@@ -48,6 +50,11 @@ export default function AddOrder() {
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: financialSettings } = useRQ({ queryKey: ["financial-settings"], queryFn: fetchFinancialSettings });
+  const { data: editOrder } = useQuery({
+    queryKey: ["order", editOrderId],
+    queryFn: () => fetchOrder(editOrderId!),
+    enabled: isEditMode,
+  });
 
   // --- State ---
   const [orderType, setOrderType] = useState<OrderTypeValue | "">(() => {
