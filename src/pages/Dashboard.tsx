@@ -19,7 +19,7 @@ import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
-import BusinessResetBanner from "@/components/BusinessResetBanner";
+// BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
 
 // ─── Quotes ───
