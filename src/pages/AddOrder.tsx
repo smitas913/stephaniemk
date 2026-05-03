@@ -235,7 +235,7 @@ export default function AddOrder() {
     return errors;
   }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
-  const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card";
+  const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card" && !isMyShopOrder;
   const processorFee = useMemo(
     () => getProcessorFee(financialSettings, isCreditCard ? ccTxType : null),
     [financialSettings, isCreditCard, ccTxType]
