@@ -1726,7 +1726,8 @@ export default function FollowUps() {
     }
     const nextDate = choice.kind === "days"
       ? format(addDays(new Date(), choice.days), "yyyy-MM-dd")
-      : choice.date;
+      : choice.kind === "custom" ? choice.date : null;
+    if (!nextDate) return;
     skipFollowUpMutation.mutate({ item, nextDate });
   }, [skipFollowUpMutation, universalRescheduleEvent, queryClient]);
 
