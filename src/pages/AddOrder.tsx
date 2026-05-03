@@ -906,21 +906,18 @@ export default function AddOrder() {
           </div>
         )}
 
-        {/* MyShop Order tag — combinable with any order type/payment method */}
-        <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
-          <input
-            type="checkbox"
-            checked={isMyShopOrder}
-            onChange={e => setIsMyShopOrder(e.target.checked)}
-            className="mt-0.5 rounded border-border"
+        {/* Order Tags — multi-select; MyShop also suppresses CC fees */}
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-foreground">Order Tags <span className="text-muted-foreground font-normal">(optional)</span></label>
+          <OrderTagChips
+            value={orderTags}
+            onChange={setOrderTags}
+            include={["hostess", "half_price", "birthday", "referral", "myshop"]}
           />
-          <span className="text-sm">
-            <span className="font-medium text-foreground">MyShop Order</span>
-            <span className="block text-xs text-muted-foreground">
-              Mark if this order came through MyShop. Skips credit card processing fees; retail and profit still count.
-            </span>
-          </span>
-        </label>
+          {orderTags.myshop && (
+            <p className="text-[11px] text-muted-foreground">MyShop tag skips credit card processing fees; retail and profit still count.</p>
+          )}
+        </div>
 
         {paymentStatus === "Paid" && paymentType === "MyShop" && !isMyShopOrder && (
           <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
