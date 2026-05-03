@@ -92,6 +92,10 @@ export default function AddOrder() {
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
   const [dncSuppressFollowUp, setDncSuppressFollowUp] = useState(false);
+  const [faceTypeOverride, setFaceTypeOverride] = useState<string | null>(null);
+  const [reorderConvertPrompt, setReorderConvertPrompt] = useState<null | { customerId: string; addAnother: boolean }>(null);
+  const [reorderConvertHandled, setReorderConvertHandled] = useState<Set<string>>(new Set());
+  const [editPrefilled, setEditPrefilled] = useState(false);
 
   // New customer inline form
   const [isNewCustomer, setIsNewCustomer] = useState(false);
