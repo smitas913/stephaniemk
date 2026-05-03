@@ -56,8 +56,13 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
       open={open}
       onOpenChange={(v) => {
         if (!v && !busy) {
-          // Failsafe: closing = Skip (customer is already saved). No dead-end.
-          onClose(null);
+          // Failsafe: dismissing the dialog auto-applies the 90-Day default so
+          // a customer is never left without a future touchpoint.
+          if (customerId) {
+            apply("default");
+          } else {
+            onClose(null);
+          }
         }
       }}
     >
@@ -71,7 +76,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Pick a follow-up path for <span className="font-semibold text-foreground">{customerName}</span>.
-            Defaults to the 90-Day Care Cycle if you close without choosing.
+            Defaults to the 90-Day Care Cycle (~75 days) if you close without choosing — no customer falls through the cracks.
           </p>
           <div className="grid grid-cols-1 gap-2">
             <Button
@@ -128,10 +133,11 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
               size="sm"
               className="text-muted-foreground hover:text-foreground"
               disabled={busy}
-              onClick={() => onClose(null)}
+              onClick={() => apply("default")}
+              title="Clears short-term follow-ups and adds the customer to the default 90-Day reorder cycle."
             >
               <X className="w-3.5 h-3.5 mr-1" />
-              Skip for now
+              No Follow-Up — use 90-Day default
             </Button>
           </div>
         </div>
