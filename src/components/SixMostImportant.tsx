@@ -84,10 +84,11 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
 
   const isToday = selectedDate === todayKey;
   const {
-    configs, progress, dayTypeTargets, isLoading, isOOO,
+    configs, progress, dayTypeTargets, isLoading, isOOO, isNonWorkday,
     getTargetForItem, seedDefaults, saveConfigs, upsertProgress,
     saveDayTypeTargets, fetchWeekProgress, noHistoricalData, progressFetching,
   } = useFocusItems(selectedDate);
+  const isLightDay = isOOO || isNonWorkday;
 
   // For past days, use the day_type saved in progress; for today use local state
   const savedDayType: DayType = progress.length > 0 ? (progress[0].day_type as DayType) || "power" : "power";
@@ -135,12 +136,12 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
         : prog?.auto_count ?? 0;
       // Manual +/- adjustment removed: counts now reflect only real logged activity.
       const current = Math.max(0, autoCount);
-      const target = isOOO ? 0 : getTargetForItem(config.sort_order, dayType);
+      const target = isLightDay ? 0 : getTargetForItem(config.sort_order, dayType);
       const isComplete = prog?.is_complete ?? false;
       const isAutoTracked = !!autoKey;
       return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
     });
-  }, [configs, progress, dayType, getTargetForItem, isOOO, isToday, autoCounts]);
+  }, [configs, progress, dayType, getTargetForItem, isLightDay, isToday, autoCounts]);
 
   const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
@@ -349,10 +350,15 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               weekStart={selectedWeekStart}
             />
           ) : (
-            <div className="space-y-3">
+            <div className={cn("space-y-3", isLightDay && !isOOO && "opacity-90")}>
               {isOOO && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1 font-medium">
                   Out of Office — targets set to zero
+                </p>
+              )}
+              {isNonWorkday && !isOOO && (
+                <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1 italic">
+                  Light day — log anything you do
                 </p>
               )}
               {noHistoricalData ? (
@@ -370,6 +376,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                           onToggleComplete={() => handleToggleComplete(item.sort_order)}
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
                           readOnly={!isToday}
+                          lightDay={isLightDay}
                         />
                       ) : (
                         <FocusItemRow
@@ -379,6 +386,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
                           readOnly={!isToday}
                           isMobile={isMobile}
+                          lightDay={isLightDay}
                         />
                       )
                     )}

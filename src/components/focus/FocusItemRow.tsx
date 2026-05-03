@@ -18,10 +18,11 @@ interface FocusItemRowProps {
   onDrillDown?: () => void;
   readOnly?: boolean;
   isMobile?: boolean;
+  lightDay?: boolean;
 }
 
 export default function FocusItemRow({
-  item, onDrillDown,
+  item, onDrillDown, lightDay,
 }: FocusItemRowProps) {
   // Completion is purely data-driven: target reached.
   const current = Math.max(0, item.current);
@@ -34,7 +35,8 @@ export default function FocusItemRow({
         "flex items-center gap-2 p-2 rounded-lg border transition-colors",
         done
           ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-800/40 dark:bg-emerald-900/10"
-          : "border-border/50 bg-background/80"
+          : "border-border/50 bg-background/80",
+        lightDay && "opacity-80"
       )}
     >
       {/* Status indicator (read-only, derived from progress) */}
@@ -70,12 +72,12 @@ export default function FocusItemRow({
               <span title="Auto-tracked"><Zap className="w-3 h-3 text-amber-500" /></span>
             )}
             <span className={cn("text-xs font-medium", done ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-              {current}/{item.target}
+              {lightDay ? `${current} · optional` : `${current}/${item.target}`}
             </span>
             <ChevronRight className="w-3 h-3 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
-        <Progress value={pct} className="h-1.5" />
+        {!lightDay && <Progress value={pct} className="h-1.5" />}
       </button>
     </div>
   );
