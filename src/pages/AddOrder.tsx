@@ -318,7 +318,7 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
-        setNeedsCatalog(false);
+        
         setAttempted(false);
       } else if (!isNewCustomer) {
         // For existing-customer orders, navigate immediately. New-customer
