@@ -66,6 +66,8 @@ export default function AddOrder() {
   const [discountValue, setDiscountValue] = useState("");
   const [discountMode, setDiscountMode] = useState<"$" | "%">("$");
   const [notes, setNotes] = useState("");
+  const [ccTxType, setCcTxType] = useState<CcTransactionType>("in_person");
+  const [ccFeeOverride, setCcFeeOverride] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
