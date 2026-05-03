@@ -735,6 +735,9 @@ export default function CustomerDetail() {
           </CardContent>
         </Card>
 
+        {/* Beauty Notes */}
+        <BeautyNotesCard customerId={id!} value={(customer as any)?.beauty_notes} />
+
         {/* Order History */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
