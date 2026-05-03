@@ -21,6 +21,7 @@ import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES
 import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 // SixMostImportant moved to Dashboard (/dashboard)
+import ClientCleanupCard from "@/components/ClientCleanupCard";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
