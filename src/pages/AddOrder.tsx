@@ -618,19 +618,50 @@ export default function AddOrder() {
             </div>
           ) : (
             <div className="space-y-1">
-              <Input placeholder="Search by name, phone, or email..." value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} autoFocus className="h-9" />
-              {customerSearch && (
-                <div className="border border-border rounded-lg max-h-48 overflow-auto">
-                  {filteredCustomers.map(c => (
-                    <button key={c.id} type="button" className="w-full text-left px-3 py-2 hover:bg-muted text-sm transition-colors"
-                      onClick={() => { setCustomerId(c.id); setCustomerSearch(""); }}>
-                      <span className="font-medium">{c.full_name}</span>
-                      {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
-                    </button>
-                  ))}
-                  {filteredCustomers.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>}
-                </div>
-              )}
+              <Input
+                placeholder="Search by name, phone, or email..."
+                value={customerSearch}
+                onChange={e => setCustomerSearch(e.target.value)}
+                autoFocus
+                className="h-9"
+                onKeyDown={(e) => {
+                  if (filteredCustomers.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIdx(i => Math.min(i + 1, filteredCustomers.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIdx(i => Math.max(i - 1, 0));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const c = filteredCustomers[highlightIdx];
+                    if (c) selectCustomer(c.id);
+                  }
+                }}
+              />
+              <div className="border border-border rounded-lg max-h-48 overflow-auto">
+                {!customerSearch && filteredCustomers.length > 0 && (
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground px-3 pt-2 pb-1">Recent</p>
+                )}
+                {filteredCustomers.map((c, idx) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors",
+                      idx === highlightIdx ? "bg-muted" : "hover:bg-muted"
+                    )}
+                    onMouseEnter={() => setHighlightIdx(idx)}
+                    onClick={() => selectCustomer(c.id)}
+                  >
+                    <span className="font-medium">{c.full_name}</span>
+                    {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
+                  </button>
+                ))}
+                {customerSearch && filteredCustomers.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>
+                )}
+              </div>
               <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => { setIsNewCustomer(true); setCustomerSearch(""); }}>
                 <UserPlus className="w-3.5 h-3.5" /> Add New Customer
               </Button>
