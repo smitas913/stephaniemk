@@ -156,6 +156,8 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
   // Manual booking-attempt override. `null` = use auto-derived value from intent;
   // `true`/`false` = user explicitly toggled it on/off.
   const [bookingAttemptOverride, setBookingAttemptOverride] = useState<boolean | null>(null);
+  // "Inbound Response" toggle — independent of category/booking. Reactive vs outbound.
+  const [isInbound, setIsInbound] = useState(false);
 
   const resetState = useCallback(() => {
     setStep("action");
@@ -166,6 +168,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
     setActionLogged(false);
     setSelectedReason(null);
     setBookingAttemptOverride(null);
+    setIsInbound(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -182,11 +185,14 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
+    if (isInbound) parts.push("[Inbound]");
     if (selectedReason) parts.push(`[${selectedReason}]`);
     if (noteText.trim()) parts.push(noteText.trim());
-    if (parts.length === 0) parts.push(`${selectedAction || "Call"} contact`);
+    if (parts.length === 0 || (parts.length === 1 && isInbound)) {
+      parts.push(`${selectedAction || "Call"} contact`);
+    }
     return parts.join(" ");
-  }, [selectedReason, noteText, selectedAction]);
+  }, [selectedReason, noteText, selectedAction, isInbound]);
 
   const handleWhatsNext = useCallback((optionKey: string) => {
     if (!item) return;
@@ -499,19 +505,29 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
                   />
                 </div>
 
-                {/* Booking Attempt toggle — independent of category, applies to any person type */}
+                {/* Independent toggles — apply to any person type & category */}
                 {(() => {
                   const autoIsBooking = resolvedCategory === "Booking";
-                  const checked = bookingAttemptOverride ?? autoIsBooking;
+                  const bookingChecked = bookingAttemptOverride ?? autoIsBooking;
                   return (
-                    <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
-                      <Checkbox
-                        checked={checked}
-                        onCheckedChange={(v) => setBookingAttemptOverride(v === true)}
-                      />
-                      <span className="text-sm font-medium text-foreground">Booking Attempt</span>
-                      <span className="text-xs text-muted-foreground ml-auto">Track this as an ask</span>
-                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          checked={isInbound}
+                          onCheckedChange={(v) => setIsInbound(v === true)}
+                        />
+                        <span className="text-sm font-medium text-foreground">Inbound Response</span>
+                        <span className="text-xs text-muted-foreground ml-auto hidden sm:inline">They reached out</span>
+                      </label>
+                      <label className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <Checkbox
+                          checked={bookingChecked}
+                          onCheckedChange={(v) => setBookingAttemptOverride(v === true)}
+                        />
+                        <span className="text-sm font-medium text-foreground">Booking Attempt</span>
+                        <span className="text-xs text-muted-foreground ml-auto hidden sm:inline">Track as ask</span>
+                      </label>
+                    </div>
                   );
                 })()}
 
