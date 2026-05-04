@@ -294,11 +294,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   }, [submit]);
 
   // When user picks "Not Interested", short-circuit to save (no Next Step needed).
+  // When user picks "Booked", route to the booked-type sub-step to create the event.
   const handleOutcomeClick = useCallback((o: Exclude<Outcome, null>) => {
     setOutcome(o);
     if (o === "Not Interested") {
       // Save immediately — DNC clears follow-ups (customer trigger) or sets Not Interested status (lead).
-      // Use latest state via microtask to ensure outcome is captured.
       setTimeout(() => {
         const isBooking = activity === "Booking Ask";
         const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
@@ -324,9 +324,45 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
       }, 0);
       return;
     }
-    // Booked → continue to Notes
-    setStep("notes");
-  }, [activity, action, noteText, item, onLogAction, handleClose]);
+    // Booked → choose event type, then create event
+    setStep("booked-type");
+  }, [activity, action, noteText, source, item, onLogAction, handleClose]);
+
+  // Booked + event type chosen → log activity, then navigate to Create Event
+  // (Career Chat is a conversation, not an event — log only).
+  const handleBookedTypeConfirm = useCallback((t: "Facial" | "Party" | "Career Chat") => {
+    setBookedEventType(t);
+    setTimeout(() => {
+      const category: IntentCategory = "Booking";
+      const parts: string[] = [];
+      if (activity) parts.push(`[${activity}]`);
+      if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
+      parts.push("[Booked]");
+      parts.push(`[Booking Created: ${t}]`);
+      if (noteText.trim()) parts.push(noteText.trim());
+      onLogAction({
+        item,
+        actionType: action || "Call",
+        note: parts.join(" "),
+        isBookingAttempt: true,
+        isFollowUp: false,
+        // No next follow-up — the event itself becomes the next touchpoint.
+        nextFollowUpDate: null,
+        followUpReason: null,
+        category,
+      });
+      handleClose();
+      if (t !== "Career Chat") {
+        const params = new URLSearchParams({
+          type: t,
+          hostess: item.name || "",
+          ...(item.phone ? { phone: item.phone } : {}),
+        });
+        navigate(`/events/new?${params.toString()}`);
+      }
+    }, 0);
+  }, [activity, action, source, noteText, item, onLogAction, handleClose, navigate]);
+
 
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
