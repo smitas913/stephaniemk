@@ -382,6 +382,27 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           </Select>
         </div>
 
+        {/* Action-based filters */}
+        <div className="flex flex-wrap gap-1.5">
+          {([
+            { key: "all", label: "All", count: activeLeads.length },
+            { key: "due_today", label: "Due Today", count: actionCounts.dueToday },
+            { key: "overdue", label: "Overdue", count: actionCounts.overdue },
+            { key: "no_followup", label: "No Follow-Up", count: actionCounts.none },
+          ] as { key: ActionFilter; label: string; count: number }[]).map(({ key, label, count }) => (
+            <Button
+              key={key}
+              variant={actionFilter === key ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setActionFilter(key)}
+            >
+              {label}
+              <span className="ml-1 text-[10px] opacity-70">({count})</span>
+            </Button>
+          ))}
+        </div>
+
         {/* Leads list */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -396,11 +417,29 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openActionPanel(lead)}>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[lead.status] || "bg-muted text-muted-foreground")}>
                           {lead.status}
                         </span>
+                        {(() => {
+                          const t = touchCounts.get(lead.id) || 0;
+                          if (t === 0) return null;
+                          const hot = t >= 5;
+                          return (
+                            <span
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded-full font-semibold",
+                                hot
+                                  ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                              title={`${t} outreach ${t === 1 ? "touch" : "touches"}`}
+                            >
+                              {hot ? `🔥 ${t}` : `${t} ${t === 1 ? "touch" : "touches"}`}
+                            </span>
+                          );
+                        })()}
                          {lead.lead_source && (
                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
                          )}
