@@ -37,7 +37,9 @@ export default function MergeDuplicates() {
   const { data: consultants = [], isLoading: loadingT } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const [mergeTarget, setMergeTarget] = useState<DuplicatePair | null>(null);
+  const [customerMergeTarget, setCustomerMergeTarget] = useState<CustomerDupGroup | null>(null);
   const [mergedIds, setMergedIds] = useState<Set<string>>(new Set());
+  const [mergedCustomerIds, setMergedCustomerIds] = useState<Set<string>>(new Set());
 
   const duplicates = useMemo(() => {
     const pairs: DuplicatePair[] = [];
@@ -77,6 +79,54 @@ export default function MergeDuplicates() {
 
     return pairs.filter((p) => !mergedIds.has(p.customer.id));
   }, [customers, consultants, mergedIds]);
+
+  // Customer ↔ Customer duplicate detection (by normalized phone or email)
+  const customerDuplicates = useMemo<CustomerDupGroup[]>(() => {
+    const groups: CustomerDupGroup[] = [];
+    const seen = new Set<string>();
+    const phoneMap = new Map<string, Customer[]>();
+    const emailMap = new Map<string, Customer[]>();
+    for (const c of customers) {
+      if (mergedCustomerIds.has(c.id)) continue;
+      const p = normalizePhone(c.phone);
+      const e = normalizeEmail(c.email);
+      if (p && p.length >= 7) {
+        if (!phoneMap.has(p)) phoneMap.set(p, []);
+        phoneMap.get(p)!.push(c);
+      }
+      if (e) {
+        if (!emailMap.has(e)) emailMap.set(e, []);
+        emailMap.get(e)!.push(c);
+      }
+    }
+    const pickPrimary = (arr: Customer[]) => {
+      // Prefer the oldest record (earliest created_at); fall back to first.
+      return [...arr].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""))[0];
+    };
+    for (const [, arr] of phoneMap) {
+      if (arr.length < 2) continue;
+      const primary = pickPrimary(arr);
+      for (const dup of arr) {
+        if (dup.id === primary.id) continue;
+        const key = [primary.id, dup.id].sort().join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        groups.push({ primary, duplicate: dup, matchType: "phone" });
+      }
+    }
+    for (const [, arr] of emailMap) {
+      if (arr.length < 2) continue;
+      const primary = pickPrimary(arr);
+      for (const dup of arr) {
+        if (dup.id === primary.id) continue;
+        const key = [primary.id, dup.id].sort().join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        groups.push({ primary, duplicate: dup, matchType: "email" });
+      }
+    }
+    return groups;
+  }, [customers, mergedCustomerIds]);
 
   const mergeMutation = useMutation({
     mutationFn: async (pair: DuplicatePair) => {
