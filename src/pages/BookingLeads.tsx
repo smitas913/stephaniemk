@@ -25,11 +25,14 @@ import TextActionButton from "@/components/TextActionButton";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Contacted: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Engaged: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  Asked: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  Working: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
   Booked: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   "Not Interested": "bg-muted text-muted-foreground",
 };
+
+const OUTREACH_NOTE_TYPES = new Set(["Call", "Text", "Email", "In Person"]);
+type ActionFilter = "all" | "due_today" | "overdue" | "no_followup";
 
 function getDefaultFollowUp(): string {
   return format(addDays(new Date(), 2), "yyyy-MM-dd");
