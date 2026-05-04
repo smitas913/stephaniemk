@@ -205,6 +205,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [noteText, setNoteText] = useState("");
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
+  const [source, setSource] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     setStep("action");
@@ -214,6 +215,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setNoteText("");
     setNextOpt(null);
     setCustomDate("");
+    setSource(null);
   }, []);
 
   const handleClose = useCallback(() => {
