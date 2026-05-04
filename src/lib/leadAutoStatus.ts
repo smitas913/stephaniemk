@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Booking-lead status auto-progression.
  *
  * Pipeline order (forward-only):
- *   New → Asked → Working → Booked
+ *   New → Working → Booked
  *
  * "Not Interested" is a terminal manual choice (DNC) and is never set or
  * overridden automatically by routine outreach. Auto-progression only moves a
