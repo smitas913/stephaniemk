@@ -865,6 +865,45 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </Button>
                   </div>
                 )}
+
+                {nextOpt === "pause" && (
+                  <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
+                    <p className="text-xs font-medium text-foreground">Pause for how long?</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Removes from active follow-up queue. Re-surfaces on Today when the date arrives.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handlePausePick(120)}
+                      className={cn(
+                        "w-full px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all text-left",
+                        "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.99]",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      120 days
+                    </button>
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-muted-foreground">Or pick a custom date:</p>
+                      <Input
+                        type="date"
+                        value={customDate}
+                        min={format(new Date(), "yyyy-MM-dd")}
+                        onChange={(e) => setCustomDate(e.target.value)}
+                        className="h-9"
+                      />
+                      <Button
+                        className="w-full"
+                        onClick={() => customDate && handlePausePick(120, customDate)}
+                        disabled={!customDate || isPending}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                        {isPending ? "Saving..." : `Pause until ${customDate ? formatDateOnly(customDate) : "..."}`}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
