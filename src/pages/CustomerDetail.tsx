@@ -1,6 +1,8 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes } from "@/lib/queries";
+import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes, deleteNote, updateNote, deleteCustomerNote } from "@/lib/queries";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
