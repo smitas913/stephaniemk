@@ -102,14 +102,28 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
 } {
   const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
+  // Notes that represent administrative/cleanup actions — never count as outreach or booking activity.
+  const NON_OUTREACH_NOTE_TYPES = new Set([
+    "Skipped", "No Follow-Up", "No Follow-Up Needed", "Cleared", "DNC", "Not Interested",
+  ]);
+  const isOutreachNote = (n: any) => {
+    if (NON_OUTREACH_NOTE_TYPES.has(n.note_type)) return false;
+    // Notes flagged as not a follow-up AND not a booking attempt are administrative (skip/dnc/cleared).
+    if (n.is_follow_up === false && n.is_booking_attempt === false) return false;
+    // Body-tag heuristics for DNC/no-follow-up notes that may slip through with contact note_types.
+    const body = (n.note_body || "").toLowerCase();
+    if (body.includes("[not interested") || body.includes("[dnc]") || body.includes("no follow-up needed")) return false;
+    return true;
+  };
 
   // ─── Reach-out items from unified notes ───
   const reachOutItems: FocusDetailItem[] = unifiedNotes
     .filter((n: any) => {
       const noteDay = n.note_date || getTimestampDateKey(n.created_at);
       if (noteDay !== dateKey) return false;
+      if (!isOutreachNote(n)) return false;
       if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
-      if (n.entity_type === "Lead") return true;
+      if (n.entity_type === "Lead") return contactTypes.has(n.note_type);
       if (n.entity_type === "Consultant") return false; // coaching only
       if (n.entity_type === "Hostess") return true;
       return contactTypes.has(n.note_type);
@@ -132,8 +146,28 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((item): item is FocusDetailItem => item !== null);
 
   // ─── Lead reach-outs ───
+  // Only count leads with a real outreach note today (Call/Text/Email/In Person and NOT skip/DNC).
+  // Previously this used `last_contact_date === today`, which incorrectly included
+  // DNC / Not Interested / cleared follow-ups (those mutations also stamp last_contact_date).
+  const leadIdsWithOutreachToday = new Set<string>();
+  const leadIdsWithBookingAttemptToday = new Set<string>();
+  for (const n of unifiedNotes as any[]) {
+    if (n.entity_type !== "Lead") continue;
+    const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+    if (noteDay !== dateKey) continue;
+    if (!isOutreachNote(n)) continue;
+    if (!contactTypes.has(n.note_type)) continue;
+    const id = n.person_id;
+    if (!id) continue;
+    leadIdsWithOutreachToday.add(id);
+    if (n.is_booking_attempt === true) leadIdsWithBookingAttemptToday.add(id);
+  }
   const leadReachOutItems: FocusDetailItem[] = bookingLeads
-    .filter((l: any) => l.last_contact_date === dateKey && !l.converted_customer_id)
+    .filter((l: any) =>
+      leadIdsWithOutreachToday.has(l.id) &&
+      !l.converted_customer_id &&
+      l.status !== "Not Interested",
+    )
     .map((l: any) => ({
       id: l.id, name: l.name, type: "Lead", method: "Call",
       detail: l.lead_activity || undefined,
@@ -175,7 +209,11 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const bookingAttemptItems: FocusDetailItem[] = unifiedNotes
     .filter((n: any) => {
       const noteDay = n.note_date || getTimestampDateKey(n.created_at);
-      return noteDay === dateKey && n.is_booking_attempt === true;
+      if (noteDay !== dateKey) return false;
+      if (n.is_booking_attempt !== true) return false;
+      // Exclude administrative/cleanup notes even if mistakenly flagged.
+      if (!isOutreachNote(n)) return false;
+      return true;
     })
     .map((n: any) => {
       const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
@@ -185,7 +223,11 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((item): item is FocusDetailItem => item !== null);
 
   const leadBookingAttemptItems: FocusDetailItem[] = bookingLeads
-    .filter((l: any) => l.last_contact_date === dateKey && !l.converted_customer_id)
+    .filter((l: any) =>
+      leadIdsWithBookingAttemptToday.has(l.id) &&
+      !l.converted_customer_id &&
+      l.status !== "Not Interested",
+    )
     .map((l: any) => ({
       id: l.id, name: l.name, type: "Lead",
       method: l.lead_activity || "Call",
