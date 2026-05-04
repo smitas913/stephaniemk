@@ -873,6 +873,13 @@ export default function FollowUps() {
       });
 
     // Booking lead items (converted to ActionItems)
+    const LEAD_OUTREACH = new Set(["Call", "Text", "Email", "In Person"]);
+    const leadAttemptCounts = new Map<string, number>();
+    for (const n of unifiedNotes as any[]) {
+      if (n.entity_type !== "Lead" || !n.person_id) continue;
+      if (!LEAD_OUTREACH.has(n.note_type)) continue;
+      leadAttemptCounts.set(n.person_id, (leadAttemptCounts.get(n.person_id) || 0) + 1);
+    }
     const leadItems: ActionItem[] = bookingLeads
       .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
       .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
@@ -889,6 +896,8 @@ export default function FollowUps() {
           lastContacted: lead.last_contact_date,
           actionLabel: "Booking Follow-Up",
           allow_non_working_day: !!(lead as any).allow_non_working_day,
+          _attempts: leadAttemptCounts.get(lead.id) || 0,
+          _leadStatus: lead.status,
         };
       });
 
