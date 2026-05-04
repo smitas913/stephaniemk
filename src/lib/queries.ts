@@ -1140,13 +1140,13 @@ export const fetchTeamConsultants = async (): Promise<TeamConsultant[]> => {
 
 export const createTeamConsultant = async (consultant: Partial<TeamConsultant> & { name: string }): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("team_consultants").insert({ ...consultant, owner_user_id: userId } as any).select().single();
+  const { data, error } = await supabase.from("team_consultants").insert(withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any).select().single();
   if (error) throw error;
   return data as unknown as TeamConsultant;
 };
 
 export const updateTeamConsultant = async (id: string, updates: Partial<TeamConsultant>): Promise<void> => {
-  const { error } = await supabase.from("team_consultants").update(updates as any).eq("id", id);
+  const { error } = await supabase.from("team_consultants").update(withNormalizedPhone(updates) as any).eq("id", id);
   if (error) throw error;
 };
 
