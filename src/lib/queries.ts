@@ -488,14 +488,14 @@ export const createProspect = async (prospect: Partial<Prospect> & { name: strin
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("prospects")
-    .insert({ ...prospect, owner_user_id: userId } as any);
+    .insert(withNormalizedPhone({ ...prospect, owner_user_id: userId }) as any);
   if (error) throw error;
 };
 
 export const updateProspect = async (id: string, updates: Partial<Prospect>) => {
   const { error } = await supabase
     .from("prospects")
-    .update(updates as any)
+    .update(withNormalizedPhone(updates) as any)
     .eq("id", id);
   if (error) throw error;
 };
