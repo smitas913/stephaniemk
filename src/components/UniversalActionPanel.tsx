@@ -96,6 +96,7 @@ const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in
   "Connection": "check_in",
   "Send Info": "quick_touch",
   "Sample Follow-Up": "check_in",
+  "Follow-Up": "quick_touch",
 };
 
 const NEXT_STEP_OPTIONS = [
