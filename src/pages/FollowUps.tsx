@@ -2384,8 +2384,10 @@ export default function FollowUps() {
                          days_since_last_order: item.days_since_last_order,
                          vip: item.vip,
                          lastNotePreview: item.lastNotePreview,
-                         activity_status: item.activity_status,
-                       });
+                          activity_status: item.activity_status,
+                          _attempts: item._attempts,
+                          _leadStatus: item._leadStatus,
+                        });
 
                        return (
                          <>
