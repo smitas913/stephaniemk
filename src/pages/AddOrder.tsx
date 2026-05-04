@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
-import { applyPostOrderFollowUp, FOLLOW_UP_INTENT_OPTIONS, type FollowUpIntent } from "@/lib/postOrderFollowUp";
+import { applyPostOrderFollowUp, getFollowUpIntentOptions, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
 import { PAYMENT_TYPES } from "@/lib/types";
@@ -1156,7 +1156,7 @@ export default function AddOrder() {
               onChange={(e) => setFollowUpIntent(e.target.value as FollowUpIntent)}
               className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
-              {FOLLOW_UP_INTENT_OPTIONS.map((o) => (
+              {getFollowUpIntentOptions("order").map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
