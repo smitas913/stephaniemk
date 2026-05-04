@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createCustomer, fetchCustomers } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
+import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
