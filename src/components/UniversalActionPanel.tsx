@@ -373,6 +373,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     action: "1. Action",
     activity: "2. Activity Type",
     outcome: "3. Outcome (optional)",
+    "booked-type": "Create Event",
     notes: "4. Notes",
     "next-step": "5. Next Step",
   };
@@ -380,6 +381,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const goBack = () => {
     if (step === "activity") setStep("action");
     else if (step === "outcome") setStep("activity");
+    else if (step === "booked-type") setStep("outcome");
     else if (step === "notes") setStep("outcome");
     else if (step === "next-step") setStep("notes");
   };
