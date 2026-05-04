@@ -49,6 +49,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
   const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [showAdd, setShowAdd] = useState(false);
   const [editLead, setEditLead] = useState<BookingLead | null>(null);
