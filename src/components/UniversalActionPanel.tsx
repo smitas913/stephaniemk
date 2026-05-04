@@ -732,6 +732,25 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </div>
                   </div>
                 )}
+                {isSampleActivity && (
+                  <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={mailedSample}
+                        onChange={(e) => setMailedSample(e.target.checked)}
+                        className="w-4 h-4 accent-primary"
+                        disabled={isPending}
+                      />
+                      <span className="text-sm font-medium text-foreground">Mailed Sample</span>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground pl-6">
+                      {mailedSample
+                        ? "We'll suggest a 6-day follow-up to allow for delivery."
+                        : "We'll suggest a 3-day follow-up since they have it in hand."}
+                    </p>
+                  </div>
+                )}
                 <p className="text-sm font-semibold text-foreground">Notes</p>
                 <Textarea
                   placeholder={action === "In Person"
