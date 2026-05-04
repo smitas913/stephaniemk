@@ -25,11 +25,14 @@ import TextActionButton from "@/components/TextActionButton";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Contacted: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Engaged: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  Asked: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  Working: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
   Booked: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   "Not Interested": "bg-muted text-muted-foreground",
 };
+
+const OUTREACH_NOTE_TYPES = new Set(["Call", "Text", "Email", "In Person"]);
+type ActionFilter = "all" | "due_today" | "overdue" | "no_followup";
 
 function getDefaultFollowUp(): string {
   return format(addDays(new Date(), 2), "yyyy-MM-dd");
@@ -46,6 +49,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
   const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [showAdd, setShowAdd] = useState(false);
   const [editLead, setEditLead] = useState<BookingLead | null>(null);
@@ -91,6 +95,19 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     return s;
   }, [customersForDnc]);
 
+  // Touch count per lead = number of outreach notes (Call/Text/Email/In Person)
+  const touchCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const n of unifiedNotes as any[]) {
+      if (n.entity_type !== "Lead" || !n.person_id) continue;
+      if (!OUTREACH_NOTE_TYPES.has(n.note_type)) continue;
+      m.set(n.person_id, (m.get(n.person_id) || 0) + 1);
+    }
+    return m;
+  }, [unifiedNotes]);
+
+  const todayKey = toLocalDateKey();
+
   const filtered = useMemo(() => {
     return leads.filter((l) => {
       const isDnc = !!l.converted_customer_id && customerDncSet.has(l.converted_customer_id);
@@ -98,10 +115,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       if (statusFilter === "all" && l.converted_customer_id && filterDnc === "active") return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (activityFilter !== "all" && (l.lead_activity || "No Activity Yet") !== activityFilter) return false;
+      if (actionFilter === "due_today" && l.next_follow_up_date !== todayKey) return false;
+      if (actionFilter === "overdue" && !(l.next_follow_up_date && l.next_follow_up_date < todayKey)) return false;
+      if (actionFilter === "no_followup" && l.next_follow_up_date) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [leads, search, statusFilter, activityFilter, filterDnc, customerDncSet]);
+  }, [leads, search, statusFilter, activityFilter, actionFilter, filterDnc, customerDncSet, todayKey]);
 
   // Quick Add validation
   const hasContact = form.phone.trim() || form.email.trim();
@@ -243,13 +263,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       dnc?: boolean;
     }) => {
       const today = toLocalDateKey();
-      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Contacted" + +2d.
+      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Asked" + +2d.
       const nextDate = dnc ? null : (nextFollowUpDate || format(addDays(new Date(), 2), "yyyy-MM-dd"));
 
       await updateBookingLead(item.id, {
         last_contact_date: today,
         next_follow_up_date: nextDate,
-        status: dnc ? "Not Interested" : "Contacted",
+        status: dnc ? "Not Interested" : "Asked",
       } as any);
 
       await createNote({
@@ -292,10 +312,20 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
-    const c: Record<string, number> = { New: 0, Contacted: 0, Booked: 0, "Not Interested": 0 };
+    const c: Record<string, number> = { New: 0, Asked: 0, Working: 0, Booked: 0, "Not Interested": 0 };
     activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
   }, [activeLeads]);
+
+  const actionCounts = useMemo(() => {
+    let dueToday = 0, overdue = 0, none = 0;
+    for (const l of activeLeads) {
+      if (!l.next_follow_up_date) none++;
+      else if (l.next_follow_up_date === todayKey) dueToday++;
+      else if (l.next_follow_up_date < todayKey) overdue++;
+    }
+    return { dueToday, overdue, none };
+  }, [activeLeads, todayKey]);
 
   const isConverting = convertToCustomerMut.isPending || convertToConsultantMut.isPending;
 
@@ -306,7 +336,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">
-              {activeLeads.length} active · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Asked} asked · {counts.Working} working · {counts.Booked} booked
             </p>
           </div>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
@@ -352,6 +382,27 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           </Select>
         </div>
 
+        {/* Action-based filters */}
+        <div className="flex flex-wrap gap-1.5">
+          {([
+            { key: "all", label: "All", count: activeLeads.length },
+            { key: "due_today", label: "Due Today", count: actionCounts.dueToday },
+            { key: "overdue", label: "Overdue", count: actionCounts.overdue },
+            { key: "no_followup", label: "No Follow-Up", count: actionCounts.none },
+          ] as { key: ActionFilter; label: string; count: number }[]).map(({ key, label, count }) => (
+            <Button
+              key={key}
+              variant={actionFilter === key ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setActionFilter(key)}
+            >
+              {label}
+              <span className="ml-1 text-[10px] opacity-70">({count})</span>
+            </Button>
+          ))}
+        </div>
+
         {/* Leads list */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -366,11 +417,29 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openActionPanel(lead)}>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
                         <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", STATUS_COLORS[lead.status] || "bg-muted text-muted-foreground")}>
                           {lead.status}
                         </span>
+                        {(() => {
+                          const t = touchCounts.get(lead.id) || 0;
+                          if (t === 0) return null;
+                          const hot = t >= 5;
+                          return (
+                            <span
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded-full font-semibold",
+                                hot
+                                  ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                              title={`${t} outreach ${t === 1 ? "touch" : "touches"}`}
+                            >
+                              {hot ? `🔥 ${t}` : `${t} ${t === 1 ? "touch" : "touches"}`}
+                            </span>
+                          );
+                        })()}
                          {lead.lead_source && (
                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
                          )}

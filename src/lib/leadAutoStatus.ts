@@ -4,19 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
  * Booking-lead status auto-progression.
  *
  * Pipeline order (forward-only):
- *   New → Contacted → Engaged → Booked
+ *   New → Asked → Working → Booked
  *
- * "Not Interested" is a terminal manual choice and is never set or overridden
- * automatically. Auto-progression only moves a lead forward in the pipeline;
- * it never downgrades. Manual user changes via the status dropdown remain
- * authoritative and can override anything.
+ * "Not Interested" is a terminal manual choice (DNC) and is never set or
+ * overridden automatically by routine outreach. Auto-progression only moves a
+ * lead forward in the pipeline; it never downgrades. Manual user changes via
+ * the status dropdown remain authoritative and can override anything.
  */
-export type LeadStatus = "New" | "Contacted" | "Engaged" | "Booked" | "Not Interested";
+export type LeadStatus = "New" | "Asked" | "Working" | "Booked" | "Not Interested";
 
 const RANK: Record<string, number> = {
   New: 0,
-  Contacted: 1,
-  Engaged: 2,
+  Asked: 1,
+  Working: 2,
   Booked: 3,
 };
 
@@ -42,31 +42,31 @@ export function deriveLeadStatusFromActivity(params: {
 }): LeadStatus | null {
   const { actionType, category, isBookingAttempt } = params;
 
-  // Booking confirmed via category/booking flag → Booked
-  if (category === "Booking" && isBookingAttempt) {
-    // Booking attempt alone is not enough — Booked is reserved for actual scheduling.
-    // Keep at "Engaged" for booking conversations that didn't land yet.
-    return "Engaged";
-  }
-
-  // Two-way conversation indicators → Engaged
+  // Two-way conversation indicators → Working (lead is responding / engaged)
   if (
-    actionType === "In Person" ||
     actionType === "Conversation" ||
     actionType === "Responded"
   ) {
-    return "Engaged";
+    return "Working";
   }
 
-  // One-way outreach attempts → Contacted (Attempting Contact)
+  // A booking ask (any channel) moves the lead into the Asked stage.
+  // "Booked" is reserved for when an actual event is scheduled and is set
+  // separately via autoProgressLeadFromEvent.
+  if (category === "Booking" || isBookingAttempt) {
+    return "Asked";
+  }
+
+  // One-way outreach attempts → Asked (booking ask in progress / first touch)
   if (
     actionType === "Call" ||
     actionType === "Text" ||
     actionType === "Email" ||
+    actionType === "In Person" ||
     actionType === "Did Not Connect" ||
     actionType === "Left Message"
   ) {
-    return "Contacted";
+    return "Asked";
   }
 
   return null;

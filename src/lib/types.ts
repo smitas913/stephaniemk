@@ -280,7 +280,7 @@ export interface Income {
   updated_at: string | null;
 }
 
-export const BOOKING_LEAD_STATUSES = ["New", "Contacted", "Engaged", "Booked", "Not Interested"] as const;
+export const BOOKING_LEAD_STATUSES = ["New", "Asked", "Working", "Booked", "Not Interested"] as const;
 export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Facial Box", "Bridal", "Vendor Table", "Social Media", "Other"] as const;
 export const LEAD_ACTIVITIES = ["No Activity Yet", "1:1 Appointment Booked", "Event Booked", "Samples Given", "Follow-Up Needed"] as const;
 export const DEFAULT_LEAD_SOURCE = "Networking";
