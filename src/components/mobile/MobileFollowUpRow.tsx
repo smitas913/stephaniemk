@@ -27,6 +27,7 @@ export interface MobileActionItem {
   activity_status?: string;
   _attempts?: number;
   _leadStatus?: string;
+  _lastContactRaw?: string | null;
 }
 
 const TYPE_BADGE_STYLES: Record<string, string> = {
