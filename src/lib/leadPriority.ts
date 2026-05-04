@@ -2,7 +2,7 @@
 // HOT: 3-6 attempts AND last contact within 3-5 days AND status Working
 // WARM: 1-2 attempts OR last contact within 5-10 days
 // COLD: 0 attempts OR last contact >10 days
-import { toLocalDateKey } from "./dateUtils";
+import { toLocalDateKey } from "@/lib/dateOnly";
 
 export type LeadPriority = "hot" | "warm" | "cold";
 
