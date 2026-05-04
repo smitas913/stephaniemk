@@ -263,13 +263,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       dnc?: boolean;
     }) => {
       const today = toLocalDateKey();
-      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Contacted" + +2d.
+      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Asked" + +2d.
       const nextDate = dnc ? null : (nextFollowUpDate || format(addDays(new Date(), 2), "yyyy-MM-dd"));
 
       await updateBookingLead(item.id, {
         last_contact_date: today,
         next_follow_up_date: nextDate,
-        status: dnc ? "Not Interested" : "Contacted",
+        status: dnc ? "Not Interested" : "Asked",
       } as any);
 
       await createNote({
@@ -312,10 +312,20 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
-    const c: Record<string, number> = { New: 0, Contacted: 0, Booked: 0, "Not Interested": 0 };
+    const c: Record<string, number> = { New: 0, Asked: 0, Working: 0, Booked: 0, "Not Interested": 0 };
     activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
   }, [activeLeads]);
+
+  const actionCounts = useMemo(() => {
+    let dueToday = 0, overdue = 0, none = 0;
+    for (const l of activeLeads) {
+      if (!l.next_follow_up_date) none++;
+      else if (l.next_follow_up_date === todayKey) dueToday++;
+      else if (l.next_follow_up_date < todayKey) overdue++;
+    }
+    return { dueToday, overdue, none };
+  }, [activeLeads, todayKey]);
 
   const isConverting = convertToCustomerMut.isPending || convertToConsultantMut.isPending;
 
@@ -326,7 +336,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">
-              {activeLeads.length} active · {counts.New} new · {counts.Contacted} contacted · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Asked} asked · {counts.Working} working · {counts.Booked} booked
             </p>
           </div>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
