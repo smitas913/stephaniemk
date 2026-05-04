@@ -107,8 +107,13 @@ export default function CustomerDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
       setDeleteNoteTarget(null);
-      toast.success("Note deleted");
+      toast.success("Activity fully deleted");
     },
     onError: (err: any) => toast.error(err?.message || "Failed to delete note"),
   });

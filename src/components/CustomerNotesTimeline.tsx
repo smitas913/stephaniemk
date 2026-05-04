@@ -97,7 +97,12 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
     mutationFn: deleteNote,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", customerId] });
-      toast.success("Activity deleted");
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customer", customerId] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      toast.success("Activity fully deleted");
     },
   });
 
