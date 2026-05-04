@@ -310,6 +310,76 @@ export default function Analytics() {
               </Card>
             </div>
 
+            {/* Sales by Source */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Sales by Source — {TIME_VIEW_LABELS[timeView]}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-xs">Source</TableHead>
+                        <TableHead className="text-xs text-center">Orders</TableHead>
+                        <TableHead className="text-xs text-right">Sales</TableHead>
+                        <TableHead className="text-xs text-right">Avg Order</TableHead>
+                        <TableHead className="text-xs text-right">% of Sales</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { key: "newFace", label: "New Face / first-time" },
+                        { key: "reorder", label: "Reorder" },
+                        { key: "party", label: "Party" },
+                        { key: "facial", label: "Facial" },
+                        { key: "myshop", label: "MyShop" },
+                        { key: "other", label: "Other" },
+                      ].map((row) => {
+                        const b = (salesBreakdown.buckets as any)[row.key] as { count: number; total: number };
+                        const avg = b.count > 0 ? b.total / b.count : 0;
+                        const share = salesBreakdown.totalSales > 0 ? (b.total / salesBreakdown.totalSales) * 100 : 0;
+                        return (
+                          <TableRow key={row.key}>
+                            <TableCell className="text-sm font-medium text-foreground">{row.label}</TableCell>
+                            <TableCell className="text-sm text-center tabular-nums">{b.count}</TableCell>
+                            <TableCell className="text-sm text-right tabular-nums">{formatCurrency(b.total)}</TableCell>
+                            <TableCell className="text-sm text-right tabular-nums">{formatCurrency(avg)}</TableCell>
+                            <TableCell className="text-sm text-right tabular-nums">{share.toFixed(1)}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Party Order</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.avgParty)}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Facial Order</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.avgFacial)}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Reorder Sales Total</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.buckets.reorder.total)}</p>
+                    <p className="text-[10px] text-muted-foreground">{salesBreakdown.reorderShare.toFixed(1)}% of sales</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">New Customer Sales</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.buckets.newFace.total)}</p>
+                    <p className="text-[10px] text-muted-foreground">{salesBreakdown.newFaceShare.toFixed(1)}% of sales</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Event Pipeline */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
