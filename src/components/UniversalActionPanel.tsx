@@ -218,6 +218,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [source, setSource] = useState<string | null>(null);
+  const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Career Chat" | null>(null);
 
   const reset = useCallback(() => {
     setStep("action");
@@ -228,6 +229,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setNextOpt(null);
     setCustomDate("");
     setSource(null);
+    setBookedEventType(null);
   }, []);
 
   const handleClose = useCallback(() => {
