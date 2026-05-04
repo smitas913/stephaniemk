@@ -754,10 +754,173 @@ export const updateBusinessGoal = async (id: string, updates: Partial<Pick<Busin
   if (error) throw error;
 };
 
+/**
+ * Fully delete a note and roll back its side-effects:
+ *  - Remove any duplicated legacy customer_notes mirror (same body + date).
+ *  - Recompute the parent customer/prospect's last_contacted and
+ *    next_follow_up_date from the remaining notes.
+ *  - For Lead notes, recompute the lead's status from remaining outreach
+ *    activity (Working ↔ New). Booked is preserved (event-driven).
+ */
 export const deleteNote = async (id: string) => {
+  // 1. Fetch the note we're about to delete so we can roll back its effects.
+  const { data: noteRow } = await supabase
+    .from("notes")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  const note = noteRow as any;
+
+  // 2. Cascade-remove any legacy customer_notes mirror so the row doesn't
+  //    "come back" via the dedup merge in fetchNotes.
+  if (note?.entity_type === "Customer" && note?.customer_id) {
+    const dateKey = (note.note_date || "").slice(0, 10);
+    const body = (note.note_body || "").trim();
+    if (dateKey && body) {
+      const { data: mirrors } = await supabase
+        .from("customer_notes")
+        .select("id, note_text, created_at")
+        .eq("customer_id", note.customer_id);
+      for (const m of (mirrors as any[]) || []) {
+        if (
+          (m.note_text || "").trim() === body &&
+          (m.created_at || "").slice(0, 10) === dateKey
+        ) {
+          await supabase.from("customer_notes").delete().eq("id", m.id);
+        }
+      }
+    }
+  }
+
+  // 3. Delete the note itself.
   const { error } = await supabase.from("notes").delete().eq("id", id);
   if (error) throw error;
+
+  // 4. Roll back parent entity state from remaining notes.
+  if (note?.entity_type === "Customer" && note?.customer_id) {
+    await rollbackCustomerStateFromNotes(note.customer_id);
+  } else if (note?.entity_type === "Prospect" && note?.prospect_id) {
+    await rollbackProspectStateFromNotes(note.prospect_id);
+  }
+
+  // 5. Lead status rollback.
+  if (note?.entity_type === "Lead" && note?.person_id) {
+    await rollbackLeadStatusFromNotes(note.person_id);
+  }
 };
+
+const OUTREACH_NOTE_TYPES_SET = new Set(["Call", "Text", "Email", "In Person"]);
+
+async function rollbackCustomerStateFromNotes(customerId: string) {
+  // Pull all remaining notes (unified) for this customer.
+  const { data: remaining } = await supabase
+    .from("notes")
+    .select("note_date, next_follow_up_date, note_type, created_at")
+    .eq("entity_type", "Customer")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+  const rows = (remaining as any[]) || [];
+
+  // last_contacted = max note_date of non-dismissal note, else null.
+  const isDismissal = (t: string) => t === "Skipped" || t === "No Follow-Up Needed";
+  const contactDates = rows
+    .filter((r) => !isDismissal(r.note_type))
+    .map((r) => (r.note_date || "").slice(0, 10))
+    .filter(Boolean)
+    .sort();
+  const newLastContacted = contactDates.length ? contactDates[contactDates.length - 1] : null;
+
+  // next_follow_up_date = soonest future follow_up date from remaining notes
+  // (>= today), else null. Conservative: clear if nothing scheduled remains.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const futureFollowUps = rows
+    .map((r) => (r.next_follow_up_date || "").slice(0, 10))
+    .filter((d) => d && d >= todayKey)
+    .sort();
+  const newNextFollowUp = futureFollowUps[0] || null;
+
+  await supabase
+    .from("customers")
+    .update({
+      last_contacted: newLastContacted,
+      next_follow_up_date: newNextFollowUp,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq("id", customerId);
+}
+
+async function rollbackProspectStateFromNotes(prospectId: string) {
+  const { data: remaining } = await supabase
+    .from("notes")
+    .select("note_date, next_follow_up_date, note_type")
+    .eq("entity_type", "Prospect")
+    .eq("prospect_id", prospectId);
+  const rows = (remaining as any[]) || [];
+  const isDismissal = (t: string) => t === "Skipped" || t === "No Follow-Up Needed";
+  const contactDates = rows
+    .filter((r) => !isDismissal(r.note_type))
+    .map((r) => (r.note_date || "").slice(0, 10))
+    .filter(Boolean)
+    .sort();
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const futureFollowUps = rows
+    .map((r) => (r.next_follow_up_date || "").slice(0, 10))
+    .filter((d) => d && d >= todayKey)
+    .sort();
+  await supabase
+    .from("prospects")
+    .update({
+      last_contact_date: contactDates.length ? contactDates[contactDates.length - 1] : null,
+      next_follow_up_date: futureFollowUps[0] || null,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq("id", prospectId);
+}
+
+async function rollbackLeadStatusFromNotes(leadId: string) {
+  const { data: lead } = await supabase
+    .from("booking_leads" as any)
+    .select("status, last_contact_date, next_follow_up_date")
+    .eq("id", leadId)
+    .maybeSingle();
+  const current = (lead as any)?.status;
+  // Never auto-revive DNC; never demote Booked (event-driven).
+  if (!current || current === "Not Interested" || current === "Booked") {
+    // Still recompute last_contact_date / next_follow_up_date below.
+  }
+
+  const { data: remaining } = await supabase
+    .from("notes")
+    .select("note_type, note_date, next_follow_up_date")
+    .eq("entity_type", "Lead")
+    .eq("person_id", leadId);
+  const rows = (remaining as any[]) || [];
+  const hasOutreach = rows.some((r) => OUTREACH_NOTE_TYPES_SET.has(r.note_type));
+
+  const updates: Record<string, any> = {};
+  if (current === "Working" && !hasOutreach) {
+    updates.status = "New";
+  }
+
+  // Recompute last_contact_date and next_follow_up_date.
+  const contactDates = rows
+    .filter((r) => OUTREACH_NOTE_TYPES_SET.has(r.note_type))
+    .map((r) => (r.note_date || "").slice(0, 10))
+    .filter(Boolean)
+    .sort();
+  updates.last_contact_date = contactDates.length ? contactDates[contactDates.length - 1] : null;
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const futureFollowUps = rows
+    .map((r) => (r.next_follow_up_date || "").slice(0, 10))
+    .filter((d) => d && d >= todayKey)
+    .sort();
+  updates.next_follow_up_date = futureFollowUps[0] || null;
+
+  if (Object.keys(updates).length > 0) {
+    await supabase.from("booking_leads" as any).update(updates as any).eq("id", leadId);
+  }
+}
 
 export const updateNote = async (
   id: string,
