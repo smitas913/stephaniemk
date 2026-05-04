@@ -92,12 +92,13 @@ type Outcome = "Booked" | "Not Interested" | null;
 
 // Suggested next-step keys per Activity Type.
 const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
-const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "sample_followup_handed" | "sample_followup_mailed" | "none"> = {
+const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "sample_followup_handed" | "sample_followup_mailed" | "pause"> = {
   "Booking Ask": "booking",
   "Connection": "check_in",
   "Send Info": "sample_followup_handed",
   "Sample Follow-Up": "sample_followup_handed",
-  "Follow-Up": "quick_touch",
+  // Standard Follow-Up (no booking ask, no sample) defaults to Check-In (7 days).
+  "Follow-Up": "check_in",
 };
 
 const NEXT_STEP_OPTIONS = [
@@ -108,19 +109,21 @@ const NEXT_STEP_OPTIONS = [
   { key: "reorder", label: "Reorder Cycle (30 / 60 / 90)", days: null as number | null, reason: "Reorder Cycle" },
   { key: "booking", label: "Booking Follow-Up (3 days)", days: 3 as number | null, reason: "Booking Follow-Up" },
   { key: "custom", label: "Pick a date", days: null as number | null, reason: "" },
-  { key: "none", label: "No Follow-Up", days: null as number | null, reason: "" },
+  // Pause Follow-Up — intentional break in communication. Expands to 120-day default + custom date picker.
+  { key: "pause", label: "Pause Follow-Up (120 days / custom)", days: null as number | null, reason: "Pause Follow-Up" },
 ] as const;
 
 // Which Next Step keys are visible per Activity Type.
-// Booking Ask → Booking Follow-Up + No Follow-Up only.
-// Other activities (Follow-Up family) → Quick Touch / Check-In / Reorder Cycle / No Follow-Up (hide Booking).
+// Booking Ask → Booking Follow-Up + Pause + custom date.
+// Other activities (Follow-Up family) → Quick Touch / Check-In / Reorder Cycle / Pause / custom date (hide Booking).
+// Pause replaces the old "No Follow-Up" — every contact must have a scheduled future re-engagement (unless DNC).
 const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
-  "Booking Ask": ["booking", "custom", "none"],
-  "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
-  "Send Info": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "none"],
-  "Sample Follow-Up": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "none"],
-  // Lead Follow-Up: Quick Touch + Check-In + No Follow-Up (no Reorder Cycle, no Booking).
-  "Follow-Up": ["quick_touch", "check_in", "custom", "none"],
+  "Booking Ask": ["booking", "custom", "pause"],
+  "Connection": ["quick_touch", "check_in", "reorder", "custom", "pause"],
+  "Send Info": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "pause"],
+  "Sample Follow-Up": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "pause"],
+  // Lead Follow-Up: Quick Touch + Check-In + Pause + custom date (no Reorder Cycle, no Booking).
+  "Follow-Up": ["quick_touch", "check_in", "custom", "pause"],
 };
 
 const WHATS_NEXT_OPTIONS = [
