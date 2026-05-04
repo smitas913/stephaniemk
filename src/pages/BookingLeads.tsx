@@ -233,22 +233,23 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   }, [unifiedNotes]);
 
   const actionMutation = useMutation({
-    mutationFn: async ({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+    mutationFn: async ({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
       item: UniversalActionItem;
       actionType: string;
       note: string;
       isBookingAttempt: boolean;
       isFollowUp: boolean;
       nextFollowUpDate?: string | null;
+      dnc?: boolean;
     }) => {
       const today = toLocalDateKey();
-      const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
-      const nextDate = nextFollowUpDate || defaultNext;
+      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Contacted" + +2d.
+      const nextDate = dnc ? null : (nextFollowUpDate || format(addDays(new Date(), 2), "yyyy-MM-dd"));
 
       await updateBookingLead(item.id, {
         last_contact_date: today,
         next_follow_up_date: nextDate,
-        status: "Contacted",
+        status: dnc ? "Not Interested" : "Contacted",
       } as any);
 
       await createNote({
@@ -558,8 +559,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           item={actionPanelItem}
           open={actionPanelOpen}
           onClose={() => { setActionPanelOpen(false); setActionPanelItem(null); }}
-          onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }) =>
-            actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate })
+          onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }) =>
+            actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc })
           }
           onNavigateToProfile={(uItem) => {
             setActionPanelOpen(false);

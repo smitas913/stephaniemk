@@ -1343,9 +1343,19 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
+        // DNC outcome: append 'DNC' tag (trigger clears follow-ups & cancels plan items).
+        if (dnc) {
+          const cust = customers.find((c) => c.id === item.id);
+          const existingTags: string[] = Array.isArray((cust as any)?.tags) ? (cust as any).tags : [];
+          const tagUpdates: Record<string, any> = { last_contacted: today };
+          if (!existingTags.includes("DNC")) tagUpdates.tags = [...existingTags, "DNC"];
+          await updateCustomer(item.id, tagUpdates as any);
+          await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: false });
+          return;
+        }
         const updates: Record<string, string | null> = { last_contacted: today };
         // 2+2+2 stage advancement: when a customer is on an active 2+2+2 stage,
         // advance to the next step on completion. Auto-set the date to the step
@@ -1421,11 +1431,13 @@ export default function FollowUps() {
         });
       } else if (item.itemType === "lead") {
         const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        const resolvedNext = dnc ? null : (nextDate || defaultNext);
         const updates: Record<string, string | null> = {
           last_contact_date: today,
-          next_follow_up_date: nextDate || defaultNext,
+          next_follow_up_date: resolvedNext,
         };
-        if (!nextDate) updates.status = "Contacted";
+        if (dnc) updates.status = "Not Interested";
+        else if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
         const lBody = note.trim() || `${type} follow-up`;
         const lReason = lBody.match(/^\s*\[([^\]]+)\]/)?.[1] || null;
@@ -1438,9 +1450,9 @@ export default function FollowUps() {
           note_type: type,
           tags: [categoryTag(lCategory)],
           next_step: nextStep?.trim() || null,
-          next_follow_up_date: nextDate || defaultNext,
+          next_follow_up_date: resolvedNext,
           is_booking_attempt: isBookingAttempt ?? false,
-          is_follow_up: isFollowUp ?? true,
+          is_follow_up: dnc ? false : (isFollowUp ?? true),
         });
       } else if (item.itemType === "event_task") {
         await completeEventTask(item.id);
@@ -1654,16 +1666,15 @@ export default function FollowUps() {
   const rescheduleLogRef = useRef<((args: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => void) | null>(null);
 
   // Universal Action Panel handler (placed after contactMutation)
-  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
     item: UniversalActionItem;
     actionType: string;
     note: string;
     isBookingAttempt: boolean;
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
+    dnc?: boolean;
   }) => {
-    // If the panel was opened from a Reschedule row, route through reschedule logic so the
-    // event's reschedule_* fields update (and the Today task clears once the date moves forward).
     if (universalRescheduleEvent) {
       rescheduleLogRef.current?.({
         event: universalRescheduleEvent,
@@ -1688,6 +1699,7 @@ export default function FollowUps() {
       nextDate: nextFollowUpDate ?? undefined,
       isBookingAttempt,
       isFollowUp,
+      dnc,
     });
   }, [contactMutation, universalRescheduleEvent]);
 

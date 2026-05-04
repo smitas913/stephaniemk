@@ -148,14 +148,22 @@ export default function CustomerDetail() {
 
   // Centralized action handler — same logic as Today workflow
   const actionMutation = useMutation({
-    mutationFn: async ({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp }: {
-      actionType: string; note: string; nextFollowUpDate?: string | null; isBookingAttempt: boolean; isFollowUp: boolean;
+    mutationFn: async ({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp, dnc }: {
+      actionType: string; note: string; nextFollowUpDate?: string | null; isBookingAttempt: boolean; isFollowUp: boolean; dnc?: boolean;
     }) => {
       const today = toLocalDateKey();
-      const updates: Record<string, string | null> = {
+      const updates: Record<string, any> = {
         last_contacted: today,
-        next_follow_up_date: nextFollowUpDate || null,
+        next_follow_up_date: dnc ? null : (nextFollowUpDate || null),
       };
+      // Mark Do-Not-Contact: append 'DNC' to tags. The enforce_dnc_on_customer trigger
+      // will clear follow-ups, cancel daily plan items, and stop catalog campaigns.
+      if (dnc) {
+        const existingTags: string[] = Array.isArray((customer as any)?.tags) ? (customer as any).tags : [];
+        if (!existingTags.includes("DNC")) {
+          updates.tags = [...existingTags, "DNC"];
+        }
+      }
       await updateCustomer(id!, updates as any);
       const noteBody = note.trim() || `${actionType} follow-up completed`;
       await Promise.all([
@@ -167,7 +175,7 @@ export default function CustomerDetail() {
           person_type: "customer",
           note_body: noteBody,
           note_type: actionType,
-          next_follow_up_date: nextFollowUpDate ?? null,
+          next_follow_up_date: dnc ? null : (nextFollowUpDate ?? null),
           is_booking_attempt: isBookingAttempt,
           is_follow_up: isFollowUp,
         }),
@@ -189,10 +197,10 @@ export default function CustomerDetail() {
     },
   });
 
-  const handleLogAction = useCallback(({ actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
-    item: UniversalActionItem; actionType: string; note: string; isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
+  const handleLogAction = useCallback(({ actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
+    item: UniversalActionItem; actionType: string; note: string; isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null; dnc?: boolean;
   }) => {
-    actionMutation.mutate({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp });
+    actionMutation.mutate({ actionType, note, nextFollowUpDate, isBookingAttempt, isFollowUp, dnc });
   }, [actionMutation]);
 
   // Atomic Skip / Did Not Contact: log the activity FIRST, then move the date.
