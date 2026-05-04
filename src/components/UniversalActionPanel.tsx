@@ -78,6 +78,7 @@ const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] =
 type Outcome = "Booked" | "Not Interested" | null;
 
 // Suggested next-step keys per Activity Type.
+const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
 const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "none"> = {
   "Booking Ask": "quick_touch",
   "Connection": "check_in",
