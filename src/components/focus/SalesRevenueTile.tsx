@@ -16,7 +16,7 @@ const fmt = (n: number) =>
   `$${Math.round(n).toLocaleString("en-US")}`;
 
 /**
- * Sales / Revenue tile.
+ * Sales tile.
  *
  * Single source of truth = the user's **Monthly Production goal** in
  * Settings → Business Goals. Weekly and Daily targets are derived:
@@ -86,7 +86,7 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            <span className="text-sm font-medium text-foreground truncate">Sales / Revenue</span>
+            <span className="text-sm font-medium text-foreground truncate">Sales</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className={cn("text-base font-bold tabular-nums", numberColor)}>
@@ -119,7 +119,7 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-sm font-medium text-foreground truncate">Sales / Revenue</span>
+          <span className="text-sm font-medium text-foreground truncate">Sales</span>
           <span className={cn("text-xs font-medium", onTrack ? "text-emerald-600" : "text-muted-foreground")}>
             {fmt(todaySales)} / {hasGoal ? fmt(dailyTarget) : "—"} {hasGoal ? `· ${pct}%` : ""}
           </span>
