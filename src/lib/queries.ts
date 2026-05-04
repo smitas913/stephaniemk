@@ -787,6 +787,10 @@ export const DEFAULT_BUSINESS_GOALS: Omit<BusinessGoal, "id" | "user_id">[] = [
   { metric_key: "unit_size", metric_label: "Unit Size", period: "weekly", goal_value: 0, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
   { metric_key: "production", metric_label: "Production", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
   { metric_key: "unit_size", metric_label: "Unit Size", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
+  // Sales Goals (monthly): baseline = "production" above (kept for back-compat).
+  // Stretch + optional Profit goal added so directors can track upside + profit.
+  { metric_key: "sales_stretch", metric_label: "Monthly Stretch Sales", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 3 },
+  { metric_key: "profit_goal", metric_label: "Monthly Profit Goal (optional)", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 4 },
 ];
 
 export const fetchBusinessGoals = async (): Promise<BusinessGoal[]> => {

@@ -43,9 +43,19 @@ export default function Analytics() {
   const { data: orders = [], isLoading: orL } = useQuery({
     queryKey: ["all-orders-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("customer_id, order_date, retail_amount").order("order_date", { ascending: false });
+      const { data, error } = await supabase
+        .from("orders")
+        .select("customer_id, order_date, retail_amount, order_type, face_type, is_myshop_order")
+        .order("order_date", { ascending: false });
       if (error) throw error;
-      return data as { customer_id: string; order_date: string; retail_amount: number }[];
+      return data as {
+        customer_id: string;
+        order_date: string;
+        retail_amount: number;
+        order_type: string | null;
+        face_type: string | null;
+        is_myshop_order: boolean | null;
+      }[];
     },
   });
   const { data: prospects = [], isLoading: prL } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
@@ -174,8 +184,62 @@ export default function Analytics() {
     const repeatCustomers = eligibleIds.filter((id) => (allOrdersByCustomer[id] || 0) >= 2).length;
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
-    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate };
+    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd };
   }, [events, orders, prospects, customers, timeView]);
+
+  // ── Sales by Source breakdown for selected time view ──
+  const salesBreakdown = useMemo(() => {
+    const { rangeStart, rangeEnd } = analytics;
+    // First-order date per customer (across ALL orders, not just period)
+    const firstOrderByCustomer: Record<string, string> = {};
+    orders.forEach((o) => {
+      if (!o.customer_id || !o.order_date) return;
+      const cur = firstOrderByCustomer[o.customer_id];
+      if (!cur || o.order_date < cur) firstOrderByCustomer[o.customer_id] = o.order_date;
+    });
+
+    const periodOrders = orders.filter((o) => inRange(o.order_date, rangeStart, rangeEnd));
+
+    const buckets = {
+      newFace: { count: 0, total: 0 },
+      reorder: { count: 0, total: 0 },
+      party: { count: 0, total: 0 },
+      facial: { count: 0, total: 0 },
+      myshop: { count: 0, total: 0 },
+      other: { count: 0, total: 0 },
+    };
+
+    let totalSales = 0;
+    for (const o of periodOrders) {
+      const amt = Number(o.retail_amount || 0);
+      totalSales += amt;
+      const isFirst = firstOrderByCustomer[o.customer_id] === o.order_date;
+      if (isFirst) { buckets.newFace.count++; buckets.newFace.total += amt; }
+      if (o.is_myshop_order) { buckets.myshop.count++; buckets.myshop.total += amt; }
+      switch (o.order_type) {
+        case "Party": buckets.party.count++; buckets.party.total += amt; break;
+        case "Facial": buckets.facial.count++; buckets.facial.total += amt; break;
+        case "Reorder": buckets.reorder.count++; buckets.reorder.total += amt; break;
+        case "Other":
+        default:
+          if (!o.is_myshop_order) { buckets.other.count++; buckets.other.total += amt; }
+          break;
+      }
+    }
+
+    const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
+    const reorderShare = totalSales > 0 ? (buckets.reorder.total / totalSales) * 100 : 0;
+    const newFaceShare = totalSales > 0 ? (buckets.newFace.total / totalSales) * 100 : 0;
+
+    return {
+      totalSales,
+      buckets,
+      avgParty: avg(buckets.party),
+      avgFacial: avg(buckets.facial),
+      reorderShare,
+      newFaceShare,
+    };
+  }, [analytics, orders]);
 
   const formatCurrency = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
 
@@ -245,6 +309,76 @@ export default function Analytics() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Sales by Source */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Sales by Source — {TIME_VIEW_LABELS[timeView]}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-xs">Source</TableHead>
+                        <TableHead className="text-xs text-center">Orders</TableHead>
+                        <TableHead className="text-xs text-right">Sales</TableHead>
+                        <TableHead className="text-xs text-right">Avg Order</TableHead>
+                        <TableHead className="text-xs text-right">% of Sales</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        { key: "newFace", label: "New Face / first-time" },
+                        { key: "reorder", label: "Reorder" },
+                        { key: "party", label: "Party" },
+                        { key: "facial", label: "Facial" },
+                        { key: "myshop", label: "MyShop" },
+                        { key: "other", label: "Other" },
+                      ].map((row) => {
+                        const b = (salesBreakdown.buckets as any)[row.key] as { count: number; total: number };
+                        const avg = b.count > 0 ? b.total / b.count : 0;
+                        const share = salesBreakdown.totalSales > 0 ? (b.total / salesBreakdown.totalSales) * 100 : 0;
+                        return (
+                          <TableRow key={row.key}>
+                            <TableCell className="text-sm font-medium text-foreground">{row.label}</TableCell>
+                            <TableCell className="text-sm text-center tabular-nums">{b.count}</TableCell>
+                            <TableCell className="text-sm text-right tabular-nums">{formatCurrency(b.total)}</TableCell>
+                            <TableCell className="text-sm text-right tabular-nums">{formatCurrency(avg)}</TableCell>
+                            <TableCell className="text-sm text-right tabular-nums">{share.toFixed(1)}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Party Order</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.avgParty)}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Facial Order</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.avgFacial)}</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Reorder Sales Total</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.buckets.reorder.total)}</p>
+                    <p className="text-[10px] text-muted-foreground">{salesBreakdown.reorderShare.toFixed(1)}% of sales</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">New Customer Sales</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.buckets.newFace.total)}</p>
+                    <p className="text-[10px] text-muted-foreground">{salesBreakdown.newFaceShare.toFixed(1)}% of sales</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Event Pipeline */}
             <Card className="border-border/50 shadow-sm">
