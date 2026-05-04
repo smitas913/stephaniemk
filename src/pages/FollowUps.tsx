@@ -1332,7 +1332,7 @@ export default function FollowUps() {
   // ─── Mutations ───
   const bookingLeadContactMut = useMutation({
     mutationFn: async (lead: BookingLead) => {
-      await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New" ? "Asked" : lead.status });
+      await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New" ? "Working" : lead.status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
@@ -1437,7 +1437,7 @@ export default function FollowUps() {
           next_follow_up_date: resolvedNext,
         };
         if (dnc) updates.status = "Not Interested";
-        else if (!nextDate) updates.status = "Asked";
+        else if (!nextDate) updates.status = "Working";
         await updateBookingLead(item.id, updates as any);
         const lBody = note.trim() || `${type} follow-up`;
         const lReason = lBody.match(/^\s*\[([^\]]+)\]/)?.[1] || null;
@@ -1866,7 +1866,7 @@ export default function FollowUps() {
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
       } else if (item.itemType === "lead") {
         const nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
-        await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Asked" } as any);
+        await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Working" } as any);
       } else if (item.itemType === "event_task") {
         await completeEventTask(item.id);
       }
@@ -4321,8 +4321,7 @@ const LEAD_ACTIVITY_TYPES = ["Call", "Text", "Email", "Booking", "Sharing"] as c
 
 function getAutoFollowUpDays(status: string): number {
   if (status === "New") return 1;
-  if (status === "Asked") return 2;
-  if (status === "Working") return 3;
+  if (status === "Working") return 2;
   return 2;
 }
 
@@ -4378,7 +4377,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const currentNotes = lead?.notes || "";
       const updatedNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
 
-      const newStatus = status === "New" ? "Asked" : status;
+      const newStatus = status === "New" ? "Working" : status;
       const autoFollowUpDays = getAutoFollowUpDays(newStatus);
       const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
 
@@ -4438,10 +4437,10 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const todayFormatted = format(new Date(), "MMMM d, yyyy");
   const autoFollowUpLabel = useMemo(() => {
     if (!nextFollowUp) return null;
-    const days = getAutoFollowUpDays(status === "New" ? "Asked" : status);
+    const days = getAutoFollowUpDays(status === "New" ? "Working" : status);
     const autoDate = format(addDays(new Date(), days), "yyyy-MM-dd");
     if (nextFollowUp === autoDate) {
-      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${status === "New" ? "Asked" : status} lead cadence`;
+      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${status === "New" ? "Working" : status} lead cadence`;
     }
     return `Manually set to ${formatDateOnly(nextFollowUp)}`;
   }, [nextFollowUp, status]);
