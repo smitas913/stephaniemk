@@ -92,11 +92,11 @@ type Outcome = "Booked" | "Not Interested" | null;
 
 // Suggested next-step keys per Activity Type.
 const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
-const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "none"> = {
+const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "sample_followup_handed" | "sample_followup_mailed" | "none"> = {
   "Booking Ask": "booking",
   "Connection": "check_in",
-  "Send Info": "quick_touch",
-  "Sample Follow-Up": "check_in",
+  "Send Info": "sample_followup_handed",
+  "Sample Follow-Up": "sample_followup_handed",
   "Follow-Up": "quick_touch",
 };
 
