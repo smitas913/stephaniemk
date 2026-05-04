@@ -209,7 +209,11 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const bookingAttemptItems: FocusDetailItem[] = unifiedNotes
     .filter((n: any) => {
       const noteDay = n.note_date || getTimestampDateKey(n.created_at);
-      return noteDay === dateKey && n.is_booking_attempt === true;
+      if (noteDay !== dateKey) return false;
+      if (n.is_booking_attempt !== true) return false;
+      // Exclude administrative/cleanup notes even if mistakenly flagged.
+      if (!isOutreachNote(n)) return false;
+      return true;
     })
     .map((n: any) => {
       const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
@@ -219,7 +223,11 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((item): item is FocusDetailItem => item !== null);
 
   const leadBookingAttemptItems: FocusDetailItem[] = bookingLeads
-    .filter((l: any) => l.last_contact_date === dateKey && !l.converted_customer_id)
+    .filter((l: any) =>
+      leadIdsWithBookingAttemptToday.has(l.id) &&
+      !l.converted_customer_id &&
+      l.status !== "Not Interested",
+    )
     .map((l: any) => ({
       id: l.id, name: l.name, type: "Lead",
       method: l.lead_activity || "Call",
