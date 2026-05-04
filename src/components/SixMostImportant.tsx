@@ -20,6 +20,7 @@ import type { FocusItemData } from "@/components/focus/FocusItemRow";
 import FocusEditView from "@/components/focus/FocusEditView";
 import FocusDrillDown from "@/components/focus/FocusDrillDown";
 import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
+import SalesRevenueTile from "@/components/focus/SalesRevenueTile";
 
 interface AutoCounts {
   booking_attempts: number;
@@ -390,6 +391,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                         />
                       )
                     )}
+                    <SalesRevenueTile selectedDate={selectedDate} compact={!!compact} />
                   </div>
                   {!isToday && (
                     <p className="text-[10px] text-muted-foreground pt-1 text-center">
