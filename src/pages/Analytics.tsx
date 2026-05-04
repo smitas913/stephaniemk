@@ -184,10 +184,62 @@ export default function Analytics() {
     const repeatCustomers = eligibleIds.filter((id) => (allOrdersByCustomer[id] || 0) >= 2).length;
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
-    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate };
+    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd };
   }, [events, orders, prospects, customers, timeView]);
 
-  const formatCurrency = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+  // ── Sales by Source breakdown for selected time view ──
+  const salesBreakdown = useMemo(() => {
+    const { rangeStart, rangeEnd } = analytics;
+    // First-order date per customer (across ALL orders, not just period)
+    const firstOrderByCustomer: Record<string, string> = {};
+    orders.forEach((o) => {
+      if (!o.customer_id || !o.order_date) return;
+      const cur = firstOrderByCustomer[o.customer_id];
+      if (!cur || o.order_date < cur) firstOrderByCustomer[o.customer_id] = o.order_date;
+    });
+
+    const periodOrders = orders.filter((o) => inRange(o.order_date, rangeStart, rangeEnd));
+
+    const buckets = {
+      newFace: { count: 0, total: 0 },
+      reorder: { count: 0, total: 0 },
+      party: { count: 0, total: 0 },
+      facial: { count: 0, total: 0 },
+      myshop: { count: 0, total: 0 },
+      other: { count: 0, total: 0 },
+    };
+
+    let totalSales = 0;
+    for (const o of periodOrders) {
+      const amt = Number(o.retail_amount || 0);
+      totalSales += amt;
+      const isFirst = firstOrderByCustomer[o.customer_id] === o.order_date;
+      if (isFirst) { buckets.newFace.count++; buckets.newFace.total += amt; }
+      if (o.is_myshop_order) { buckets.myshop.count++; buckets.myshop.total += amt; }
+      switch (o.order_type) {
+        case "Party": buckets.party.count++; buckets.party.total += amt; break;
+        case "Facial": buckets.facial.count++; buckets.facial.total += amt; break;
+        case "Reorder": buckets.reorder.count++; buckets.reorder.total += amt; break;
+        case "Other":
+        default:
+          if (!o.is_myshop_order) { buckets.other.count++; buckets.other.total += amt; }
+          break;
+      }
+    }
+
+    const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
+    const reorderShare = totalSales > 0 ? (buckets.reorder.total / totalSales) * 100 : 0;
+    const newFaceShare = totalSales > 0 ? (buckets.newFace.total / totalSales) * 100 : 0;
+
+    return {
+      totalSales,
+      buckets,
+      avgParty: avg(buckets.party),
+      avgFacial: avg(buckets.facial),
+      reorderShare,
+      newFaceShare,
+    };
+  }, [analytics, orders]);
 
   const TIME_VIEW_LABELS: Record<TimeView, string> = {
     "this-month": "This Month",
