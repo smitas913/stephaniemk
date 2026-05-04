@@ -117,8 +117,8 @@ const NEXT_STEP_OPTIONS = [
 const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
   "Booking Ask": ["booking", "custom", "none"],
   "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
-  "Send Info": ["quick_touch", "check_in", "reorder", "custom", "none"],
-  "Sample Follow-Up": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  "Send Info": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "none"],
+  "Sample Follow-Up": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "none"],
   // Lead Follow-Up: Quick Touch + Check-In + No Follow-Up (no Reorder Cycle, no Booking).
   "Follow-Up": ["quick_touch", "check_in", "custom", "none"],
 };
