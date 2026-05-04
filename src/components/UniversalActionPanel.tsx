@@ -46,7 +46,7 @@ export interface UniversalActionItem {
 
 // Legacy flow uses two steps; the new strict flow uses 5.
 type ActionStep = "action" | "whats-next";
-type StrictStep = "action" | "activity" | "outcome" | "notes" | "next-step";
+type StrictStep = "action" | "activity" | "outcome" | "booked-type" | "notes" | "next-step";
 
 const QUICK_ACTIONS_LEGACY = [
   { key: "Text", label: "Texted", icon: MessageSquare, emoji: "💬" },
@@ -218,6 +218,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [source, setSource] = useState<string | null>(null);
+  const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Career Chat" | null>(null);
 
   const reset = useCallback(() => {
     setStep("action");
@@ -228,6 +229,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setNextOpt(null);
     setCustomDate("");
     setSource(null);
+    setBookedEventType(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -243,11 +245,12 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (activity) parts.push(`[${activity}]`);
     if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
     if (outcome === "Booked") parts.push("[Booked]");
+    if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, outcome, noteText, action, source]);
+  }, [activity, outcome, noteText, action, source, bookedEventType]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
     const isBooking = activity === "Booking Ask" || outcome === "Booked";
@@ -291,11 +294,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   }, [submit]);
 
   // When user picks "Not Interested", short-circuit to save (no Next Step needed).
+  // When user picks "Booked", route to the booked-type sub-step to create the event.
   const handleOutcomeClick = useCallback((o: Exclude<Outcome, null>) => {
     setOutcome(o);
     if (o === "Not Interested") {
       // Save immediately — DNC clears follow-ups (customer trigger) or sets Not Interested status (lead).
-      // Use latest state via microtask to ensure outcome is captured.
       setTimeout(() => {
         const isBooking = activity === "Booking Ask";
         const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
@@ -321,9 +324,45 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
       }, 0);
       return;
     }
-    // Booked → continue to Notes
-    setStep("notes");
-  }, [activity, action, noteText, item, onLogAction, handleClose]);
+    // Booked → choose event type, then create event
+    setStep("booked-type");
+  }, [activity, action, noteText, source, item, onLogAction, handleClose]);
+
+  // Booked + event type chosen → log activity, then navigate to Create Event
+  // (Career Chat is a conversation, not an event — log only).
+  const handleBookedTypeConfirm = useCallback((t: "Facial" | "Party" | "Career Chat") => {
+    setBookedEventType(t);
+    setTimeout(() => {
+      const category: IntentCategory = "Booking";
+      const parts: string[] = [];
+      if (activity) parts.push(`[${activity}]`);
+      if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
+      parts.push("[Booked]");
+      parts.push(`[Booking Created: ${t}]`);
+      if (noteText.trim()) parts.push(noteText.trim());
+      onLogAction({
+        item,
+        actionType: action || "Call",
+        note: parts.join(" "),
+        isBookingAttempt: true,
+        isFollowUp: false,
+        // No next follow-up — the event itself becomes the next touchpoint.
+        nextFollowUpDate: null,
+        followUpReason: null,
+        category,
+      });
+      handleClose();
+      if (t !== "Career Chat") {
+        const params = new URLSearchParams({
+          type: t,
+          hostess: item.name || "",
+          ...(item.phone ? { phone: item.phone } : {}),
+        });
+        navigate(`/events/new?${params.toString()}`);
+      }
+    }, 0);
+  }, [activity, action, source, noteText, item, onLogAction, handleClose, navigate]);
+
 
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
@@ -334,6 +373,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     action: "1. Action",
     activity: "2. Activity Type",
     outcome: "3. Outcome (optional)",
+    "booked-type": "Create Event",
     notes: "4. Notes",
     "next-step": "5. Next Step",
   };
@@ -341,6 +381,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const goBack = () => {
     if (step === "activity") setStep("action");
     else if (step === "outcome") setStep("activity");
+    else if (step === "booked-type") setStep("outcome");
     else if (step === "notes") setStep("outcome");
     else if (step === "next-step") setStep("notes");
   };
@@ -586,7 +627,46 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
               </div>
             )}
 
-            {/* ── Step 4: Notes ── */}
+            {/* ── Step 3b: Booked → Choose Event Type ── */}
+            {step === "booked-type" && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  🎉 Booked! What type of appointment?
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  We'll log this booking and open Create Event with {item.name} pre-filled.
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {(["Facial", "Party", "Career Chat"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleBookedTypeConfirm(t)}
+                      className={cn(
+                        "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left",
+                        "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.99]",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="font-semibold text-foreground">{t}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {t === "Career Chat" ? "Logged only" : "Opens Create Event"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full text-xs"
+                  onClick={() => { setOutcome(null); setStep("notes"); }}
+                  disabled={isPending}
+                >
+                  Skip — just log the activity
+                </Button>
+              </div>
+            )}
+
             {step === "notes" && (
               <div className="space-y-3">
                 {action === "In Person" && (
