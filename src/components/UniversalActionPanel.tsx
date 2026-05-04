@@ -18,6 +18,7 @@ import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
 import TextActionButton from "@/components/TextActionButton";
 import { INTENT_CATEGORIES, REASONS_BY_CATEGORY, resolveIntentCategory, type IntentCategory } from "@/lib/intentCategory";
+import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
 
 // ─── Types ───
 
