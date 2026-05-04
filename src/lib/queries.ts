@@ -79,7 +79,7 @@ export const createCustomer = async (customer: Partial<Customer> & { full_name: 
   const userId = await getCurrentUserId();
   // Always default date_added to the user's LOCAL today (not Postgres CURRENT_DATE which is UTC).
   const { toLocalDateKey } = await import("@/lib/dateOnly");
-  const payload: any = { ...customer, owner_user_id: userId };
+  const payload: any = withNormalizedPhone({ ...customer, owner_user_id: userId });
   if (!payload.date_added) payload.date_added = toLocalDateKey();
   const { data, error } = await supabase.from("customers").insert(payload).select().single();
   if (error) throw error;
@@ -87,7 +87,8 @@ export const createCustomer = async (customer: Partial<Customer> & { full_name: 
 };
 
 export const updateCustomer = async (id: string, updates: Partial<Customer>) => {
-  const { data, error } = await supabase.from("customers").update(updates as any).eq("id", id).select().single();
+  const payload: any = withNormalizedPhone(updates);
+  const { data, error } = await supabase.from("customers").update(payload).eq("id", id).select().single();
   if (error) throw error;
   return data;
 };
