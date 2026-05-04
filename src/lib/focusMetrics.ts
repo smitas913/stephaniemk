@@ -102,14 +102,28 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
 } {
   const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
+  // Notes that represent administrative/cleanup actions — never count as outreach or booking activity.
+  const NON_OUTREACH_NOTE_TYPES = new Set([
+    "Skipped", "No Follow-Up", "No Follow-Up Needed", "Cleared", "DNC", "Not Interested",
+  ]);
+  const isOutreachNote = (n: any) => {
+    if (NON_OUTREACH_NOTE_TYPES.has(n.note_type)) return false;
+    // Notes flagged as not a follow-up AND not a booking attempt are administrative (skip/dnc/cleared).
+    if (n.is_follow_up === false && n.is_booking_attempt === false) return false;
+    // Body-tag heuristics for DNC/no-follow-up notes that may slip through with contact note_types.
+    const body = (n.note_body || "").toLowerCase();
+    if (body.includes("[not interested") || body.includes("[dnc]") || body.includes("no follow-up needed")) return false;
+    return true;
+  };
 
   // ─── Reach-out items from unified notes ───
   const reachOutItems: FocusDetailItem[] = unifiedNotes
     .filter((n: any) => {
       const noteDay = n.note_date || getTimestampDateKey(n.created_at);
       if (noteDay !== dateKey) return false;
+      if (!isOutreachNote(n)) return false;
       if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
-      if (n.entity_type === "Lead") return true;
+      if (n.entity_type === "Lead") return contactTypes.has(n.note_type);
       if (n.entity_type === "Consultant") return false; // coaching only
       if (n.entity_type === "Hostess") return true;
       return contactTypes.has(n.note_type);
