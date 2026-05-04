@@ -919,6 +919,52 @@ export default function CustomerDetail() {
           onChoose={applySkipChoice}
         />
 
+        {/* Edit Note Dialog */}
+        <Dialog open={!!editNote} onOpenChange={(o) => { if (!o) setEditNote(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Note</DialogTitle>
+              <DialogDescription>Update the text of this activity entry.</DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={editNoteBody}
+              onChange={(e) => setEditNoteBody(e.target.value)}
+              rows={5}
+              className="resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditNote(null)}>Cancel</Button>
+              <Button
+                disabled={updateNoteMutation.isPending || !editNoteBody.trim()}
+                onClick={() => editNote && updateNoteMutation.mutate({ id: editNote.id, isLegacy: editNote.isLegacy, body: editNoteBody.trim() })}
+              >
+                Save
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Note Confirmation */}
+        <AlertDialog open={!!deleteNoteTarget} onOpenChange={(o) => { if (!o) setDeleteNoteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This activity entry will be permanently removed from the customer's history. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => deleteNoteTarget && deleteNoteMutation.mutate(deleteNoteTarget)}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Sent Catalog Dialog */}
         <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
           <DialogContent className="max-w-sm">
