@@ -126,6 +126,19 @@ export default function AddConsultant() {
             {!hasContact && fullName && (
               <p className="text-xs text-destructive">At least one contact method (phone or email) is required.</p>
             )}
+            {contactDuplicate && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-destructive">
+                      A consultant with this {stripPhone(phone) ? "phone" : "email"} already exists: {(contactDuplicate as any).name}
+                      {(contactDuplicate as any).phone ? ` · ${formatPhone((contactDuplicate as any).phone)}` : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Consultant ID & Join Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
