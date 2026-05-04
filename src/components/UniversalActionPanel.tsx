@@ -285,6 +285,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     submit(customDate, "");
   }, [customDate, submit]);
 
+  const handleReorderPick = useCallback((days: 30 | 60 | 90) => {
+    const date = format(addDays(new Date(), days), "yyyy-MM-dd");
+    submit(date, `Reorder Cycle (${days}d)`);
+  }, [submit]);
+
   // When user picks "Not Interested", short-circuit to save (no Next Step needed).
   const handleOutcomeClick = useCallback((o: Exclude<Outcome, null>) => {
     setOutcome(o);
