@@ -2,7 +2,9 @@ import { addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Explicit user-selected follow-up intent for a new order.
+ * Standardized Follow-Up Intent vocabulary used across the app
+ * (Order Entry, Customer / Event / Prospect follow-up flows).
+ *
  * "none" → do not schedule any follow-up.
  */
 export type FollowUpIntent =
@@ -12,17 +14,35 @@ export type FollowUpIntent =
   | "reorder_30"
   | "reorder_60"
   | "reorder_90"
-  | "booking";
+  | "booking"
+  | "reschedule";
 
-export const FOLLOW_UP_INTENT_OPTIONS: { value: FollowUpIntent; label: string; days: number | null; reason: string }[] = [
-  { value: "none", label: "No Follow-Up", days: null, reason: "" },
-  { value: "quick_touch", label: "Quick Touch (2 days)", days: 2, reason: "Quick Touch" },
-  { value: "check_in", label: "Check-In (7 days)", days: 7, reason: "Check-In" },
-  { value: "reorder_30", label: "Reorder Cycle (30 days)", days: 30, reason: "Reorder Cycle" },
-  { value: "reorder_60", label: "Reorder Cycle (60 days)", days: 60, reason: "Reorder Cycle" },
-  { value: "reorder_90", label: "Reorder Cycle (90 days)", days: 90, reason: "Reorder Cycle" },
-  { value: "booking", label: "Booking Follow-Up (2 days)", days: 2, reason: "Booking Follow-Up" },
+export type FollowUpIntentContext = "order" | "customer" | "event" | "prospect";
+
+export interface FollowUpIntentOption {
+  value: FollowUpIntent;
+  label: string;
+  days: number | null;
+  reason: string;
+  /** Contexts where this option should appear. */
+  contexts: FollowUpIntentContext[];
+}
+
+export const FOLLOW_UP_INTENT_OPTIONS: FollowUpIntentOption[] = [
+  { value: "none", label: "No Follow-Up", days: null, reason: "", contexts: ["order", "customer", "event", "prospect"] },
+  { value: "quick_touch", label: "Quick Touch (2 days)", days: 2, reason: "Quick Touch", contexts: ["order", "customer", "event", "prospect"] },
+  { value: "check_in", label: "Check-In (7 days)", days: 7, reason: "Check-In", contexts: ["order", "customer", "prospect"] },
+  { value: "reorder_30", label: "Reorder Cycle (30 days)", days: 30, reason: "Reorder Cycle", contexts: ["order", "customer"] },
+  { value: "reorder_60", label: "Reorder Cycle (60 days)", days: 60, reason: "Reorder Cycle", contexts: ["order", "customer"] },
+  { value: "reorder_90", label: "Reorder Cycle (90 days)", days: 90, reason: "Reorder Cycle", contexts: ["order", "customer"] },
+  { value: "booking", label: "Booking Follow-Up (2 days)", days: 2, reason: "Booking Follow-Up", contexts: ["order", "customer", "event", "prospect"] },
+  { value: "reschedule", label: "Reschedule (2 days)", days: 2, reason: "Reschedule", contexts: ["event"] },
 ];
+
+/** Return only the intent options relevant to a given context. */
+export function getFollowUpIntentOptions(context: FollowUpIntentContext): FollowUpIntentOption[] {
+  return FOLLOW_UP_INTENT_OPTIONS.filter((o) => o.contexts.includes(context));
+}
 
 interface ApplyPostOrderFollowUpInput {
   customerId: string;
