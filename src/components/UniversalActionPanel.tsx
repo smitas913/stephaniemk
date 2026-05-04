@@ -92,17 +92,19 @@ type Outcome = "Booked" | "Not Interested" | null;
 
 // Suggested next-step keys per Activity Type.
 const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
-const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "none"> = {
+const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "sample_followup_handed" | "sample_followup_mailed" | "none"> = {
   "Booking Ask": "booking",
   "Connection": "check_in",
-  "Send Info": "quick_touch",
-  "Sample Follow-Up": "check_in",
+  "Send Info": "sample_followup_handed",
+  "Sample Follow-Up": "sample_followup_handed",
   "Follow-Up": "quick_touch",
 };
 
 const NEXT_STEP_OPTIONS = [
   { key: "quick_touch", label: "Quick Touch (2 days)", days: 2 as number | null, reason: "Quick Touch" },
   { key: "check_in", label: "Check-In (7 days)", days: 7 as number | null, reason: "Check-In" },
+  { key: "sample_followup_handed", label: "Sample Follow-Up (3 days)", days: 3 as number | null, reason: "Sample Follow-Up" },
+  { key: "sample_followup_mailed", label: "Sample Follow-Up (6 days — mailed)", days: 6 as number | null, reason: "Sample Follow-Up (Mailed)" },
   { key: "reorder", label: "Reorder Cycle (30 / 60 / 90)", days: null as number | null, reason: "Reorder Cycle" },
   { key: "booking", label: "Booking Follow-Up (3 days)", days: 3 as number | null, reason: "Booking Follow-Up" },
   { key: "custom", label: "Pick a date", days: null as number | null, reason: "" },
@@ -115,8 +117,8 @@ const NEXT_STEP_OPTIONS = [
 const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
   "Booking Ask": ["booking", "custom", "none"],
   "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
-  "Send Info": ["quick_touch", "check_in", "reorder", "custom", "none"],
-  "Sample Follow-Up": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  "Send Info": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "none"],
+  "Sample Follow-Up": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "none"],
   // Lead Follow-Up: Quick Touch + Check-In + No Follow-Up (no Reorder Cycle, no Booking).
   "Follow-Up": ["quick_touch", "check_in", "custom", "none"],
 };
@@ -235,6 +237,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [customDate, setCustomDate] = useState("");
   const [source, setSource] = useState<string | null>(null);
   const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Career Chat" | null>(null);
+  const [mailedSample, setMailedSample] = useState(false);
 
   const reset = useCallback(() => {
     setStep("action");
@@ -246,6 +249,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setCustomDate("");
     setSource(null);
     setBookedEventType(null);
+    setMailedSample(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -254,11 +258,19 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   }, [onClose, reset]);
 
   // Suggested next step (highlighted) — based on Activity Type. Not auto-applied.
-  const suggestedKey = activity ? SUGGESTED_NEXT_BY_ACTIVITY[activity] : null;
+  // For Send Info / Sample Follow-Up, the "Mailed Sample" toggle shifts the suggestion
+  // from a 3-day in-person follow-up to a 6-day mailed follow-up.
+  const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
+  const suggestedKey = activity
+    ? (isSampleActivity
+        ? (mailedSample ? "sample_followup_mailed" : "sample_followup_handed")
+        : SUGGESTED_NEXT_BY_ACTIVITY[activity])
+    : null;
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (activity) parts.push(`[${activity}]`);
+    if (isSampleActivity && mailedSample) parts.push("[Mailed Sample]");
     if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
     if (outcome === "Booked") parts.push("[Booked]");
     if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
@@ -266,7 +278,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, outcome, noteText, action, source, bookedEventType]);
+  }, [activity, isSampleActivity, mailedSample, outcome, noteText, action, source, bookedEventType]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
     const isBooking = activity === "Booking Ask" || outcome === "Booked";
@@ -718,6 +730,25 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+                {isSampleActivity && (
+                  <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={mailedSample}
+                        onChange={(e) => setMailedSample(e.target.checked)}
+                        className="w-4 h-4 accent-primary"
+                        disabled={isPending}
+                      />
+                      <span className="text-sm font-medium text-foreground">Mailed Sample</span>
+                    </label>
+                    <p className="text-[11px] text-muted-foreground pl-6">
+                      {mailedSample
+                        ? "We'll suggest a 6-day follow-up to allow for delivery."
+                        : "We'll suggest a 3-day follow-up since they have it in hand."}
+                    </p>
                   </div>
                 )}
                 <p className="text-sm font-semibold text-foreground">Notes</p>
