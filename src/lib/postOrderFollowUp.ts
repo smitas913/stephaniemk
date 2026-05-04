@@ -7,19 +7,21 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export type FollowUpIntent =
   | "none"
-  | "product_checkin_2w"
+  | "quick_touch"
+  | "check_in"
   | "reorder_30"
   | "reorder_60"
   | "reorder_90"
-  | "booking_opportunity";
+  | "booking";
 
 export const FOLLOW_UP_INTENT_OPTIONS: { value: FollowUpIntent; label: string; days: number | null; reason: string }[] = [
-  { value: "none", label: "None", days: null, reason: "" },
-  { value: "product_checkin_2w", label: "Product Check-In (2 weeks)", days: 14, reason: "Product Check-In" },
-  { value: "reorder_30", label: "Reorder Reminder (30 days)", days: 30, reason: "Reorder Reminder" },
-  { value: "reorder_60", label: "Reorder Reminder (60 days)", days: 60, reason: "Reorder Reminder" },
-  { value: "reorder_90", label: "Reorder Reminder (90 days)", days: 90, reason: "Reorder Reminder" },
-  { value: "booking_opportunity", label: "Booking Opportunity (7 days)", days: 7, reason: "Booking Opportunity" },
+  { value: "none", label: "No Follow-Up", days: null, reason: "" },
+  { value: "quick_touch", label: "Quick Touch (2 days)", days: 2, reason: "Quick Touch" },
+  { value: "check_in", label: "Check-In (7 days)", days: 7, reason: "Check-In" },
+  { value: "reorder_30", label: "Reorder Cycle (30 days)", days: 30, reason: "Reorder Cycle" },
+  { value: "reorder_60", label: "Reorder Cycle (60 days)", days: 60, reason: "Reorder Cycle" },
+  { value: "reorder_90", label: "Reorder Cycle (90 days)", days: 90, reason: "Reorder Cycle" },
+  { value: "booking", label: "Booking Follow-Up (2 days)", days: 2, reason: "Booking Follow-Up" },
 ];
 
 interface ApplyPostOrderFollowUpInput {
