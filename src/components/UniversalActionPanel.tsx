@@ -627,7 +627,46 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
               </div>
             )}
 
-            {/* ── Step 4: Notes ── */}
+            {/* ── Step 3b: Booked → Choose Event Type ── */}
+            {step === "booked-type" && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  🎉 Booked! What type of appointment?
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  We'll log this booking and open Create Event with {item.name} pre-filled.
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {(["Facial", "Party", "Career Chat"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleBookedTypeConfirm(t)}
+                      className={cn(
+                        "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left",
+                        "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.99]",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="font-semibold text-foreground">{t}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {t === "Career Chat" ? "Logged only" : "Opens Create Event"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full text-xs"
+                  onClick={() => { setOutcome(null); setStep("notes"); }}
+                  disabled={isPending}
+                >
+                  Skip — just log the activity
+                </Button>
+              </div>
+            )}
+
             {step === "notes" && (
               <div className="space-y-3">
                 {action === "In Person" && (
