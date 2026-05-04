@@ -68,8 +68,22 @@ export default function AddConsultant() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const { data: existingConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const contactDuplicate = useMemo(() => {
+    const p = stripPhone(phone);
+    const e = normalizeEmail(email);
+    if (!p && !e) return null;
+    return existingConsultants.find((c: any) => {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if (p && p.length >= 7 && cp === p) return true;
+      if (e && ce && ce === e) return true;
+      return false;
+    }) || null;
+  }, [phone, email, existingConsultants]);
+
   const hasContact = phone.trim() || email.trim();
-  const canSubmit = fullName && hasContact && !mutation.isPending;
+  const canSubmit = fullName && hasContact && !contactDuplicate && !mutation.isPending;
 
   return (
     <Layout>
