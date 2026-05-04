@@ -76,6 +76,42 @@ export default function CustomerDetail() {
   });
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [editNote, setEditNote] = useState<{ id: string; isLegacy: boolean; body: string } | null>(null);
+  const [editNoteBody, setEditNoteBody] = useState("");
+  const [deleteNoteTarget, setDeleteNoteTarget] = useState<{ id: string; isLegacy: boolean } | null>(null);
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ id: noteId, isLegacy, body }: { id: string; isLegacy: boolean; body: string }) => {
+      if (isLegacy) {
+        const { error } = await supabase.from("customer_notes").update({ note_text: body }).eq("id", noteId);
+        if (error) throw error;
+      } else {
+        await updateNote(noteId, { note_body: body });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      setEditNote(null);
+      toast.success("Note updated");
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update note"),
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async ({ id: noteId, isLegacy }: { id: string; isLegacy: boolean }) => {
+      if (isLegacy) {
+        await deleteCustomerNote(noteId);
+      } else {
+        await deleteNote(noteId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      setDeleteNoteTarget(null);
+      toast.success("Note deleted");
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to delete note"),
+  });
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   useEffect(() => {
     if (customer) {
