@@ -329,6 +329,58 @@ export default function MergeDuplicates() {
         </div>
       )}
 
+      {/* Customer ↔ Customer duplicates */}
+      <div className="pt-4">
+        <h3 className="text-sm font-semibold text-foreground">Duplicate Customers</h3>
+        <p className="text-xs text-muted-foreground mb-2">Multiple customer records that share a phone number or email</p>
+        {customerDuplicates.length === 0 ? (
+          <Card className="border-border/50">
+            <CardContent className="p-4 text-center">
+              <CheckCircle2 className="w-6 h-6 text-primary mx-auto mb-1" />
+              <p className="text-xs text-muted-foreground">No duplicate customer records found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+              Found {customerDuplicates.length} duplicate{customerDuplicates.length !== 1 ? "s" : ""}. Older record kept as primary; orders &amp; notes will be re-pointed.
+            </p>
+            {customerDuplicates.map((g) => (
+              <Card key={`${g.primary.id}-${g.duplicate.id}`} className="border-border/50 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-sm font-semibold text-foreground">{g.primary.full_name}</span>
+                        {matchBadge(g.matchType)}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Keep:</span>
+                          <p className="text-foreground">{g.primary.full_name}</p>
+                          {g.primary.phone && <p className="text-muted-foreground">{formatPhone(g.primary.phone)}</p>}
+                          {g.primary.email && <p className="text-muted-foreground">{g.primary.email}</p>}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Merge in:</span>
+                          <p className="text-foreground">{g.duplicate.full_name}</p>
+                          {g.duplicate.phone && <p className="text-muted-foreground">{formatPhone(g.duplicate.phone)}</p>}
+                          {g.duplicate.email && <p className="text-muted-foreground">{g.duplicate.email}</p>}
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={() => setCustomerMergeTarget(g)}>
+                      <GitMerge className="w-3.5 h-3.5" />Merge
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
       <AlertDialog open={!!mergeTarget} onOpenChange={(open) => !open && setMergeTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
