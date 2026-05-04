@@ -296,7 +296,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               <Star className="w-5 h-5 text-primary shrink-0" />
               <CardTitle className="text-base font-semibold text-foreground">Daily Success Drivers</CardTitle>
               <Badge variant="secondary" className="text-xs">
-                {completedCount} / {items.length || 5}
+                {completedCount} / {items.length || 5} activities
               </Badge>
               {winStatus && (
                 <Badge variant="outline" className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}>
