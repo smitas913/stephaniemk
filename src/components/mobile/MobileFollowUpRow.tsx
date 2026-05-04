@@ -108,15 +108,27 @@ export default function MobileFollowUpRow({
     touchStart.current = null;
   };
 
-  const urgencyBadge = item.follow_up_status === "OVERDUE" ? (
-    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold whitespace-nowrap">
-      {item.daysOverdue ? `${item.daysOverdue}d overdue` : "Overdue"}
-    </span>
-  ) : (
-    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold whitespace-nowrap">
-      Today
-    </span>
-  );
+  const urgencyBadge = (() => {
+    if (item.itemType === "lead") {
+      const attempts = item._attempts ?? 0;
+      const p = getLeadPriority({ attempts, lastContactDate: item.lastContacted, status: item._leadStatus });
+      const meta = PRIORITY_META[p];
+      return (
+        <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap", meta.className)} title={`${meta.label} — ${attempts} ${attempts === 1 ? "attempt" : "attempts"}`}>
+          {meta.icon} {attempts}
+        </span>
+      );
+    }
+    return item.follow_up_status === "OVERDUE" ? (
+      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold whitespace-nowrap">
+        {item.daysOverdue ? `${item.daysOverdue}d overdue` : "Overdue"}
+      </span>
+    ) : (
+      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold whitespace-nowrap">
+        Today
+      </span>
+    );
+  })();
 
   const detailLine = getDetailLine(item);
   const reasonCategory = getReasonCategory(item);
