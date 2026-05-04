@@ -25,6 +25,8 @@ export interface MobileActionItem {
   vip?: string;
   lastNotePreview?: string;
   activity_status?: string;
+  _attempts?: number;
+  _leadStatus?: string;
 }
 
 const TYPE_BADGE_STYLES: Record<string, string> = {
