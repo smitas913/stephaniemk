@@ -47,6 +47,20 @@ export default function AddCustomer() {
       .slice(0, 5);
   }, [name, existingCustomers]);
 
+  // Hard duplicate match by normalized phone or email — block creation.
+  const contactDuplicate = useMemo(() => {
+    const p = stripPhone(phone);
+    const e = normalizeEmail(email);
+    if (!p && !e) return null;
+    return existingCustomers.find((c: any) => {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if (p && p.length >= 7 && cp === p) return true;
+      if (e && ce && ce === e) return true;
+      return false;
+    }) || null;
+  }, [phone, email, existingCustomers]);
+
   const mutation = useMutation({
     mutationFn: () =>
       createCustomer({
