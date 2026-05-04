@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
+import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -425,20 +426,15 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                         </span>
                         {(() => {
                           const t = attemptCounts.get(lead.id) || 0;
-                          if (t === 0) return null;
-                          const hot = t >= 5;
+                          const p = getLeadPriority({ attempts: t, lastContactDate: lead.last_contact_date, status: lead.status });
+                          const meta = PRIORITY_META[p];
                           const label = `${t} ${t === 1 ? "attempt" : "attempts"}`;
                           return (
                             <span
-                              className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded-full font-semibold",
-                                hot
-                                  ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
-                                  : "bg-muted text-muted-foreground"
-                              )}
-                              title={label}
+                              className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-semibold", meta.className)}
+                              title={`${meta.label} — ${label}`}
                             >
-                              {hot ? `🔥 ${label}` : label}
+                              {meta.icon} {label}
                             </span>
                           );
                         })()}
