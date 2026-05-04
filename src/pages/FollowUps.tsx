@@ -627,6 +627,9 @@ export default function FollowUps() {
       followUpStatus: item.follow_up_status,
       nextFollowUpDate: item.next_follow_up || null,
       recentNotes: entityNotes,
+      leadAttempts: item._attempts,
+      leadStatus: item._leadStatus,
+      lastContactDate: item.lastContacted ?? null,
     });
     setUniversalPanelOpen(true);
   }, [unifiedNotes]);

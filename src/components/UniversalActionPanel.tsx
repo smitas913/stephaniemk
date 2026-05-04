@@ -18,6 +18,7 @@ import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
 import TextActionButton from "@/components/TextActionButton";
 import { INTENT_CATEGORIES, REASONS_BY_CATEGORY, resolveIntentCategory, type IntentCategory } from "@/lib/intentCategory";
+import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
 
 // ─── Types ───
 
@@ -42,6 +43,12 @@ export interface UniversalActionItem {
   followUpStatus?: string;
   nextFollowUpDate?: string | null;
   recentNotes?: RecentNote[];
+  /** For leads: outreach attempt count (Call/Text/Email/In Person). */
+  leadAttempts?: number;
+  /** For leads: current lead status. Used for Hot/Warm/Cold priority calc. */
+  leadStatus?: string;
+  /** For leads: last contact date (YYYY-MM-DD) used for priority calc. */
+  lastContactDate?: string | null;
 }
 
 // Legacy flow uses two steps; the new strict flow uses 5.
@@ -66,12 +73,18 @@ const STRICT_ACTIONS = [
 ] as const;
 
 // Strict flow Step 2: Activity Type
-type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up";
+type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up" | "Follow-Up";
 const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
   { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
   { key: "Connection", label: "Connection", sublabel: "Coffee / relationship" },
   { key: "Send Info", label: "Send Info", sublabel: "Samples, links" },
   { key: "Sample Follow-Up", label: "Sample / Product Follow-Up", sublabel: "Following up on what they tried" },
+];
+
+// For leads, the streamlined choice is just Follow-Up vs Booking Ask.
+const LEAD_ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
+  { key: "Follow-Up", label: "Follow-Up", sublabel: "Conversation / nurture touch" },
+  { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
 ];
 
 // Strict flow Step 3: Outcome (optional)
@@ -84,6 +97,7 @@ const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in
   "Connection": "check_in",
   "Send Info": "quick_touch",
   "Sample Follow-Up": "check_in",
+  "Follow-Up": "quick_touch",
 };
 
 const NEXT_STEP_OPTIONS = [
@@ -103,6 +117,8 @@ const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
   "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
   "Send Info": ["quick_touch", "check_in", "reorder", "custom", "none"],
   "Sample Follow-Up": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  // Lead Follow-Up: Quick Touch + Check-In + No Follow-Up (no Reorder Cycle, no Booking).
+  "Follow-Up": ["quick_touch", "check_in", "custom", "none"],
 };
 
 const WHATS_NEXT_OPTIONS = [
@@ -406,6 +422,15 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                 {item.followUpStatus === "TODAY" && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold">Due Today</span>
                 )}
+                {item.personType === "lead" && (() => {
+                  const attempts = item.leadAttempts ?? 0;
+                  const meta = PRIORITY_META[getLeadPriority({ attempts, lastContactDate: item.lastContactDate, status: item.leadStatus })];
+                  return (
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", meta.className)}>
+                      {meta.icon} {attempts} {attempts === 1 ? "attempt" : "attempts"}
+                    </span>
+                  );
+                })()}
                 {item.statusLabel && <span className="text-[10px] text-muted-foreground">{item.statusLabel}</span>}
               </div>
               {item.nextFollowUpDate && (
@@ -555,7 +580,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">What was the activity?</p>
                 <div className="space-y-2">
-                  {ACTIVITY_TYPES.map((a) => (
+                  {(item.personType === "lead" ? LEAD_ACTIVITY_TYPES : ACTIVITY_TYPES).map((a) => (
                     <button
                       key={a.key}
                       type="button"
