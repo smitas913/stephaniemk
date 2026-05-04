@@ -1,6 +1,8 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes } from "@/lib/queries";
+import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes, deleteNote, updateNote, deleteCustomerNote } from "@/lib/queries";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
@@ -74,6 +76,42 @@ export default function CustomerDetail() {
   });
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [editNote, setEditNote] = useState<{ id: string; isLegacy: boolean; body: string } | null>(null);
+  const [editNoteBody, setEditNoteBody] = useState("");
+  const [deleteNoteTarget, setDeleteNoteTarget] = useState<{ id: string; isLegacy: boolean } | null>(null);
+
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ id: noteId, isLegacy, body }: { id: string; isLegacy: boolean; body: string }) => {
+      if (isLegacy) {
+        const { error } = await supabase.from("customer_notes").update({ note_text: body }).eq("id", noteId);
+        if (error) throw error;
+      } else {
+        await updateNote(noteId, { note_body: body });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      setEditNote(null);
+      toast.success("Note updated");
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to update note"),
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async ({ id: noteId, isLegacy }: { id: string; isLegacy: boolean }) => {
+      if (isLegacy) {
+        await deleteCustomerNote(noteId);
+      } else {
+        await deleteNote(noteId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      setDeleteNoteTarget(null);
+      toast.success("Note deleted");
+    },
+    onError: (err: any) => toast.error(err?.message || "Failed to delete note"),
+  });
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   useEffect(() => {
     if (customer) {
@@ -814,22 +852,45 @@ export default function CustomerDetail() {
                       "p-3 rounded-lg border",
                       isLatest ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-muted/40 border-border/50"
                     )}>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
-                        {isLatest && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
-                        )}
-                        <span className="text-[11px] text-muted-foreground">
-                          {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
-                        </span>
-                        {note.next_follow_up_date && (
-                          <span className="text-[11px] text-primary font-medium">
-                            → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
+                          {isLatest && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">
+                            {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
                           </span>
-                        )}
-                        {isLegacy && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">Legacy</span>
-                        )}
+                          {note.next_follow_up_date && (
+                            <span className="text-[11px] text-primary font-medium">
+                              → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                            </span>
+                          )}
+                          {isLegacy && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">Legacy</span>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1 -mt-1 shrink-0">
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              setEditNote({ id: note.id, isLegacy, body: note.note_body || "" });
+                              setEditNoteBody(note.note_body || "");
+                            }}>
+                              <Pencil className="w-3.5 h-3.5 mr-2" />Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteNoteTarget({ id: note.id, isLegacy })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
                     </div>
@@ -857,6 +918,52 @@ export default function CustomerDetail() {
           allowPcp
           onChoose={applySkipChoice}
         />
+
+        {/* Edit Note Dialog */}
+        <Dialog open={!!editNote} onOpenChange={(o) => { if (!o) setEditNote(null); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Note</DialogTitle>
+              <DialogDescription>Update the text of this activity entry.</DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={editNoteBody}
+              onChange={(e) => setEditNoteBody(e.target.value)}
+              rows={5}
+              className="resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditNote(null)}>Cancel</Button>
+              <Button
+                disabled={updateNoteMutation.isPending || !editNoteBody.trim()}
+                onClick={() => editNote && updateNoteMutation.mutate({ id: editNote.id, isLegacy: editNote.isLegacy, body: editNoteBody.trim() })}
+              >
+                Save
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Note Confirmation */}
+        <AlertDialog open={!!deleteNoteTarget} onOpenChange={(o) => { if (!o) setDeleteNoteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This activity entry will be permanently removed from the customer's history. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => deleteNoteTarget && deleteNoteMutation.mutate(deleteNoteTarget)}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Sent Catalog Dialog */}
         <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
