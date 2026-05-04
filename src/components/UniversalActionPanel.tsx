@@ -245,11 +245,12 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (activity) parts.push(`[${activity}]`);
     if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
     if (outcome === "Booked") parts.push("[Booked]");
+    if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, outcome, noteText, action, source]);
+  }, [activity, outcome, noteText, action, source, bookedEventType]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
     const isBooking = activity === "Booking Ask" || outcome === "Booked";
