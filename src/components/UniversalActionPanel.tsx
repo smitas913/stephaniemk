@@ -72,12 +72,18 @@ const STRICT_ACTIONS = [
 ] as const;
 
 // Strict flow Step 2: Activity Type
-type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up";
+type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up" | "Follow-Up";
 const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
   { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
   { key: "Connection", label: "Connection", sublabel: "Coffee / relationship" },
   { key: "Send Info", label: "Send Info", sublabel: "Samples, links" },
   { key: "Sample Follow-Up", label: "Sample / Product Follow-Up", sublabel: "Following up on what they tried" },
+];
+
+// For leads, the streamlined choice is just Follow-Up vs Booking Ask.
+const LEAD_ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
+  { key: "Follow-Up", label: "Follow-Up", sublabel: "Conversation / nurture touch" },
+  { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
 ];
 
 // Strict flow Step 3: Outcome (optional)
