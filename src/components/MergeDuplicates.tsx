@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCustomers, fetchTeamConsultants } from "@/lib/queries";
+import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
 import type { Customer, TeamConsultant } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,14 +17,18 @@ interface DuplicatePair {
   matchType: "email" | "phone" | "name";
 }
 
+interface CustomerDupGroup {
+  primary: Customer;
+  duplicate: Customer;
+  matchType: "email" | "phone";
+}
+
 function normalize(s: string | null | undefined): string {
   return (s || "").toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function normalizePhone(p: string | null | undefined): string {
-  if (!p) return "";
-  const digits = p.replace(/\D/g, "");
-  return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  return stripPhone(p);
 }
 
 export default function MergeDuplicates() {
