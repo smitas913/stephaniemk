@@ -338,7 +338,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">
-              {activeLeads.length} active · {counts.New} new · {counts.Asked} asked · {counts.Working} working · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Working} working · {counts.Booked} booked
             </p>
           </div>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
@@ -425,9 +425,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                           {lead.status}
                         </span>
                         {(() => {
-                          const t = touchCounts.get(lead.id) || 0;
+                          const t = attemptCounts.get(lead.id) || 0;
                           if (t === 0) return null;
                           const hot = t >= 5;
+                          const label = `${t} ${t === 1 ? "attempt" : "attempts"}`;
                           return (
                             <span
                               className={cn(
@@ -436,9 +437,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                                   ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
                                   : "bg-muted text-muted-foreground"
                               )}
-                              title={`${t} outreach ${t === 1 ? "touch" : "touches"}`}
+                              title={label}
                             >
-                              {hot ? `🔥 ${t}` : `${t} ${t === 1 ? "touch" : "touches"}`}
+                              {hot ? `🔥 ${label}` : label}
                             </span>
                           );
                         })()}
