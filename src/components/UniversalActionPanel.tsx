@@ -87,12 +87,23 @@ const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in
 };
 
 const NEXT_STEP_OPTIONS = [
-  { key: "quick_touch", label: "Quick Touch (2 days)", days: 2, reason: "Quick Touch" },
-  { key: "check_in", label: "Check-In (7 days)", days: 7, reason: "Check-In" },
-  { key: "booking", label: "Booking Follow-Up (2 days)", days: 2, reason: "Booking Follow-Up" },
+  { key: "quick_touch", label: "Quick Touch (2 days)", days: 2 as number | null, reason: "Quick Touch" },
+  { key: "check_in", label: "Check-In (7 days)", days: 7 as number | null, reason: "Check-In" },
+  { key: "reorder", label: "Reorder Cycle (30 / 60 / 90)", days: null as number | null, reason: "Reorder Cycle" },
+  { key: "booking", label: "Booking Follow-Up (3 days)", days: 3 as number | null, reason: "Booking Follow-Up" },
   { key: "custom", label: "Pick a date", days: null as number | null, reason: "" },
   { key: "none", label: "No Follow-Up", days: null as number | null, reason: "" },
 ] as const;
+
+// Which Next Step keys are visible per Activity Type.
+// Booking Ask → Booking Follow-Up + No Follow-Up only.
+// Other activities (Follow-Up family) → Quick Touch / Check-In / Reorder Cycle / No Follow-Up (hide Booking).
+const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
+  "Booking Ask": ["booking", "custom", "none"],
+  "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  "Send Info": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  "Sample Follow-Up": ["quick_touch", "check_in", "reorder", "custom", "none"],
+};
 
 const WHATS_NEXT_OPTIONS = [
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
