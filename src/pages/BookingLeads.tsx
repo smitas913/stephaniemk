@@ -265,13 +265,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       dnc?: boolean;
     }) => {
       const today = toLocalDateKey();
-      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Asked" + +2d.
+      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Working" + +2d.
       const nextDate = dnc ? null : (nextFollowUpDate || format(addDays(new Date(), 2), "yyyy-MM-dd"));
 
       await updateBookingLead(item.id, {
         last_contact_date: today,
         next_follow_up_date: nextDate,
-        status: dnc ? "Not Interested" : "Asked",
+        status: dnc ? "Not Interested" : "Working",
       } as any);
 
       await createNote({
@@ -314,7 +314,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
-    const c: Record<string, number> = { New: 0, Asked: 0, Working: 0, Booked: 0, "Not Interested": 0 };
+    const c: Record<string, number> = { New: 0, Working: 0, Booked: 0, "Not Interested": 0 };
     activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
   }, [activeLeads]);
