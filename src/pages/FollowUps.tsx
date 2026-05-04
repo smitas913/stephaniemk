@@ -2387,6 +2387,7 @@ export default function FollowUps() {
                           activity_status: item.activity_status,
                           _attempts: item._attempts,
                           _leadStatus: item._leadStatus,
+                          _lastContactRaw: item.lastContacted ?? null,
                         });
 
                        return (
