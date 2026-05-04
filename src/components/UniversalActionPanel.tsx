@@ -103,6 +103,8 @@ const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in
 const NEXT_STEP_OPTIONS = [
   { key: "quick_touch", label: "Quick Touch (2 days)", days: 2 as number | null, reason: "Quick Touch" },
   { key: "check_in", label: "Check-In (7 days)", days: 7 as number | null, reason: "Check-In" },
+  { key: "sample_followup_handed", label: "Sample Follow-Up (3 days)", days: 3 as number | null, reason: "Sample Follow-Up" },
+  { key: "sample_followup_mailed", label: "Sample Follow-Up (6 days — mailed)", days: 6 as number | null, reason: "Sample Follow-Up (Mailed)" },
   { key: "reorder", label: "Reorder Cycle (30 / 60 / 90)", days: null as number | null, reason: "Reorder Cycle" },
   { key: "booking", label: "Booking Follow-Up (3 days)", days: 3 as number | null, reason: "Booking Follow-Up" },
   { key: "custom", label: "Pick a date", days: null as number | null, reason: "" },
