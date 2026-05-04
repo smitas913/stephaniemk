@@ -95,8 +95,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     return s;
   }, [customersForDnc]);
 
-  // Touch count per lead = number of outreach notes (Call/Text/Email/In Person)
-  const touchCounts = useMemo(() => {
+  // Attempts per lead = number of outreach notes (Call/Text/Email/In Person)
+  const attemptCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const n of unifiedNotes as any[]) {
       if (n.entity_type !== "Lead" || !n.person_id) continue;
@@ -110,7 +110,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      const isDnc = !!l.converted_customer_id && customerDncSet.has(l.converted_customer_id);
+      const isDnc =
+        l.status === "Not Interested" ||
+        (!!l.converted_customer_id && customerDncSet.has(l.converted_customer_id));
       if (filterDnc === "dnc" ? !isDnc : isDnc) return false;
       if (statusFilter === "all" && l.converted_customer_id && filterDnc === "active") return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
