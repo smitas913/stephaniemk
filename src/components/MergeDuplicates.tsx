@@ -404,6 +404,29 @@ export default function MergeDuplicates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!customerMergeTarget} onOpenChange={(open) => !open && setCustomerMergeTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Merge Duplicate Customers?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Merge <strong>{customerMergeTarget?.duplicate.full_name}</strong> into <strong>{customerMergeTarget?.primary.full_name}</strong>.
+              {"\n\n"}• Orders, notes, follow-ups & event guests are re-pointed to the primary{"\n"}
+              • Missing fields on the primary are filled from the duplicate{"\n"}
+              • The duplicate record is then deleted
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => customerMergeTarget && customerMergeMutation.mutate(customerMergeTarget)}
+              disabled={customerMergeMutation.isPending}
+            >
+              {customerMergeMutation.isPending ? "Merging..." : "Merge"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
