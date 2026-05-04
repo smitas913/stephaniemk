@@ -422,6 +422,15 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                 {item.followUpStatus === "TODAY" && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-semibold">Due Today</span>
                 )}
+                {item.personType === "lead" && (() => {
+                  const attempts = item.leadAttempts ?? 0;
+                  const meta = PRIORITY_META[getLeadPriority({ attempts, lastContactDate: item.lastContactDate, status: item.leadStatus })];
+                  return (
+                    <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", meta.className)}>
+                      {meta.icon} {attempts} {attempts === 1 ? "attempt" : "attempts"}
+                    </span>
+                  );
+                })()}
                 {item.statusLabel && <span className="text-[10px] text-muted-foreground">{item.statusLabel}</span>}
               </div>
               {item.nextFollowUpDate && (
