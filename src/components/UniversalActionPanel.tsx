@@ -80,19 +80,30 @@ type Outcome = "Booked" | "Not Interested" | null;
 // Suggested next-step keys per Activity Type.
 const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
 const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "none"> = {
-  "Booking Ask": "quick_touch",
+  "Booking Ask": "booking",
   "Connection": "check_in",
   "Send Info": "quick_touch",
   "Sample Follow-Up": "check_in",
 };
 
 const NEXT_STEP_OPTIONS = [
-  { key: "quick_touch", label: "Quick Touch (2 days)", days: 2, reason: "Quick Touch" },
-  { key: "check_in", label: "Check-In (7 days)", days: 7, reason: "Check-In" },
-  { key: "booking", label: "Booking Follow-Up (2 days)", days: 2, reason: "Booking Follow-Up" },
+  { key: "quick_touch", label: "Quick Touch (2 days)", days: 2 as number | null, reason: "Quick Touch" },
+  { key: "check_in", label: "Check-In (7 days)", days: 7 as number | null, reason: "Check-In" },
+  { key: "reorder", label: "Reorder Cycle (30 / 60 / 90)", days: null as number | null, reason: "Reorder Cycle" },
+  { key: "booking", label: "Booking Follow-Up (3 days)", days: 3 as number | null, reason: "Booking Follow-Up" },
   { key: "custom", label: "Pick a date", days: null as number | null, reason: "" },
   { key: "none", label: "No Follow-Up", days: null as number | null, reason: "" },
 ] as const;
+
+// Which Next Step keys are visible per Activity Type.
+// Booking Ask → Booking Follow-Up + No Follow-Up only.
+// Other activities (Follow-Up family) → Quick Touch / Check-In / Reorder Cycle / No Follow-Up (hide Booking).
+const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
+  "Booking Ask": ["booking", "custom", "none"],
+  "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  "Send Info": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  "Sample Follow-Up": ["quick_touch", "check_in", "reorder", "custom", "none"],
+};
 
 const WHATS_NEXT_OPTIONS = [
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
@@ -273,6 +284,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (!customDate) return;
     submit(customDate, "");
   }, [customDate, submit]);
+
+  const handleReorderPick = useCallback((days: 30 | 60 | 90) => {
+    const date = format(addDays(new Date(), days), "yyyy-MM-dd");
+    submit(date, `Reorder Cycle (${days}d)`);
+  }, [submit]);
 
   // When user picks "Not Interested", short-circuit to save (no Next Step needed).
   const handleOutcomeClick = useCallback((o: Exclude<Outcome, null>) => {
@@ -628,7 +644,10 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                   </p>
                 )}
                 <div className="space-y-1.5">
-                  {NEXT_STEP_OPTIONS.map((opt) => {
+                  {NEXT_STEP_OPTIONS.filter((opt) => {
+                    const allowed = activity ? NEXT_STEP_KEYS_BY_ACTIVITY[activity] : null;
+                    return !allowed || allowed.includes(opt.key);
+                  }).map((opt) => {
                     const isSuggested = opt.key === suggestedKey;
                     const isSelected = nextOpt === opt.key;
                     return (
@@ -657,6 +676,29 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     );
                   })}
                 </div>
+
+                {nextOpt === "reorder" && (
+                  <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
+                    <p className="text-xs font-medium text-foreground">Reorder cycle window</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[30, 60, 90].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleReorderPick(d as 30 | 60 | 90)}
+                          className={cn(
+                            "px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all",
+                            "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.97]",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {d} days
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {nextOpt === "custom" && (
                   <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
