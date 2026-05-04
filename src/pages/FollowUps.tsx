@@ -113,6 +113,8 @@ type ActionItem = {
   _relationship_status?: string | null;
   // Relationship event metadata (used by the Birthdays/Anniversaries section)
   _eventType?: "birthday" | "anniversary";
+  _attempts?: number;
+  _leadStatus?: string;
   _anniversaryYears?: number;
   _anniversaryDate?: string | null; // YYYY-MM-DD anchor (join_date)
 };
