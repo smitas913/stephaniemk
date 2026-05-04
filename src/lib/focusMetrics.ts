@@ -146,8 +146,28 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
     .filter((item): item is FocusDetailItem => item !== null);
 
   // ─── Lead reach-outs ───
+  // Only count leads with a real outreach note today (Call/Text/Email/In Person and NOT skip/DNC).
+  // Previously this used `last_contact_date === today`, which incorrectly included
+  // DNC / Not Interested / cleared follow-ups (those mutations also stamp last_contact_date).
+  const leadIdsWithOutreachToday = new Set<string>();
+  const leadIdsWithBookingAttemptToday = new Set<string>();
+  for (const n of unifiedNotes as any[]) {
+    if (n.entity_type !== "Lead") continue;
+    const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+    if (noteDay !== dateKey) continue;
+    if (!isOutreachNote(n)) continue;
+    if (!contactTypes.has(n.note_type)) continue;
+    const id = n.person_id;
+    if (!id) continue;
+    leadIdsWithOutreachToday.add(id);
+    if (n.is_booking_attempt === true) leadIdsWithBookingAttemptToday.add(id);
+  }
   const leadReachOutItems: FocusDetailItem[] = bookingLeads
-    .filter((l: any) => l.last_contact_date === dateKey && !l.converted_customer_id)
+    .filter((l: any) =>
+      leadIdsWithOutreachToday.has(l.id) &&
+      !l.converted_customer_id &&
+      l.status !== "Not Interested",
+    )
     .map((l: any) => ({
       id: l.id, name: l.name, type: "Lead", method: "Call",
       detail: l.lead_activity || undefined,
