@@ -185,18 +185,9 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
   );
 
   const goalSummary = hasGoal ? (
-    <div className="space-y-0.5 text-[10px] text-muted-foreground">
-      <p>
-        Week: {fmt(weeklySales)} / {fmt(weeklyTarget)} · Month: {fmt(monthlySales)} / {fmt(baseline)}{" "}
-        <span className="text-foreground font-medium">({baselinePct}% baseline)</span>
-      </p>
-      {stretch > 0 && (
-        <p>Stretch: {fmt(monthlySales)} / {fmt(stretch)} ({stretchPct}%)</p>
-      )}
-      {profitGoal > 0 && (
-        <p>Est. Profit: {fmt(monthlyProfit)} / {fmt(profitGoal)} ({profitPct}%)</p>
-      )}
-    </div>
+    <p className="text-[10px] text-muted-foreground">
+      Week: {fmt(weeklySales)} / {fmt(weeklyTarget)}
+    </p>
   ) : null;
 
   const Modal = (
