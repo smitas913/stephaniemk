@@ -4672,6 +4672,16 @@ function ActionRow({
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", badge.className)}>
             {badge.label}
           </span>
+          {item.itemType === "lead" && (() => {
+            const attempts = item._attempts ?? 0;
+            const p = getLeadPriority({ attempts, lastContactDate: item.lastContacted, status: item._leadStatus });
+            const meta = PRIORITY_META[p];
+            return (
+              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0", meta.className)} title={`${meta.label} — ${attempts} ${attempts === 1 ? "attempt" : "attempts"}`}>
+                {meta.icon} {attempts}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Optional: most recent note preview (1 line, ellipsis) */}
