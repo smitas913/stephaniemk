@@ -852,22 +852,45 @@ export default function CustomerDetail() {
                       "p-3 rounded-lg border",
                       isLatest ? "bg-primary/5 border-primary/30 ring-1 ring-primary/10" : "bg-muted/40 border-border/50"
                     )}>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
-                        {isLatest && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
-                        )}
-                        <span className="text-[11px] text-muted-foreground">
-                          {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
-                        </span>
-                        {note.next_follow_up_date && (
-                          <span className="text-[11px] text-primary font-medium">
-                            → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{note.note_type}</span>
+                          {isLatest && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
+                          )}
+                          <span className="text-[11px] text-muted-foreground">
+                            {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
                           </span>
-                        )}
-                        {isLegacy && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">Legacy</span>
-                        )}
+                          {note.next_follow_up_date && (
+                            <span className="text-[11px] text-primary font-medium">
+                              → Follow-up: {formatDateOnly(note.next_follow_up_date, "MMM d")}
+                            </span>
+                          )}
+                          {isLegacy && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium uppercase tracking-wide">Legacy</span>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1 -mt-1 shrink-0">
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              setEditNote({ id: note.id, isLegacy, body: note.note_body || "" });
+                              setEditNoteBody(note.note_body || "");
+                            }}>
+                              <Pencil className="w-3.5 h-3.5 mr-2" />Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteNoteTarget({ id: note.id, isLegacy })}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-2" />Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       <p className="text-sm text-foreground whitespace-pre-wrap">{note.note_body}</p>
                     </div>
