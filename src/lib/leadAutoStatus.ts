@@ -11,13 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
  * lead forward in the pipeline; it never downgrades. Manual user changes via
  * the status dropdown remain authoritative and can override anything.
  */
-export type LeadStatus = "New" | "Asked" | "Working" | "Booked" | "Not Interested";
+export type LeadStatus = "New" | "Working" | "Booked" | "Not Interested";
 
 const RANK: Record<string, number> = {
   New: 0,
-  Asked: 1,
-  Working: 2,
-  Booked: 3,
+  Working: 1,
+  Booked: 2,
 };
 
 /** Returns true if `next` represents forward movement vs `current`. */
@@ -31,9 +30,10 @@ export function isForwardLeadStatus(current: string | null | undefined, next: Le
 }
 
 /**
- * Map an activity action (Call/Text/Email/etc) and intent category to the
- * status it would progress a lead into. Returns null when the activity does
- * not imply any status change.
+ * Map an activity action (Call/Text/Email/etc) to the status it would
+ * progress a lead into. Any logged outreach action moves a New lead to
+ * Working. "Booked" is reserved for when an actual event is scheduled and is
+ * set separately via autoProgressLeadFromEvent.
  */
 export function deriveLeadStatusFromActivity(params: {
   actionType?: string | null;
@@ -42,31 +42,19 @@ export function deriveLeadStatusFromActivity(params: {
 }): LeadStatus | null {
   const { actionType, category, isBookingAttempt } = params;
 
-  // Two-way conversation indicators → Working (lead is responding / engaged)
-  if (
-    actionType === "Conversation" ||
-    actionType === "Responded"
-  ) {
-    return "Working";
-  }
-
-  // A booking ask (any channel) moves the lead into the Asked stage.
-  // "Booked" is reserved for when an actual event is scheduled and is set
-  // separately via autoProgressLeadFromEvent.
-  if (category === "Booking" || isBookingAttempt) {
-    return "Asked";
-  }
-
-  // One-way outreach attempts → Asked (booking ask in progress / first touch)
   if (
     actionType === "Call" ||
     actionType === "Text" ||
     actionType === "Email" ||
     actionType === "In Person" ||
+    actionType === "Conversation" ||
+    actionType === "Responded" ||
     actionType === "Did Not Connect" ||
-    actionType === "Left Message"
+    actionType === "Left Message" ||
+    category === "Booking" ||
+    isBookingAttempt
   ) {
-    return "Asked";
+    return "Working";
   }
 
   return null;
