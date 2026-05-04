@@ -29,6 +29,7 @@ import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDi
 import { logCatalogSent } from "@/lib/catalogTracking";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
+import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
 import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
 import TodoListCard from "@/components/TodoListCard";
 import type { MobileTeamItem } from "@/components/mobile/MobileTeamAttention";
@@ -113,6 +114,8 @@ type ActionItem = {
   _relationship_status?: string | null;
   // Relationship event metadata (used by the Birthdays/Anniversaries section)
   _eventType?: "birthday" | "anniversary";
+  _attempts?: number;
+  _leadStatus?: string;
   _anniversaryYears?: number;
   _anniversaryDate?: string | null; // YYYY-MM-DD anchor (join_date)
 };
@@ -871,6 +874,13 @@ export default function FollowUps() {
       });
 
     // Booking lead items (converted to ActionItems)
+    const LEAD_OUTREACH = new Set(["Call", "Text", "Email", "In Person"]);
+    const leadAttemptCounts = new Map<string, number>();
+    for (const n of unifiedNotes as any[]) {
+      if (n.entity_type !== "Lead" || !n.person_id) continue;
+      if (!LEAD_OUTREACH.has(n.note_type)) continue;
+      leadAttemptCounts.set(n.person_id, (leadAttemptCounts.get(n.person_id) || 0) + 1);
+    }
     const leadItems: ActionItem[] = bookingLeads
       .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
       .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
@@ -887,6 +897,8 @@ export default function FollowUps() {
           lastContacted: lead.last_contact_date,
           actionLabel: "Booking Follow-Up",
           allow_non_working_day: !!(lead as any).allow_non_working_day,
+          _attempts: leadAttemptCounts.get(lead.id) || 0,
+          _leadStatus: lead.status,
         };
       });
 
@@ -2372,8 +2384,11 @@ export default function FollowUps() {
                          days_since_last_order: item.days_since_last_order,
                          vip: item.vip,
                          lastNotePreview: item.lastNotePreview,
-                         activity_status: item.activity_status,
-                       });
+                          activity_status: item.activity_status,
+                          _attempts: item._attempts,
+                          _leadStatus: item._leadStatus,
+                          _lastContactRaw: item.lastContacted ?? null,
+                        });
 
                        return (
                          <>
@@ -4661,6 +4676,16 @@ function ActionRow({
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", badge.className)}>
             {badge.label}
           </span>
+          {item.itemType === "lead" && (() => {
+            const attempts = item._attempts ?? 0;
+            const p = getLeadPriority({ attempts, lastContactDate: item.lastContacted, status: item._leadStatus });
+            const meta = PRIORITY_META[p];
+            return (
+              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0", meta.className)} title={`${meta.label} — ${attempts} ${attempts === 1 ? "attempt" : "attempts"}`}>
+                {meta.icon} {attempts}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Optional: most recent note preview (1 line, ellipsis) */}
