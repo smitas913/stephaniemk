@@ -29,6 +29,7 @@ import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDi
 import { logCatalogSent } from "@/lib/catalogTracking";
 import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
+import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
 import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
 import TodoListCard from "@/components/TodoListCard";
 import type { MobileTeamItem } from "@/components/mobile/MobileTeamAttention";
