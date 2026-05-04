@@ -78,6 +78,7 @@ const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] =
 type Outcome = "Booked" | "Not Interested" | null;
 
 // Suggested next-step keys per Activity Type.
+const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
 const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "none"> = {
   "Booking Ask": "quick_touch",
   "Connection": "check_in",
@@ -205,6 +206,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [noteText, setNoteText] = useState("");
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
+  const [source, setSource] = useState<string | null>(null);
 
   const reset = useCallback(() => {
     setStep("action");
@@ -214,6 +216,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setNoteText("");
     setNextOpt(null);
     setCustomDate("");
+    setSource(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -227,12 +230,13 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (activity) parts.push(`[${activity}]`);
+    if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
     if (outcome === "Booked") parts.push("[Booked]");
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, outcome, noteText, action]);
+  }, [activity, outcome, noteText, action, source]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
     const isBooking = activity === "Booking Ask" || outcome === "Booked";
@@ -285,6 +289,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
           note: (() => {
             const parts: string[] = [];
             if (activity) parts.push(`[${activity}]`);
+            if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
             parts.push("[Not Interested / DNC]");
             if (noteText.trim()) parts.push(noteText.trim());
             return parts.join(" ");
@@ -568,9 +573,37 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
             {/* ── Step 4: Notes ── */}
             {step === "notes" && (
               <div className="space-y-3">
+                {action === "In Person" && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground">
+                      Source <span className="font-normal text-xs text-muted-foreground">(optional — where did you meet?)</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {IN_PERSON_SOURCES.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => setSource(source === s ? null : s)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full border text-xs font-medium transition-all",
+                            source === s
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/40",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="text-sm font-semibold text-foreground">Notes</p>
                 <Textarea
-                  placeholder="Capture the conversation details…"
+                  placeholder={action === "In Person"
+                    ? "Where did you meet? What did you talk about?"
+                    : "Capture the conversation details…"}
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   className="min-h-[120px]"
