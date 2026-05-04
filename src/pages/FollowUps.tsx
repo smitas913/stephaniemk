@@ -1343,9 +1343,19 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
+        // DNC outcome: append 'DNC' tag (trigger clears follow-ups & cancels plan items).
+        if (dnc) {
+          const cust = customers.find((c) => c.id === item.id);
+          const existingTags: string[] = Array.isArray((cust as any)?.tags) ? (cust as any).tags : [];
+          const tagUpdates: Record<string, any> = { last_contacted: today };
+          if (!existingTags.includes("DNC")) tagUpdates.tags = [...existingTags, "DNC"];
+          await updateCustomer(item.id, tagUpdates as any);
+          await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: false });
+          return;
+        }
         const updates: Record<string, string | null> = { last_contacted: today };
         // 2+2+2 stage advancement: when a customer is on an active 2+2+2 stage,
         // advance to the next step on completion. Auto-set the date to the step
