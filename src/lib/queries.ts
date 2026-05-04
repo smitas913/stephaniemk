@@ -1052,7 +1052,7 @@ export const createBookingLead = async (lead: Partial<BookingLead> & { name: str
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("booking_leads" as any)
-    .insert({ ...lead, owner_user_id: userId } as any)
+    .insert(withNormalizedPhone({ ...lead, owner_user_id: userId }) as any)
     .select()
     .single();
   if (error) throw error;
@@ -1062,7 +1062,7 @@ export const createBookingLead = async (lead: Partial<BookingLead> & { name: str
 export const updateBookingLead = async (id: string, updates: Partial<BookingLead>) => {
   const { error } = await supabase
     .from("booking_leads" as any)
-    .update(updates as any)
+    .update(withNormalizedPhone(updates) as any)
     .eq("id", id);
   if (error) throw error;
 };
