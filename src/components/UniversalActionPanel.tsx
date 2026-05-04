@@ -644,7 +644,10 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                   </p>
                 )}
                 <div className="space-y-1.5">
-                  {NEXT_STEP_OPTIONS.map((opt) => {
+                  {NEXT_STEP_OPTIONS.filter((opt) => {
+                    const allowed = activity ? NEXT_STEP_KEYS_BY_ACTIVITY[activity] : null;
+                    return !allowed || allowed.includes(opt.key);
+                  }).map((opt) => {
                     const isSuggested = opt.key === suggestedKey;
                     const isSelected = nextOpt === opt.key;
                     return (
@@ -673,6 +676,29 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     );
                   })}
                 </div>
+
+                {nextOpt === "reorder" && (
+                  <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
+                    <p className="text-xs font-medium text-foreground">Reorder cycle window</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[30, 60, 90].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleReorderPick(d as 30 | 60 | 90)}
+                          className={cn(
+                            "px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all",
+                            "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.97]",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {d} days
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {nextOpt === "custom" && (
                   <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
