@@ -20,6 +20,7 @@ import type { FocusItemData } from "@/components/focus/FocusItemRow";
 import FocusEditView from "@/components/focus/FocusEditView";
 import FocusDrillDown from "@/components/focus/FocusDrillDown";
 import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
+import SalesRevenueTile from "@/components/focus/SalesRevenueTile";
 
 interface AutoCounts {
   booking_attempts: number;
@@ -295,7 +296,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
               <Star className="w-5 h-5 text-primary shrink-0" />
               <CardTitle className="text-base font-semibold text-foreground">Daily Success Drivers</CardTitle>
               <Badge variant="secondary" className="text-xs">
-                {completedCount} / {items.length || 5}
+                {completedCount} / {items.length || 5} activities
               </Badge>
               {winStatus && (
                 <Badge variant="outline" className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}>
@@ -390,6 +391,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                         />
                       )
                     )}
+                    <SalesRevenueTile selectedDate={selectedDate} compact={!!compact} />
                   </div>
                   {!isToday && (
                     <p className="text-[10px] text-muted-foreground pt-1 text-center">
