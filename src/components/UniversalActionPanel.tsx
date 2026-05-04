@@ -116,6 +116,8 @@ const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
   "Connection": ["quick_touch", "check_in", "reorder", "custom", "none"],
   "Send Info": ["quick_touch", "check_in", "reorder", "custom", "none"],
   "Sample Follow-Up": ["quick_touch", "check_in", "reorder", "custom", "none"],
+  // Lead Follow-Up: Quick Touch + Check-In + No Follow-Up (no Reorder Cycle, no Booking).
+  "Follow-Up": ["quick_touch", "check_in", "custom", "none"],
 };
 
 const WHATS_NEXT_OPTIONS = [
