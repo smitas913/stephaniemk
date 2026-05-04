@@ -559,8 +559,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           item={actionPanelItem}
           open={actionPanelOpen}
           onClose={() => { setActionPanelOpen(false); setActionPanelItem(null); }}
-          onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }) =>
-            actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate })
+          onLogAction={({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }) =>
+            actionMutation.mutate({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc })
           }
           onNavigateToProfile={(uItem) => {
             setActionPanelOpen(false);
