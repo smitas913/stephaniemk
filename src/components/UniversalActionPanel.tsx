@@ -42,6 +42,12 @@ export interface UniversalActionItem {
   followUpStatus?: string;
   nextFollowUpDate?: string | null;
   recentNotes?: RecentNote[];
+  /** For leads: outreach attempt count (Call/Text/Email/In Person). */
+  leadAttempts?: number;
+  /** For leads: current lead status. Used for Hot/Warm/Cold priority calc. */
+  leadStatus?: string;
+  /** For leads: last contact date (YYYY-MM-DD) used for priority calc. */
+  lastContactDate?: string | null;
 }
 
 // Legacy flow uses two steps; the new strict flow uses 5.
