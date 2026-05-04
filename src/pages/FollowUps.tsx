@@ -1666,16 +1666,15 @@ export default function FollowUps() {
   const rescheduleLogRef = useRef<((args: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => void) | null>(null);
 
   // Universal Action Panel handler (placed after contactMutation)
-  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
     item: UniversalActionItem;
     actionType: string;
     note: string;
     isBookingAttempt: boolean;
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
+    dnc?: boolean;
   }) => {
-    // If the panel was opened from a Reschedule row, route through reschedule logic so the
-    // event's reschedule_* fields update (and the Today task clears once the date moves forward).
     if (universalRescheduleEvent) {
       rescheduleLogRef.current?.({
         event: universalRescheduleEvent,
@@ -1700,6 +1699,7 @@ export default function FollowUps() {
       nextDate: nextFollowUpDate ?? undefined,
       isBookingAttempt,
       isFollowUp,
+      dnc,
     });
   }, [contactMutation, universalRescheduleEvent]);
 
