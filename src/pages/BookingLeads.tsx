@@ -25,8 +25,7 @@ import TextActionButton from "@/components/TextActionButton";
 
 const STATUS_COLORS: Record<string, string> = {
   New: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Asked: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Working: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  Working: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   Booked: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   "Not Interested": "bg-muted text-muted-foreground",
 };
@@ -95,8 +94,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     return s;
   }, [customersForDnc]);
 
-  // Touch count per lead = number of outreach notes (Call/Text/Email/In Person)
-  const touchCounts = useMemo(() => {
+  // Attempts per lead = number of outreach notes (Call/Text/Email/In Person)
+  const attemptCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const n of unifiedNotes as any[]) {
       if (n.entity_type !== "Lead" || !n.person_id) continue;
@@ -110,7 +109,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
-      const isDnc = !!l.converted_customer_id && customerDncSet.has(l.converted_customer_id);
+      const isDnc =
+        l.status === "Not Interested" ||
+        (!!l.converted_customer_id && customerDncSet.has(l.converted_customer_id));
       if (filterDnc === "dnc" ? !isDnc : isDnc) return false;
       if (statusFilter === "all" && l.converted_customer_id && filterDnc === "active") return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
@@ -263,13 +264,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       dnc?: boolean;
     }) => {
       const today = toLocalDateKey();
-      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Asked" + +2d.
+      // DNC outcome → mark Not Interested and clear follow-up; otherwise default to "Working" + +2d.
       const nextDate = dnc ? null : (nextFollowUpDate || format(addDays(new Date(), 2), "yyyy-MM-dd"));
 
       await updateBookingLead(item.id, {
         last_contact_date: today,
         next_follow_up_date: nextDate,
-        status: dnc ? "Not Interested" : "Asked",
+        status: dnc ? "Not Interested" : "Working",
       } as any);
 
       await createNote({
@@ -312,7 +313,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
-    const c: Record<string, number> = { New: 0, Asked: 0, Working: 0, Booked: 0, "Not Interested": 0 };
+    const c: Record<string, number> = { New: 0, Working: 0, Booked: 0, "Not Interested": 0 };
     activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
   }, [activeLeads]);
@@ -336,7 +337,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">
-              {activeLeads.length} active · {counts.New} new · {counts.Asked} asked · {counts.Working} working · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Working} working · {counts.Booked} booked
             </p>
           </div>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
@@ -423,9 +424,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                           {lead.status}
                         </span>
                         {(() => {
-                          const t = touchCounts.get(lead.id) || 0;
+                          const t = attemptCounts.get(lead.id) || 0;
                           if (t === 0) return null;
                           const hot = t >= 5;
+                          const label = `${t} ${t === 1 ? "attempt" : "attempts"}`;
                           return (
                             <span
                               className={cn(
@@ -434,9 +436,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                                   ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
                                   : "bg-muted text-muted-foreground"
                               )}
-                              title={`${t} outreach ${t === 1 ? "touch" : "touches"}`}
+                              title={label}
                             >
-                              {hot ? `🔥 ${t}` : `${t} ${t === 1 ? "touch" : "touches"}`}
+                              {hot ? `🔥 ${label}` : label}
                             </span>
                           );
                         })()}
