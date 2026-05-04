@@ -2009,8 +2009,8 @@ export type Database = {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
       booking_lead_status:
         | "New"
-        | "Contacted"
-        | "Engaged"
+        | "Asked"
+        | "Working"
         | "Booked"
         | "Not Interested"
       consultant_status: "none" | "pending" | "approved" | "rejected"
@@ -2170,8 +2170,8 @@ export const Constants = {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
       booking_lead_status: [
         "New",
-        "Contacted",
-        "Engaged",
+        "Asked",
+        "Working",
         "Booked",
         "Not Interested",
       ],
