@@ -573,9 +573,37 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
             {/* ── Step 4: Notes ── */}
             {step === "notes" && (
               <div className="space-y-3">
+                {action === "In Person" && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-foreground">
+                      Source <span className="font-normal text-xs text-muted-foreground">(optional — where did you meet?)</span>
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {IN_PERSON_SOURCES.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => setSource(source === s ? null : s)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full border text-xs font-medium transition-all",
+                            source === s
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/40",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <p className="text-sm font-semibold text-foreground">Notes</p>
                 <Textarea
-                  placeholder="Capture the conversation details…"
+                  placeholder={action === "In Person"
+                    ? "Where did you meet? What did you talk about?"
+                    : "Capture the conversation details…"}
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   className="min-h-[120px]"
