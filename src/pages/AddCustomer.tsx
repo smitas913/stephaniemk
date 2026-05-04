@@ -99,7 +99,7 @@ export default function AddCustomer() {
   });
 
   const hasContact = phone.trim() || email.trim();
-  const canSubmit = name.trim() && hasContact && !mutation.isPending;
+  const canSubmit = name.trim() && hasContact && !contactDuplicate && !mutation.isPending;
 
   return (
     <Layout>
