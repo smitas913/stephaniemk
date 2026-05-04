@@ -258,11 +258,19 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   }, [onClose, reset]);
 
   // Suggested next step (highlighted) — based on Activity Type. Not auto-applied.
-  const suggestedKey = activity ? SUGGESTED_NEXT_BY_ACTIVITY[activity] : null;
+  // For Send Info / Sample Follow-Up, the "Mailed Sample" toggle shifts the suggestion
+  // from a 3-day in-person follow-up to a 6-day mailed follow-up.
+  const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
+  const suggestedKey = activity
+    ? (isSampleActivity
+        ? (mailedSample ? "sample_followup_mailed" : "sample_followup_handed")
+        : SUGGESTED_NEXT_BY_ACTIVITY[activity])
+    : null;
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (activity) parts.push(`[${activity}]`);
+    if (isSampleActivity && mailedSample) parts.push("[Mailed Sample]");
     if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
     if (outcome === "Booked") parts.push("[Booked]");
     if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
@@ -270,7 +278,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (noteText.trim()) parts.push(noteText.trim());
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, outcome, noteText, action, source, bookedEventType]);
+  }, [activity, isSampleActivity, mailedSample, outcome, noteText, action, source, bookedEventType]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
     const isBooking = activity === "Booking Ask" || outcome === "Booked";
