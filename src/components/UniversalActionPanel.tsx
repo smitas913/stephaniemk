@@ -289,6 +289,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
           note: (() => {
             const parts: string[] = [];
             if (activity) parts.push(`[${activity}]`);
+            if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
             parts.push("[Not Interested / DNC]");
             if (noteText.trim()) parts.push(noteText.trim());
             return parts.join(" ");
