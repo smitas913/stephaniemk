@@ -570,7 +570,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">What was the activity?</p>
                 <div className="space-y-2">
-                  {ACTIVITY_TYPES.map((a) => (
+                  {(item.personType === "lead" ? LEAD_ACTIVITY_TYPES : ACTIVITY_TYPES).map((a) => (
                     <button
                       key={a.key}
                       type="button"
