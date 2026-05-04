@@ -393,8 +393,20 @@ export const createCustomerNote = async (note: { customer_id: string; note_text:
 };
 
 export const deleteCustomerNote = async (id: string) => {
+  // Look up customer_id first so we can rebuild parent state after deletion.
+  const { data: row } = await supabase
+    .from("customer_notes")
+    .select("customer_id")
+    .eq("id", id)
+    .maybeSingle();
   const { error } = await supabase.from("customer_notes").delete().eq("id", id);
   if (error) throw error;
+  const customerId = (row as any)?.customer_id;
+  if (customerId) {
+    // Reuse the same rollback as unified notes — recomputes last_contacted /
+    // next_follow_up_date from any remaining notes for this customer.
+    await rollbackCustomerStateFromNotes(customerId);
+  }
 };
 
 // Prospects
