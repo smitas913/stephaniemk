@@ -196,6 +196,53 @@ export default function MergeDuplicates() {
     },
   });
 
+  // Customer ↔ Customer merge: keep `primary`, re-point related rows from `duplicate`, then delete duplicate.
+  const customerMergeMutation = useMutation({
+    mutationFn: async (group: CustomerDupGroup) => {
+      const { primary, duplicate } = group;
+
+      const tablesToReassign: { table: string; col: string }[] = [
+        { table: "orders", col: "customer_id" },
+        { table: "customer_notes", col: "customer_id" },
+        { table: "notes", col: "customer_id" },
+        { table: "daily_plan_items", col: "customer_id" },
+        { table: "catalog_campaign_customers", col: "customer_id" },
+        { table: "event_guests", col: "converted_customer_id" },
+        { table: "booking_leads", col: "converted_customer_id" },
+      ];
+      for (const { table, col } of tablesToReassign) {
+        const { error } = await supabase.from(table as any).update({ [col]: primary.id } as any).eq(col, duplicate.id);
+        if (error) throw error;
+      }
+
+      const fillUpdates: Record<string, any> = {};
+      const cols = ["phone", "email", "address_line_1", "address_line_2", "city", "state_territory", "postal_code", "birthday"];
+      for (const k of cols) {
+        if (!(primary as any)[k] && (duplicate as any)[k]) fillUpdates[k] = (duplicate as any)[k];
+      }
+      if (duplicate.notes) {
+        fillUpdates.notes = primary.notes
+          ? `${primary.notes}\n\n--- Merged from duplicate record ---\n${duplicate.notes}`
+          : `Merged from duplicate record:\n${duplicate.notes}`;
+      }
+      if (Object.keys(fillUpdates).length > 0) {
+        const { error } = await supabase.from("customers").update(fillUpdates as any).eq("id", primary.id);
+        if (error) throw error;
+      }
+
+      const { error: delErr } = await supabase.from("customers").delete().eq("id", duplicate.id);
+      if (delErr) throw delErr;
+    },
+    onSuccess: (_, group) => {
+      setMergedCustomerIds((prev) => new Set(prev).add(group.duplicate.id));
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setCustomerMergeTarget(null);
+      toast.success(`Merged ${group.duplicate.full_name} into ${group.primary.full_name}`);
+    },
+    onError: (err: any) => toast.error(err.message || "Merge failed"),
+  });
+
   const isLoading = loadingC || loadingT;
 
   const matchBadge = (type: string) => {
