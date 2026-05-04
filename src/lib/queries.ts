@@ -2,12 +2,65 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
 import { nextAvailableWeekday, nextAvailableDay, spreadTasks, buildWorkdayFlags, type OOOPeriod } from "./smartSchedule";
+import { normalizePhoneForStorage, stripPhone, normalizeEmail } from "./phoneUtils";
 
 // Helper to get current user id for ownership
 const getCurrentUserId = async () => {
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
 };
+
+/** Apply phone normalization to any payload that has a `phone` (and optional `secondary_phone`) field. */
+function withNormalizedPhone<T extends Record<string, any>>(payload: T): T {
+  const next: any = { ...payload };
+  if ("phone" in next) next.phone = normalizePhoneForStorage(next.phone);
+  if ("secondary_phone" in next) next.secondary_phone = normalizePhoneForStorage(next.secondary_phone);
+  if ("hostess_phone" in next) next.hostess_phone = normalizePhoneForStorage(next.hostess_phone);
+  return next as T;
+}
+
+/**
+ * Search customers + consultants for an existing record with a matching
+ * normalized phone or email. Returns the first match, or null.
+ */
+export async function findDuplicatePerson(opts: { phone?: string | null; email?: string | null; excludeCustomerId?: string; excludeConsultantId?: string }): Promise<
+  | { kind: "customer"; id: string; name: string; phone: string | null; email: string | null }
+  | { kind: "consultant"; id: string; name: string; phone: string | null; email: string | null }
+  | null
+> {
+  const phoneDigits = stripPhone(opts.phone);
+  const emailNorm = normalizeEmail(opts.email);
+  if (!phoneDigits && !emailNorm) return null;
+
+  // Customers
+  const { data: customers } = await supabase.from("customers").select("id, full_name, phone, email").limit(1000);
+  for (const c of customers || []) {
+    if (opts.excludeCustomerId && c.id === opts.excludeCustomerId) continue;
+    const cp = stripPhone((c as any).phone);
+    const ce = normalizeEmail((c as any).email);
+    if (phoneDigits && cp && phoneDigits.length >= 7 && cp === phoneDigits) {
+      return { kind: "customer", id: c.id, name: (c as any).full_name, phone: (c as any).phone, email: (c as any).email };
+    }
+    if (emailNorm && ce && ce === emailNorm) {
+      return { kind: "customer", id: c.id, name: (c as any).full_name, phone: (c as any).phone, email: (c as any).email };
+    }
+  }
+
+  // Consultants
+  const { data: consultants } = await supabase.from("team_consultants").select("id, name, phone, email").limit(1000);
+  for (const c of consultants || []) {
+    if (opts.excludeConsultantId && c.id === opts.excludeConsultantId) continue;
+    const cp = stripPhone((c as any).phone);
+    const ce = normalizeEmail((c as any).email);
+    if (phoneDigits && cp && phoneDigits.length >= 7 && cp === phoneDigits) {
+      return { kind: "consultant", id: c.id, name: (c as any).name, phone: (c as any).phone, email: (c as any).email };
+    }
+    if (emailNorm && ce && ce === emailNorm) {
+      return { kind: "consultant", id: c.id, name: (c as any).name, phone: (c as any).phone, email: (c as any).email };
+    }
+  }
+  return null;
+}
 
 // Customers
 export const fetchCustomers = async (): Promise<Customer[]> => {
@@ -26,7 +79,7 @@ export const createCustomer = async (customer: Partial<Customer> & { full_name: 
   const userId = await getCurrentUserId();
   // Always default date_added to the user's LOCAL today (not Postgres CURRENT_DATE which is UTC).
   const { toLocalDateKey } = await import("@/lib/dateOnly");
-  const payload: any = { ...customer, owner_user_id: userId };
+  const payload: any = withNormalizedPhone({ ...customer, owner_user_id: userId });
   if (!payload.date_added) payload.date_added = toLocalDateKey();
   const { data, error } = await supabase.from("customers").insert(payload).select().single();
   if (error) throw error;
@@ -34,7 +87,8 @@ export const createCustomer = async (customer: Partial<Customer> & { full_name: 
 };
 
 export const updateCustomer = async (id: string, updates: Partial<Customer>) => {
-  const { data, error } = await supabase.from("customers").update(updates as any).eq("id", id).select().single();
+  const payload: any = withNormalizedPhone(updates);
+  const { data, error } = await supabase.from("customers").update(payload).eq("id", id).select().single();
   if (error) throw error;
   return data;
 };
@@ -434,14 +488,14 @@ export const createProspect = async (prospect: Partial<Prospect> & { name: strin
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("prospects")
-    .insert({ ...prospect, owner_user_id: userId } as any);
+    .insert(withNormalizedPhone({ ...prospect, owner_user_id: userId }) as any);
   if (error) throw error;
 };
 
 export const updateProspect = async (id: string, updates: Partial<Prospect>) => {
   const { error } = await supabase
     .from("prospects")
-    .update(updates as any)
+    .update(withNormalizedPhone(updates) as any)
     .eq("id", id);
   if (error) throw error;
 };
@@ -998,7 +1052,7 @@ export const createBookingLead = async (lead: Partial<BookingLead> & { name: str
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("booking_leads" as any)
-    .insert({ ...lead, owner_user_id: userId } as any)
+    .insert(withNormalizedPhone({ ...lead, owner_user_id: userId }) as any)
     .select()
     .single();
   if (error) throw error;
@@ -1008,7 +1062,7 @@ export const createBookingLead = async (lead: Partial<BookingLead> & { name: str
 export const updateBookingLead = async (id: string, updates: Partial<BookingLead>) => {
   const { error } = await supabase
     .from("booking_leads" as any)
-    .update(updates as any)
+    .update(withNormalizedPhone(updates) as any)
     .eq("id", id);
   if (error) throw error;
 };
@@ -1086,13 +1140,13 @@ export const fetchTeamConsultants = async (): Promise<TeamConsultant[]> => {
 
 export const createTeamConsultant = async (consultant: Partial<TeamConsultant> & { name: string }): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("team_consultants").insert({ ...consultant, owner_user_id: userId } as any).select().single();
+  const { data, error } = await supabase.from("team_consultants").insert(withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any).select().single();
   if (error) throw error;
   return data as unknown as TeamConsultant;
 };
 
 export const updateTeamConsultant = async (id: string, updates: Partial<TeamConsultant>): Promise<void> => {
-  const { error } = await supabase.from("team_consultants").update(updates as any).eq("id", id);
+  const { error } = await supabase.from("team_consultants").update(withNormalizedPhone(updates) as any).eq("id", id);
   if (error) throw error;
 };
 

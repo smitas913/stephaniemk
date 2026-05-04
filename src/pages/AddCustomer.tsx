@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createCustomer, fetchCustomers } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
+import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,20 @@ export default function AddCustomer() {
       .slice(0, 5);
   }, [name, existingCustomers]);
 
+  // Hard duplicate match by normalized phone or email — block creation.
+  const contactDuplicate = useMemo(() => {
+    const p = stripPhone(phone);
+    const e = normalizeEmail(email);
+    if (!p && !e) return null;
+    return existingCustomers.find((c: any) => {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if (p && p.length >= 7 && cp === p) return true;
+      if (e && ce && ce === e) return true;
+      return false;
+    }) || null;
+  }, [phone, email, existingCustomers]);
+
   const mutation = useMutation({
     mutationFn: () =>
       createCustomer({
@@ -84,7 +99,7 @@ export default function AddCustomer() {
   });
 
   const hasContact = phone.trim() || email.trim();
-  const canSubmit = name.trim() && hasContact && !mutation.isPending;
+  const canSubmit = name.trim() && hasContact && !contactDuplicate && !mutation.isPending;
 
   return (
     <Layout>
@@ -153,6 +168,31 @@ export default function AddCustomer() {
             </div>
             {!hasContact && name.trim() && (
               <p className="text-xs text-destructive">At least one contact method (phone or email) is required.</p>
+            )}
+            {contactDuplicate && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-destructive">
+                      A customer with this {stripPhone(phone) ? "phone" : "email"} already exists
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/customers/${(contactDuplicate as any).id}`)}
+                      className="mt-1 w-full text-left px-2 py-1.5 rounded bg-background hover:bg-muted border border-border flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium text-foreground truncate">{(contactDuplicate as any).full_name}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {[formatPhone((contactDuplicate as any).phone), (contactDuplicate as any).email].filter(Boolean).join(" · ")}
+                        </div>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Address */}

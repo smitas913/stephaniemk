@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createTeamConsultant } from "@/lib/queries";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
+import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
@@ -67,8 +68,22 @@ export default function AddConsultant() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const { data: existingConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const contactDuplicate = useMemo(() => {
+    const p = stripPhone(phone);
+    const e = normalizeEmail(email);
+    if (!p && !e) return null;
+    return existingConsultants.find((c: any) => {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if (p && p.length >= 7 && cp === p) return true;
+      if (e && ce && ce === e) return true;
+      return false;
+    }) || null;
+  }, [phone, email, existingConsultants]);
+
   const hasContact = phone.trim() || email.trim();
-  const canSubmit = fullName && hasContact && !mutation.isPending;
+  const canSubmit = fullName && hasContact && !contactDuplicate && !mutation.isPending;
 
   return (
     <Layout>
@@ -110,6 +125,19 @@ export default function AddConsultant() {
             </div>
             {!hasContact && fullName && (
               <p className="text-xs text-destructive">At least one contact method (phone or email) is required.</p>
+            )}
+            {contactDuplicate && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-destructive">
+                      A consultant with this {stripPhone(phone) ? "phone" : "email"} already exists: {(contactDuplicate as any).name}
+                      {(contactDuplicate as any).phone ? ` · ${formatPhone((contactDuplicate as any).phone)}` : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Consultant ID & Join Date */}

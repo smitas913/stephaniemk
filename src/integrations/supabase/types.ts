@@ -2004,6 +2004,7 @@ export type Database = {
         Returns: boolean
       }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      normalize_phone: { Args: { p: string }; Returns: string }
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
