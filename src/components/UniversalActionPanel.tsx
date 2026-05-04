@@ -304,10 +304,9 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const handleNextStepClick = useCallback((key: string) => {
     setNextOpt(key);
     if (key === "custom") return;
-    if (key === "none") {
-      submit(null, "");
-      return;
-    }
+    // Pause expands an inline picker (120 days quick-pick or custom date) — don't submit yet.
+    if (key === "pause") return;
+    if (key === "reorder") return;
     const opt = NEXT_STEP_OPTIONS.find((o) => o.key === key);
     if (!opt || opt.days == null) return;
     const date = format(addDays(new Date(), opt.days), "yyyy-MM-dd");
@@ -322,6 +321,17 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const handleReorderPick = useCallback((days: 30 | 60 | 90) => {
     const date = format(addDays(new Date(), days), "yyyy-MM-dd");
     submit(date, `Reorder Cycle (${days}d)`);
+  }, [submit]);
+
+  /**
+   * Pause Follow-Up: intentional break in communication. Sets a future
+   * follow-up date so the contact re-surfaces on Today when the date arrives.
+   * Distinct from Reorder Cycle (product-driven). Quick option = 120 days;
+   * a custom date can also be picked.
+   */
+  const handlePausePick = useCallback((days: 120, custom?: string) => {
+    const date = custom || format(addDays(new Date(), days), "yyyy-MM-dd");
+    submit(date, "Pause Follow-Up");
   }, [submit]);
 
   // When user picks "Not Interested", short-circuit to save (no Next Step needed).
