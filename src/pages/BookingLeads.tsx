@@ -95,6 +95,19 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     return s;
   }, [customersForDnc]);
 
+  // Touch count per lead = number of outreach notes (Call/Text/Email/In Person)
+  const touchCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const n of unifiedNotes as any[]) {
+      if (n.entity_type !== "Lead" || !n.person_id) continue;
+      if (!OUTREACH_NOTE_TYPES.has(n.note_type)) continue;
+      m.set(n.person_id, (m.get(n.person_id) || 0) + 1);
+    }
+    return m;
+  }, [unifiedNotes]);
+
+  const todayKey = toLocalDateKey();
+
   const filtered = useMemo(() => {
     return leads.filter((l) => {
       const isDnc = !!l.converted_customer_id && customerDncSet.has(l.converted_customer_id);
@@ -102,10 +115,13 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       if (statusFilter === "all" && l.converted_customer_id && filterDnc === "active") return false;
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (activityFilter !== "all" && (l.lead_activity || "No Activity Yet") !== activityFilter) return false;
+      if (actionFilter === "due_today" && l.next_follow_up_date !== todayKey) return false;
+      if (actionFilter === "overdue" && !(l.next_follow_up_date && l.next_follow_up_date < todayKey)) return false;
+      if (actionFilter === "no_followup" && l.next_follow_up_date) return false;
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [leads, search, statusFilter, activityFilter, filterDnc, customerDncSet]);
+  }, [leads, search, statusFilter, activityFilter, actionFilter, filterDnc, customerDncSet, todayKey]);
 
   // Quick Add validation
   const hasContact = form.phone.trim() || form.email.trim();
