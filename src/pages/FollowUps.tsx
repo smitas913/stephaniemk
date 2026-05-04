@@ -1431,11 +1431,13 @@ export default function FollowUps() {
         });
       } else if (item.itemType === "lead") {
         const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        const resolvedNext = dnc ? null : (nextDate || defaultNext);
         const updates: Record<string, string | null> = {
           last_contact_date: today,
-          next_follow_up_date: nextDate || defaultNext,
+          next_follow_up_date: resolvedNext,
         };
-        if (!nextDate) updates.status = "Contacted";
+        if (dnc) updates.status = "Not Interested";
+        else if (!nextDate) updates.status = "Contacted";
         await updateBookingLead(item.id, updates as any);
         const lBody = note.trim() || `${type} follow-up`;
         const lReason = lBody.match(/^\s*\[([^\]]+)\]/)?.[1] || null;
@@ -1448,9 +1450,9 @@ export default function FollowUps() {
           note_type: type,
           tags: [categoryTag(lCategory)],
           next_step: nextStep?.trim() || null,
-          next_follow_up_date: nextDate || defaultNext,
+          next_follow_up_date: resolvedNext,
           is_booking_attempt: isBookingAttempt ?? false,
-          is_follow_up: isFollowUp ?? true,
+          is_follow_up: dnc ? false : (isFollowUp ?? true),
         });
       } else if (item.itemType === "event_task") {
         await completeEventTask(item.id);
