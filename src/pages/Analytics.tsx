@@ -241,6 +241,8 @@ export default function Analytics() {
     };
   }, [analytics, orders]);
 
+  const formatCurrency = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+
   const TIME_VIEW_LABELS: Record<TimeView, string> = {
     "this-month": "This Month",
     "ytd": "Year-to-Date",
