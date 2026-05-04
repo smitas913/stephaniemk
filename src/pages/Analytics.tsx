@@ -43,9 +43,19 @@ export default function Analytics() {
   const { data: orders = [], isLoading: orL } = useQuery({
     queryKey: ["all-orders-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("customer_id, order_date, retail_amount").order("order_date", { ascending: false });
+      const { data, error } = await supabase
+        .from("orders")
+        .select("customer_id, order_date, retail_amount, order_type, face_type, is_myshop_order")
+        .order("order_date", { ascending: false });
       if (error) throw error;
-      return data as { customer_id: string; order_date: string; retail_amount: number }[];
+      return data as {
+        customer_id: string;
+        order_date: string;
+        retail_amount: number;
+        order_type: string | null;
+        face_type: string | null;
+        is_myshop_order: boolean | null;
+      }[];
     },
   });
   const { data: prospects = [], isLoading: prL } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
