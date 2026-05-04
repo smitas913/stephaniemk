@@ -728,10 +728,11 @@ export interface BusinessGoal {
 }
 
 export const DEFAULT_BUSINESS_GOALS: Omit<BusinessGoal, "id" | "user_id">[] = [
-  { metric_key: "production", metric_label: "Production", period: "weekly", goal_value: 1000, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
-  { metric_key: "unit_size", metric_label: "Unit Size", period: "weekly", goal_value: 10, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
-  { metric_key: "production", metric_label: "Production", period: "monthly", goal_value: 4000, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
-  { metric_key: "unit_size", metric_label: "Unit Size", period: "monthly", goal_value: 12, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
+  // Goal values seed at 0 — no hidden defaults. Users set their own targets in Business Goals.
+  { metric_key: "production", metric_label: "Production", period: "weekly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
+  { metric_key: "unit_size", metric_label: "Unit Size", period: "weekly", goal_value: 0, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
+  { metric_key: "production", metric_label: "Production", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
+  { metric_key: "unit_size", metric_label: "Unit Size", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
 ];
 
 export const fetchBusinessGoals = async (): Promise<BusinessGoal[]> => {
