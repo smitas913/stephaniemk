@@ -161,7 +161,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-3 px-1">
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-            <p className="text-xs text-foreground italic truncate">"{dailyQuote}"</p>
+            <p className="text-sm font-semibold text-foreground italic truncate">"{dailyQuote}"</p>
             <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">· {weekLabel}</span>
           </div>
           <Button onClick={() => navigate("/follow-ups")} size="sm" variant="ghost" className="h-7 text-xs shrink-0">
@@ -171,7 +171,7 @@ export default function Dashboard() {
         </div>
 
         {/* DAILY SUCCESS DRIVERS + 6 MIT — side by side on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-4 items-start">
           <SixMostImportant
             compact
             autoCounts={focusAutoCounts}
