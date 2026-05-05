@@ -11,6 +11,8 @@ import {
   completeEventTask,
   createNote,
   fetchAllLatestNotes,
+  convertHostessToCustomer,
+  fetchCustomers,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
@@ -47,6 +49,8 @@ import {
   ExternalLink,
   MessageSquare,
   Plus,
+  UserPlus,
+  CheckCircle2,
 } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
@@ -56,32 +60,32 @@ import { toast } from "sonner";
 const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
 
-// The prep steps that actually drive booking rate
+// Coaching prep steps in order — each one drives booking rate
 const PREP_STEPS = [
   {
-    field: "checklist_invitations_sent",
-    label: "Invitations sent to guests",
-    hint: "Send invites as soon as the date is confirmed",
-  },
-  {
     field: "checklist_google_form_completed",
-    label: "Hostess pre-profile form completed",
-    hint: "Helps you personalize the experience",
+    label: "Hostess pre-profile form sent & completed",
+    hint: "Send the Google form right after booking so you can personalize her event",
   },
   {
     field: "checklist_guest_list_received",
     label: "Guest list received from hostess",
-    hint: "Follow up if you haven't heard back",
+    hint: "Follow up if you haven't heard back — this unlocks the next steps",
+  },
+  {
+    field: "checklist_invitations_sent",
+    label: "Invitation made & sent to guests",
+    hint: "Send your Canva invite + guest form so you can prep goody bags",
   },
   {
     field: "checklist_samples_sent",
-    label: "Samples / goody bag sent to hostess",
-    hint: "Keeps hostess excited and engaged",
+    label: "Goody bags prepped & pictures sent to guests",
+    hint: "Sending personalized goody bag pics gets guests excited and more likely to show",
   },
   {
     field: "checklist_reminders_sent",
-    label: "Guest reminders sent (24–48 hrs out)",
-    hint: "Big driver of attendance & booking rate",
+    label: "Soft reach out + guest reminders sent (2-3 days out)",
+    hint: "Biggest driver of attendance — don't skip this one",
   },
 ];
 
@@ -93,6 +97,7 @@ export default function EventDetail() {
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: eventTasks = [] } = useQuery({
     queryKey: ["event-tasks", eventId],
     queryFn: () => fetchEventTasksByEventId(eventId!),
@@ -197,6 +202,16 @@ export default function EventDetail() {
     [hostessActionMutation],
   );
 
+  const convertHostessMutation = useMutation({
+    mutationFn: () => convertHostessToCustomer(event!),
+    onSuccess: (customer) => {
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(`${customer.full_name} added to your client list!`);
+    },
+    onError: (err: any) => toast.error(err.message || "Failed to convert hostess"),
+  });
+
   const eventMutation = useMutation({
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["events"] }),
@@ -280,8 +295,19 @@ export default function EventDetail() {
     }
   };
 
-  // Prep progress
-  const prepDone = event ? PREP_STEPS.filter((s) => (event as any)[s.field]).length : 0;
+  // Check if hostess is already a customer — by phone OR by name (case-insensitive)
+  const existingCustomer = useMemo(() => {
+    if (!event?.hostess_name && !event?.hostess_phone) return null;
+    return (
+      customers.find((c: any) => {
+        const phoneMatch =
+          event?.hostess_phone && c.phone && c.phone.replace(/\D/g, "") === event.hostess_phone.replace(/\D/g, "");
+        const nameMatch =
+          event?.hostess_name && c.full_name?.toLowerCase().trim() === event.hostess_name.toLowerCase().trim();
+        return phoneMatch || nameMatch;
+      }) || null
+    );
+  }, [customers, event?.hostess_name, event?.hostess_phone]);
   const prepTotal = PREP_STEPS.length;
 
   // Pending workflow tasks
@@ -385,13 +411,10 @@ export default function EventDetail() {
         <Tabs defaultValue="details">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details" className="flex-1 sm:flex-none">
-              Details
-            </TabsTrigger>
-            <TabsTrigger value="hostess" className="flex-1 sm:flex-none">
-              Hostess
+              Details & Hostess
             </TabsTrigger>
             <TabsTrigger value="prep" className="flex-1 sm:flex-none">
-              Prep
+              Event Coaching
               {event && prepDone < prepTotal && (
                 <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-700 font-bold rounded-full px-1.5">
                   {prepTotal - prepDone}
@@ -408,187 +431,181 @@ export default function EventDetail() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Tab 1: Details ── */}
+          {/* ── Tab 1: Details & Hostess ── */}
           <TabsContent value="details" className="mt-4">
             {event ? (
-              <Card className="border-border/50">
-                <CardContent className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Date */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Event Date
-                      </label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full h-9 text-sm justify-start font-normal",
-                              !event.event_date && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="w-3.5 h-3.5 mr-2" />
-                            {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={event.event_date ? parseLocalDate(event.event_date) : undefined}
-                            onSelect={handleDateSelect}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    {/* Time */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Event Time
-                      </label>
-                      <Input
-                        type="time"
-                        className="h-9 text-sm"
-                        defaultValue={(event as any).event_time || ""}
-                        key={`et-${(event as any).event_time}`}
-                        onBlur={(e) => {
-                          if (e.target.value !== ((event as any).event_time || ""))
-                            updateField("event_time", e.target.value || null);
-                        }}
-                      />
-                    </div>
-
-                    {/* Event Type */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Event Type
-                      </label>
-                      <Select
-                        value={event.event_type || ""}
-                        onValueChange={(val) => {
-                          if (val !== (event.event_type || ""))
-                            eventMutation.mutate({ event_id: event.event_id, event_type: val });
-                        }}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EVENT_TYPES.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Format */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Format
-                      </label>
-                      <Select
-                        value={event.event_format || "In-Person"}
-                        onValueChange={(val) => {
-                          if (val !== (event.event_format || "In-Person"))
-                            eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EVENT_FORMATS.map((f) => (
-                            <SelectItem key={f} value={f}>
-                              {f}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Status */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Status
-                      </label>
-                      <Select value={event.event_status || "Booked"} onValueChange={handleStatusChange}>
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EVENT_STATUSES.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {s}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Reschedule Status */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Reschedule Status
-                      </label>
-                      <Select
-                        value={(event as any).reschedule_status || "None"}
-                        onValueChange={(val) => {
-                          if (val !== ((event as any).reschedule_status || "None"))
-                            eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RESCHEDULE_STATUSES.map((s) => (
-                            <SelectItem key={s} value={s}>
-                              {s}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Location — full width */}
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        {(event.event_format || "In-Person") === "Virtual" ? "Meeting Link" : "Location / Venue"}
-                      </label>
-                      <Input
-                        className="h-9 text-sm"
-                        placeholder={
-                          (event.event_format || "In-Person") === "Virtual"
-                            ? "Zoom link or meeting URL"
-                            : "Address or venue name"
-                        }
-                        defaultValue={(event as any).event_location || ""}
-                        key={`el-${(event as any).event_location}`}
-                        onBlur={(e) => {
-                          if (e.target.value !== ((event as any).event_location || ""))
-                            updateField("event_location", e.target.value || null);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <p className="text-muted-foreground text-sm py-8 text-center">Loading event...</p>
-            )}
-          </TabsContent>
-
-          {/* ── Tab 2: Hostess ── */}
-          <TabsContent value="hostess" className="mt-4 space-y-4">
-            {event ? (
-              <>
+              <div className="space-y-4">
                 <Card className="border-border/50">
-                  <CardContent className="p-4 space-y-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Event Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Date */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Event Date
+                        </label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full h-9 text-sm justify-start font-normal",
+                                !event.event_date && "text-muted-foreground",
+                              )}
+                            >
+                              <CalendarIcon className="w-3.5 h-3.5 mr-2" />
+                              {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={event.event_date ? parseLocalDate(event.event_date) : undefined}
+                              onSelect={handleDateSelect}
+                              initialFocus
+                              className="p-3 pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      {/* Time */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Event Time
+                        </label>
+                        <Input
+                          type="time"
+                          className="h-9 text-sm"
+                          defaultValue={(event as any).event_time || ""}
+                          key={`et-${(event as any).event_time}`}
+                          onBlur={(e) => {
+                            if (e.target.value !== ((event as any).event_time || ""))
+                              updateField("event_time", e.target.value || null);
+                          }}
+                        />
+                      </div>
+                      {/* Event Type */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Event Type
+                        </label>
+                        <Select
+                          value={event.event_type || ""}
+                          onValueChange={(val) => {
+                            if (val !== (event.event_type || ""))
+                              eventMutation.mutate({ event_id: event.event_id, event_type: val });
+                          }}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EVENT_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Format */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Format
+                        </label>
+                        <Select
+                          value={event.event_format || "In-Person"}
+                          onValueChange={(val) => {
+                            if (val !== (event.event_format || "In-Person"))
+                              eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
+                          }}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EVENT_FORMATS.map((f) => (
+                              <SelectItem key={f} value={f}>
+                                {f}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Status */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Status
+                        </label>
+                        <Select value={event.event_status || "Booked"} onValueChange={handleStatusChange}>
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EVENT_STATUSES.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Reschedule Status */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Reschedule Status
+                        </label>
+                        <Select
+                          value={(event as any).reschedule_status || "None"}
+                          onValueChange={(val) => {
+                            if (val !== ((event as any).reschedule_status || "None"))
+                              eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any);
+                          }}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RESCHEDULE_STATUSES.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {/* Location — full width */}
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {(event.event_format || "In-Person") === "Virtual" ? "Meeting Link" : "Location / Venue"}
+                        </label>
+                        <Input
+                          className="h-9 text-sm"
+                          placeholder={
+                            (event.event_format || "In-Person") === "Virtual"
+                              ? "Zoom link or meeting URL"
+                              : "Address or venue name"
+                          }
+                          defaultValue={(event as any).event_location || ""}
+                          key={`el-${(event as any).event_location}`}
+                          onBlur={(e) => {
+                            if (e.target.value !== ((event as any).event_location || ""))
+                              updateField("event_location", e.target.value || null);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Hostess Info */}
+                <Card className="border-border/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Hostess</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -633,9 +650,8 @@ export default function EventDetail() {
                         />
                       </div>
                     </div>
-
-                    {/* Contact buttons */}
-                    <div className="flex gap-2 flex-wrap pt-1">
+                    {/* Contact + Log + Convert buttons */}
+                    <div className="flex gap-2 flex-wrap">
                       {event.hostess_phone && (
                         <>
                           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" asChild>
@@ -660,63 +676,83 @@ export default function EventDetail() {
                           <MessageSquare className="w-3 h-3" /> Log Activity
                         </Button>
                       )}
+                      {event.hostess_name &&
+                        (existingCustomer || (event as any).hostess_converted_customer_id ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs gap-1.5 text-green-600 border-green-200 cursor-default"
+                            disabled
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Already a client
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs gap-1.5"
+                            onClick={() => convertHostessMutation.mutate()}
+                            disabled={convertHostessMutation.isPending}
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            {convertHostessMutation.isPending ? "Converting..." : "Convert to client"}
+                          </Button>
+                        ))}
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Recent activity */}
-                {(() => {
-                  const hostessNotes = unifiedNotes
-                    .filter(
-                      (n: any) =>
-                        n.entity_type === "Hostess" && event.hostess_name && n.note_body?.includes(event.hostess_name),
-                    )
-                    .slice(0, 5);
-                  if (hostessNotes.length === 0)
-                    return (
-                      <p className="text-sm text-muted-foreground text-center py-4">No hostess activity logged yet.</p>
-                    );
-                  return (
-                    <Card className="border-border/50">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Recent Activity</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0">
-                        <div className="divide-y divide-border">
-                          {hostessNotes.map((note: any, i: number) => (
-                            <div key={i} className="flex items-start gap-3 px-4 py-3">
-                              <div className="text-xs text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
-                                {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium text-foreground">
-                                    {note.note_type || "Note"}
-                                  </span>
-                                  {i === 0 && (
-                                    <span className="text-[9px] px-1.5 py-0 rounded-full bg-primary text-primary-foreground font-semibold uppercase tracking-wide">
-                                      Latest
+                    {/* Recent activity */}
+                    {(() => {
+                      const hostessNotes = unifiedNotes
+                        .filter(
+                          (n: any) =>
+                            n.entity_type === "Hostess" &&
+                            event.hostess_name &&
+                            n.note_body?.includes(event.hostess_name),
+                        )
+                        .slice(0, 3);
+                      if (hostessNotes.length === 0) return null;
+                      return (
+                        <div className="space-y-1 pt-1">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Recent Activity
+                          </p>
+                          <div className="divide-y divide-border rounded-lg border border-border">
+                            {hostessNotes.map((note: any, i: number) => (
+                              <div key={i} className="flex items-start gap-3 px-3 py-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
+                                  {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-foreground">
+                                      {note.note_type || "Note"}
                                     </span>
+                                    {i === 0 && (
+                                      <span className="text-[9px] px-1.5 py-0 rounded-full bg-primary text-primary-foreground font-semibold uppercase tracking-wide">
+                                        Latest
+                                      </span>
+                                    )}
+                                  </div>
+                                  {note.note_body && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 100)}
+                                    </p>
                                   )}
                                 </div>
-                                {note.note_body && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                    {(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 100)}
-                                  </p>
-                                )}
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-              </>
-            ) : null}
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm py-8 text-center">Loading event...</p>
+            )}
           </TabsContent>
 
-          {/* ── Tab 3: Prep ── */}
+          {/* ── Tab 2: Event Coaching ── */}
           <TabsContent value="prep" className="mt-4 space-y-4">
             {event ? (
               <>
@@ -733,12 +769,11 @@ export default function EventDetail() {
                   </span>
                 </div>
 
-                {/* Prep checklist */}
                 <Card className="border-border/50">
                   <CardHeader className="pb-1">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <ClipboardCheck className="w-4 h-4 text-primary" />
-                      Event Prep
+                      Coaching Checklist
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
