@@ -1,5 +1,24 @@
 import { NavLink } from "react-router-dom";
-import { Users, ShoppingBag, LayoutDashboard, LogOut, Settings, Clock, Menu, X, Calendar, Target, Crown, TrendingUp, Receipt, Mail, MessageSquare, BookOpen, MoreHorizontal, FileText } from "lucide-react";
+import {
+  Users,
+  ShoppingBag,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  Clock,
+  Menu,
+  X,
+  Calendar,
+  Target,
+  Crown,
+  TrendingUp,
+  Receipt,
+  Mail,
+  MessageSquare,
+  BookOpen,
+  MoreHorizontal,
+  FileText,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -29,6 +48,7 @@ const secondaryNavItems = [
   { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
   { to: "/communications", label: "Comms", icon: MessageSquare },
   { to: "/scripts", label: "Scripts", icon: FileText },
+  { to: "/settings", label: "My Settings", icon: Settings, adminOnly: false },
   { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
 
@@ -62,10 +82,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [mobileOpen]);
 
-  const isSecondaryActive = secondaryNav.some(item => location.pathname.startsWith(item.to));
+  const isSecondaryActive = secondaryNav.some((item) => location.pathname.startsWith(item.to));
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,7 +104,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 end={to === "/dashboard"}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-                    isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`
                 }
               >
@@ -99,7 +123,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                       isSecondaryActive
                         ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
                     <MoreHorizontal className="w-4 h-4" />
@@ -113,10 +137,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         to={to}
                         end={to === "/dashboard"}
                         className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-2 w-full cursor-pointer",
-                            isActive && "font-semibold text-primary"
-                          )
+                          cn("flex items-center gap-2 w-full cursor-pointer", isActive && "font-semibold text-primary")
                         }
                       >
                         <Icon className="w-4 h-4" />
@@ -135,7 +156,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {profile.role}
               </span>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hidden md:flex" onClick={signOut} title="Sign out">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hidden md:flex"
+              onClick={signOut}
+              title="Sign out"
+            >
               <LogOut className="w-4 h-4" />
             </Button>
 
@@ -157,10 +184,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {mobileOpen && (
         <div className="fixed inset-0 z-[100] md:hidden">
           {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40 animate-fade-in"
-            onClick={() => setMobileOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={() => setMobileOpen(false)} />
           {/* Drawer */}
           <div className="absolute top-0 right-0 h-full w-4/5 max-w-xs bg-card border-l border-border shadow-xl animate-slide-in-right flex flex-col">
             {/* Drawer header */}
@@ -190,7 +214,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
                       isActive
                         ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )
                   }
                 >
@@ -215,7 +239,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           "flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors",
                           isActive
                             ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                         )
                       }
                     >
@@ -242,7 +266,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="outline"
                 className="w-full justify-start gap-2 text-destructive hover:text-destructive"
-                onClick={() => { setMobileOpen(false); signOut(); }}
+                onClick={() => {
+                  setMobileOpen(false);
+                  signOut();
+                }}
               >
                 <LogOut className="w-4 h-4" />
                 Sign Out
