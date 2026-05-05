@@ -101,10 +101,10 @@ export default function QuickCareerChatDialog({
         });
       } else if (query.trim()) {
         // New person — create as prospect
-        const newProspect = await createProspect({
+        const newProspect = (await createProspect({
           name: query.trim(),
           opportunity_status: interestLevel && interestLevel >= 4 ? "Interested" : "Follow-Up",
-        } as any);
+        } as any)) as any;
         await createNote({
           entity_type: "Prospect",
           person_type: "prospect",
