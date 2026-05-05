@@ -653,12 +653,9 @@ export default function EventDetail() {
                               value={(event as any).event_venue_type || ""}
                               onValueChange={(val) => {
                                 updateField("event_venue_type", val);
-                                // Auto-fill address for My Home Office
-                                if (
-                                  val === "My Home Office" &&
-                                  zoomDefaults?.home_office_address &&
-                                  !(event as any).event_location
-                                ) {
+                                // Auto-fill address for My Home Office (always overwrite)
+                                if (val === "My Home Office" && zoomDefaults?.home_office_address) {
+                                  setLocationDraft(zoomDefaults.home_office_address);
                                   updateField("event_location", zoomDefaults.home_office_address);
                                 }
                               }}
@@ -690,13 +687,26 @@ export default function EventDetail() {
                                     ? "Your home office address"
                                     : "Venue name or address"
                               }
-                              defaultValue={(event as any).event_location || ""}
-                              key={`el-${(event as any).event_location}-${(event as any).event_venue_type}`}
+                              value={locationDraft}
+                              onChange={(e) => setLocationDraft(e.target.value)}
                               onBlur={(e) => {
                                 if (e.target.value !== ((event as any).event_location || ""))
                                   updateField("event_location", e.target.value || null);
                               }}
                             />
+                            {(event as any).event_venue_type === "My Home Office" && zoomDefaults?.home_office_address && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs mt-1"
+                                onClick={() => {
+                                  setLocationDraft(zoomDefaults.home_office_address || "");
+                                  updateField("event_location", zoomDefaults.home_office_address);
+                                }}
+                              >
+                                Use my home office address
+                              </Button>
+                            )}
                           </div>
                         </>
                       )}
