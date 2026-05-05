@@ -1515,8 +1515,10 @@ export default function AddOrder() {
             </select>
             <p className="text-xs text-muted-foreground mt-1">
               {orderDate < toLocalDateKey()
-                ? "Backdated order — follow-up will be scheduled from today."
-                : "No follow-up is created unless you choose one."}
+                ? "Follow-up calculated from order date. If that's already passed, it'll be set to tomorrow."
+                : "No follow-up is created unless you choose one."}{" "}
+              If no intent is chosen and they have nothing scheduled, a 60-day Customer Care touchpoint is added
+              automatically.
             </p>
           </div>
         )}
