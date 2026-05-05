@@ -45,7 +45,17 @@ import Clients from "./pages/Clients";
 import Scripts from "./pages/Scripts";
 import UserSettings from "./pages/UserSettings";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 3,      // data stays fresh for 3 minutes — no refetch on nav
+      gcTime: 1000 * 60 * 10,         // keep in memory for 10 minutes after last use
+      refetchOnWindowFocus: false,     // don't refetch just because you switched tabs
+      refetchOnReconnect: true,        // do refetch if internet reconnects
+      retry: 1,                        // only retry once on error, not 3 times
+    },
+  },
+});
 
 function getRoleHome(role: string): string {
   switch (role) {
