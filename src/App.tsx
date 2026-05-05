@@ -43,7 +43,7 @@ import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
 import Scripts from "./pages/Scripts";
-
+import UserSettings from "./pages/UserSettings";
 
 const queryClient = new QueryClient();
 
@@ -117,54 +117,289 @@ function CustomersRedirect() {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<GuestRoute><Login /></GuestRoute>} />
-    <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-    <Route path="/landing" element={<GuestRoute><Landing /></GuestRoute>} />
-    <Route path="/signup" element={<GuestRoute><SignUp /></GuestRoute>} />
+    <Route
+      path="/"
+      element={
+        <GuestRoute>
+          <Login />
+        </GuestRoute>
+      }
+    />
+    <Route
+      path="/login"
+      element={
+        <GuestRoute>
+          <Login />
+        </GuestRoute>
+      }
+    />
+    <Route
+      path="/landing"
+      element={
+        <GuestRoute>
+          <Landing />
+        </GuestRoute>
+      }
+    />
+    <Route
+      path="/signup"
+      element={
+        <GuestRoute>
+          <SignUp />
+        </GuestRoute>
+      }
+    />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/access-denied" element={<AccessDenied />} />
     <Route path="/pending-approval" element={<PendingApproval />} />
 
-    <Route path="/my-account" element={
-      <ProtectedRoute allowedRoles={["owner", "admin", "consultant", "customer"]}>
-        <CustomerPortalRedirect />
-      </ProtectedRoute>
-    } />
+    <Route
+      path="/my-account"
+      element={
+        <ProtectedRoute allowedRoles={["owner", "admin", "consultant", "customer"]}>
+          <CustomerPortalRedirect />
+        </ProtectedRoute>
+      }
+    />
 
-    <Route path="/dashboard" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Dashboard /></ProtectedRoute>} />
-    <Route path="/performance" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><FollowUpDashboard /></ProtectedRoute>} />
+    <Route
+      path="/dashboard"
+      element={
+        <ProtectedRoute allowedRoles={INTERNAL_ROLES}>
+          <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/performance"
+      element={
+        <ProtectedRoute allowedRoles={INTERNAL_ROLES}>
+          <FollowUpDashboard />
+        </ProtectedRoute>
+      }
+    />
     <Route path="/momentum" element={<Navigate to="/dashboard" replace />} />
     <Route path="/scoreboard" element={<Navigate to="/dashboard" replace />} />
-    <Route path="/analytics" element={<ProtectedRoute allowedRoles={INTERNAL_ROLES}><Analytics /></ProtectedRoute>} />
-    <Route path="/clients" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Clients /></ProtectedRoute>} />
+    <Route
+      path="/analytics"
+      element={
+        <ProtectedRoute allowedRoles={INTERNAL_ROLES}>
+          <Analytics />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/clients"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Clients />
+        </ProtectedRoute>
+      }
+    />
     <Route path="/customers" element={<CustomersRedirect />} />
-    <Route path="/booking-leads/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><LeadDetail /></ProtectedRoute>} />
+    <Route
+      path="/booking-leads/:id"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <LeadDetail />
+        </ProtectedRoute>
+      }
+    />
     <Route path="/booking-leads" element={<Navigate to="/clients?tab=leads" replace />} />
-    <Route path="/customers/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddCustomer /></ProtectedRoute>} />
-    <Route path="/customers/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><CustomerDetail /></ProtectedRoute>} />
-    <Route path="/orders" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Orders /></ProtectedRoute>} />
-    <Route path="/orders/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddOrder /></ProtectedRoute>} />
-    <Route path="/orders/:id/edit" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EditOrder /></ProtectedRoute>} />
-    <Route path="/events" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Events /></ProtectedRoute>} />
-    <Route path="/events/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><NewEvent /></ProtectedRoute>} />
-    <Route path="/events/:eventId" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><EventDetail /></ProtectedRoute>} />
-    <Route path="/import-customers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ImportCustomers /></ProtectedRoute>} />
-    <Route path="/restore-contact-dates" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><RestoreContactDates /></ProtectedRoute>} />
-    
-    <Route path="/follow-ups" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><FollowUps /></ProtectedRoute>} />
+    <Route
+      path="/customers/new"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <AddCustomer />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/customers/:id"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <CustomerDetail />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Orders />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders/new"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <AddOrder />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/orders/:id/edit"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <EditOrder />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/events"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Events />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/events/new"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <NewEvent />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/events/:eventId"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <EventDetail />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/import-customers"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <ImportCustomers />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/restore-contact-dates"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <RestoreContactDates />
+        </ProtectedRoute>
+      }
+    />
+
+    <Route
+      path="/follow-ups"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <FollowUps />
+        </ProtectedRoute>
+      }
+    />
     <Route path="/prospects" element={<Navigate to="/clients?tab=prospects" replace />} />
-    <Route path="/prospects/:id" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ProspectDetail /></ProtectedRoute>} />
-    <Route path="/leadership" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Leadership /></ProtectedRoute>} />
-    <Route path="/consultants/new" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AddConsultant /></ProtectedRoute>} />
-    <Route path="/campaigns" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Campaigns /></ProtectedRoute>} />
-    <Route path="/mailing-lists" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><MailingLists /></ProtectedRoute>} />
-    <Route path="/communications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Communications /></ProtectedRoute>} />
-    <Route path="/scripts" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Scripts /></ProtectedRoute>} />
-    <Route path="/expenses" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><Expenses /></ProtectedRoute>} />
-    <Route path="/admin" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminTools /></ProtectedRoute>} />
-    <Route path="/users" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><UserManagement /></ProtectedRoute>} />
-    <Route path="/consultant-requests" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><ConsultantRequests /></ProtectedRoute>} />
-    <Route path="/become-consultant" element={<ProtectedRoute allowedRoles={["customer"]}><ConsultantRequest /></ProtectedRoute>} />
+    <Route
+      path="/prospects/:id"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <ProspectDetail />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/leadership"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Leadership />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/consultants/new"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <AddConsultant />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/campaigns"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Campaigns />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/mailing-lists"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <MailingLists />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/communications"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Communications />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/scripts"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Scripts />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/settings"
+      element={
+        <ProtectedRoute allowedRoles={INTERNAL_ROLES}>
+          <UserSettings />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/expenses"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Expenses />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <AdminTools />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/users"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <UserManagement />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/consultant-requests"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <ConsultantRequests />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/become-consultant"
+      element={
+        <ProtectedRoute allowedRoles={["customer"]}>
+          <ConsultantRequest />
+        </ProtectedRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -181,7 +416,9 @@ function PendingApproval() {
         <p className="text-sm text-muted-foreground">
           Your consultant account has been created and is pending verification.
         </p>
-        <button onClick={signOut} className="text-sm text-muted-foreground hover:underline">Sign out</button>
+        <button onClick={signOut} className="text-sm text-muted-foreground hover:underline">
+          Sign out
+        </button>
       </div>
     </div>
   );
@@ -207,11 +444,21 @@ function CustomerPortalRedirect() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-center shadow-sm">
                 <p className="font-semibold text-foreground text-sm">Already a Consultant?</p>
-                <a href="/become-consultant" className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors w-full">Request Access</a>
+                <a
+                  href="/become-consultant"
+                  className="inline-flex items-center justify-center rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors w-full"
+                >
+                  Request Access
+                </a>
               </div>
               <div className="rounded-xl border border-border bg-card p-4 space-y-2 text-center shadow-sm">
                 <p className="font-semibold text-foreground text-sm">Want to Become One?</p>
-                <a href="/become-consultant" className="inline-flex items-center justify-center rounded-lg border border-primary text-primary px-4 py-2 text-sm font-medium hover:bg-primary/10 transition-colors w-full">Start Request</a>
+                <a
+                  href="/become-consultant"
+                  className="inline-flex items-center justify-center rounded-lg border border-primary text-primary px-4 py-2 text-sm font-medium hover:bg-primary/10 transition-colors w-full"
+                >
+                  Start Request
+                </a>
               </div>
             </div>
           </div>
@@ -227,7 +474,9 @@ function CustomerPortalRedirect() {
           </div>
         )}
         <div className="text-center">
-          <button onClick={signOut} className="text-sm text-muted-foreground hover:underline">Sign out</button>
+          <button onClick={signOut} className="text-sm text-muted-foreground hover:underline">
+            Sign out
+          </button>
         </div>
       </div>
     </div>
