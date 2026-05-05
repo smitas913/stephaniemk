@@ -1945,6 +1945,7 @@ export const upsertZoomDefaults = async (defaults: {
   zoom_id?: string | null;
   zoom_password?: string | null;
   zoom_link?: string | null;
+  home_office_address?: string | null;
 }) => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Not authenticated");
