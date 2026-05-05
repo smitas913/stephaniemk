@@ -3022,8 +3022,6 @@ export default function FollowUps() {
                               <Phone className="w-3.5 h-3.5" /> Check-in
                             </Button>
                           </div>
-                        </div>
-
                         {[...birthdaysToday, ...birthdaysOverdue].filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && (
                           <p className="text-sm text-muted-foreground py-3 text-center">No birthdays or anniversaries today</p>
                         )}
