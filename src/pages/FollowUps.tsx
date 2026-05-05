@@ -2585,15 +2585,27 @@ export default function FollowUps() {
                             className="md:col-span-2"
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {renderCategoryCard(
-                                "Booking Activity",
-                                leadVisible,
-                                leadSorted.length,
-                                leadLimit,
-                                leadOverflow,
-                                "bg-amber-50 dark:bg-amber-950/30",
-                                "text-amber-600",
-                              )}
+                              <div>
+                                {renderCategoryCard(
+                                  "Booking Activity",
+                                  showAllBooking ? leadVisible : leadVisible.slice(0, 3),
+                                  leadSorted.length,
+                                  leadLimit,
+                                  leadOverflow,
+                                  "bg-amber-50 dark:bg-amber-950/30",
+                                  "text-amber-600",
+                                )}
+                                {!showAllBooking && leadVisible.length > 3 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 w-full"
+                                    onClick={() => setShowAllBooking(true)}
+                                  >
+                                    Show all {leadVisible.length}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </TodaySectionWrapper>
 
