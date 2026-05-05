@@ -3307,8 +3307,6 @@ export default function FollowUps() {
                       </Button>
                     </div>
                           </div>
-                        </div>
-
                   {/* Add note */}
                   <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Add Note</label>
