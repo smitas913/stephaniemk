@@ -2463,7 +2463,7 @@ export default function FollowUps() {
                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                              <Icon className={cn("w-3 h-3", iconColor)} /> {title} ({items.length})
                            </p>
-                           <div className="grid grid-cols-2 gap-3">
+                           <div className="divide-y divide-border/40">
                              {items.map(item => (
                                <ActionRow
                                  key={`${item.itemType}-${item.id}`}
@@ -2550,7 +2550,7 @@ export default function FollowUps() {
                             {reschedulingFollowUp.length === 0 ? (
                               <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
                             ) : (
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="divide-y divide-border/40">
                                 {reschedulingFollowUp.map((evt) => {
                                   const metaParts: string[] = [];
                                   if (evt.reschedule_last_contact_date) {
@@ -2799,7 +2799,7 @@ export default function FollowUps() {
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="divide-y divide-border/40">
                             {coachingActions.map(item => (
                               <ActionRow
                                 key={`${item.itemType}-${item.id}`}
@@ -3030,7 +3030,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Cake className="w-3 h-3" /> Customer Birthdays ({customerBirthdays.length})
                                   </p>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <div className="divide-y divide-border/40">
                                     {customerBirthdays.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
@@ -3044,7 +3044,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Cake className="w-3 h-3" /> Consultant Birthdays ({consultantBirthdays.length})
                                   </p>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <div className="divide-y divide-border/40">
                                     {consultantBirthdays.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
@@ -3058,7 +3058,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Heart className="w-3 h-3" /> Consultant Anniversaries ({anniversaries.length})
                                   </p>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <div className="divide-y divide-border/40">
                                     {anniversaries.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
@@ -3070,7 +3070,7 @@ export default function FollowUps() {
                               {upcomingAll.length > 0 && (
                                 <div>
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Coming up (7 days)</p>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <div className="divide-y divide-border/40">
                                     {upcomingAll.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={`in ${c._daysUntil}d`}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
@@ -3142,7 +3142,7 @@ export default function FollowUps() {
                       {upcomingActions.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-6 text-center">No upcoming actions this week</p>
                       ) : (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="divide-y divide-border/40">
                           {upcomingActions.map((item) => (
                             <div key={`${item.itemType}-${item.id}`} className="py-2.5 flex items-center gap-3 group">
                               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openDetailSheet(item)}>
@@ -3182,7 +3182,7 @@ export default function FollowUps() {
                       {upcomingEvents.length === 0 ? (
                         <p className="text-sm text-muted-foreground py-6 text-center">No upcoming events this week</p>
                       ) : (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="divide-y divide-border/40">
                           {upcomingEvents.map((evt) => (
                             <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
                               onClick={() => navigate(`/events/${evt.event_id}`)}>
