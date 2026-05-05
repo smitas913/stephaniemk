@@ -579,26 +579,66 @@ export default function EventDetail() {
                           </SelectContent>
                         </Select>
                       </div>
-                      {/* Location — full width */}
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {(event.event_format || "In-Person") === "Virtual" ? "Meeting Link" : "Location / Venue"}
-                        </label>
-                        <Input
-                          className="h-9 text-sm"
-                          placeholder={
-                            (event.event_format || "In-Person") === "Virtual"
-                              ? "Zoom link or meeting URL"
-                              : "Address or venue name"
-                          }
-                          defaultValue={(event as any).event_location || ""}
-                          key={`el-${(event as any).event_location}`}
-                          onBlur={(e) => {
-                            if (e.target.value !== ((event as any).event_location || ""))
-                              updateField("event_location", e.target.value || null);
-                          }}
-                        />
-                      </div>
+                      {/* Location — smart based on format */}
+                      {(event.event_format || "In-Person") === "Virtual" ? (
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Meeting Link
+                          </label>
+                          <Input
+                            className="h-9 text-sm"
+                            placeholder="Zoom link or meeting URL"
+                            defaultValue={(event as any).event_location || ""}
+                            key={`el-${(event as any).event_location}`}
+                            onBlur={(e) => {
+                              if (e.target.value !== ((event as any).event_location || ""))
+                                updateField("event_location", e.target.value || null);
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Venue Type
+                            </label>
+                            <Select
+                              value={(event as any).event_venue_type || ""}
+                              onValueChange={(val) => updateField("event_venue_type", val)}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue placeholder="Select venue type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Home">Home</SelectItem>
+                                <SelectItem value="Office">Office</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              {(event as any).event_venue_type === "Home" ? "Hostess Address" : "Location / Address"}
+                            </label>
+                            <Input
+                              className="h-9 text-sm"
+                              placeholder={
+                                (event as any).event_venue_type === "Home"
+                                  ? "123 Main St, City, State"
+                                  : (event as any).event_venue_type === "Office"
+                                    ? "Office name or address"
+                                    : "Venue name or address"
+                              }
+                              defaultValue={(event as any).event_location || ""}
+                              key={`el-${(event as any).event_location}`}
+                              onBlur={(e) => {
+                                if (e.target.value !== ((event as any).event_location || ""))
+                                  updateField("event_location", e.target.value || null);
+                              }}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
