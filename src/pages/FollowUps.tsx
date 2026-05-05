@@ -2863,7 +2863,7 @@ export default function FollowUps() {
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="divide-y divide-emerald-200/50 dark:divide-emerald-900/40">
-                            {groups.map((g) => {
+                            {(showAllCoaching ? groups : groups.slice(0, 3)).map((g) => {
                               const isExpanded = expandedEventGroups.has(g.key);
                               const more = g.items.length - 1;
                               return (
@@ -2893,6 +2893,16 @@ export default function FollowUps() {
                               );
                             })}
                           </div>
+                          {!showAllCoaching && groups.length > 3 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 w-full"
+                              onClick={() => setShowAllCoaching(true)}
+                            >
+                              Show all {groups.length}
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
                     );
