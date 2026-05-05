@@ -8,6 +8,7 @@ import {
   createNote,
   fetchAllLatestNotes,
   fetchEventTasks,
+  completeEventTask,
   type EventTask,
 } from "@/lib/queries";
 import Layout from "@/components/Layout";
