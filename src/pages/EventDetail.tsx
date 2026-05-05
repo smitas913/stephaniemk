@@ -387,46 +387,32 @@ export default function EventDetail() {
           )}
         </div>
 
-        {/* KPI Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <CalendarDays className="w-4 h-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Date</span>
-              </div>
-              <p className="text-sm font-bold text-foreground">
-                {event?.event_date ? formatDateOnly(event.event_date) : "—"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Sales</span>
-              </div>
-              <p className="text-lg font-bold text-green-600">${totalSales.toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Users className="w-4 h-4 text-purple-600" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Guests</span>
-              </div>
-              <p className="text-lg font-bold text-purple-600">{guestCount || "—"}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Conversion</span>
-              </div>
-              <p className="text-lg font-bold text-blue-600">{convRate ? `${convRate}%` : "—"}</p>
-            </CardContent>
-          </Card>
+        {/* KPI Strip — compact */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date</p>
+            <p className="text-xs font-bold text-foreground">{event?.event_date ? formatDateOnly(event.event_date, "MMM d") : "—"}</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sales</p>
+            <p className="text-xs font-bold text-green-600">${totalSales.toFixed(0)}</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Guests</p>
+            <p className="text-xs font-bold text-purple-600">{guestCount || "—"}</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
+            <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sharing</p>
+            <p className="text-xs font-bold text-orange-600">{(event as any)?.sharing_appointments_count ?? "—"}</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Conv.</p>
+            <p className="text-xs font-bold text-blue-600">{convRate ? `${convRate}%` : "—"}</p>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -460,14 +446,14 @@ export default function EventDetail() {
                     <CardTitle className="text-sm">Event Details</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Date */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event Date</label>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Date</label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full h-9 text-sm justify-start font-normal", !event.event_date && "text-muted-foreground")}>
-                              <CalendarIcon className="w-3.5 h-3.5 mr-2" />
+                            <Button variant="outline" className={cn("w-full h-8 text-xs justify-start font-normal", !event.event_date && "text-muted-foreground")}>
+                              <CalendarIcon className="w-3 h-3 mr-1.5" />
                               {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick a date"}
                             </Button>
                           </PopoverTrigger>
@@ -477,39 +463,38 @@ export default function EventDetail() {
                         </Popover>
                       </div>
                       {/* Time */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event Time</label>
-                        <Input type="time" className="h-9 text-sm" defaultValue={(event as any).event_time || ""} key={`et-${(event as any).event_time}`}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Time</label>
+                        <Input type="time" className="h-8 text-xs" defaultValue={(event as any).event_time || ""} key={`et-${(event as any).event_time}`}
                           onBlur={(e) => { if (e.target.value !== ((event as any).event_time || "")) updateField("event_time", e.target.value || null); }} />
                       </div>
                       {/* Event Type */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Event Type</label>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Type</label>
                         <Select value={event.event_type || ""} onValueChange={(val) => { if (val !== (event.event_type || "")) eventMutation.mutate({ event_id: event.event_id, event_type: val }); }}>
-                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select type" /></SelectTrigger>
                           <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       {/* Format */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Format</label>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Format</label>
                         <Select value={event.event_format || "In-Person"} onValueChange={(val) => {
                           if (val !== (event.event_format || "In-Person")) {
                             eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
-                            // Auto-fill zoom link when switching to Virtual
                             if (val === "Virtual" && zoomDefaults?.zoom_link) {
                               setLocalLocation(zoomDefaults.zoom_link);
                               updateField("event_location", zoomDefaults.zoom_link);
                             }
                           }
                         }}>
-                          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>{EVENT_FORMATS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       {/* Unified Status */}
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
                         <Select
                           value={
                             (event as any).reschedule_status === "In Process of Rescheduling"
@@ -529,7 +514,7 @@ export default function EventDetail() {
                             }
                           }}
                         >
-                          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Booked">Booked</SelectItem>
                             <SelectItem value="In Process of Rescheduling">In Process of Rescheduling</SelectItem>
