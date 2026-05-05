@@ -4,8 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, createProspect } from "@/lib/queries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, updateCustomer } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MessageSquare } from "lucide-react";
@@ -18,6 +21,22 @@ const INTEREST_LEVELS = [1,2,3,4,5,6,7,8,9,10].map(n => ({
     : n <= 8 ? "border-orange-200 text-orange-600 bg-orange-50 dark:bg-orange-950/30"
     : "border-green-200 text-green-600 bg-green-50 dark:bg-green-950/30",
 }));
+
+const MY_NEXT_STEPS = [
+  { value: "book_party", label: "Book for a party" },
+  { value: "book_facial", label: "Book for a facial" },
+  { value: "invite_event", label: "Invite to upcoming event" },
+  { value: "follow_up", label: "Add to follow-up system" },
+  { value: "not_interested", label: "Not interested — no follow-up" },
+  { value: "none", label: "No next step yet" },
+];
+
+const CONSULTANT_NEXT_STEPS = [
+  { value: "coach_followup", label: "Remind me to coach consultant on this prospect" },
+  { value: "book_party", label: "Help consultant book a party with this prospect" },
+  { value: "book_facial", label: "Help consultant book a facial" },
+  { value: "none", label: "No next step yet" },
+];
 
 export default function QuickCareerChatDialog({
   open,
@@ -35,6 +54,7 @@ export default function QuickCareerChatDialog({
   const [consultantQuery, setConsultantQuery] = useState("");
   const [selectedConsultant, setSelectedConsultant] = useState<{ id: string; name: string } | null>(null);
   const [interestLevel, setInterestLevel] = useState<number | null>(null);
+  const [nextStep, setNextStep] = useState("none");
   const [notes, setNotes] = useState("");
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: open });
@@ -59,19 +79,25 @@ export default function QuickCareerChatDialog({
   const consultantMatches = useMemo(() => {
     const q = consultantQuery.toLowerCase().trim();
     if (!q || selectedConsultant) return [];
-    return consultants.filter((c: any) => c.name?.toLowerCase().includes(q)).slice(0, 5);
+    return (consultants as any[]).filter((c: any) => c.name?.toLowerCase().includes(q)).slice(0, 5);
   }, [consultants, consultantQuery, selectedConsultant]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
       const today = toLocalDateKey();
-      const interestLabel = INTEREST_LEVELS.find(l => l.value === interestLevel)?.label || "";
+      const interestLabel = interestLevel ? `Interest: ${interestLevel}/10` : "";
+      const nextStepOptions = isForConsultant ? CONSULTANT_NEXT_STEPS : MY_NEXT_STEPS;
+      const nextStepLabel = nextStepOptions.find(s => s.value === nextStep)?.label || "";
+
       const noteBody = [
-        isForConsultant && selectedConsultant ? `Coaching career chat with ${selectedConsultant.name}` : "Career chat",
-        selected ? `with ${selected.name}` : query.trim() ? `with ${query.trim()}` : "",
-        interestLevel ? `· Interest: ${interestLabel} (${interestLevel}/5)` : "",
+        isForConsultant && selectedConsultant ? `Career chat coached with ${selectedConsultant.name}` : "Career chat",
+        selected ? `— ${selected.name}` : query.trim() ? `— ${query.trim()}` : "",
+        interestLabel ? `· ${interestLabel}` : "",
+        nextStep !== "none" ? `· Next: ${nextStepLabel}` : "",
         notes.trim() ? `\n${notes.trim()}` : "",
       ].filter(Boolean).join(" ");
+
+      const personName = selected?.name || query.trim();
 
       if (isForConsultant && selectedConsultant) {
         // Log under consultant profile
@@ -84,8 +110,14 @@ export default function QuickCareerChatDialog({
           note_date: today,
           result_type: "Career Chat",
         });
+        // Set consultant follow-up reminder
+        if (nextStep === "coach_followup") {
+          const followUpDate = format(addDays(new Date(), 3), "yyyy-MM-dd");
+          await supabase.from("team_consultants" as any)
+            .update({ next_follow_up_date: followUpDate, follow_up_notes: `Coach on prospect: ${personName}` } as any)
+            .eq("id", selectedConsultant.id);
+        }
       } else if (selected) {
-        // Log under existing person
         const entityType = selected.kind === "customer" ? "Customer"
           : selected.kind === "prospect" ? "Prospect" : "Lead";
         await createNote({
@@ -99,17 +131,29 @@ export default function QuickCareerChatDialog({
           note_date: today,
           result_type: "Career Chat",
         });
-      } else if (query.trim()) {
-        // New person — create as prospect
-        const newProspect = (await createProspect({
-          name: query.trim(),
-          opportunity_status: interestLevel && interestLevel >= 4 ? "Interested" : "Follow-Up",
-        } as any)) as any;
+        // Apply next step for existing person
+        if (selected.kind === "customer" && nextStep === "follow_up") {
+          const followUpDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
+          await updateCustomer(selected.id, { next_follow_up_date: followUpDate, follow_up_reason: "Career Chat Follow-Up" } as any);
+        }
+      } else if (personName) {
+        // New person — create prospect directly via supabase
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        const { data: newProspect, error } = await supabase
+          .from("prospects" as any)
+          .insert({
+            name: personName,
+            opportunity_status: interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up",
+            owner_user_id: userId,
+          } as any)
+          .select()
+          .single();
+        if (error) throw error;
         await createNote({
           entity_type: "Prospect",
           person_type: "prospect",
-          person_id: newProspect.id,
-          prospect_id: newProspect.id,
+          person_id: (newProspect as any).id,
+          prospect_id: (newProspect as any).id,
           note_body: noteBody,
           note_type: "Career Chat",
           note_date: today,
@@ -121,25 +165,26 @@ export default function QuickCareerChatDialog({
       qc.invalidateQueries({ queryKey: ["prospects"] });
       qc.invalidateQueries({ queryKey: ["all-notes"] });
       qc.invalidateQueries({ queryKey: ["unified-notes"] });
+      qc.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Career chat logged! 💬");
       onLogged();
       onOpenChange(false);
       reset();
     },
-    onError: () => toast.error("Failed to log career chat"),
+    onError: (e: any) => toast.error(e?.message || "Failed to log career chat"),
   });
 
   const reset = () => {
     setQuery(""); setSelected(null); setIsForConsultant(false);
     setConsultantQuery(""); setSelectedConsultant(null);
-    setInterestLevel(null); setNotes("");
+    setInterestLevel(null); setNextStep("none"); setNotes("");
   };
 
   const canSave = (selected || query.trim()) && (!isForConsultant || selectedConsultant);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-primary" /> Quick Career Chat
@@ -149,9 +194,7 @@ export default function QuickCareerChatDialog({
         <div className="space-y-3">
           {/* Person name */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Who did you chat with?
-            </label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Who did you chat with?</label>
             <Input
               autoFocus
               placeholder="Search or type name..."
@@ -175,7 +218,7 @@ export default function QuickCareerChatDialog({
           {/* For consultant toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isForConsultant}
-              onChange={e => { setIsForConsultant(e.target.checked); setSelectedConsultant(null); setConsultantQuery(""); }}
+              onChange={e => { setIsForConsultant(e.target.checked); setSelectedConsultant(null); setConsultantQuery(""); setNextStep("none"); }}
               className="rounded border-border" />
             <span className="text-xs font-medium text-foreground">This is for one of my consultants</span>
           </label>
@@ -219,6 +262,19 @@ export default function QuickCareerChatDialog({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Next step */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Next step</label>
+            <Select value={nextStep} onValueChange={setNextStep}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(isForConsultant ? CONSULTANT_NEXT_STEPS : MY_NEXT_STEPS).map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Notes */}
