@@ -2665,6 +2665,7 @@ export default function FollowUps() {
                             collapsed={!!collapsed["booking"]}
                             onToggleCollapsed={() => toggleCollapsed("booking")}
                             onMove={(d) => moveSection("booking", d)}
+                            className="md:col-span-2"
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {renderCategoryCard(
