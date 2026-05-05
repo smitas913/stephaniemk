@@ -938,7 +938,8 @@ export default function FollowUps() {
         };
       });
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems, ...eventTaskItems];
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
+    // Note: event_tasks are shown in Event Coaching section, not the main follow-up list
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
       // Overdue first, then today
       const aOverdue = a.follow_up_status === "OVERDUE" ? 0 : 1;
@@ -2202,7 +2203,20 @@ export default function FollowUps() {
       <div className={cn("pb-8", isMobile ? "space-y-2" : "space-y-4")}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>Today</h2>
+            <div className="flex items-center gap-3">
+              <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>
+                {tab === "upcoming" ? "Upcoming" : "Today"}
+              </h2>
+              <Button
+                size="sm"
+                variant={tab === "upcoming" ? "default" : "outline"}
+                className="h-7 text-xs gap-1.5"
+                onClick={() => setTab(tab === "upcoming" ? "today" : "upcoming")}
+              >
+                <CalendarRange className="w-3.5 h-3.5" />
+                {tab === "upcoming" ? "Back to Today" : `Upcoming (${upcomingActions.length + upcomingEvents.length})`}
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
@@ -2242,20 +2256,8 @@ export default function FollowUps() {
           </div>
         ) : (
           <>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "today" | "upcoming")}>
-              <TabsList>
-                <TabsTrigger value="today" className="gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />Today
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{todayActions.length}</Badge>
-                </TabsTrigger>
-                <TabsTrigger value="upcoming" className="gap-1.5">
-                  <CalendarRange className="w-3.5 h-3.5" />Upcoming
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">{upcomingActions.length + upcomingEvents.length}</Badge>
-                </TabsTrigger>
-              </TabsList>
-
-              {/* ===== TODAY TAB — COMMAND CENTER ===== */}
-              <TabsContent value="today" className="mt-4">
+            <div>
+              {tab === "today" ? (
                 {isOOOActive && (
                   <div className="mb-3 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 px-3 py-2 sm:flex sm:items-center sm:gap-3">
                     {/* Mobile: stacked compact rows. Desktop (sm+): single row. */}
@@ -2903,7 +2905,7 @@ export default function FollowUps() {
                             <Heart className="w-4 h-4 text-pink-600" />
                           </div>
                           <CardTitle className="text-sm font-semibold text-foreground">Relationships</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{(hideWorkflow ? 0 : todayEvents.length + todayDeliveries.length) + birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length}</Badge>
+                          <Badge variant="secondary" className="text-xs">{birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length}</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <label className="text-xs text-muted-foreground cursor-pointer" htmlFor="upcoming-toggle">+7d birthdays</label>
@@ -2913,80 +2915,84 @@ export default function FollowUps() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="space-y-3">
-                        {!hideWorkflow && todayEvents.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" /> Events ({todayEvents.length})
-                            </p>
-                            <div className="divide-y divide-border/40">
-                              {todayEvents.map((evt) => (
-                                <div key={evt.id} className="py-2 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                                  onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                      {evt.event_type && <span>{evt.event_type}</span>}
-                                      {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                    </div>
-                                  </div>
-                                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {!hideWorkflow && todayDeliveries.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                              <Truck className="w-3 h-3" /> Deliveries ({todayDeliveries.length})
-                            </p>
-                            <div className="divide-y divide-border/40">
-                              {todayDeliveries.map((del: any) => (
-                                <div key={del.id} className="py-2 flex items-center gap-3 px-1">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-foreground truncate">{del.customer_name || "Delivery"}</p>
-                                    {del.address && <p className="text-xs text-muted-foreground truncate">{del.address}</p>}
-                                    {del.notes && <p className="text-xs text-muted-foreground italic truncate">{del.notes}</p>}
-                                  </div>
-                                  {del.phone && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
-                                      <a href={`tel:${phoneForLink(del.phone)}`}><Phone className="w-3.5 h-3.5 text-primary" /></a>
-                                    </Button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {/* Birthdays + Anniversaries */}
+                        {/* Birthdays + Anniversaries — ordered: Customer Birthdays, Consultant Birthdays, Anniversaries */}
                         {(() => {
-                          const activeOverdue = birthdaysOverdue.filter(c => !isRelationshipDone(c));
-                          const activeToday = birthdaysToday.filter(c => !isRelationshipDone(c));
+                          const allActive = [
+                            ...birthdaysOverdue.filter(c => !isRelationshipDone(c)),
+                            ...birthdaysToday.filter(c => !isRelationshipDone(c)),
+                          ];
                           const completedCount = [...birthdaysToday, ...birthdaysOverdue].filter(c => isRelationshipDone(c)).length;
-                          const totalActive = activeOverdue.length + activeToday.length;
-                          if (totalActive === 0 && completedCount === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0)) return null;
                           const rowKey = (c: ActionItem & { _eventType?: string }) => `${c.itemType}-${c.id}-${c._eventType || "birthday"}`;
+                          const getLabel = (c: ActionItem & { _daysUntil?: number }) =>
+                            (c._daysUntil ?? 0) < 0 ? `Missed by ${Math.abs(c._daysUntil ?? 0)}d` : "Today";
+
+                          // Split into groups
+                          const customerBirthdays = allActive.filter(c => c.itemType === "customer" && c._eventType !== "anniversary");
+                          const consultantBirthdays = allActive.filter(c => c.itemType === "consultant" && c._eventType !== "anniversary");
+                          const anniversaries = allActive.filter(c => c._eventType === "anniversary");
+                          const upcomingAll = showUpcoming7 ? birthdaysUpcoming : [];
+
+                          const totalActive = allActive.length;
+                          if (totalActive === 0 && completedCount === 0 && upcomingAll.length === 0) return null;
+
                           return (
-                            <div>
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
-                                <Cake className="w-3 h-3" /> Birthdays & Anniversaries ({totalActive})
-                              </p>
-                              <div className="divide-y divide-border/40">
-                                {activeOverdue.map((c) => (
-                                  <BirthdayRow key={rowKey(c)} item={c} label={`Missed by ${Math.abs(c._daysUntil)}d`} isOverdue
-                                    onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
-                                ))}
-                                {activeToday.map((c) => (
-                                  <BirthdayRow key={rowKey(c)} item={c} label="Today"
-                                    onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
-                                ))}
-                                {showUpcoming7 && birthdaysUpcoming.map((c) => (
-                                  <BirthdayRow key={rowKey(c)} item={c} label={`in ${c._daysUntil}d`}
-                                    onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
-                                ))}
-                              </div>
+                            <div className="space-y-3">
+                              {/* Customer Birthdays */}
+                              {customerBirthdays.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                    <Cake className="w-3 h-3" /> Customer Birthdays ({customerBirthdays.length})
+                                  </p>
+                                  <div className="divide-y divide-border/40">
+                                    {customerBirthdays.map((c) => (
+                                      <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
+                                        onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Consultant Birthdays */}
+                              {consultantBirthdays.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                    <Cake className="w-3 h-3" /> Consultant Birthdays ({consultantBirthdays.length})
+                                  </p>
+                                  <div className="divide-y divide-border/40">
+                                    {consultantBirthdays.map((c) => (
+                                      <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
+                                        onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Anniversaries with years */}
+                              {anniversaries.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
+                                    <Heart className="w-3 h-3" /> Consultant Anniversaries ({anniversaries.length})
+                                  </p>
+                                  <div className="divide-y divide-border/40">
+                                    {anniversaries.map((c) => (
+                                      <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
+                                        onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {/* Upcoming 7 days */}
+                              {upcomingAll.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Coming up (7 days)</p>
+                                  <div className="divide-y divide-border/40">
+                                    {upcomingAll.map((c) => (
+                                      <BirthdayRow key={rowKey(c)} item={c} label={`in ${c._daysUntil}d`}
+                                        onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                               {completedCount > 0 && (
-                                <p className="text-[10px] text-muted-foreground italic px-2 py-1 mt-1">
+                                <p className="text-[10px] text-muted-foreground italic px-2 py-1">
                                   ✓ {completedCount} relationship touch{completedCount > 1 ? "es" : ""} sent
                                 </p>
                               )}
@@ -2995,32 +3001,30 @@ export default function FollowUps() {
                         })()}
 
                         {/* Thoughtful Touches quick-log */}
-                        {!hideWorkflow && (
-                          <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                <Heart className="w-3 h-3" /> Thoughtful Touches
-                              </p>
-                              {monthlyTouchCount > 0 && (
-                                <span className="text-[10px] text-muted-foreground">{monthlyTouchCount} this month</span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
-                                <FileText className="w-3.5 h-3.5" /> Card Sent
-                              </Button>
-                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
-                                <Gift className="w-3.5 h-3.5" /> Gift
-                              </Button>
-                              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
-                                <Phone className="w-3.5 h-3.5" /> Check-in
-                              </Button>
-                            </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                              <Heart className="w-3 h-3" /> Thoughtful Touches
+                            </p>
+                            {monthlyTouchCount > 0 && (
+                              <span className="text-[10px] text-muted-foreground">{monthlyTouchCount} this month</span>
+                            )}
                           </div>
-                        )}
+                          <div className="flex flex-wrap gap-1.5">
+                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
+                              <FileText className="w-3.5 h-3.5" /> Card Sent
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
+                              <Gift className="w-3.5 h-3.5" /> Gift
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
+                              <Phone className="w-3.5 h-3.5" /> Check-in
+                            </Button>
+                          </div>
+                        </div>
 
-                        {(hideWorkflow ? 0 : todayEvents.length) === 0 && (hideWorkflow ? 0 : todayDeliveries.length) === 0 && birthdaysToday.filter(c => !isRelationshipDone(c)).length === 0 && birthdaysOverdue.filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && hideWorkflow && (
-                          <p className="text-sm text-muted-foreground py-3 text-center">Nothing scheduled today</p>
+                        {[...birthdaysToday, ...birthdaysOverdue].filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && (
+                          <p className="text-sm text-muted-foreground py-3 text-center">No birthdays or anniversaries today</p>
                         )}
                       </div>
                     </CardContent>
@@ -3033,11 +3037,8 @@ export default function FollowUps() {
                   {/* ═══ SECTION: To-Do List ═══ */}
                   <TodoListCard />
                 </div>
-              </TabsContent>
-
-              {/* ===== UPCOMING TAB ===== */}
-              <TabsContent value="upcoming" className="mt-4">
-                <div className="space-y-4">
+              ) : (
+              <div className="space-y-4 mt-4">
                   {/* Upcoming Actions */}
                   <Card className="border-border/50 shadow-sm">
                     <CardHeader className="pb-2">
@@ -3114,7 +3115,9 @@ export default function FollowUps() {
                   </Card>
                 </div>
               </TabsContent>
-            </Tabs>
+              </div>
+              )}
+            </div>
           </>
         )}
 
