@@ -2930,8 +2930,8 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Cake className="w-3 h-3" /> Customer Birthdays ({customerBirthdays.length})
                                   </p>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {customerBirthdays.map((c) => (
+                                   <div className="grid grid-cols-3 gap-2">
+                                     {customerBirthdays.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
                                     ))}
@@ -2944,8 +2944,8 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Cake className="w-3 h-3" /> Consultant Birthdays ({consultantBirthdays.length})
                                   </p>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {consultantBirthdays.map((c) => (
+                                   <div className="grid grid-cols-3 gap-2">
+                                     {consultantBirthdays.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
                                     ))}
@@ -2958,8 +2958,8 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Heart className="w-3 h-3" /> Consultant Anniversaries ({anniversaries.length})
                                   </p>
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {anniversaries.map((c) => (
+                                   <div className="grid grid-cols-3 gap-2">
+                                     {anniversaries.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
                                     ))}
@@ -4892,21 +4892,21 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
       <div className="flex items-center gap-1 mt-2">
         {item.phone && (
           <>
-            <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Call">
+            <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="Call">
               <a href={`tel:${item.phone}`}><Phone className="w-4 h-4 text-primary" /></a>
             </Button>
-            <TextActionButton phone={item.phone} trigger="icon" className="h-8 w-8" />
+            <TextActionButton phone={item.phone} trigger="icon" className="h-7 w-7" />
           </>
         )}
         {item.email && (
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Email">
+          <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="Email">
             <a href={`mailto:${item.email}`} onClick={(e) => openEmail(item.email!, e)}>
               <Mail className="w-4 h-4 text-primary" />
             </a>
           </Button>
         )}
         {onDone && (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDone} title="Mark Done">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onDone} title="Mark Done">
             <CheckCircle2 className="w-4 h-4 text-primary" />
           </Button>
         )}
