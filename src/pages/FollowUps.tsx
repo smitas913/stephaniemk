@@ -276,6 +276,7 @@ export default function FollowUps() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"today" | "upcoming">("today");
+  const { order, collapsed, toggleCollapsed, moveSection } = useTodaySections();
 
   // Data
   const { data: customers = [], isLoading: cLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
