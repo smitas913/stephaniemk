@@ -2732,18 +2732,37 @@ export default function FollowUps() {
                       });
 
                       return (
-                        <MobileTeamAttention
-                          items={coachingActions.map(toTeamItem)}
-                          onSchedule={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
-                          onCall={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onText={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onNote={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onOpen={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
-                        />
+                        <TodaySectionWrapper
+                          sectionKey="coaching"
+                          title="Coaching"
+                          order={order.indexOf("coaching")}
+                          totalSections={5}
+                          collapsed={!!collapsed["coaching"]}
+                          onToggleCollapsed={() => toggleCollapsed("coaching")}
+                          onMove={(d) => moveSection("coaching", d)}
+                        >
+                          <MobileTeamAttention
+                            items={coachingActions.map(toTeamItem)}
+                            onSchedule={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
+                            onCall={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                            onText={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                            onNote={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
+                            onOpen={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
+                          />
+                        </TodaySectionWrapper>
                       );
                     }
 
                     return (
+                      <TodaySectionWrapper
+                        sectionKey="coaching"
+                        title="Coaching"
+                        order={order.indexOf("coaching")}
+                        totalSections={5}
+                        collapsed={!!collapsed["coaching"]}
+                        onToggleCollapsed={() => toggleCollapsed("coaching")}
+                        onMove={(d) => moveSection("coaching", d)}
+                      >
                       <Card className="border-border/50 shadow-sm">
                         <CardHeader className="pb-2">
                           <div className="flex items-center gap-2">
@@ -2781,6 +2800,7 @@ export default function FollowUps() {
                           </div>
                         </CardContent>
                       </Card>
+                      </TodaySectionWrapper>
                     );
                   })()}
 
