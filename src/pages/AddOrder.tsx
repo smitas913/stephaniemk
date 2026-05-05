@@ -1503,10 +1503,9 @@ export default function AddOrder() {
               Follow-Up Intent <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <select
-              value={orderDate < toLocalDateKey() ? "none" : followUpIntent}
-              disabled={orderDate < toLocalDateKey()}
+              value={followUpIntent}
               onChange={(e) => setFollowUpIntent(e.target.value as FollowUpIntent)}
-              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+              className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {getFollowUpIntentOptions("order").map((o) => (
                 <option key={o.value} value={o.value}>
@@ -1516,7 +1515,7 @@ export default function AddOrder() {
             </select>
             <p className="text-xs text-muted-foreground mt-1">
               {orderDate < toLocalDateKey()
-                ? "Backdated orders won't auto-create follow-ups."
+                ? "Backdated order — follow-up will be scheduled from today."
                 : "No follow-up is created unless you choose one."}
             </p>
           </div>
