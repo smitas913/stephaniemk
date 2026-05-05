@@ -3315,8 +3315,6 @@ export default function FollowUps() {
                       {detailNoteMutation.isPending ? "Saving..." : "Save Note"}
                     </Button>
                           </div>
-                        </div>
-
                   {/* Notes Timeline (Prospects) */}
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
