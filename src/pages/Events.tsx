@@ -427,8 +427,6 @@ export default function Events() {
                 )}
               </>
             )}
-            )}
-          </div>
         </div>
 
         {/* Row 2: Hostess name + type */}
