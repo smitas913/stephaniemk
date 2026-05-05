@@ -985,7 +985,7 @@ export default function FollowUps() {
     const reschedulingFollowUp = events.filter((e) => {
       if (e.is_archived) return false;
       const reschedule = e.reschedule_status || "None";
-      const isReschedule = reschedule === "In Process of Rescheduling" || e.event_status === "Cancelled";
+      const isReschedule = reschedule === "In Process of Rescheduling";
       if (!isReschedule) return false;
       if (e.requires_manual_next_step) return true;
       const fu = e.reschedule_next_follow_up_date;
