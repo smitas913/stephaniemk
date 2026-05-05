@@ -3030,7 +3030,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Cake className="w-3 h-3" /> Customer Birthdays ({customerBirthdays.length})
                                   </p>
-                                  <div className="divide-y divide-border/40">
+                                  <div className="grid grid-cols-2 gap-3">
                                     {customerBirthdays.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
@@ -3044,7 +3044,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Cake className="w-3 h-3" /> Consultant Birthdays ({consultantBirthdays.length})
                                   </p>
-                                  <div className="divide-y divide-border/40">
+                                  <div className="grid grid-cols-2 gap-3">
                                     {consultantBirthdays.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
@@ -3058,7 +3058,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Heart className="w-3 h-3" /> Consultant Anniversaries ({anniversaries.length})
                                   </p>
-                                  <div className="divide-y divide-border/40">
+                                  <div className="grid grid-cols-2 gap-3">
                                     {anniversaries.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
@@ -3070,7 +3070,7 @@ export default function FollowUps() {
                               {upcomingAll.length > 0 && (
                                 <div>
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Coming up (7 days)</p>
-                                  <div className="divide-y divide-border/40">
+                                  <div className="grid grid-cols-2 gap-3">
                                     {upcomingAll.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={`in ${c._daysUntil}d`}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
@@ -4971,7 +4971,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
     <div className="py-3 px-2 group hover:bg-muted/30 transition-colors rounded-md">
       {/* Line 1: Name */}
       <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigate}>
-        <p className="text-base font-semibold text-foreground break-words">{item.name}</p>
+        <p className="text-sm font-semibold text-foreground break-words">{item.name}</p>
         {item.vip === "VIP" && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>
         )}
