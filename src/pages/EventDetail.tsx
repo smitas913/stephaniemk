@@ -606,15 +606,15 @@ export default function EventDetail() {
                           <Input
                             className="h-9 text-sm"
                             placeholder="Zoom link or meeting URL"
-                            defaultValue={(event as any).event_location || ""}
-                            key={`el-${(event as any).event_location}`}
+                            value={locationDraft}
+                            onChange={(e) => setLocationDraft(e.target.value)}
                             onBlur={(e) => {
                               if (e.target.value !== ((event as any).event_location || ""))
                                 updateField("event_location", e.target.value || null);
                             }}
                           />
-                          {/* Show zoom defaults as a quick-fill if location is empty */}
-                          {!(event as any).event_location && (zoomDefaults?.zoom_link || zoomDefaults?.zoom_id) && (
+                          {/* Always show saved Zoom info & quick-fill button */}
+                          {(zoomDefaults?.zoom_link || zoomDefaults?.zoom_id) && (
                             <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
                               <p className="text-xs font-medium text-muted-foreground">Your saved Zoom info:</p>
                               {zoomDefaults?.zoom_id && (
@@ -632,7 +632,10 @@ export default function EventDetail() {
                                   size="sm"
                                   variant="outline"
                                   className="h-7 text-xs mt-1"
-                                  onClick={() => updateField("event_location", zoomDefaults.zoom_link)}
+                                  onClick={() => {
+                                    setLocationDraft(zoomDefaults.zoom_link || "");
+                                    updateField("event_location", zoomDefaults.zoom_link);
+                                  }}
                                 >
                                   Use my Zoom link
                                 </Button>
