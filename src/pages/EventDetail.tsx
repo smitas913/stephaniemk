@@ -134,6 +134,12 @@ export default function EventDetail() {
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
 
+  // Controlled location field (kept in sync with event so venue switches refresh it)
+  const [locationDraft, setLocationDraft] = useState<string>("");
+  useEffect(() => {
+    setLocationDraft(((event as any)?.event_location as string) || "");
+  }, [(event as any)?.event_location, (event as any)?.event_venue_type, event?.event_format]);
+
   const openHostessActionPanel = useCallback(() => {
     if (!event?.hostess_name) return;
     const recentNotes = unifiedNotes
