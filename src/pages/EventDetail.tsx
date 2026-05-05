@@ -134,12 +134,6 @@ export default function EventDetail() {
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
 
-  // Controlled location field (kept in sync with event so venue switches refresh it)
-  const [locationDraft, setLocationDraft] = useState<string>("");
-  useEffect(() => {
-    setLocationDraft(((event as any)?.event_location as string) || "");
-  }, [(event as any)?.event_location, (event as any)?.event_venue_type, event?.event_format]);
-
   const openHostessActionPanel = useCallback(() => {
     if (!event?.hostess_name) return;
     const recentNotes = unifiedNotes
@@ -321,6 +315,13 @@ export default function EventDetail() {
       }) || null
     );
   }, [customers, event?.hostess_name, event?.hostess_phone]);
+
+  // Controlled local state for location field so it stays in sync when venue type changes
+  const [localLocation, setLocalLocation] = useState((event as any)?.event_location || "");
+  // Keep in sync when event loads or changes
+  useMemo(() => {
+    setLocalLocation((event as any)?.event_location || "");
+  }, [(event as any)?.event_location]);
 
   // Prep progress
   const prepDone = event ? PREP_STEPS.filter((s) => (event as any)[s.field]).length : 0;
@@ -536,8 +537,9 @@ export default function EventDetail() {
                           onValueChange={(val) => {
                             if (val !== (event.event_format || "In-Person")) {
                               eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
-                              // Auto-fill zoom link when switching to Virtual (always overwrite)
+                              // Auto-fill zoom link when switching to Virtual
                               if (val === "Virtual" && zoomDefaults?.zoom_link) {
+                                setLocalLocation(zoomDefaults.zoom_link);
                                 updateField("event_location", zoomDefaults.zoom_link);
                               }
                             }
@@ -606,14 +608,14 @@ export default function EventDetail() {
                           <Input
                             className="h-9 text-sm"
                             placeholder="Zoom link or meeting URL"
-                            value={locationDraft}
-                            onChange={(e) => setLocationDraft(e.target.value)}
+                            value={localLocation}
+                            onChange={(e) => setLocalLocation(e.target.value)}
                             onBlur={(e) => {
                               if (e.target.value !== ((event as any).event_location || ""))
                                 updateField("event_location", e.target.value || null);
                             }}
                           />
-                          {/* Always show saved Zoom info & quick-fill button */}
+                          {/* Always show zoom defaults as a quick-fill */}
                           {(zoomDefaults?.zoom_link || zoomDefaults?.zoom_id) && (
                             <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
                               <p className="text-xs font-medium text-muted-foreground">Your saved Zoom info:</p>
@@ -633,7 +635,7 @@ export default function EventDetail() {
                                   variant="outline"
                                   className="h-7 text-xs mt-1"
                                   onClick={() => {
-                                    setLocationDraft(zoomDefaults.zoom_link || "");
+                                    setLocalLocation(zoomDefaults.zoom_link!);
                                     updateField("event_location", zoomDefaults.zoom_link);
                                   }}
                                 >
@@ -653,10 +655,13 @@ export default function EventDetail() {
                               value={(event as any).event_venue_type || ""}
                               onValueChange={(val) => {
                                 updateField("event_venue_type", val);
-                                // Auto-fill address for My Home Office (always overwrite)
                                 if (val === "My Home Office" && zoomDefaults?.home_office_address) {
-                                  setLocationDraft(zoomDefaults.home_office_address);
+                                  setLocalLocation(zoomDefaults.home_office_address);
                                   updateField("event_location", zoomDefaults.home_office_address);
+                                } else if (val === "Hostess's Home" || val === "Other Venue") {
+                                  // Clear the address so they can enter the correct one
+                                  setLocalLocation("");
+                                  updateField("event_location", null);
                                 }
                               }}
                             >
@@ -687,26 +692,29 @@ export default function EventDetail() {
                                     ? "Your home office address"
                                     : "Venue name or address"
                               }
-                              value={locationDraft}
-                              onChange={(e) => setLocationDraft(e.target.value)}
+                              value={localLocation}
+                              onChange={(e) => setLocalLocation(e.target.value)}
                               onBlur={(e) => {
                                 if (e.target.value !== ((event as any).event_location || ""))
                                   updateField("event_location", e.target.value || null);
                               }}
                             />
-                            {(event as any).event_venue_type === "My Home Office" && zoomDefaults?.home_office_address && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs mt-1"
-                                onClick={() => {
-                                  setLocationDraft(zoomDefaults.home_office_address || "");
-                                  updateField("event_location", zoomDefaults.home_office_address);
-                                }}
-                              >
-                                Use my home office address
-                              </Button>
-                            )}
+                            {/* Only show button if field is empty or has a different value */}
+                            {(event as any).event_venue_type === "My Home Office" &&
+                              zoomDefaults?.home_office_address &&
+                              localLocation !== zoomDefaults.home_office_address && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => {
+                                    setLocalLocation(zoomDefaults.home_office_address!);
+                                    updateField("event_location", zoomDefaults.home_office_address);
+                                  }}
+                                >
+                                  Use my home office address
+                                </Button>
+                              )}
                           </div>
                         </>
                       )}
