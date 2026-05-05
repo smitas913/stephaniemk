@@ -1,6 +1,15 @@
 import { Fragment, useMemo, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, fetchOrders, deleteEvent, upsertEvent, createNote, fetchAllLatestNotes, fetchEventTasks, type EventTask } from "@/lib/queries";
+import {
+  fetchEvents,
+  fetchOrders,
+  deleteEvent,
+  upsertEvent,
+  createNote,
+  fetchAllLatestNotes,
+  fetchEventTasks,
+  type EventTask,
+} from "@/lib/queries";
 import Layout from "@/components/Layout";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
@@ -9,12 +18,43 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList, SlidersHorizontal, MoreHorizontal, X } from "lucide-react";
+import {
+  Search,
+  Calendar,
+  Users,
+  DollarSign,
+  Plus,
+  Trash2,
+  MessageSquare,
+  ShoppingBag,
+  CheckCircle2,
+  ClipboardList,
+  SlidersHorizontal,
+  MoreHorizontal,
+  X,
+  ChevronRight,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
@@ -23,17 +63,23 @@ import type { EventRecord } from "@/lib/types";
 
 const statusColor = (s: string) => {
   switch (s) {
-    case "Held": return "bg-green-100 text-green-700 border-green-200";
-    case "Cancelled": return "bg-red-100 text-red-700 border-red-200";
-    default: return "bg-blue-100 text-blue-700 border-blue-200";
+    case "Held":
+      return "bg-green-100 text-green-700 border-green-200";
+    case "Cancelled":
+      return "bg-red-100 text-red-700 border-red-200";
+    default:
+      return "bg-blue-100 text-blue-700 border-blue-200";
   }
 };
 
 const rescheduleColor = (s: string | null) => {
   switch (s) {
-    case "Rescheduled": return "bg-amber-100 text-amber-700 border-amber-200";
-    case "In Process of Rescheduling": return "bg-orange-100 text-orange-700 border-orange-200";
-    default: return "";
+    case "Rescheduled":
+      return "bg-amber-100 text-amber-700 border-amber-200";
+    case "In Process of Rescheduling":
+      return "bg-orange-100 text-orange-700 border-orange-200";
+    default:
+      return "";
   }
 };
 
@@ -91,34 +137,48 @@ export default function Events() {
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
 
-  const openHostessPanel = useCallback((e: EventRecord) => {
-    if (!e.hostess_name) return;
-    const recentNotes = unifiedNotes
-      .filter((n: any) => n.entity_type === "Hostess" && n.note_body?.includes(e.hostess_name!))
-      .slice(0, 5)
-      .map((n: any) => ({
-        date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
-        actionType: n.note_type || "Note",
-        preview: (n.note_body || "").slice(0, 80),
-      }));
-    setActionPanelItem({
-      id: e.id,
-      personType: "hostess",
-      name: e.hostess_name,
-      phone: e.hostess_phone || null,
-      email: e.hostess_email || null,
-      statusLabel: `${e.event_type || "Event"} — ${e.event_status || "Booked"}`,
-      followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
-      nextFollowUpDate: (e as any).hostess_next_action_date || null,
-      recentNotes,
-    });
-    setActionPanelOpen(true);
-  }, [unifiedNotes]);
+  const openHostessPanel = useCallback(
+    (e: EventRecord) => {
+      if (!e.hostess_name) return;
+      const recentNotes = unifiedNotes
+        .filter((n: any) => n.entity_type === "Hostess" && n.note_body?.includes(e.hostess_name!))
+        .slice(0, 5)
+        .map((n: any) => ({
+          date: n.note_date ? formatDateOnly(n.note_date, "MMM d") : "",
+          actionType: n.note_type || "Note",
+          preview: (n.note_body || "").slice(0, 80),
+        }));
+      setActionPanelItem({
+        id: e.id,
+        personType: "hostess",
+        name: e.hostess_name,
+        phone: e.hostess_phone || null,
+        email: e.hostess_email || null,
+        statusLabel: `${e.event_type || "Event"} — ${e.event_status || "Booked"}`,
+        followUpReason: (e as any).hostess_next_action || "Hostess Coaching",
+        nextFollowUpDate: (e as any).hostess_next_action_date || null,
+        recentNotes,
+      });
+      setActionPanelOpen(true);
+    },
+    [unifiedNotes],
+  );
 
   const hostessActionMutation = useMutation({
-    mutationFn: async ({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
-      item: UniversalActionItem; actionType: string; note: string;
-      isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
+    mutationFn: async ({
+      item: uItem,
+      actionType,
+      note,
+      isBookingAttempt,
+      isFollowUp,
+      nextFollowUpDate,
+    }: {
+      item: UniversalActionItem;
+      actionType: string;
+      note: string;
+      isBookingAttempt: boolean;
+      isFollowUp: boolean;
+      nextFollowUpDate?: string | null;
     }) => {
       const ev = events.find((e) => e.id === uItem.id);
       if (ev && nextFollowUpDate) {
@@ -144,10 +204,19 @@ export default function Events() {
     },
   });
 
-  const handleHostessAction = useCallback((params: {
-    item: UniversalActionItem; actionType: string; note: string;
-    isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
-  }) => { hostessActionMutation.mutate(params); }, [hostessActionMutation]);
+  const handleHostessAction = useCallback(
+    (params: {
+      item: UniversalActionItem;
+      actionType: string;
+      note: string;
+      isBookingAttempt: boolean;
+      isFollowUp: boolean;
+      nextFollowUpDate?: string | null;
+    }) => {
+      hostessActionMutation.mutate(params);
+    },
+    [hostessActionMutation],
+  );
 
   const deleteMutation = useMutation({
     mutationFn: (eventId: string) => deleteEvent(eventId),
@@ -195,7 +264,8 @@ export default function Events() {
           !(e.hostess_name || "").toLowerCase().includes(q) &&
           !(e.event_id || "").toLowerCase().includes(q) &&
           !(e.event_type || "").toLowerCase().includes(q)
-        ) return false;
+        )
+          return false;
       }
       return true;
     });
@@ -207,15 +277,13 @@ export default function Events() {
     const upcoming = sortAsc
       .filter((e) => (e.event_date || "") >= todayStr && e.event_status !== "Cancelled")
       .reverse();
-    const past = sortAsc
-      .filter((e) => (e.event_date || "") < todayStr || e.event_status === "Cancelled")
-      .reverse();
+    const past = sortAsc.filter((e) => (e.event_date || "") < todayStr || e.event_status === "Cancelled").reverse();
     return { upcoming, past };
   }, [filtered, todayStr]);
 
   const totalSales = filtered.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
   const totalGuests = filtered.reduce((s, e) => s + (e.guest_count || 0), 0);
-  const deleteTargetLinkedCount = deleteTarget ? (eventSales.get(deleteTarget.event_id)?.orderCount || 0) : 0;
+  const deleteTargetLinkedCount = deleteTarget ? eventSales.get(deleteTarget.event_id)?.orderCount || 0 : 0;
 
   const EventRow = ({ e }: { e: EventRecord }) => {
     const sales = eventSales.get(e.event_id);
@@ -234,13 +302,11 @@ export default function Events() {
           className="hover:bg-muted/50 cursor-pointer transition-colors"
           onClick={() => navigate(`/events/${e.event_id}`)}
         >
-          <TableCell className="text-xs whitespace-nowrap font-medium">
-            {formatDateOnly(e.event_date)}
-          </TableCell>
+          <TableCell className="text-xs whitespace-nowrap font-medium">{formatDateOnly(e.event_date)}</TableCell>
           <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
           <TableCell className="text-xs">
             {e.event_type || "—"}
-            {(e.event_format && e.event_format !== "In-Person") && (
+            {e.event_format && e.event_format !== "In-Person" && (
               <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
             )}
           </TableCell>
@@ -265,14 +331,19 @@ export default function Events() {
             {taskInfo ? (
               <button
                 type="button"
-                onClick={(ev) => { ev.stopPropagation(); setExpandedTasksFor(isExpanded ? null : e.event_id); }}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  setExpandedTasksFor(isExpanded ? null : e.event_id);
+                }}
                 className="text-left hover:underline"
               >
-                <div className={cn(
-                  "font-medium",
-                  taskInfo.next.due_date && taskInfo.next.due_date < taskToday && "text-destructive",
-                  taskInfo.next.due_date === taskToday && "text-amber-600",
-                )}>
+                <div
+                  className={cn(
+                    "font-medium",
+                    taskInfo.next.due_date && taskInfo.next.due_date < taskToday && "text-destructive",
+                    taskInfo.next.due_date === taskToday && "text-amber-600",
+                  )}
+                >
                   {taskInfo.next.task_name}
                 </div>
                 <div className="text-[10px] text-muted-foreground">
@@ -289,19 +360,27 @@ export default function Events() {
           <TableCell className="text-right">
             <div className="flex items-center justify-end gap-1">
               <Button
-                variant="ghost" size="icon"
+                variant="ghost"
+                size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-primary"
                 title="Add order"
-                onClick={(ev) => { ev.stopPropagation(); navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`); }}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`);
+                }}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
               </Button>
               {e.hostess_name && (
                 <Button
-                  variant="ghost" size="icon"
+                  variant="ghost"
+                  size="icon"
                   className="h-7 w-7 text-muted-foreground hover:text-primary"
                   title="Log hostess activity"
-                  onClick={(ev) => { ev.stopPropagation(); openHostessPanel(e); }}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    openHostessPanel(e);
+                  }}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                 </Button>
@@ -309,7 +388,8 @@ export default function Events() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    variant="ghost" size="icon"
+                    variant="ghost"
+                    size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={(ev) => ev.stopPropagation()}
                   >
@@ -324,10 +404,7 @@ export default function Events() {
                     <Calendar className="w-3.5 h-3.5 mr-2" /> Reschedule
                   </DropdownMenuItem>
                   {!isHeld && (
-                    <DropdownMenuItem
-                      disabled={markHeldMutation.isPending}
-                      onClick={() => markHeldMutation.mutate(e)}
-                    >
+                    <DropdownMenuItem disabled={markHeldMutation.isPending} onClick={() => markHeldMutation.mutate(e)}>
                       <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Mark complete
                     </DropdownMenuItem>
                   )}
@@ -353,10 +430,14 @@ export default function Events() {
                 </div>
                 {taskInfo.all.map((t) => (
                   <div key={t.id} className="flex items-center justify-between text-xs py-0.5">
-                    <span className={cn(
-                      t.due_date && t.due_date < taskToday && "text-destructive",
-                      t.due_date === taskToday && "text-amber-600",
-                    )}>{t.task_name}</span>
+                    <span
+                      className={cn(
+                        t.due_date && t.due_date < taskToday && "text-destructive",
+                        t.due_date === taskToday && "text-amber-600",
+                      )}
+                    >
+                      {t.task_name}
+                    </span>
                     <span className="text-[10px] text-muted-foreground">
                       {t.due_date ? formatDateOnly(t.due_date) : "no due date"}
                     </span>
@@ -370,38 +451,206 @@ export default function Events() {
     );
   };
 
-  const EventTable = ({ rows }: { rows: EventRecord[] }) => (
-    <div className="border border-border rounded-lg overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/30">
-            <TableHead className="text-xs">Date</TableHead>
-            <TableHead className="text-xs">Hostess</TableHead>
-            <TableHead className="text-xs">Type</TableHead>
-            <TableHead className="text-xs">Status</TableHead>
-            <TableHead className="text-xs text-center">Guests</TableHead>
-            <TableHead className="text-xs text-center">Orders</TableHead>
-            <TableHead className="text-xs text-right">Sales</TableHead>
-            <TableHead className="text-xs">Next Task</TableHead>
-            <TableHead className="text-xs w-[110px] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((e) => <EventRow key={e.id} e={e} />)}
-        </TableBody>
-      </Table>
-    </div>
-  );
+  // ── Mobile Event Card ──
+  const MobileEventCard = ({ e }: { e: EventRecord }) => {
+    const sales = eventSales.get(e.event_id);
+    const evTotalSales = sales?.total || 0;
+    const orderCount = sales?.orderCount || 0;
+    const taskInfo = nextTaskByEvent.map.get(e.event_id);
+    const taskToday = nextTaskByEvent.today;
+    const isHeld = e.event_status === "Held";
+    const rStatus = e.reschedule_status || "None";
+
+    return (
+      <div
+        className="bg-card border border-border rounded-lg p-3 space-y-2 active:bg-muted/50 transition-colors"
+        onClick={() => navigate(`/events/${e.event_id}`)}
+      >
+        {/* Row 1: Date + Status badges */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium text-muted-foreground">{formatDateOnly(e.event_date)}</span>
+          <div className="flex items-center gap-1 flex-wrap justify-end">
+            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(e.event_status))}>
+              {e.event_status}
+            </Badge>
+            {rStatus !== "None" && (
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
+                {rStatus === "In Process of Rescheduling" ? "Rescheduling" : rStatus}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Hostess name + type */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+          <span className="text-xs text-muted-foreground shrink-0">
+            {e.event_type || "—"}
+            {e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
+          </span>
+        </div>
+
+        {/* Row 3: Stats + next task */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {(e.guest_count || 0) > 0 && (
+              <span>
+                <Users className="w-3 h-3 inline mr-0.5" />
+                {e.guest_count}
+              </span>
+            )}
+            {orderCount > 0 && (
+              <span>
+                <ShoppingBag className="w-3 h-3 inline mr-0.5" />
+                {orderCount}
+              </span>
+            )}
+            {evTotalSales > 0 && <span className="text-green-600 font-medium">${evTotalSales.toFixed(0)}</span>}
+          </div>
+          {taskInfo && (
+            <span
+              className={cn(
+                "text-[11px] truncate max-w-[140px]",
+                taskInfo.next.due_date && taskInfo.next.due_date < taskToday
+                  ? "text-destructive font-medium"
+                  : taskInfo.next.due_date === taskToday
+                    ? "text-amber-600 font-medium"
+                    : "text-muted-foreground",
+              )}
+            >
+              {taskInfo.next.task_name}
+            </span>
+          )}
+        </div>
+
+        {/* Row 4: Quick action buttons */}
+        <div className="flex items-center gap-2 pt-1 border-t border-border/50" onClick={(ev) => ev.stopPropagation()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 flex-1 text-xs gap-1"
+            onClick={() => navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`)}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" /> Add Order
+          </Button>
+          {e.hostess_name && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 text-xs gap-1"
+              onClick={() => openHostessPanel(e)}
+            >
+              <MessageSquare className="w-3.5 h-3.5" /> Log Activity
+            </Button>
+          )}
+          {/* More actions drawer */}
+          <Drawer>
+            <DrawerTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="px-2 pb-8">
+              <div className="pt-3 pb-2 px-3">
+                <p className="text-sm font-semibold text-foreground">{e.hostess_name || "Event"}</p>
+                <p className="text-xs text-muted-foreground">{formatDateOnly(e.event_date)}</p>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted"
+                  onClick={() => navigate(`/events/${e.event_id}`)}
+                >
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" /> View Event Detail
+                </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted"
+                  onClick={() => navigate(`/events/${e.event_id}?addGuest=1`)}
+                >
+                  <Users className="w-5 h-5 text-primary" /> Add Guest
+                </button>
+                <button
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted"
+                  onClick={() => navigate(`/events/${e.event_id}?reschedule=1`)}
+                >
+                  <Calendar className="w-5 h-5 text-amber-600" /> Reschedule
+                </button>
+                {!isHeld && (
+                  <button
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted"
+                    onClick={() => markHeldMutation.mutate(e)}
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-green-600" /> Mark Complete
+                  </button>
+                )}
+                <button
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-destructive hover:bg-muted"
+                  onClick={() => setDeleteTarget(e)}
+                >
+                  <Trash2 className="w-5 h-5" /> Delete Event
+                </button>
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </div>
+      </div>
+    );
+  };
+
+  const EventSection = ({ rows, label }: { rows: EventRecord[]; label: string }) =>
+    rows.length === 0 ? null : (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <h3
+            className={cn("text-sm font-semibold", label === "Upcoming" ? "text-foreground" : "text-muted-foreground")}
+          >
+            {label}
+          </h3>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{rows.length}</span>
+        </div>
+        {/* Desktop: table */}
+        <div className="hidden sm:block">
+          <div className="border border-border rounded-lg overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="text-xs">Date</TableHead>
+                  <TableHead className="text-xs">Hostess</TableHead>
+                  <TableHead className="text-xs">Type</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
+                  <TableHead className="text-xs text-center">Guests</TableHead>
+                  <TableHead className="text-xs text-center">Orders</TableHead>
+                  <TableHead className="text-xs text-right">Sales</TableHead>
+                  <TableHead className="text-xs">Next Task</TableHead>
+                  <TableHead className="text-xs w-[110px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((e) => (
+                  <EventRow key={e.id} e={e} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+        {/* Mobile: cards */}
+        <div className="sm:hidden space-y-2">
+          {rows.map((e) => (
+            <MobileEventCard key={e.id} e={e} />
+          ))}
+        </div>
+      </div>
+    );
 
   return (
     <Layout>
       <div className="space-y-5">
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
-            <p className="text-sm text-muted-foreground">{filtered.length} event{filtered.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} event{filtered.length !== 1 ? "s" : ""}
+            </p>
           </div>
           <Button onClick={() => navigate("/events/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New Event
@@ -423,7 +672,9 @@ export default function Events() {
             <CardContent className="p-3">
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="w-4 h-4 text-green-600" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Sales</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Total Sales
+                </span>
               </div>
               <p className="text-lg font-bold text-green-600">${totalSales.toFixed(2)}</p>
             </CardContent>
@@ -432,7 +683,9 @@ export default function Events() {
             <CardContent className="p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="w-4 h-4 text-purple-600" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Guests</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Total Guests
+                </span>
               </div>
               <p className="text-lg font-bold text-purple-600">{totalGuests}</p>
             </CardContent>
@@ -479,7 +732,9 @@ export default function Events() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All Types" /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="Party">Party</SelectItem>
@@ -490,7 +745,9 @@ export default function Events() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Format</label>
                   <Select value={formatFilter} onValueChange={setFormatFilter}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All Formats" /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="All Formats" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Formats</SelectItem>
                       <SelectItem value="In-Person">In-Person</SelectItem>
@@ -501,7 +758,9 @@ export default function Events() {
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value="Booked">Booked</SelectItem>
@@ -511,9 +770,13 @@ export default function Events() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reschedule</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Reschedule
+                  </label>
                   <Select value={rescheduleFilter} onValueChange={setRescheduleFilter}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Any</SelectItem>
                       <SelectItem value="None">None</SelectItem>
@@ -536,24 +799,8 @@ export default function Events() {
           <p className="text-muted-foreground text-center py-12">No events found.</p>
         ) : (
           <div className="space-y-6">
-            {upcoming.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">Upcoming</h3>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{upcoming.length}</span>
-                </div>
-                <EventTable rows={upcoming} />
-              </div>
-            )}
-            {past.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-muted-foreground">Past & Cancelled</h3>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{past.length}</span>
-                </div>
-                <EventTable rows={past} />
-              </div>
-            )}
+            <EventSection rows={upcoming} label="Upcoming" />
+            <EventSection rows={past} label="Past & Cancelled" />
           </div>
         )}
       </div>
@@ -575,13 +822,18 @@ export default function Events() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this event?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <span>Are you sure you want to delete <strong>{deleteTarget?.hostess_name || deleteTarget?.event_id}</strong>?</span>
+              <span>
+                Are you sure you want to delete <strong>{deleteTarget?.hostess_name || deleteTarget?.event_id}</strong>?
+              </span>
               {deleteTargetLinkedCount > 0 && (
                 <span className="block text-amber-600 font-medium">
-                  ⚠ This event has {deleteTargetLinkedCount} linked order{deleteTargetLinkedCount > 1 ? "s" : ""}. Orders will be unlinked (not deleted).
+                  ⚠ This event has {deleteTargetLinkedCount} linked order{deleteTargetLinkedCount > 1 ? "s" : ""}.
+                  Orders will be unlinked (not deleted).
                 </span>
               )}
-              <span className="block">Guest records for this event will be removed. Orders and customers will not be deleted.</span>
+              <span className="block">
+                Guest records for this event will be removed. Orders and customers will not be deleted.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -599,4 +851,3 @@ export default function Events() {
     </Layout>
   );
 }
-
