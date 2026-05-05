@@ -321,6 +321,9 @@ export default function FollowUps() {
   // Override is session-only — resets on navigation away or refresh (component unmount).
   const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
+  const [showAllBooking, setShowAllBooking] = useState(false);
+  const [showAllProspects, setShowAllProspects] = useState(false);
+  const [showAllCoaching, setShowAllCoaching] = useState(false);
   // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
   // Birthdays (in Today's Schedule) and 6 Most Important always remain visible.
   const hideWorkflow = isOOOActive && !showFollowUpsOverride;
