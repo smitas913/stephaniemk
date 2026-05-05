@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { startOfWeek, endOfWeek } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";import { startOfWeek, endOfWeek } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sparkles, ArrowRight, Zap } from "lucide-react";
 import {
   fetchEvents,
@@ -15,6 +15,8 @@ import {
   fetchTeamConsultants,
 } from "@/lib/queries";
 import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
+import QuickBookingDialog from "@/components/QuickBookingDialog";
+import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
 import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
@@ -39,15 +41,21 @@ function getDailyQuote(): string {
   return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
 }
 
-// ─── Quick Add ───
-const QUICK_ADD_OPTIONS = [
-  { key: "Face", label: "Face", emoji: "👤" },
-  { key: "Booking Conversation", label: "Booking", emoji: "📅" },
-] as const;
 
+// ─── Quick Add ───
 function QuickAddBar({ onLogged }: { onLogged: () => void }) {
   const navigate = useNavigate();
-  const [openType, setOpenType] = useState<"Face" | "Booking Conversation" | null>(null);
+  const [faceOpen, setFaceOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [careerChatOpen, setCareerChatOpen] = useState(false);
+  const [orderQuery, setOrderQuery] = useState("");
+  const [showOrderSearch, setShowOrderSearch] = useState(false);
+  const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: showOrderSearch });
+
+  const orderMatches = useMemo(() => {
+    if (!orderQuery.trim()) return [];
+    return (customers as any[]).filter((c: any) => c.full_name?.toLowerCase().includes(orderQuery.toLowerCase())).slice(0, 5);
+  }, [customers, orderQuery]);
 
   return (
     <>
@@ -60,43 +68,80 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {QUICK_ADD_OPTIONS.map((opt) => (
-            <Button
-              key={opt.key}
-              variant="outline"
-              className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-              onClick={() => setOpenType(opt.key)}
-            >
-              <span className="text-2xl">{opt.emoji}</span>
-              <span className="text-xs font-semibold">{opt.label}</span>
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => navigate("/events/new?type=Career%20Chat")}
-            title="Career Chats are tracked as Events"
-          >
+          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+            onClick={() => setFaceOpen(true)}>
+            <span className="text-2xl">👤</span>
+            <span className="text-xs font-semibold">Face</span>
+          </Button>
+          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+            onClick={() => setBookingOpen(true)}>
+            <span className="text-2xl">📅</span>
+            <span className="text-xs font-semibold">Booking</span>
+          </Button>
+          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+            onClick={() => setCareerChatOpen(true)}>
             <span className="text-2xl">💬</span>
             <span className="text-xs font-semibold">Career Chat</span>
           </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => navigate("/orders/new")}
-          >
+          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
+            onClick={() => { setShowOrderSearch(true); setOrderQuery(""); }}>
             <span className="text-2xl">🛒</span>
             <span className="text-xs font-semibold">Order</span>
           </Button>
         </CardContent>
+
+        {/* Order quick search */}
+        {showOrderSearch && (
+          <CardContent className="pt-0 space-y-2">
+            <div className="flex gap-2">
+              <Input
+                autoFocus
+                placeholder="Search customer name..."
+                value={orderQuery}
+                onChange={e => setOrderQuery(e.target.value)}
+                className="h-9 text-sm"
+              />
+              <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setShowOrderSearch(false); setOrderQuery(""); }}>
+                Cancel
+              </Button>
+            </div>
+            {orderQuery.trim() && (
+              <div className="border border-border rounded-lg divide-y divide-border/40">
+                {orderMatches.length > 0 ? orderMatches.map((c: any) => (
+                  <button key={c.id} className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm transition-colors"
+                    onClick={() => { navigate(`/orders/new?customer=${c.id}`); setShowOrderSearch(false); }}>
+                    {c.full_name}
+                    {c.phone && <span className="text-xs text-muted-foreground ml-2">{c.phone}</span>}
+                  </button>
+                )) : (
+                  <div className="px-3 py-2 space-y-1">
+                    <p className="text-xs text-muted-foreground">No match — add as new customer?</p>
+                    <Button size="sm" variant="outline" className="h-7 text-xs"
+                      onClick={() => { navigate(`/orders/new`); setShowOrderSearch(false); }}>
+                      New customer + order
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       <QuickAddPersonDialog
-        open={openType !== null}
-        resultType={openType}
-        onOpenChange={(v) => {
-          if (!v) setOpenType(null);
-        }}
+        open={faceOpen}
+        resultType="Face"
+        onOpenChange={setFaceOpen}
+        onLogged={onLogged}
+      />
+      <QuickBookingDialog
+        open={bookingOpen}
+        onOpenChange={setBookingOpen}
+        onBooked={onLogged}
+      />
+      <QuickCareerChatDialog
+        open={careerChatOpen}
+        onOpenChange={setCareerChatOpen}
         onLogged={onLogged}
       />
     </>
@@ -108,6 +153,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -120,13 +166,7 @@ export default function Dashboard() {
   const focusAutoCounts = useMemo(() => {
     const todayKey = toLocalDateKey();
     const metrics = computeMetricsForDate(todayKey, {
-      unifiedNotes,
-      allNotes: notes,
-      customers,
-      prospects,
-      bookingLeads,
-      consultants,
-      events,
+      unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events,
     } as any);
     return {
       booking_attempts: metrics.bookingAttempts,
@@ -181,19 +221,14 @@ export default function Dashboard() {
               else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
               else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
               else if (type === "Lead") navigate("/booking-leads");
-              else if (type === "Consultant")
-                navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
+              else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
               else if (type === "Hostess") {
                 const evt = events.find((e: any) => e.id === id);
                 if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
                 else navigate("/events");
               }
             }}
-            suggestedDayType={
-              events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked")
-                ? "appointment"
-                : null
-            }
+            suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
           />
           {/* MY 6 MOST IMPORTANT THINGS — sits beside Daily Success Drivers on desktop */}
           <TodoListCard />
@@ -207,6 +242,7 @@ export default function Dashboard() {
 
         {/* FINANCIAL SNAPSHOT */}
         <FinancialSnapshot range="mtd" compact />
+
       </div>
     </Layout>
   );
