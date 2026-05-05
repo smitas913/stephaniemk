@@ -321,6 +321,9 @@ export default function FollowUps() {
   // Override is session-only — resets on navigation away or refresh (component unmount).
   const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
+  const [showAllBooking, setShowAllBooking] = useState(false);
+  const [showAllProspects, setShowAllProspects] = useState(false);
+  const [showAllCoaching, setShowAllCoaching] = useState(false);
   // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
   // Birthdays (in Today's Schedule) and 6 Most Important always remain visible.
   const hideWorkflow = isOOOActive && !showFollowUpsOverride;
@@ -2552,12 +2555,24 @@ export default function FollowUps() {
                             ) : (
                               <div className="space-y-4">
                                 {(() => {
-                                  const buckets = splitBuckets(prioritySort(prospectItems));
+                                  const sorted = prioritySort(prospectItems);
+                                  const visible = showAllProspects ? sorted : sorted.slice(0, 3);
+                                  const buckets = splitBuckets(visible);
                                   return (
                                     <>
                                       {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
                                       {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
                                       {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
+                                      {!showAllProspects && sorted.length > 3 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="mt-2 w-full"
+                                          onClick={() => setShowAllProspects(true)}
+                                        >
+                                          Show all {sorted.length}
+                                        </Button>
+                                      )}
                                     </>
                                   );
                                 })()}
@@ -2582,15 +2597,27 @@ export default function FollowUps() {
                             className="md:col-span-2"
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {renderCategoryCard(
-                                "Booking Activity",
-                                leadVisible,
-                                leadSorted.length,
-                                leadLimit,
-                                leadOverflow,
-                                "bg-amber-50 dark:bg-amber-950/30",
-                                "text-amber-600",
-                              )}
+                              <div>
+                                {renderCategoryCard(
+                                  "Booking Activity",
+                                  showAllBooking ? leadVisible : leadVisible.slice(0, 3),
+                                  leadSorted.length,
+                                  leadLimit,
+                                  leadOverflow,
+                                  "bg-amber-50 dark:bg-amber-950/30",
+                                  "text-amber-600",
+                                )}
+                                {!showAllBooking && leadVisible.length > 3 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 w-full"
+                                    onClick={() => setShowAllBooking(true)}
+                                  >
+                                    Show all {leadVisible.length}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </TodaySectionWrapper>
 
@@ -2836,7 +2863,7 @@ export default function FollowUps() {
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="divide-y divide-emerald-200/50 dark:divide-emerald-900/40">
-                            {groups.map((g) => {
+                            {(showAllCoaching ? groups : groups.slice(0, 3)).map((g) => {
                               const isExpanded = expandedEventGroups.has(g.key);
                               const more = g.items.length - 1;
                               return (
@@ -2866,6 +2893,16 @@ export default function FollowUps() {
                               );
                             })}
                           </div>
+                          {!showAllCoaching && groups.length > 3 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 w-full"
+                              onClick={() => setShowAllCoaching(true)}
+                            >
+                              Show all {groups.length}
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
                     );
