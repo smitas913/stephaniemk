@@ -2682,16 +2682,30 @@ export default function FollowUps() {
                           </TodaySectionWrapper>
 
                           {/* Row 2: Customer Follow-Ups | Prospect Follow-Ups */}
-                          {renderCategoryCard(
-                            "Customer Follow-Ups",
-                            customerVisible,
-                            customerSorted.length,
-                            customerLimit,
-                            customerOverflow,
-                            "bg-blue-50 dark:bg-blue-950/30",
-                            "text-blue-600",
-                          )}
-                          {renderProspectCard()}
+                          <TodaySectionWrapper
+                            sectionKey="customer_followup"
+                            title="Customer Follow-Ups"
+                            count={todayActions.filter((i) => i.itemType === "customer").length}
+                            order={order.indexOf("customer_followup")}
+                            totalSections={5}
+                            collapsed={!!collapsed["customer_followup"]}
+                            onToggleCollapsed={() => toggleCollapsed("customer_followup")}
+                            onMove={(d) => moveSection("customer_followup", d)}
+                            className="md:col-span-2"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {renderCategoryCard(
+                                "Customer Follow-Ups",
+                                customerVisible,
+                                customerSorted.length,
+                                customerLimit,
+                                customerOverflow,
+                                "bg-blue-50 dark:bg-blue-950/30",
+                                "text-blue-600",
+                              )}
+                              {renderProspectCard()}
+                            </div>
+                          </TodaySectionWrapper>
                         </div>
                       );
                     })()}
