@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder, createBookingLead } from "@/lib/queries";
 import { applyPostOrderFollowUp, getFollowUpIntentOptions, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +27,7 @@ import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 import DiscountTypeChips from "@/components/DiscountTypeChips";
 import { fetchDiscountTypes, type DiscountType } from "@/lib/discountTypes";
 import CurrencyInput from "@/components/CurrencyInput";
+import { format, addDays } from "date-fns";
 
 const ORDER_TYPE_OPTIONS = [
   { value: "Party", label: "Party", icon: PartyPopper, eventBased: true },
@@ -64,6 +65,7 @@ export default function AddOrder() {
     return "";
   });
   const [customerId, setCustomerId] = useState(preselectedCustomer);
+  const customerHasPriorOrders = !!customerId && allOrders.some((o: any) => o.customer_id === customerId);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [orderDate, setOrderDate] = useState(toLocalDateKey());
@@ -149,6 +151,8 @@ export default function AddOrder() {
   const { user } = useAuth();
   const [isNonCustomer, setIsNonCustomer] = useState(false);
   const [nonCustomerLabel, setNonCustomerLabel] = useState("");
+  const [nonCustomerFollowUp, setNonCustomerFollowUp] = useState(false);
+  const [nonCustomerPhone, setNonCustomerPhone] = useState("");
 
   const isEventBased = ORDER_TYPE_OPTIONS.find(o => o.value === orderType)?.eventBased ?? false;
   const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
@@ -409,6 +413,21 @@ export default function AddOrder() {
       if (isNonCustomer) {
         resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
         resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
+        // Create a booking lead if follow-up was requested
+        if (nonCustomerFollowUp && nonCustomerLabel.trim()) {
+          try {
+            const followUpDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
+            await createBookingLead({
+              name: nonCustomerLabel.trim(),
+              phone: nonCustomerPhone.trim() || null,
+              lead_source: "Other",
+              status: "New",
+              next_follow_up_date: followUpDate,
+            } as any);
+          } catch (e) {
+            console.error("Failed to create follow-up lead", e);
+          }
+        }
       } else if (isNewCustomer && newCustName.trim() && !customerId) {
         const birthdayMMDD = newCustBirthday ? (() => {
           const parts = newCustBirthday.split("-");
@@ -441,6 +460,7 @@ export default function AddOrder() {
       // - Reorder → default "Customer" unless user override
       // - Facial → default "Facial" unless user override
       // - Party → default "Party" unless user override
+      // - MyShop new customer → "Online"
       // - Otherwise use override or leave undefined
       const resolvedFaceType =
         isNonCustomer
@@ -451,7 +471,9 @@ export default function AddOrder() {
               ? (faceTypeOverride || "Facial")
               : orderType === "Party"
                 ? (faceTypeOverride || "Party")
-                : (faceTypeOverride || undefined);
+                : isMyShopOrder && !customerHasPriorOrders
+                  ? (faceTypeOverride || "Online")
+                  : (faceTypeOverride || undefined);
 
       const orderPayload: any = {
         customer_id: resolvedCustomerId,
@@ -517,6 +539,8 @@ export default function AddOrder() {
         setIsNewCustomer(false);
         setIsNonCustomer(false);
         setNonCustomerLabel("");
+        setNonCustomerFollowUp(false);
+        setNonCustomerPhone("");
         setNewCustName(""); setNewCustPhone(""); setNewCustEmail("");
         setNewCustAddress(""); setNewCustCity(""); setNewCustState(""); setNewCustPostal("");
         setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
@@ -764,7 +788,7 @@ export default function AddOrder() {
                 <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Store className="w-4 h-4 text-primary" /> One-Time / Support Order
                 </span>
-                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNonCustomer(false); setNonCustomerLabel(""); }}>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNonCustomer(false); setNonCustomerLabel(""); setNonCustomerFollowUp(false); setNonCustomerPhone(""); }}>
                   Cancel
                 </Button>
               </div>
@@ -777,6 +801,29 @@ export default function AddOrder() {
               <p className="text-xs text-muted-foreground leading-snug">
                 This order will be tracked but the buyer will not be added to follow-up lists or customer metrics.
               </p>
+              {/* Optional follow-up */}
+              <div className="border-t border-border/50 pt-2 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={nonCustomerFollowUp}
+                    onChange={e => setNonCustomerFollowUp(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  <span className="text-xs font-medium text-foreground">Add to follow-up list as a potential customer</span>
+                </label>
+                {nonCustomerFollowUp && (
+                  <div className="space-y-1.5 pl-5">
+                    <Input
+                      placeholder="Phone number (optional)"
+                      value={nonCustomerPhone}
+                      onChange={e => setNonCustomerPhone(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">Creates a booking lead so you can follow up later.</p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : selectedCustomer ? (
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
