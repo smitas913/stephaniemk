@@ -55,6 +55,7 @@ import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { resolveIntentCategory, categoryTag } from "@/lib/intentCategory";
 import TextActionButton from "@/components/TextActionButton";
+import { useTodaySections, TodaySectionWrapper } from "@/components/TodaySectionWrapper";
 import {
   formatDateOnly,
   getDateOnlyTime,
