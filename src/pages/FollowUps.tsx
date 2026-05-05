@@ -2527,7 +2527,7 @@ export default function FollowUps() {
                               <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30">
                                 <RefreshCw className="w-4 h-4 text-orange-600" />
                               </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Event Follow-Ups</CardTitle>
+                              <CardTitle className="text-sm font-semibold text-foreground">Event Coaching</CardTitle>
                               <Badge variant="secondary" className="text-xs">{reschedulingFollowUp.length}</Badge>
                             </div>
                           </CardHeader>
