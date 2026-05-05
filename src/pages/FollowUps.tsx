@@ -2258,6 +2258,7 @@ export default function FollowUps() {
           <>
             <div>
               {tab === "today" ? (
+                <div>
                 {isOOOActive && (
                   <div className="mb-3 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 px-3 py-2 sm:flex sm:items-center sm:gap-3">
                     {/* Mobile: stacked compact rows. Desktop (sm+): single row. */}
@@ -3036,6 +3037,7 @@ export default function FollowUps() {
 
                   {/* ═══ SECTION: To-Do List ═══ */}
                   <TodoListCard />
+                </div>
                 </div>
               ) : (
               <div className="space-y-4 mt-4">
