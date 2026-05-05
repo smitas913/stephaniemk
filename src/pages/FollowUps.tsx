@@ -226,7 +226,7 @@ const TYPE_BADGE: Record<string, { label: string; className: string; icon: React
   hostess: { label: "Hostess", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: Crown },
   event_task: { label: "Event Task", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300", icon: CalendarCheck },
 };
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 async function logCustomerActivity({
