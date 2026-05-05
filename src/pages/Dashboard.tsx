@@ -19,6 +19,7 @@ import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
+import TodoListCard from "@/components/TodoListCard";
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
 
@@ -37,7 +38,6 @@ function getDailyQuote(): string {
   const day = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
   return MOTIVATIONAL_QUOTES[day % MOTIVATIONAL_QUOTES.length];
 }
-
 
 // ─── Quick Add ───
 const QUICK_ADD_OPTIONS = [
@@ -94,7 +94,9 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
       <QuickAddPersonDialog
         open={openType !== null}
         resultType={openType}
-        onOpenChange={(v) => { if (!v) setOpenType(null); }}
+        onOpenChange={(v) => {
+          if (!v) setOpenType(null);
+        }}
         onLogged={onLogged}
       />
     </>
@@ -106,7 +108,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -119,7 +120,13 @@ export default function Dashboard() {
   const focusAutoCounts = useMemo(() => {
     const todayKey = toLocalDateKey();
     const metrics = computeMetricsForDate(todayKey, {
-      unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events,
+      unifiedNotes,
+      allNotes: notes,
+      customers,
+      prospects,
+      bookingLeads,
+      consultants,
+      events,
     } as any);
     return {
       booking_attempts: metrics.bookingAttempts,
@@ -163,27 +170,34 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* 6 MOST IMPORTANT — compact 2-col grid */}
-        <SixMostImportant
-          compact
-          autoCounts={focusAutoCounts}
-          rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
-          onDetailNavigate={(type, id) => {
-            if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
-            else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
-            else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
-            else if (type === "Lead") navigate("/booking-leads");
-            else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
-            else if (type === "Hostess") {
-              const evt = events.find((e: any) => e.id === id);
-              if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
-              else navigate("/events");
+        {/* DAILY SUCCESS DRIVERS + 6 MIT — side by side on desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
+          <SixMostImportant
+            compact
+            autoCounts={focusAutoCounts}
+            rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
+            onDetailNavigate={(type, id) => {
+              if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
+              else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
+              else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
+              else if (type === "Lead") navigate("/booking-leads");
+              else if (type === "Consultant")
+                navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
+              else if (type === "Hostess") {
+                const evt = events.find((e: any) => e.id === id);
+                if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
+                else navigate("/events");
+              }
+            }}
+            suggestedDayType={
+              events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked")
+                ? "appointment"
+                : null
             }
-          }}
-          suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
-        />
-
-        {/* Client Cleanup moved to Today page (/follow-ups). */}
+          />
+          {/* MY 6 MOST IMPORTANT THINGS — sits beside Daily Success Drivers on desktop */}
+          <TodoListCard />
+        </div>
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
@@ -193,7 +207,6 @@ export default function Dashboard() {
 
         {/* FINANCIAL SNAPSHOT */}
         <FinancialSnapshot range="mtd" compact />
-
       </div>
     </Layout>
   );
