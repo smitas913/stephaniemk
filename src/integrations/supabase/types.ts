@@ -710,6 +710,7 @@ export type Database = {
           notes: string | null
           ordering_guest_count: number | null
           owner_user_id: string | null
+          rebook_not_interested: boolean | null
           requires_manual_next_step: boolean
           reschedule_attempt_number: number
           reschedule_last_contact_date: string | null
@@ -758,6 +759,7 @@ export type Database = {
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          rebook_not_interested?: boolean | null
           requires_manual_next_step?: boolean
           reschedule_attempt_number?: number
           reschedule_last_contact_date?: string | null
@@ -806,6 +808,7 @@ export type Database = {
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          rebook_not_interested?: boolean | null
           requires_manual_next_step?: boolean
           reschedule_attempt_number?: number
           reschedule_last_contact_date?: string | null
