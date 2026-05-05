@@ -13,6 +13,7 @@ import {
   fetchAllLatestNotes,
   convertHostessToCustomer,
   fetchCustomers,
+  fetchZoomDefaults,
 } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
@@ -98,6 +99,7 @@ export default function EventDetail() {
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
   const { data: eventTasks = [] } = useQuery({
     queryKey: ["event-tasks", eventId],
     queryFn: () => fetchEventTasksByEventId(eventId!),
@@ -521,8 +523,13 @@ export default function EventDetail() {
                         <Select
                           value={event.event_format || "In-Person"}
                           onValueChange={(val) => {
-                            if (val !== (event.event_format || "In-Person"))
+                            if (val !== (event.event_format || "In-Person")) {
                               eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
+                              // Auto-fill zoom link when switching to Virtual and no location set
+                              if (val === "Virtual" && !(event as any).event_location && zoomDefaults?.zoom_link) {
+                                updateField("event_location", zoomDefaults.zoom_link);
+                              }
+                            }
                           }}
                         >
                           <SelectTrigger className="h-9 text-sm">
@@ -595,6 +602,32 @@ export default function EventDetail() {
                                 updateField("event_location", e.target.value || null);
                             }}
                           />
+                          {/* Show zoom defaults as a quick-fill if location is empty */}
+                          {!(event as any).event_location && (zoomDefaults?.zoom_link || zoomDefaults?.zoom_id) && (
+                            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
+                              <p className="text-xs font-medium text-muted-foreground">Your saved Zoom info:</p>
+                              {zoomDefaults?.zoom_id && (
+                                <p className="text-xs text-foreground">
+                                  Meeting ID: <span className="font-medium">{zoomDefaults.zoom_id}</span>
+                                </p>
+                              )}
+                              {zoomDefaults?.zoom_password && (
+                                <p className="text-xs text-foreground">
+                                  Password: <span className="font-medium">{zoomDefaults.zoom_password}</span>
+                                </p>
+                              )}
+                              {zoomDefaults?.zoom_link && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs mt-1"
+                                  onClick={() => updateField("event_location", zoomDefaults.zoom_link)}
+                                >
+                                  Use my Zoom link
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <>
