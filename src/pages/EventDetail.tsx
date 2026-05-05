@@ -536,8 +536,8 @@ export default function EventDetail() {
                           onValueChange={(val) => {
                             if (val !== (event.event_format || "In-Person")) {
                               eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
-                              // Auto-fill zoom link when switching to Virtual and no location set
-                              if (val === "Virtual" && !(event as any).event_location && zoomDefaults?.zoom_link) {
+                              // Auto-fill zoom link when switching to Virtual (always overwrite)
+                              if (val === "Virtual" && zoomDefaults?.zoom_link) {
                                 updateField("event_location", zoomDefaults.zoom_link);
                               }
                             }
