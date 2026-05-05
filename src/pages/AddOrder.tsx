@@ -1,16 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import {
-  fetchCustomers,
-  fetchOrders,
-  fetchEvents,
-  createOrder,
-  createCustomer,
-  fetchOrder,
-  updateOrder,
-  deleteOrder,
-} from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder } from "@/lib/queries";
 import { applyPostOrderFollowUp, getFollowUpIntentOptions, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,46 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  ArrowLeft,
-  Plus,
-  ShoppingBag,
-  RotateCcw,
-  PartyPopper,
-  Sparkles,
-  Share2,
-  Megaphone,
-  CheckCircle2,
-  AlertTriangle,
-  UserPlus,
-  ChevronDown,
-  Users,
-  Store,
-  ShieldAlert,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, Plus, ShoppingBag, RotateCcw, PartyPopper, Sparkles, Share2, Megaphone, CheckCircle2, AlertTriangle, UserPlus, ChevronDown, Users, Store, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import { useQuery as useRQ } from "@tanstack/react-query";
-import {
-  fetchFinancialSettings,
-  computeOrderFinancials,
-  getProcessorFee,
-  type CcTransactionType,
-} from "@/lib/financialSettings";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { fetchFinancialSettings, computeOrderFinancials, getProcessorFee, type CcTransactionType } from "@/lib/financialSettings";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import OrderTagChips, { type OrderTagState } from "@/components/OrderTagChips";
 import DiscountTypeChips from "@/components/DiscountTypeChips";
@@ -100,8 +59,7 @@ export default function AddOrder() {
 
   // --- State ---
   const [orderType, setOrderType] = useState<OrderTypeValue | "">(() => {
-    if (preselectedType && ORDER_TYPE_OPTIONS.some((o) => o.value === preselectedType))
-      return preselectedType as OrderTypeValue;
+    if (preselectedType && ORDER_TYPE_OPTIONS.some(o => o.value === preselectedType)) return preselectedType as OrderTypeValue;
     if (preselectedEvent) return "Party";
     return "";
   });
@@ -126,16 +84,10 @@ export default function AddOrder() {
   const [bulkMode, setBulkMode] = useState(!!preselectedEvent);
   const [savedCount, setSavedCount] = useState(0);
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
-
+  
   const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
   const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
-  const [orderTags, setOrderTags] = useState<OrderTagState>({
-    hostess: false,
-    half_price: false,
-    birthday: false,
-    referral: false,
-    myshop: false,
-  });
+  const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
 
@@ -153,35 +105,30 @@ export default function AddOrder() {
     if (n === "myshop order") return "myshop";
     return null;
   };
-  const handleDiscountTypeChange = useCallback(
-    (next: string[]) => {
-      const prev = discountTypeIds;
-      const added = next.filter((id) => !prev.includes(id));
-      if (added.length > 0) {
-        const tagsToAdd: Partial<OrderTagState> = {};
-        for (const id of added) {
-          const t = allDiscountTypes.find((x) => x.id === id);
-          if (!t) continue;
-          const key = discountNameToTagKey(t.name);
-          if (key) tagsToAdd[key] = true;
-        }
-        if (Object.keys(tagsToAdd).length > 0) {
-          setOrderTags((cur) => ({ ...cur, ...tagsToAdd }));
-        }
+  const handleDiscountTypeChange = useCallback((next: string[]) => {
+    const prev = discountTypeIds;
+    const added = next.filter((id) => !prev.includes(id));
+    if (added.length > 0) {
+      const tagsToAdd: Partial<OrderTagState> = {};
+      for (const id of added) {
+        const t = allDiscountTypes.find((x) => x.id === id);
+        if (!t) continue;
+        const key = discountNameToTagKey(t.name);
+        if (key) tagsToAdd[key] = true;
       }
-      // Removals: intentionally leave matching Order Tags in place to avoid accidental data loss
-      setDiscountTypeIds(next);
-    },
-    [discountTypeIds, allDiscountTypes],
-  );
+      if (Object.keys(tagsToAdd).length > 0) {
+        setOrderTags((cur) => ({ ...cur, ...tagsToAdd }));
+      }
+    }
+    // Removals: intentionally leave matching Order Tags in place to avoid accidental data loss
+    setDiscountTypeIds(next);
+  }, [discountTypeIds, allDiscountTypes]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [dncPrompt, setDncPrompt] = useState<null | { addAnother: boolean }>(null);
   const [dncSuppressFollowUp, setDncSuppressFollowUp] = useState(false);
   const [faceTypeOverride, setFaceTypeOverride] = useState<string | null>(null);
-  const [reorderConvertPrompt, setReorderConvertPrompt] = useState<null | { customerId: string; addAnother: boolean }>(
-    null,
-  );
+  const [reorderConvertPrompt, setReorderConvertPrompt] = useState<null | { customerId: string; addAnother: boolean }>(null);
   const [reorderConvertHandled, setReorderConvertHandled] = useState<Set<string>>(new Set());
   const [editPrefilled, setEditPrefilled] = useState(false);
 
@@ -196,20 +143,20 @@ export default function AddOrder() {
   const [newCustPostal, setNewCustPostal] = useState("");
   const [newCustBirthday, setNewCustBirthday] = useState("");
   const [showAdditional, setShowAdditional] = useState(false);
-  const [duplicateMatch, setDuplicateMatch] = useState<(typeof customers)[0] | null>(null);
+  const [duplicateMatch, setDuplicateMatch] = useState<typeof customers[0] | null>(null);
 
   // Non-customer / one-time order mode
   const { user } = useAuth();
   const [isNonCustomer, setIsNonCustomer] = useState(false);
   const [nonCustomerLabel, setNonCustomerLabel] = useState("");
 
-  const isEventBased = ORDER_TYPE_OPTIONS.find((o) => o.value === orderType)?.eventBased ?? false;
-  const typeConfig = ORDER_TYPE_OPTIONS.find((o) => o.value === orderType);
+  const isEventBased = ORDER_TYPE_OPTIONS.find(o => o.value === orderType)?.eventBased ?? false;
+  const typeConfig = ORDER_TYPE_OPTIONS.find(o => o.value === orderType);
 
   // Auto-fill customer name
   useEffect(() => {
     if (customerId) {
-      const c = customers.find((c) => c.id === customerId);
+      const c = customers.find(c => c.id === customerId);
       if (c) {
         setCustomerName(c.full_name);
         setIsSkincareCustomer(!!(c as any).is_skincare_customer);
@@ -268,15 +215,15 @@ export default function AddOrder() {
     if (!isEventBased) return [];
     const today = new Date().toISOString().slice(0, 10);
     const upcoming = events
-      .filter((e) => (e.event_date || "") >= today)
+      .filter(e => (e.event_date || "") >= today)
       .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
     const past = events
-      .filter((e) => (e.event_date || "") < today)
+      .filter(e => (e.event_date || "") < today)
       .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || ""));
     return [...upcoming, ...past];
   }, [events, orderType, isEventBased]);
 
-  const existingEventIds = useMemo(() => events.map((e) => e.event_id), [events]);
+  const existingEventIds = useMemo(() => events.map(e => e.event_id), [events]);
 
   const recentCustomers = useMemo(() => {
     return [...customers]
@@ -292,17 +239,15 @@ export default function AddOrder() {
   const filteredCustomers = useMemo(() => {
     if (customerSearch.trim().length < 2) return [];
     const q = customerSearch.toLowerCase();
-    return customers
-      .filter(
-        (c) => c.full_name.toLowerCase().includes(q) || c.phone?.includes(q) || c.email?.toLowerCase().includes(q),
-      )
-      .slice(0, 8);
+    return customers.filter(c =>
+      c.full_name.toLowerCase().includes(q) ||
+      c.phone?.includes(q) ||
+      c.email?.toLowerCase().includes(q)
+    ).slice(0, 8);
   }, [customers, customerSearch]);
 
   const [highlightIdx, setHighlightIdx] = useState(0);
-  useEffect(() => {
-    setHighlightIdx(0);
-  }, [customerSearch]);
+  useEffect(() => { setHighlightIdx(0); }, [customerSearch]);
 
   // Field refs for keyboard tab/Enter flow
   const customerSearchRef = useRef<HTMLInputElement>(null);
@@ -332,14 +277,8 @@ export default function AddOrder() {
   // Payment Method keyboard shortcuts (only when not typing in text input)
   useEffect(() => {
     const PAYMENT_SHORTCUTS: Record<string, string> = {
-      c: "Cash",
-      v: "Venmo",
-      z: "Zelle",
-      k: "Check",
-      r: "Credit Card",
-      a: "CashApp",
-      p: "Paypal",
-      m: "MyShop",
+      c: "Cash", v: "Venmo", z: "Zelle", k: "Check",
+      r: "Credit Card", a: "CashApp", p: "Paypal", m: "MyShop",
     };
     const handler = (e: KeyboardEvent) => {
       if (paymentStatus !== "Paid") return;
@@ -366,17 +305,14 @@ export default function AddOrder() {
     }
   };
 
-  const selectedCustomer = customers.find((c) => c.id === customerId);
-  const selectedEvent = events.find((e) => e.event_id === selectedEventId);
+  const selectedCustomer = customers.find(c => c.id === customerId);
+  const selectedEvent = events.find(e => e.event_id === selectedEventId);
 
   // Duplicate detection for new customer
   useEffect(() => {
-    if (!isNewCustomer || !newCustName.trim()) {
-      setDuplicateMatch(null);
-      return;
-    }
+    if (!isNewCustomer || !newCustName.trim()) { setDuplicateMatch(null); return; }
     const q = newCustName.trim().toLowerCase();
-    const match = customers.find((c) => c.full_name.toLowerCase() === q);
+    const match = customers.find(c => c.full_name.toLowerCase() === q);
     setDuplicateMatch(match || null);
   }, [newCustName, isNewCustomer, customers]);
 
@@ -384,29 +320,17 @@ export default function AddOrder() {
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
     if (!orderType) errors.push("Select an order type");
-    if (!isNonCustomer && !customerId && !(isNewCustomer && newCustName.trim()))
-      errors.push("Select or add a customer");
+    if (!isNonCustomer && !customerId && !(isNewCustomer && newCustName.trim())) errors.push("Select or add a customer");
     if (!retailAmount || Number(retailAmount) <= 0) errors.push("Retail amount must be > $0");
     if (paymentStatus === "Paid" && !paymentType) errors.push("Select a payment type");
     // Event linking is optional for Party/Facial — user may pick "No event / standalone"
     return errors;
-  }, [
-    orderType,
-    customerId,
-    isNewCustomer,
-    newCustName,
-    retailAmount,
-    paymentStatus,
-    paymentType,
-    isEventBased,
-    selectedEventId,
-    isNonCustomer,
-  ]);
+  }, [orderType, customerId, isNewCustomer, newCustName, retailAmount, paymentStatus, paymentType, isEventBased, selectedEventId, isNonCustomer]);
 
   const isCreditCard = paymentStatus === "Paid" && paymentType === "Credit Card" && !isMyShopOrder;
   const processorFee = useMemo(
     () => getProcessorFee(financialSettings, isCreditCard ? ccTxType : null),
-    [financialSettings, isCreditCard, ccTxType],
+    [financialSettings, isCreditCard, ccTxType]
   );
 
   const profitMarginRate = financialSettings?.profit_margin_rate ?? 50;
@@ -426,7 +350,7 @@ export default function AddOrder() {
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
-    const discount = discountMode === "%" ? +((orderTotal * dRaw) / 100).toFixed(2) : dRaw;
+    const discount = discountMode === "%" ? +(orderTotal * dRaw / 100).toFixed(2) : dRaw;
     const overrideRaw = ccFeeOverride.trim();
     const override = overrideRaw === "" ? null : Number(overrideRaw);
     const wholesaleNum = wholesaleAmount === "" ? null : Number(wholesaleAmount);
@@ -441,245 +365,182 @@ export default function AddOrder() {
       isCreditCard,
       wholesale: wholesaleNum != null && !Number.isNaN(wholesaleNum) ? wholesaleNum : null,
     });
-  }, [
-    retailAmount,
-    discountValue,
-    discountMode,
-    financialSettings,
-    processorFee,
-    ccFeeOverride,
-    isCreditCard,
-    wholesaleAmount,
-    profitMarginRate,
-  ]);
+  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard, wholesaleAmount, profitMarginRate]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
   // --- Submit ---
-  const handleSubmit = useCallback(
-    async (addAnother = false) => {
-      setAttempted(true);
-      if (!canSubmit) {
-        toast.error(validationErrors[0]);
+  const handleSubmit = useCallback(async (addAnother = false) => {
+    setAttempted(true);
+    if (!canSubmit) {
+      toast.error(validationErrors[0]);
+      return;
+    }
+
+    // DNC guard: if existing customer is marked Do Not Contact, prompt before saving.
+    const existingCust = customerId ? customers.find(c => c.id === customerId) : null;
+    const isExistingDnc = !!existingCust && Array.isArray((existingCust as any).tags) && (existingCust as any).tags.includes("DNC");
+    if (isExistingDnc && !dncPrompt) {
+      setDncPrompt({ addAnother });
+      return;
+    }
+
+    // Reorder → ensure linked person is marked Customer (one-time prompt per customer)
+    if (
+      orderType === "Reorder" &&
+      !isNonCustomer &&
+      customerId &&
+      !reorderConvertPrompt &&
+      !reorderConvertHandled.has(customerId)
+    ) {
+      const cust = customers.find(c => c.id === customerId) as any;
+      const status = (cust?.relationship_status || "").toLowerCase();
+      if (cust && status !== "customer") {
+        setReorderConvertPrompt({ customerId, addAnother });
         return;
       }
+    }
 
-      // DNC guard: if existing customer is marked Do Not Contact, prompt before saving.
-      const existingCust = customerId ? customers.find((c) => c.id === customerId) : null;
-      const isExistingDnc =
-        !!existingCust && Array.isArray((existingCust as any).tags) && (existingCust as any).tags.includes("DNC");
-      if (isExistingDnc && !dncPrompt) {
-        setDncPrompt({ addAnother });
-        return;
-      }
+    setSubmitting(true);
+    try {
+      let resolvedCustomerId = customerId;
+      let resolvedCustomerName = customerName;
 
-      // Reorder → ensure linked person is marked Customer (one-time prompt per customer)
-      if (
-        orderType === "Reorder" &&
-        !isNonCustomer &&
-        customerId &&
-        !reorderConvertPrompt &&
-        !reorderConvertHandled.has(customerId)
-      ) {
-        const cust = customers.find((c) => c.id === customerId) as any;
-        const status = (cust?.relationship_status || "").toLowerCase();
-        if (cust && status !== "customer") {
-          setReorderConvertPrompt({ customerId, addAnother });
-          return;
+      if (isNonCustomer) {
+        resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
+        resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
+      } else if (isNewCustomer && newCustName.trim() && !customerId) {
+        const birthdayMMDD = newCustBirthday ? (() => {
+          const parts = newCustBirthday.split("-");
+          return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
+        })() : null;
+
+        const newCust = await createCustomer({
+          full_name: newCustName.trim(),
+          phone: newCustPhone.trim() || null,
+          email: newCustEmail.trim() || null,
+          address_line_1: newCustAddress.trim() || null,
+          city: newCustCity.trim() || null,
+          state_territory: newCustState.trim() || null,
+          postal_code: newCustPostal.trim() || null,
+          birthday: newCustBirthday || null,
+          birthday_mmdd: birthdayMMDD,
+        } as any);
+        resolvedCustomerId = newCust.id;
+        resolvedCustomerName = newCust.full_name;
+        if (!isEditMode && orderDate >= toLocalDateKey()) {
+          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
         }
       }
 
-      setSubmitting(true);
-      try {
-        let resolvedCustomerId = customerId;
-        let resolvedCustomerName = customerName;
+      let eventId: string | null = null;
+      if (isEventBased && selectedEventId) eventId = selectedEventId;
 
-        if (isNonCustomer) {
-          resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
-          resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
-        } else if (isNewCustomer && newCustName.trim() && !customerId) {
-          const birthdayMMDD = newCustBirthday
-            ? (() => {
-                const parts = newCustBirthday.split("-");
-                return parts.length === 3 ? `${parseInt(parts[1])}/${parseInt(parts[2])}` : null;
-              })()
-            : null;
-
-          const newCust = await createCustomer({
-            full_name: newCustName.trim(),
-            phone: newCustPhone.trim() || null,
-            email: newCustEmail.trim() || null,
-            address_line_1: newCustAddress.trim() || null,
-            city: newCustCity.trim() || null,
-            state_territory: newCustState.trim() || null,
-            postal_code: newCustPostal.trim() || null,
-            birthday: newCustBirthday || null,
-            birthday_mmdd: birthdayMMDD,
-          } as any);
-          resolvedCustomerId = newCust.id;
-          resolvedCustomerName = newCust.full_name;
-          if (!isEditMode && orderDate >= toLocalDateKey()) {
-            setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
-          }
-        }
-
-        let eventId: string | null = null;
-        if (isEventBased && selectedEventId) eventId = selectedEventId;
-
-        // Resolve face_type:
-        // - Non-customer → "Non-Customer"
-        // - Reorder → default "Customer" unless user override
-        // - Otherwise use override (edit mode prefill) or leave undefined
-        const resolvedFaceType = isNonCustomer
+      // Resolve face_type:
+      // - Non-customer → "Non-Customer"
+      // - Reorder → default "Customer" unless user override
+      // - Facial → default "Facial" unless user override
+      // - Party → default "Party" unless user override
+      // - Otherwise use override or leave undefined
+      const resolvedFaceType =
+        isNonCustomer
           ? "Non-Customer"
           : orderType === "Reorder"
-            ? faceTypeOverride || "Customer"
-            : faceTypeOverride || undefined;
+            ? (faceTypeOverride || "Customer")
+            : orderType === "Facial"
+              ? (faceTypeOverride || "Facial")
+              : orderType === "Party"
+                ? (faceTypeOverride || "Party")
+                : (faceTypeOverride || undefined);
 
-        const orderPayload: any = {
-          customer_id: resolvedCustomerId,
-          customer_name: resolvedCustomerName,
-          order_date: orderDate,
-          event_id: eventId || undefined,
-          order_type: orderType,
-          face_type: resolvedFaceType,
-          payment_status: paymentStatus,
-          payment_type: paymentStatus === "Unpaid" ? null : paymentType,
-          retail_amount: Number(retailAmount) || 0,
-          wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
-          discount_amount: financials.discount,
-          tax_amount: financials.tax,
-          cc_fee_amount: financials.ccFee,
-          cc_transaction_type: isCreditCard ? ccTxType : null,
-          net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
-          net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
-          notes: notes || (isEditMode ? null : undefined),
-          parent_event_id: isEventBased ? selectedEventId : null,
-          is_myshop_order: !!orderTags.myshop,
-          hostess: orderTags.hostess,
-          half_price_deal: orderTags.half_price,
-          birthday: orderTags.birthday,
-          referral: orderTags.referral,
-          discount_type_ids: discountTypeIds,
-        };
+      const orderPayload: any = {
+        customer_id: resolvedCustomerId,
+        customer_name: resolvedCustomerName,
+        order_date: orderDate,
+        event_id: eventId || undefined,
+        order_type: orderType,
+        face_type: resolvedFaceType,
+        payment_status: paymentStatus,
+        payment_type: paymentStatus === "Unpaid" ? null : paymentType,
+        retail_amount: Number(retailAmount) || 0,
+        wholesale_amount: wholesaleAmount ? Number(wholesaleAmount) : null,
+        discount_amount: financials.discount,
+        tax_amount: financials.tax,
+        cc_fee_amount: financials.ccFee,
+        cc_transaction_type: isCreditCard ? ccTxType : null,
+        net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
+        net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
+        notes: notes || (isEditMode ? null : undefined),
+        parent_event_id: isEventBased ? selectedEventId : null,
+        is_myshop_order: !!orderTags.myshop,
+        hostess: orderTags.hostess,
+        half_price_deal: orderTags.half_price,
+        birthday: orderTags.birthday,
+        referral: orderTags.referral,
+        discount_type_ids: discountTypeIds,
+      };
 
-        if (isEditMode && editOrderId) {
-          await updateOrder(editOrderId, orderPayload);
-        } else {
-          await createOrder(orderPayload);
-        }
-
-        if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
-          try {
-            await supabase.from("customers").update({ is_skincare_customer: true }).eq("id", resolvedCustomerId);
-          } catch (e) {
-            console.error("Failed to update skincare flag", e);
-          }
-        }
-
-        // Only create a follow-up when the user explicitly selected an intent.
-        // Backdated orders default the intent to "none" via the form UI.
-        if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && followUpIntent !== "none") {
-          try {
-            await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
-          } catch (e) {
-            console.error("Post-order follow-up failed", e);
-          }
-        }
-
-        queryClient.invalidateQueries({ queryKey: ["orders"] });
-        queryClient.invalidateQueries({ queryKey: ["customers"] });
-        queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
-        if (isEditMode && editOrderId) queryClient.invalidateQueries({ queryKey: ["order", editOrderId] });
-
-        setSavedCount((prev) => prev + 1);
-        toast.success(isEditMode ? "Order updated" : `Order saved for ${resolvedCustomerName}`);
-
-        if (isEditMode) {
-          navigate("/orders");
-        } else if (addAnother || bulkMode) {
-          setCustomerId("");
-          setCustomerName("");
-          setCustomerSearch("");
-          setIsNewCustomer(false);
-          setIsNonCustomer(false);
-          setNonCustomerLabel("");
-          setNewCustName("");
-          setNewCustPhone("");
-          setNewCustEmail("");
-          setNewCustAddress("");
-          setNewCustCity("");
-          setNewCustState("");
-          setNewCustPostal("");
-          setNewCustBirthday("");
-          setShowAdditional(false);
-          setDuplicateMatch(null);
-          setRetailAmount("");
-          setWholesaleAmount("");
-          setWholesaleManual(false);
-          setDiscountValue("");
-          setNotes("");
-          setPaymentType("");
-          setPaymentStatus("Paid");
-          setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
-          setFollowUpIntent("none");
-          setFaceTypeOverride(null);
-          setAttempted(false);
-        } else if (!isNewCustomer) {
-          navigate("/orders");
-        }
-      } catch (err: any) {
-        toast.error(err.message || (isEditMode ? "Failed to update order" : "Failed to create order"));
-      } finally {
-        setSubmitting(false);
-        setDncSuppressFollowUp(false);
+      if (isEditMode && editOrderId) {
+        await updateOrder(editOrderId, orderPayload);
+      } else {
+        await createOrder(orderPayload);
       }
-    },
-    [
-      canSubmit,
-      validationErrors,
-      isEventBased,
-      selectedEventId,
-      customerId,
-      customerName,
-      orderDate,
-      orderType,
-      paymentType,
-      paymentStatus,
-      retailAmount,
-      wholesaleAmount,
-      financials,
-      notes,
-      bulkMode,
-      queryClient,
-      navigate,
-      isNewCustomer,
-      newCustName,
-      newCustPhone,
-      newCustEmail,
-      newCustAddress,
-      newCustCity,
-      newCustState,
-      newCustPostal,
-      newCustBirthday,
-      isNonCustomer,
-      nonCustomerLabel,
-      user,
-      customers,
-      dncPrompt,
-      dncSuppressFollowUp,
-      isEditMode,
-      editOrderId,
-      faceTypeOverride,
-      reorderConvertPrompt,
-      reorderConvertHandled,
-      isSkincareCustomer,
-      ccTxType,
-      isCreditCard,
-      orderTags,
-      discountTypeIds,
-    ],
-  );
+
+      if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
+        try {
+          await supabase.from("customers").update({ is_skincare_customer: true }).eq("id", resolvedCustomerId);
+        } catch (e) { console.error("Failed to update skincare flag", e); }
+      }
+
+      // Only create a follow-up when the user explicitly selected an intent.
+      // Backdated orders default the intent to "none" via the form UI.
+      if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && followUpIntent !== "none") {
+        try {
+          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
+        } catch (e) { console.error("Post-order follow-up failed", e); }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-orders", resolvedCustomerId] });
+      if (isEditMode && editOrderId) queryClient.invalidateQueries({ queryKey: ["order", editOrderId] });
+
+      setSavedCount(prev => prev + 1);
+      toast.success(isEditMode ? "Order updated" : `Order saved for ${resolvedCustomerName}`);
+
+      if (isEditMode) {
+        navigate("/orders");
+      } else if (addAnother || bulkMode) {
+        setCustomerId("");
+        setCustomerName("");
+        setCustomerSearch("");
+        setIsNewCustomer(false);
+        setIsNonCustomer(false);
+        setNonCustomerLabel("");
+        setNewCustName(""); setNewCustPhone(""); setNewCustEmail("");
+        setNewCustAddress(""); setNewCustCity(""); setNewCustState(""); setNewCustPostal("");
+        setNewCustBirthday(""); setShowAdditional(false); setDuplicateMatch(null);
+        setRetailAmount("");
+        setWholesaleAmount("");
+        setWholesaleManual(false);
+        setDiscountValue("");
+        setNotes("");
+        setPaymentType("");
+        setPaymentStatus("Paid");
+        setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+        setFollowUpIntent("none");
+        setFaceTypeOverride(null);
+        setAttempted(false);
+      } else if (!isNewCustomer) {
+        navigate("/orders");
+      }
+    } catch (err: any) {
+      toast.error(err.message || (isEditMode ? "Failed to update order" : "Failed to create order"));
+    } finally {
+      setSubmitting(false);
+      setDncSuppressFollowUp(false);
+    }
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
 
   // Edit mode: show loading until prefill complete
   if (isEditMode && !editPrefilled) {
@@ -708,7 +569,7 @@ export default function AddOrder() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {ORDER_TYPE_OPTIONS.map((opt) => {
+            {ORDER_TYPE_OPTIONS.map(opt => {
               const Icon = opt.icon;
               return (
                 <button
@@ -717,7 +578,7 @@ export default function AddOrder() {
                   className={cn(
                     "flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all",
                     "hover:border-primary hover:bg-primary/5",
-                    "border-border bg-card text-card-foreground",
+                    "border-border bg-card text-card-foreground"
                   )}
                 >
                   <Icon className="w-8 h-8 text-primary" />
@@ -729,11 +590,6 @@ export default function AddOrder() {
               );
             })}
           </div>
-          {(isNewCustomer || (customerId && !allOrders.some((o) => o.customer_id === customerId))) && (
-            <p className="text-xs text-muted-foreground mt-1">
-              First order for a new customer? Choose Facial or Party — this tags them as a new face in your metrics.
-            </p>
-          )}
         </div>
       </Layout>
     );
@@ -745,22 +601,11 @@ export default function AddOrder() {
       <div className="max-w-2xl space-y-4 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="-ml-2"
-            onClick={() => {
-              if (isEditMode) {
-                navigate("/orders");
-                return;
-              }
-              if (bulkMode && savedCount > 0) {
-                navigate("/orders");
-                return;
-              }
-              setOrderType("");
-            }}
-          >
+          <Button variant="ghost" size="icon" className="-ml-2" onClick={() => {
+            if (isEditMode) { navigate("/orders"); return; }
+            if (bulkMode && savedCount > 0) { navigate("/orders"); return; }
+            setOrderType("");
+          }}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
@@ -777,8 +622,7 @@ export default function AddOrder() {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm">
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
+                  <Trash2 className="w-4 h-4 mr-1" />Delete
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -788,29 +632,25 @@ export default function AddOrder() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={async () => {
-                      if (!editOrderId) return;
-                      try {
-                        await deleteOrder(editOrderId);
-                        queryClient.invalidateQueries({ queryKey: ["orders"] });
-                        queryClient.invalidateQueries({ queryKey: ["customers"] });
-                        toast.success("Order deleted");
-                        navigate("/orders");
-                      } catch (e: any) {
-                        toast.error(e.message || "Failed to delete order");
-                      }
-                    }}
-                  >
-                    Delete
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={async () => {
+                    if (!editOrderId) return;
+                    try {
+                      await deleteOrder(editOrderId);
+                      queryClient.invalidateQueries({ queryKey: ["orders"] });
+                      queryClient.invalidateQueries({ queryKey: ["customers"] });
+                      toast.success("Order deleted");
+                      navigate("/orders");
+                    } catch (e: any) {
+                      toast.error(e.message || "Failed to delete order");
+                    }
+                  }}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           ) : (
             /* Type switcher pills */
             <div className="flex gap-1">
-              {ORDER_TYPE_OPTIONS.map((opt) => (
+              {ORDER_TYPE_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => setOrderType(opt.value)}
@@ -818,7 +658,7 @@ export default function AddOrder() {
                     "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                     orderType === opt.value
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80",
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
                   )}
                 >
                   {opt.label}
@@ -841,7 +681,7 @@ export default function AddOrder() {
                   <input
                     type="checkbox"
                     checked={bulkMode}
-                    onChange={(e) => setBulkMode(e.target.checked)}
+                    onChange={e => setBulkMode(e.target.checked)}
                     className="rounded border-border"
                   />
                   <span className="text-muted-foreground">Bulk entry mode</span>
@@ -861,7 +701,7 @@ export default function AddOrder() {
                     <SelectItem value="__none__">
                       <span className="text-muted-foreground">No event / standalone</span>
                     </SelectItem>
-                    {eventOptions.map((e) => (
+                    {eventOptions.map(e => (
                       <SelectItem key={e.event_id} value={e.event_id}>
                         <span className="flex items-center gap-2">
                           <span className="font-medium">{e.hostess_name || e.event_id}</span>
@@ -895,286 +735,181 @@ export default function AddOrder() {
         {/* Row 1: Customer (left) + Date (right, inline) */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
           <div className="space-y-1.5 flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">Customer *</label>
-              {!selectedCustomer && !isNewCustomer && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsNonCustomer(!isNonCustomer);
-                    setCustomerId("");
-                    setCustomerName("");
-                    setCustomerSearch("");
-                    setIsNewCustomer(false);
-                  }}
-                  className={cn(
-                    "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-colors",
-                    isNonCustomer
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  <Store className="w-3 h-3" />
-                  Non-Customer / One-Time Order
-                </button>
-              )}
-            </div>
-
-            {isNonCustomer ? (
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Store className="w-4 h-4 text-primary" /> One-Time / Support Order
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => {
-                      setIsNonCustomer(false);
-                      setNonCustomerLabel("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                <Input
-                  placeholder="Buyer label (optional, e.g. 'MyShop online', 'Goal support')"
-                  value={nonCustomerLabel}
-                  onChange={(e) => setNonCustomerLabel(e.target.value)}
-                  className="h-9"
-                />
-                <p className="text-xs text-muted-foreground leading-snug">
-                  This order will be tracked but the buyer will not be added to follow-up lists or customer metrics.
-                </p>
-              </div>
-            ) : selectedCustomer ? (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
-                <div>
-                  <span className="font-medium text-sm">{selectedCustomer.full_name}</span>
-                  {selectedCustomer.phone && (
-                    <span className="text-xs text-muted-foreground ml-2">{selectedCustomer.phone}</span>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCustomerId("");
-                    setCustomerName("");
-                    setCustomerSearch("");
-                    setIsNewCustomer(false);
-                  }}
-                >
-                  Change
-                </Button>
-              </div>
-            ) : isNewCustomer ? (
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <UserPlus className="w-4 h-4 text-primary" /> New Customer
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => {
-                      setIsNewCustomer(false);
-                      setNewCustName("");
-                      setNewCustPhone("");
-                      setNewCustEmail("");
-                      setDuplicateMatch(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-
-                {/* Duplicate match warning */}
-                {duplicateMatch && (
-                  <div className="flex items-center justify-between p-2.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <div>
-                        <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                          Existing customer found
-                        </p>
-                        <p className="text-xs text-amber-700 dark:text-amber-400">
-                          {duplicateMatch.full_name}
-                          {duplicateMatch.phone ? ` · ${duplicateMatch.phone}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs shrink-0"
-                      onClick={() => {
-                        setCustomerId(duplicateMatch.id);
-                        setCustomerName(duplicateMatch.full_name);
-                        setIsNewCustomer(false);
-                        setDuplicateMatch(null);
-                      }}
-                    >
-                      Use this one
-                    </Button>
-                  </div>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Customer *</label>
+            {!selectedCustomer && !isNewCustomer && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNonCustomer(!isNonCustomer);
+                  setCustomerId(""); setCustomerName(""); setCustomerSearch("");
+                  setIsNewCustomer(false);
+                }}
+                className={cn(
+                  "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border transition-colors",
+                  isNonCustomer
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="sm:col-span-2">
-                    <Input
-                      placeholder="Name *"
-                      value={newCustName}
-                      onChange={(e) => setNewCustName(e.target.value)}
-                      className="h-9"
-                    />
-                  </div>
-                  <Input
-                    ref={newCustPhoneRef}
-                    placeholder="Phone"
-                    value={newCustPhone}
-                    onChange={(e) => setNewCustPhone(e.target.value)}
-                    className="h-9"
-                    autoFocus
-                  />
-                  <Input
-                    placeholder="Email"
-                    value={newCustEmail}
-                    onChange={(e) => setNewCustEmail(e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-
-                <Collapsible open={showAdditional} onOpenChange={setShowAdditional}>
-                  <CollapsibleTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showAdditional && "rotate-180")} />
-                      Additional Details (optional)
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-2 space-y-2">
-                    <Input
-                      placeholder="Address"
-                      value={newCustAddress}
-                      onChange={(e) => setNewCustAddress(e.target.value)}
-                      className="h-9"
-                    />
-                    <div className="grid grid-cols-3 gap-2">
-                      <Input
-                        placeholder="City"
-                        value={newCustCity}
-                        onChange={(e) => setNewCustCity(e.target.value)}
-                        className="h-9"
-                      />
-                      <Input
-                        placeholder="State"
-                        value={newCustState}
-                        onChange={(e) => setNewCustState(e.target.value)}
-                        className="h-9"
-                      />
-                      <Input
-                        placeholder="Zip"
-                        value={newCustPostal}
-                        onChange={(e) => setNewCustPostal(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-muted-foreground mb-0.5 block">Birthday</label>
-                      <Input
-                        type="date"
-                        value={newCustBirthday}
-                        onChange={(e) => setNewCustBirthday(e.target.value)}
-                        className="h-9"
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Input
-                  ref={customerSearchRef}
-                  placeholder="Search by name, phone, or email..."
-                  value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
-                  autoFocus
-                  className="h-9"
-                  onKeyDown={(e) => {
-                    if (filteredCustomers.length === 0) return;
-                    if (e.key === "ArrowDown") {
-                      e.preventDefault();
-                      setHighlightIdx((i) => Math.min(i + 1, filteredCustomers.length - 1));
-                    } else if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      setHighlightIdx((i) => Math.max(i - 1, 0));
-                    } else if (e.key === "Enter") {
-                      e.preventDefault();
-                      const c = filteredCustomers[highlightIdx];
-                      if (c) selectCustomer(c.id);
-                    }
-                  }}
-                />
-                {customerSearch.trim().length >= 2 && (
-                  <div className="border border-border rounded-lg max-h-48 overflow-auto">
-                    {filteredCustomers.map((c, idx) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={cn(
-                          "w-full text-left px-3 py-2 text-sm transition-colors",
-                          idx === highlightIdx ? "bg-muted" : "hover:bg-muted",
-                        )}
-                        onMouseEnter={() => setHighlightIdx(idx)}
-                        onClick={() => selectCustomer(c.id)}
-                      >
-                        <span className="font-medium">{c.full_name}</span>
-                        {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
-                      </button>
-                    ))}
-                    {filteredCustomers.length === 0 && (
-                      <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>
-                    )}
-                  </div>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-primary h-7 gap-1"
-                  onClick={() => {
-                    const typed = customerSearch.trim();
-                    setNewCustName(typed);
-                    setIsNewCustomer(true);
-                    setCustomerSearch("");
-                    setTimeout(() => newCustPhoneRef.current?.focus(), 50);
-                  }}
-                >
-                  <UserPlus className="w-3.5 h-3.5" /> Add New Customer
-                </Button>
-              </div>
+              >
+                <Store className="w-3 h-3" />
+                Non-Customer / One-Time Order
+              </button>
             )}
+          </div>
+
+          {isNonCustomer ? (
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-primary" /> One-Time / Support Order
+                </span>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNonCustomer(false); setNonCustomerLabel(""); }}>
+                  Cancel
+                </Button>
+              </div>
+              <Input
+                placeholder="Buyer label (optional, e.g. 'MyShop online', 'Goal support')"
+                value={nonCustomerLabel}
+                onChange={e => setNonCustomerLabel(e.target.value)}
+                className="h-9"
+              />
+              <p className="text-xs text-muted-foreground leading-snug">
+                This order will be tracked but the buyer will not be added to follow-up lists or customer metrics.
+              </p>
+            </div>
+          ) : selectedCustomer ? (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+              <div>
+                <span className="font-medium text-sm">{selectedCustomer.full_name}</span>
+                {selectedCustomer.phone && <span className="text-xs text-muted-foreground ml-2">{selectedCustomer.phone}</span>}
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setCustomerId(""); setCustomerName(""); setCustomerSearch(""); setIsNewCustomer(false); }}>Change</Button>
+            </div>
+          ) : isNewCustomer ? (
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-primary" /> New Customer
+                </span>
+                <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => { setIsNewCustomer(false); setNewCustName(""); setNewCustPhone(""); setNewCustEmail(""); setDuplicateMatch(null); }}>
+                  Cancel
+                </Button>
+              </div>
+
+              {/* Duplicate match warning */}
+              {duplicateMatch && (
+                <div className="flex items-center justify-between p-2.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Existing customer found</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">{duplicateMatch.full_name}{duplicateMatch.phone ? ` · ${duplicateMatch.phone}` : ""}</p>
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => {
+                    setCustomerId(duplicateMatch.id);
+                    setCustomerName(duplicateMatch.full_name);
+                    setIsNewCustomer(false);
+                    setDuplicateMatch(null);
+                  }}>
+                    Use this one
+                  </Button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="sm:col-span-2">
+                  <Input placeholder="Name *" value={newCustName} onChange={e => setNewCustName(e.target.value)} className="h-9" />
+                </div>
+                <Input ref={newCustPhoneRef} placeholder="Phone" value={newCustPhone} onChange={e => setNewCustPhone(e.target.value)} className="h-9" autoFocus />
+                <Input placeholder="Email" value={newCustEmail} onChange={e => setNewCustEmail(e.target.value)} className="h-9" />
+              </div>
+
+              <Collapsible open={showAdditional} onOpenChange={setShowAdditional}>
+                <CollapsibleTrigger asChild>
+                  <button type="button" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showAdditional && "rotate-180")} />
+                    Additional Details (optional)
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2 space-y-2">
+                  <Input placeholder="Address" value={newCustAddress} onChange={e => setNewCustAddress(e.target.value)} className="h-9" />
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input placeholder="City" value={newCustCity} onChange={e => setNewCustCity(e.target.value)} className="h-9" />
+                    <Input placeholder="State" value={newCustState} onChange={e => setNewCustState(e.target.value)} className="h-9" />
+                    <Input placeholder="Zip" value={newCustPostal} onChange={e => setNewCustPostal(e.target.value)} className="h-9" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-muted-foreground mb-0.5 block">Birthday</label>
+                    <Input type="date" value={newCustBirthday} onChange={e => setNewCustBirthday(e.target.value)} className="h-9" />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Input
+                ref={customerSearchRef}
+                placeholder="Search by name, phone, or email..."
+                value={customerSearch}
+                onChange={e => setCustomerSearch(e.target.value)}
+                autoFocus
+                className="h-9"
+                onKeyDown={(e) => {
+                  if (filteredCustomers.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIdx(i => Math.min(i + 1, filteredCustomers.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIdx(i => Math.max(i - 1, 0));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const c = filteredCustomers[highlightIdx];
+                    if (c) selectCustomer(c.id);
+                  }
+                }}
+              />
+              {customerSearch.trim().length >= 2 && (
+                <div className="border border-border rounded-lg max-h-48 overflow-auto">
+                  {filteredCustomers.map((c, idx) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm transition-colors",
+                        idx === highlightIdx ? "bg-muted" : "hover:bg-muted"
+                      )}
+                      onMouseEnter={() => setHighlightIdx(idx)}
+                      onClick={() => selectCustomer(c.id)}
+                    >
+                      <span className="font-medium">{c.full_name}</span>
+                      {c.phone && <span className="text-muted-foreground ml-2 text-xs">{c.phone}</span>}
+                    </button>
+                  ))}
+                  {filteredCustomers.length === 0 && (
+                    <p className="text-xs text-muted-foreground px-3 py-2">No customers found</p>
+                  )}
+                </div>
+              )}
+              <Button type="button" variant="ghost" size="sm" className="text-xs text-primary h-7 gap-1" onClick={() => {
+                const typed = customerSearch.trim();
+                setNewCustName(typed);
+                setIsNewCustomer(true);
+                setCustomerSearch("");
+                setTimeout(() => newCustPhoneRef.current?.focus(), 50);
+              }}>
+                <UserPlus className="w-3.5 h-3.5" /> Add New Customer
+              </Button>
+            </div>
+          )}
           </div>
 
           {/* Date (inline with Customer on desktop, stacks on mobile) */}
           <div className="sm:w-44 sm:shrink-0 space-y-1.5">
             <label className="text-sm font-medium text-foreground">Date</label>
-            <Input
-              type="date"
-              value={orderDate}
-              onChange={(e) => setOrderDate(e.target.value)}
-              required
-              className="h-9"
-            />
+            <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="h-9" />
           </div>
         </div>
 
@@ -1183,14 +918,7 @@ export default function AddOrder() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground">Retail Amount *</label>
-              <CurrencyInput
-                ref={retailInputRef}
-                placeholder="$0.00"
-                value={retailAmount}
-                onValueChange={setRetailAmount}
-                onKeyDown={enterAdvance(discountInputRef)}
-                className="h-9"
-              />
+              <CurrencyInput ref={retailInputRef} placeholder="$0.00" value={retailAmount} onValueChange={setRetailAmount} onKeyDown={enterAdvance(discountInputRef)} className="h-9" />
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -1208,10 +936,7 @@ export default function AddOrder() {
               <CurrencyInput
                 placeholder="$0.00"
                 value={wholesaleAmount}
-                onValueChange={(v) => {
-                  setWholesaleManual(true);
-                  setWholesaleAmount(v);
-                }}
+                onValueChange={(v) => { setWholesaleManual(true); setWholesaleAmount(v); }}
                 className="h-9"
                 tabIndex={-1}
               />
@@ -1220,9 +945,7 @@ export default function AddOrder() {
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">
-                Discount <span className="text-muted-foreground font-normal">(opt.)</span>
-              </label>
+              <label className="text-sm font-medium text-foreground">Discount <span className="text-muted-foreground font-normal">(opt.)</span></label>
               <div className="flex gap-1.5">
                 {discountMode === "$" ? (
                   <CurrencyInput
@@ -1238,12 +961,8 @@ export default function AddOrder() {
                 ) : (
                   <Input
                     ref={discountInputRef}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
+                    type="number" step="0.01" min="0" placeholder="0"
+                    value={discountValue} onChange={e => setDiscountValue(e.target.value)}
                     onKeyDown={enterAdvance(notesInputRef)}
                     onFocus={() => setDiscountFocused(true)}
                     onBlur={() => setDiscountFocused(false)}
@@ -1251,24 +970,16 @@ export default function AddOrder() {
                   />
                 )}
                 <div className="flex shrink-0">
-                  {(["$", "%"] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
+                  {(["$", "%"] as const).map(m => (
+                    <button key={m} type="button"
                       tabIndex={-1}
-                      className={cn(
-                        "h-9 w-9 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
+                      className={cn("h-9 w-9 text-xs font-medium border transition-colors first:rounded-l-md last:rounded-r-md -ml-px first:ml-0",
                         discountMode === m
                           ? "bg-primary text-primary-foreground border-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted",
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
                       )}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setDiscountMode(m);
-                      }}
-                    >
-                      {m}
-                    </button>
+                      onMouseDown={(e) => { e.preventDefault(); setDiscountMode(m); }}
+                    >{m}</button>
                   ))}
                 </div>
               </div>
@@ -1283,41 +994,14 @@ export default function AddOrder() {
           {/* Live Financial Summary — beside inputs on desktop, below on mobile */}
           {Number(retailAmount) > 0 ? (
             <div className="rounded-lg border border-border bg-card p-3 text-xs space-y-1 shadow-sm lg:sticky lg:top-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                Order Totals
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Retail Amount</span>
-                <span className="font-medium">${financials.orderTotal.toFixed(2)}</span>
-              </div>
-              {financials.discount > 0 && (
-                <div className="flex justify-between text-amber-700 dark:text-amber-400">
-                  <span>– Discount</span>
-                  <span>-${financials.discount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">+ Tax</span>
-                <span>${financials.tax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between pt-1 border-t border-border/60">
-                <span className="font-semibold text-foreground">Final Total</span>
-                <span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span>
-              </div>
-              {financials.ccFee > 0 && (
-                <div className="flex justify-between text-rose-700 dark:text-rose-400">
-                  <span>– CC Fee</span>
-                  <span>-${financials.ccFee.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Net Revenue</span>
-                <span className="font-medium">${financials.netRevenue.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
-                <span className="font-semibold">Est. Net Profit</span>
-                <span className="font-semibold">${financials.netProfit.toFixed(2)}</span>
-              </div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Order Totals</div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Retail Amount</span><span className="font-medium">${financials.orderTotal.toFixed(2)}</span></div>
+              {financials.discount > 0 && <div className="flex justify-between text-amber-700 dark:text-amber-400"><span>– Discount</span><span>-${financials.discount.toFixed(2)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">+ Tax</span><span>${financials.tax.toFixed(2)}</span></div>
+              <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
+              {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
+              <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
             </div>
           ) : (
             <div className="hidden lg:block rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground lg:sticky lg:top-2">
@@ -1327,29 +1011,25 @@ export default function AddOrder() {
           )}
         </div>
 
+
         {/* Row 3: Payment Status (left) + Payment Method (right) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-sm font-medium text-foreground">Payment Status</label>
             <div className="flex gap-1.5 mt-1">
-              {(["Paid", "Unpaid"] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={cn(
-                    "h-9 px-4 rounded-md text-xs font-medium border transition-colors",
+              {(["Paid", "Unpaid"] as const).map(s => (
+                <button key={s} type="button"
+                  className={cn("h-9 px-4 rounded-md text-xs font-medium border transition-colors",
                     paymentStatus === s
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted",
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
                   )}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setPaymentStatus(s);
                     if (s === "Unpaid") setPaymentType("");
                   }}
-                >
-                  {s}
-                </button>
+                >{s}</button>
               ))}
             </div>
           </div>
@@ -1359,28 +1039,19 @@ export default function AddOrder() {
               Payment Method {paymentStatus === "Paid" && "*"}
             </label>
             <div className="flex flex-wrap gap-1.5 mt-1">
-              {PAYMENT_TYPES.map((p) => {
+              {PAYMENT_TYPES.map(p => {
                 const shortcutMap: Record<string, string> = {
-                  Cash: "C",
-                  Venmo: "V",
-                  Zelle: "Z",
-                  Check: "K",
-                  "Credit Card": "R",
-                  CashApp: "A",
-                  Paypal: "P",
-                  MyShop: "M",
+                  Cash: "C", Venmo: "V", Zelle: "Z", Check: "K",
+                  "Credit Card": "R", CashApp: "A", Paypal: "P", MyShop: "M",
                 };
                 const sc = shortcutMap[p];
                 return (
-                  <button
-                    key={p}
-                    type="button"
+                  <button key={p} type="button"
                     title={sc ? `Shortcut: ${sc}` : undefined}
-                    className={cn(
-                      "h-8 px-3 rounded-md text-xs font-medium border transition-colors",
+                    className={cn("h-8 px-3 rounded-md text-xs font-medium border transition-colors",
                       paymentType === p
                         ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-background text-muted-foreground hover:bg-muted",
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
                     )}
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -1408,26 +1079,19 @@ export default function AddOrder() {
             <div>
               <label className="text-xs font-medium text-foreground">Card transaction type</label>
               <div className="flex flex-wrap gap-1.5 mt-1">
-                {(
-                  [
-                    { v: "in_person", l: "In-person" },
-                    { v: "online", l: "Online / invoice" },
-                    { v: "keyed", l: "Manually entered" },
-                  ] as const
-                ).map((t) => (
-                  <button
-                    key={t.v}
-                    type="button"
-                    className={cn(
-                      "h-7 px-2.5 rounded-md text-xs font-medium border transition-colors",
+                {([
+                  { v: "in_person", l: "In-person" },
+                  { v: "online", l: "Online / invoice" },
+                  { v: "keyed", l: "Manually entered" },
+                ] as const).map(t => (
+                  <button key={t.v} type="button"
+                    className={cn("h-7 px-2.5 rounded-md text-xs font-medium border transition-colors",
                       ccTxType === t.v
                         ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-background text-muted-foreground hover:bg-muted",
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
                     )}
                     onClick={() => setCcTxType(t.v)}
-                  >
-                    {t.l}
-                  </button>
+                  >{t.l}</button>
                 ))}
               </div>
               <p className="text-[11px] text-muted-foreground mt-1">
@@ -1435,36 +1099,24 @@ export default function AddOrder() {
               </p>
             </div>
             <div>
-              <label className="text-xs font-medium text-foreground">
-                Override fee ($) <span className="text-muted-foreground font-normal">(optional)</span>
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Auto"
-                value={ccFeeOverride}
-                onChange={(e) => setCcFeeOverride(e.target.value)}
-                className="h-8 mt-1 max-w-[140px]"
-              />
+              <label className="text-xs font-medium text-foreground">Override fee ($) <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Input type="number" step="0.01" min="0" placeholder="Auto"
+                value={ccFeeOverride} onChange={e => setCcFeeOverride(e.target.value)}
+                className="h-8 mt-1 max-w-[140px]" />
             </div>
           </div>
         )}
 
         {/* Order Tags — multi-select; MyShop also suppresses CC fees */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-foreground">
-            Order Tags <span className="text-muted-foreground font-normal">(optional)</span>
-          </label>
+          <label className="text-sm font-medium text-foreground">Order Tags <span className="text-muted-foreground font-normal">(optional)</span></label>
           <OrderTagChips
             value={orderTags}
             onChange={setOrderTags}
             include={["hostess", "half_price", "birthday", "referral", "myshop"]}
           />
           {orderTags.myshop && (
-            <p className="text-[11px] text-muted-foreground">
-              MyShop tag skips credit card processing fees; retail and profit still count.
-            </p>
+            <p className="text-[11px] text-muted-foreground">MyShop tag skips credit card processing fees; retail and profit still count.</p>
           )}
         </div>
 
@@ -1475,21 +1127,17 @@ export default function AddOrder() {
         )}
 
         {paymentStatus === "Unpaid" && (
-          <p className="text-xs text-muted-foreground">
-            Payment method is optional for unpaid orders and will be saved blank.
-          </p>
+          <p className="text-xs text-muted-foreground">Payment method is optional for unpaid orders and will be saved blank.</p>
         )}
 
         {/* Notes */}
         <div>
-          <label className="text-sm font-medium text-foreground">
-            Notes <span className="text-muted-foreground font-normal">(optional)</span>
-          </label>
+          <label className="text-sm font-medium text-foreground">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
           <Textarea
             ref={notesInputRef}
             placeholder="Optional notes... (Ctrl+Enter to save)"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={e => setNotes(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
@@ -1500,6 +1148,7 @@ export default function AddOrder() {
             className="h-16 resize-none"
           />
         </div>
+
 
         {/* Follow-Up Intent — only when creating an order for a real customer */}
         {!isEditMode && !isNonCustomer && (
@@ -1513,27 +1162,25 @@ export default function AddOrder() {
               className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {getFollowUpIntentOptions("order").map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
             <p className="text-xs text-muted-foreground mt-1">
               {orderDate < toLocalDateKey()
                 ? "Follow-up calculated from order date. If that's already passed, it'll be set to tomorrow."
-                : "No follow-up is created unless you choose one."}{" "}
-              If no intent is chosen and they have nothing scheduled, a 60-day Customer Care touchpoint is added
-              automatically.
+                : "No follow-up is created unless you choose one."}
+              {" "}If no intent is chosen and they have nothing scheduled, a 60-day Customer Care touchpoint is added automatically.
             </p>
           </div>
         )}
+
 
         {!isNonCustomer && (
           <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
             <input
               type="checkbox"
               checked={isSkincareCustomer}
-              onChange={(e) => setIsSkincareCustomer(e.target.checked)}
+              onChange={e => setIsSkincareCustomer(e.target.checked)}
               className="mt-0.5 rounded border-border"
             />
             <span className="text-sm">
@@ -1564,7 +1211,12 @@ export default function AddOrder() {
             </div>
           ) : bulkMode ? (
             <>
-              <Button type="button" className="flex-1 h-11" disabled={!canSubmit} onClick={() => handleSubmit(true)}>
+              <Button
+                type="button"
+                className="flex-1 h-11"
+                disabled={!canSubmit}
+                onClick={() => handleSubmit(true)}
+              >
                 {submitting ? "Saving..." : "Save & Next"}
               </Button>
               <Button
@@ -1573,9 +1225,7 @@ export default function AddOrder() {
                 className="h-11"
                 onClick={() => {
                   if (savedCount > 0) navigate("/orders");
-                  else {
-                    setBulkMode(false);
-                  }
+                  else { setBulkMode(false); }
                 }}
               >
                 Done
@@ -1634,12 +1284,7 @@ export default function AddOrder() {
         }}
       />
 
-      <AlertDialog
-        open={!!dncPrompt}
-        onOpenChange={(o) => {
-          if (!o) setDncPrompt(null);
-        }}
-      >
+      <AlertDialog open={!!dncPrompt} onOpenChange={(o) => { if (!o) setDncPrompt(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -1653,15 +1298,11 @@ export default function AddOrder() {
           <div className="space-y-2 text-sm">
             <div className="rounded-md border border-border p-3">
               <p className="font-medium text-foreground">A. Remove DNC and convert to Customer</p>
-              <p className="text-xs text-muted-foreground">
-                Removes the DNC tag and resumes the standard post-order follow-up.
-              </p>
+              <p className="text-xs text-muted-foreground">Removes the DNC tag and resumes the standard post-order follow-up.</p>
             </div>
             <div className="rounded-md border border-border p-3">
               <p className="font-medium text-foreground">B. Keep DNC and log the order</p>
-              <p className="text-xs text-muted-foreground">
-                Records the sale but does <strong>not</strong> schedule any follow-up.
-              </p>
+              <p className="text-xs text-muted-foreground">Records the sale but does <strong>not</strong> schedule any follow-up.</p>
             </div>
           </div>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -1683,10 +1324,8 @@ export default function AddOrder() {
                 setDncPrompt(null);
                 if (!customerId) return;
                 try {
-                  const cust = customers.find((c) => c.id === customerId);
-                  const newTags = (Array.isArray((cust as any)?.tags) ? (cust as any).tags : []).filter(
-                    (t: string) => t !== "DNC",
-                  );
+                  const cust = customers.find(c => c.id === customerId);
+                  const newTags = (Array.isArray((cust as any)?.tags) ? (cust as any).tags : []).filter((t: string) => t !== "DNC");
                   const { error } = await supabase
                     .from("customers")
                     .update({ tags: newTags } as any)
@@ -1710,24 +1349,17 @@ export default function AddOrder() {
 
       <AlertDialog
         open={!!reorderConvertPrompt}
-        onOpenChange={(o) => {
-          if (!o) setReorderConvertPrompt(null);
-        }}
+        onOpenChange={(o) => { if (!o) setReorderConvertPrompt(null); }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Mark this person as Customer?</AlertDialogTitle>
             <AlertDialogDescription>
               {(() => {
-                const cust = customers.find((c) => c.id === reorderConvertPrompt?.customerId) as any;
+                const cust = customers.find(c => c.id === reorderConvertPrompt?.customerId) as any;
                 const name = cust?.full_name || "This person";
                 const status = cust?.relationship_status || "not set";
-                return (
-                  <>
-                    Reorders are typically tied to existing customers. <strong>{name}</strong> is currently marked as{" "}
-                    <strong>{status}</strong>. Update their relationship to Customer?
-                  </>
-                );
+                return <>Reorders are typically tied to existing customers. <strong>{name}</strong> is currently marked as <strong>{status}</strong>. Update their relationship to Customer?</>;
               })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1736,7 +1368,7 @@ export default function AddOrder() {
               onClick={() => {
                 const pending = reorderConvertPrompt;
                 if (pending) {
-                  setReorderConvertHandled((prev) => new Set(prev).add(pending.customerId));
+                  setReorderConvertHandled(prev => new Set(prev).add(pending.customerId));
                 }
                 setReorderConvertPrompt(null);
                 if (pending) {
@@ -1761,7 +1393,7 @@ export default function AddOrder() {
                 } catch (e: any) {
                   toast.error(e.message || "Failed to update relationship");
                 }
-                setReorderConvertHandled((prev) => new Set(prev).add(pending.customerId));
+                setReorderConvertHandled(prev => new Set(prev).add(pending.customerId));
                 setTimeout(() => handleSubmit(pending.addAnother), 0);
               }}
             >
