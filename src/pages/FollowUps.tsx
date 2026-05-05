@@ -2572,7 +2572,7 @@ export default function FollowUps() {
                                         </span>
                                       </div>
                                       {/* Line 2: Follow-up type */}
-                                      <p className="text-sm text-foreground/80 mt-0.5">Event Coaching</p>
+                                      <p className="text-sm text-foreground/80 mt-0.5">Rebook Follow-Up</p>
 
                                       {/* Line 3: Meta */}
                                       {metaParts.length > 0 && (
