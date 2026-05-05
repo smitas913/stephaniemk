@@ -2534,7 +2534,7 @@ export default function FollowUps() {
                        );
                      };
 
-                      // Event Follow-Ups card (formerly the separate "Event Reschedules" section).
+                      // Event Coaching card (formerly the separate "Event Reschedules" section).
                       const renderEventFollowUpsCard = () => (
                         <Card className="border-border/50 shadow-sm">
                           <CardHeader className="pb-2">
@@ -2572,7 +2572,7 @@ export default function FollowUps() {
                                         </span>
                                       </div>
                                       {/* Line 2: Follow-up type */}
-                                      <p className="text-sm text-foreground/80 mt-0.5">Event Follow-Up</p>
+                                      <p className="text-sm text-foreground/80 mt-0.5">Event Coaching</p>
 
                                       {/* Line 3: Meta */}
                                       {metaParts.length > 0 && (
@@ -2668,7 +2668,7 @@ export default function FollowUps() {
 
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Row 1: Booking Activity | Event Follow-Ups */}
+                          {/* Row 1: Booking Activity | Event Coaching */}
                           <TodaySectionWrapper
                             sectionKey="booking"
                             title="Booking Activity"
