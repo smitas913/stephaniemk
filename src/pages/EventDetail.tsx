@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
+import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2 } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
@@ -374,11 +374,14 @@ export default function EventDetail() {
           </div>
           {event && (
             <div className="flex items-center gap-1.5 shrink-0">
-              <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
-                {event.event_status || "Booked"}
-              </Badge>
-              {event.reschedule_status && event.reschedule_status !== "None" && (
-                <Badge variant="outline" className="text-xs">{event.reschedule_status}</Badge>
+              {(event as any).reschedule_status === "In Process of Rescheduling" ? (
+                <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                  Rescheduling
+                </Badge>
+              ) : (
+                <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
+                  {event.event_status || "Booked"}
+                </Badge>
               )}
             </div>
           )}
@@ -504,20 +507,35 @@ export default function EventDetail() {
                           <SelectContent>{EVENT_FORMATS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
-                      {/* Status */}
-                      <div className="space-y-1.5">
+                      {/* Unified Status */}
+                      <div className="space-y-1.5 sm:col-span-2">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-                        <Select value={event.event_status || "Booked"} onValueChange={handleStatusChange}>
+                        <Select
+                          value={
+                            (event as any).reschedule_status === "In Process of Rescheduling"
+                              ? "In Process of Rescheduling"
+                              : event.event_status || "Booked"
+                          }
+                          onValueChange={(val) => {
+                            if (val === "In Process of Rescheduling") {
+                              eventMutation.mutate({
+                                event_id: event.event_id,
+                                reschedule_status: "In Process of Rescheduling",
+                                reschedule_attempt_number: (event as any).reschedule_attempt_number || 0,
+                                reschedule_next_follow_up_date: (event as any).reschedule_next_follow_up_date || toLocalDateKey(addDays(new Date(), 2)),
+                              } as any);
+                            } else {
+                              handleStatusChange(val);
+                            }
+                          }}
+                        >
                           <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                          <SelectContent>{EVENT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </div>
-                      {/* Reschedule Status */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reschedule Status</label>
-                        <Select value={(event as any).reschedule_status || "None"} onValueChange={(val) => { if (val !== ((event as any).reschedule_status || "None")) eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any); }}>
-                          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                          <SelectContent>{RESCHEDULE_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                          <SelectContent>
+                            <SelectItem value="Booked">Booked</SelectItem>
+                            <SelectItem value="In Process of Rescheduling">In Process of Rescheduling</SelectItem>
+                            <SelectItem value="Held">Held</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                          </SelectContent>
                         </Select>
                       </div>
                       {/* Location — smart based on format */}
