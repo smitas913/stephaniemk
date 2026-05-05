@@ -2947,6 +2947,15 @@ export default function FollowUps() {
                   })()}
 
                   {/* ═══ SECTION 4: Relationships ═══ */}
+                  <TodaySectionWrapper
+                    sectionKey="relationships"
+                    title="Relationships"
+                    order={order.indexOf("relationships")}
+                    totalSections={5}
+                    collapsed={!!collapsed["relationships"]}
+                    onToggleCollapsed={() => toggleCollapsed("relationships")}
+                    onMove={(d) => moveSection("relationships", d)}
+                  >
                   <Card className="border-border/50 shadow-sm">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
