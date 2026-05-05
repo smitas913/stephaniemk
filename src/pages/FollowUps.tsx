@@ -3113,7 +3113,6 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
                 </div>
-              </div>
               )}
             </div>
           </>
