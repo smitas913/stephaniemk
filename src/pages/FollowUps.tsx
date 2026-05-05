@@ -4944,7 +4944,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
     <div className="py-3 px-2 group hover:bg-muted/30 transition-colors rounded-md">
       {/* Line 1: Name */}
       <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigate}>
-        <p className="text-sm font-semibold text-foreground break-words">{item.name}</p>
+        <p className="text-sm font-medium text-foreground break-words">{item.name}</p>
         {item.vip === "VIP" && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>
         )}
@@ -4954,7 +4954,7 @@ function BirthdayRow({ item, label, isOverdue, onNavigate, onAction, onDone }: {
       </div>
 
       {/* Line 2: Type */}
-      <p className="text-sm text-foreground/80 mt-0.5">{typeLabel}</p>
+      <p className="text-xs text-foreground/80 mt-0.5">{typeLabel}</p>
 
       {/* Line 3: Date + status */}
       <p className={cn("text-xs mt-0.5", isOverdue ? "text-destructive" : "text-muted-foreground")}>
