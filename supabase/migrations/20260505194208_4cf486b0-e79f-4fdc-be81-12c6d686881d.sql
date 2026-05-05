@@ -1,0 +1,1 @@
+ALTER TABLE public.notes DROP CONSTRAINT IF EXISTS notes_note_type_check;
