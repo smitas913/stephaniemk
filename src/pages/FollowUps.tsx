@@ -42,7 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -2556,7 +2556,6 @@ export default function FollowUps() {
                                           Event
                                         </span>
                                       </div>
-
                                       {/* Line 2: Follow-up type */}
                                       <p className="text-sm text-foreground/80 mt-0.5">Event Follow-Up</p>
 
@@ -3023,7 +3022,6 @@ export default function FollowUps() {
                             </Button>
                           </div>
                         </div>
-
                         {[...birthdaysToday, ...birthdaysOverdue].filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && (
                           <p className="text-sm text-muted-foreground py-3 text-center">No birthdays or anniversaries today</p>
                         )}
@@ -3116,7 +3114,6 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
                 </div>
-              </div>
               )}
             </div>
           </>
@@ -3308,8 +3305,7 @@ export default function FollowUps() {
                         {detailFollowUpMutation.isPending ? "Saving..." : "Update"}
                       </Button>
                     </div>
-                  </div>
-
+                          </div>
                   {/* Add note */}
                   <div className="mb-6 p-3 rounded-lg bg-muted/40 border border-border/50 space-y-2">
                     <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><FileText className="w-3 h-3" /> Add Note</label>
@@ -3317,8 +3313,7 @@ export default function FollowUps() {
                     <Button size="sm" onClick={() => detailNoteMutation.mutate()} disabled={detailNoteMutation.isPending || !detailNoteText.trim()}>
                       {detailNoteMutation.isPending ? "Saving..." : "Save Note"}
                     </Button>
-                  </div>
-
+                          </div>
                   {/* Notes Timeline (Prospects) */}
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
