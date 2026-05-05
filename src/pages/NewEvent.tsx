@@ -51,6 +51,7 @@ export default function NewEvent() {
   const [hostessPhone, setHostessPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [eventLocation, setEventLocation] = useState("");
+  const [eventVenueType, setEventVenueType] = useState("");
   const [eventTime, setEventTime] = useState("");
   // Zoom fields
   const [zoomId, setZoomId] = useState("");
@@ -100,7 +101,12 @@ export default function NewEvent() {
   const mutation = useMutation({
     mutationFn: async () => {
       const displayType = isLeadGen ? leadGenSubtype : eventType;
-      const eventId = generateEventId(eventType, eventDate, hostessName || "Event", events.map(e => e.event_id));
+      const eventId = generateEventId(
+        eventType,
+        eventDate,
+        hostessName || "Event",
+        events.map((e) => e.event_id),
+      );
       const payload: Record<string, any> = {
         event_id: eventId,
         event_type: displayType,
@@ -114,6 +120,7 @@ export default function NewEvent() {
       };
       if (eventFormat === "In-Person") {
         payload.event_location = eventLocation || null;
+        payload.event_venue_type = eventVenueType || null;
       } else if (isVirtual && virtualPlatform === "Zoom") {
         payload.virtual_platform = "Zoom";
         payload.zoom_id = zoomId || null;
@@ -175,7 +182,7 @@ export default function NewEvent() {
                         "flex items-center justify-center gap-2 h-11 rounded-lg border-2 text-sm font-medium transition-colors",
                         eventType === t.value
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted",
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -200,7 +207,7 @@ export default function NewEvent() {
                         "flex-1 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
                         leadGenSubtype === sub
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted",
                       )}
                     >
                       {sub}
@@ -225,7 +232,7 @@ export default function NewEvent() {
                         "flex-1 flex items-center justify-center gap-2 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
                         eventFormat === f.value
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted",
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -250,7 +257,7 @@ export default function NewEvent() {
                         "flex-1 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
                         virtualPlatform === p.value
                           ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted",
                       )}
                     >
                       {p.label}
@@ -266,16 +273,31 @@ export default function NewEvent() {
                 <div className="grid grid-cols-2 gap-4 max-w-sm">
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Zoom ID</label>
-                    <Input value={zoomId} onChange={(e) => setZoomId(e.target.value)} className="h-10" placeholder="Meeting ID" />
+                    <Input
+                      value={zoomId}
+                      onChange={(e) => setZoomId(e.target.value)}
+                      className="h-10"
+                      placeholder="Meeting ID"
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground mb-1.5 block">Zoom Password</label>
-                    <Input value={zoomPassword} onChange={(e) => setZoomPassword(e.target.value)} className="h-10" placeholder="Password" />
+                    <Input
+                      value={zoomPassword}
+                      onChange={(e) => setZoomPassword(e.target.value)}
+                      className="h-10"
+                      placeholder="Password"
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Zoom Link</label>
-                  <Input value={zoomLink} onChange={(e) => setZoomLink(e.target.value)} className="h-10 max-w-sm" placeholder="https://zoom.us/j/..." />
+                  <Input
+                    value={zoomLink}
+                    onChange={(e) => setZoomLink(e.target.value)}
+                    className="h-10 max-w-sm"
+                    placeholder="https://zoom.us/j/..."
+                  />
                 </div>
               </div>
             )}
@@ -285,15 +307,30 @@ export default function NewEvent() {
               <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-muted/30">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Platform Name</label>
-                  <Input value={platformName} onChange={(e) => setPlatformName(e.target.value)} className="h-10 max-w-sm" placeholder="e.g. Google Meet, Teams" />
+                  <Input
+                    value={platformName}
+                    onChange={(e) => setPlatformName(e.target.value)}
+                    className="h-10 max-w-sm"
+                    placeholder="e.g. Google Meet, Teams"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Link / Access Info</label>
-                  <Input value={platformLink} onChange={(e) => setPlatformLink(e.target.value)} className="h-10 max-w-sm" placeholder="Meeting link or access info" />
+                  <Input
+                    value={platformLink}
+                    onChange={(e) => setPlatformLink(e.target.value)}
+                    className="h-10 max-w-sm"
+                    placeholder="Meeting link or access info"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label>
-                  <Input value={virtualNotes} onChange={(e) => setVirtualNotes(e.target.value)} className="h-10 max-w-sm" placeholder="Optional notes" />
+                  <Input
+                    value={virtualNotes}
+                    onChange={(e) => setVirtualNotes(e.target.value)}
+                    className="h-10 max-w-sm"
+                    placeholder="Optional notes"
+                  />
                 </div>
               </div>
             )}
@@ -312,14 +349,55 @@ export default function NewEvent() {
 
             {/* Location — only for In-Person */}
             {!isVirtual && (
-              <div className="max-w-sm">
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
-                <AddressAutocomplete
-                  value={eventLocation}
-                  onChange={setEventLocation}
-                  onAddressSelect={(parsed) => setEventLocation(parsed.formatted)}
-                  placeholder="Address or venue"
-                />
+              <div className="space-y-3 max-w-sm">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Venue Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {["Hostess's Home", "My Home Office", "Other Venue"].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => {
+                          setEventVenueType(v);
+                          if (v === "My Home Office" && zoomDefaults?.home_office_address) {
+                            setEventLocation(zoomDefaults.home_office_address);
+                          } else if (v !== "My Home Office") {
+                            setEventLocation("");
+                          }
+                        }}
+                        className={cn(
+                          "h-10 rounded-lg border-2 text-xs font-medium transition-colors px-2",
+                          eventVenueType === v
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">
+                    {eventVenueType === "Hostess's Home"
+                      ? "Hostess's Address"
+                      : eventVenueType === "My Home Office"
+                        ? "My Address"
+                        : "Location / Venue"}
+                  </label>
+                  <AddressAutocomplete
+                    value={eventLocation}
+                    onChange={setEventLocation}
+                    onAddressSelect={(parsed) => setEventLocation(parsed.formatted)}
+                    placeholder={
+                      eventVenueType === "Hostess's Home"
+                        ? "Hostess's street address"
+                        : eventVenueType === "My Home Office"
+                          ? "Your home office address"
+                          : "Address or venue name"
+                    }
+                  />
+                </div>
               </div>
             )}
 
@@ -353,7 +431,12 @@ export default function NewEvent() {
             {/* Notes */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label>
-              <Textarea placeholder="Optional notes about the event..." value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[80px]" />
+              <Textarea
+                placeholder="Optional notes about the event..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[80px]"
+              />
             </div>
 
             {/* Submit */}
