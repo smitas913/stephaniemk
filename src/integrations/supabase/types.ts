@@ -694,9 +694,11 @@ export type Database = {
           event_status: string
           event_time: string | null
           event_type: string | null
+          event_venue_type: string | null
           future_bookings_count: number | null
           google_form_link: string | null
           guest_count: number | null
+          hostess_converted_customer_id: string | null
           hostess_email: string | null
           hostess_name: string | null
           hostess_next_action: string | null
@@ -739,9 +741,11 @@ export type Database = {
           event_status?: string
           event_time?: string | null
           event_type?: string | null
+          event_venue_type?: string | null
           future_bookings_count?: number | null
           google_form_link?: string | null
           guest_count?: number | null
+          hostess_converted_customer_id?: string | null
           hostess_email?: string | null
           hostess_name?: string | null
           hostess_next_action?: string | null
@@ -784,9 +788,11 @@ export type Database = {
           event_status?: string
           event_time?: string | null
           event_type?: string | null
+          event_venue_type?: string | null
           future_bookings_count?: number | null
           google_form_link?: string | null
           guest_count?: number | null
+          hostess_converted_customer_id?: string | null
           hostess_email?: string | null
           hostess_name?: string | null
           hostess_next_action?: string | null
@@ -811,7 +817,22 @@ export type Database = {
           zoom_link?: string | null
           zoom_password?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_hostess_converted_customer_id_fkey"
+            columns: ["hostess_converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_hostess_converted_customer_id_fkey"
+            columns: ["hostess_converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
