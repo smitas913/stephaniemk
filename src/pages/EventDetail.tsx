@@ -88,6 +88,11 @@ const PREP_STEPS = [
     label: "Soft reach out + guest reminders sent (2-3 days out)",
     hint: "Biggest driver of attendance — don't skip this one",
   },
+  {
+    field: "checklist_day_before_sent",
+    label: "Day-before reminder sent to guests",
+    hint: "A quick excited message the day before keeps energy high and reduces no-shows",
+  },
 ];
 
 export default function EventDetail() {
@@ -637,33 +642,47 @@ export default function EventDetail() {
                             </label>
                             <Select
                               value={(event as any).event_venue_type || ""}
-                              onValueChange={(val) => updateField("event_venue_type", val)}
+                              onValueChange={(val) => {
+                                updateField("event_venue_type", val);
+                                // Auto-fill address for My Home Office
+                                if (
+                                  val === "My Home Office" &&
+                                  zoomDefaults?.home_office_address &&
+                                  !(event as any).event_location
+                                ) {
+                                  updateField("event_location", zoomDefaults.home_office_address);
+                                }
+                              }}
                             >
                               <SelectTrigger className="h-9 text-sm">
                                 <SelectValue placeholder="Select venue type" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Home">Home</SelectItem>
-                                <SelectItem value="Office">Office</SelectItem>
-                                <SelectItem value="Other">Other</SelectItem>
+                                <SelectItem value="Hostess's Home">Hostess's Home</SelectItem>
+                                <SelectItem value="My Home Office">My Home Office</SelectItem>
+                                <SelectItem value="Other Venue">Other Venue</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              {(event as any).event_venue_type === "Home" ? "Hostess Address" : "Location / Address"}
+                              {(event as any).event_venue_type === "Hostess's Home"
+                                ? "Hostess's Address"
+                                : (event as any).event_venue_type === "My Home Office"
+                                  ? "My Address"
+                                  : "Venue Address"}
                             </label>
                             <Input
                               className="h-9 text-sm"
                               placeholder={
-                                (event as any).event_venue_type === "Home"
-                                  ? "123 Main St, City, State"
-                                  : (event as any).event_venue_type === "Office"
-                                    ? "Office name or address"
+                                (event as any).event_venue_type === "Hostess's Home"
+                                  ? "Hostess's street address"
+                                  : (event as any).event_venue_type === "My Home Office"
+                                    ? "Your home office address"
                                     : "Venue name or address"
                               }
                               defaultValue={(event as any).event_location || ""}
-                              key={`el-${(event as any).event_location}`}
+                              key={`el-${(event as any).event_location}-${(event as any).event_venue_type}`}
                               onBlur={(e) => {
                                 if (e.target.value !== ((event as any).event_location || ""))
                                   updateField("event_location", e.target.value || null);
@@ -908,49 +927,6 @@ export default function EventDetail() {
                     )}
                   </div>
                 </div>
-
-                {/* Workflow tasks — only if any pending */}
-                {pendingTasks.length > 0 && (
-                  <Card className="border-border/50">
-                    <CardHeader className="pb-1">
-                      <CardTitle className="text-sm">Workflow Tasks</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="divide-y divide-border">
-                        {pendingTasks.map((task: EventTask) => (
-                          <label
-                            key={task.id}
-                            className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30"
-                          >
-                            <Checkbox checked={false} onCheckedChange={() => handleCompleteTask(task.id)} />
-                            <div className="flex-1 min-w-0">
-                              <span className="text-sm text-foreground font-medium">{task.task_name}</span>
-                              {task.due_date && (
-                                <span
-                                  className={cn(
-                                    "text-xs ml-2",
-                                    task.due_date < todayStr
-                                      ? "text-destructive font-medium"
-                                      : task.due_date === todayStr
-                                        ? "text-amber-600 font-medium"
-                                        : "text-muted-foreground",
-                                  )}
-                                >
-                                  {task.due_date < todayStr
-                                    ? "Overdue · "
-                                    : task.due_date === todayStr
-                                      ? "Due today · "
-                                      : "Due "}
-                                  {formatDateOnly(task.due_date)}
-                                </span>
-                              )}
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             ) : null}
           </TabsContent>
