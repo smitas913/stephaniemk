@@ -3058,7 +3058,7 @@ export default function FollowUps() {
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1">
                                     <Heart className="w-3 h-3" /> Consultant Anniversaries ({anniversaries.length})
                                   </p>
-                                  <div className="divide-y divide-border/40">
+                                  <div className="grid grid-cols-2 gap-3">
                                     {anniversaries.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={getLabel(c)} isOverdue={(c._daysUntil ?? 0) < 0}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} onDone={() => markBirthdayDone(c)} />
