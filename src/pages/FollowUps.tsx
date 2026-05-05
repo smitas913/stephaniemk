@@ -2555,6 +2555,7 @@ export default function FollowUps() {
                                         <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
                                           Event
                                         </span>
+                                      </div>
                                       {/* Line 2: Follow-up type */}
                                       <p className="text-sm text-foreground/80 mt-0.5">Event Follow-Up</p>
 
