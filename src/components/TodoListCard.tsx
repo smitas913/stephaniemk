@@ -112,10 +112,13 @@ export default function TodoListCard() {
           <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-900/40">
             <CheckSquare className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           </div>
-          <CardTitle className="text-sm font-semibold text-foreground">To-Do List</CardTitle>
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-sm font-semibold text-foreground">My 6 Most Important Things</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">Write your top priorities for today — aim for 6</p>
+          </div>
           {todos.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {open.length}
+            <Badge variant={open.length <= 6 ? "secondary" : "destructive"} className="text-xs shrink-0">
+              {open.length}/6
             </Badge>
           )}
         </div>
@@ -145,9 +148,7 @@ export default function TodoListCard() {
         {loading ? (
           <p className="text-xs text-muted-foreground py-4 text-center">Loading…</p>
         ) : todos.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">
-            No tasks yet — add one above.
-          </p>
+          <p className="text-xs text-muted-foreground py-4 text-center">No tasks yet — add one above.</p>
         ) : (
           <div className="mt-3 divide-y divide-border/40">
             {open.map((t) => (
@@ -187,10 +188,7 @@ function TodoRow({
         aria-label={todo.done ? "Mark incomplete" : "Mark complete"}
       />
       <p
-        className={cn(
-          "flex-1 text-sm text-foreground break-words",
-          todo.done && "line-through text-muted-foreground",
-        )}
+        className={cn("flex-1 text-sm text-foreground break-words", todo.done && "line-through text-muted-foreground")}
       >
         {todo.text}
       </p>
