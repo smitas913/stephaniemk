@@ -2534,106 +2534,7 @@ export default function FollowUps() {
                        );
                      };
 
-                      // Event Coaching card (formerly the separate "Event Reschedules" section).
-                      const renderEventFollowUpsCard = () => (
-                        <Card className="border-border/50 shadow-sm">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30">
-                                <RefreshCw className="w-4 h-4 text-orange-600" />
-                              </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Event Coaching</CardTitle>
-                              <Badge variant="secondary" className="text-xs">{reschedulingFollowUp.length}</Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            {reschedulingFollowUp.length === 0 ? (
-                              <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
-                            ) : (
-                              <div className="divide-y divide-border/40">
-                                {reschedulingFollowUp.map((evt) => {
-                                  const metaParts: string[] = [];
-                                  if (evt.reschedule_last_contact_date) {
-                                    metaParts.push(`Last contacted: ${formatLastContacted(evt.reschedule_last_contact_date)}`);
-                                  }
-                                  if (evt.event_date) metaParts.push(`Orig ${formatDateOnly(evt.event_date)}`);
-                                  return (
-                                    <div key={evt.id} className="py-3 px-2 group hover:bg-muted/30 transition-colors rounded-md">
-                                      {/* Line 1: Name */}
-                                      <div
-                                        className="flex items-center gap-2 cursor-pointer"
-                                        onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}
-                                      >
-                                        <p className="text-base font-semibold text-foreground break-words">
-                                          {evt.hostess_name || evt.event_id}
-                                        </p>
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                          Event
-                                        </span>
-                                      </div>
-                                      {/* Line 2: Follow-up type */}
-                                      <p className="text-sm text-foreground/80 mt-0.5">Rebook Follow-Up</p>
-
-                                      {/* Line 3: Meta */}
-                                      {metaParts.length > 0 && (
-                                        <p className="text-xs text-muted-foreground mt-0.5">{metaParts.join(" • ")}</p>
-                                      )}
-
-                                      {/* Line 4: Actions */}
-                                      <div className="flex items-center gap-1 mt-2">
-                                        {evt.hostess_phone && (
-                                          <>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Call" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                              <a href={`tel:${phoneForLink(evt.hostess_phone)}`}><Phone className="w-4 h-4 text-primary" /></a>
-                                            </Button>
-                                            <TextActionButton phone={evt.hostess_phone} trigger="icon" className="h-8 w-8" />
-                                          </>
-                                        )}
-                                        {evt.hostess_email && (
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Email">
-                                            <a href={`mailto:${evt.hostess_email}`} onClick={(e) => openEmail(evt.hostess_email!, e)}>
-                                              <Mail className="w-4 h-4 text-primary" />
-                                            </a>
-                                          </Button>
-                                        )}
-                                        {evt.requires_manual_next_step ? (
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setManualNextStepEvent(evt)} title="Choose Next Step">
-                                            <FileText className="w-4 h-4 text-primary" />
-                                          </Button>
-                                        ) : (
-                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRescheduleUniversalPanel(evt)} title="Log Activity">
-                                            <FileText className="w-4 h-4 text-primary" />
-                                          </Button>
-                                        )}
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => { setSetNewDateEvent(evt); setNewEventDate(""); }}
-                                          title="Set New Date"
-                                        >
-                                          <CalendarCheck className="w-4 h-4 text-muted-foreground" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => navigate(`/events/${evt.event_id}`, { state: { from: "/follow-ups" } })}
-                                          title="Open Event"
-                                        >
-                                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-
-                      // Prospect Follow-Ups card (always rendered for grid balance).
+                       // Prospect Follow-Ups card (always rendered for grid balance).
                       const renderProspectCard = () => (
                         <Card className="border-border/50 shadow-sm">
                           <CardHeader className="pb-2">
@@ -2668,7 +2569,7 @@ export default function FollowUps() {
 
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Row 1: Booking Activity | Event Coaching */}
+                          {/* Row 1: Booking Activity */}
                           <TodaySectionWrapper
                             sectionKey="booking"
                             title="Booking Activity"
@@ -2690,7 +2591,6 @@ export default function FollowUps() {
                                 "bg-amber-50 dark:bg-amber-950/30",
                                 "text-amber-600",
                               )}
-                              {renderEventFollowUpsCard()}
                             </div>
                           </TodaySectionWrapper>
 
