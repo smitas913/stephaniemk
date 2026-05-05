@@ -8,6 +8,7 @@ import {
   createNote,
   fetchAllLatestNotes,
   fetchEventTasks,
+  completeEventTask,
   type EventTask,
 } from "@/lib/queries";
 import Layout from "@/components/Layout";
@@ -38,6 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Search,
@@ -430,14 +432,24 @@ export default function Events() {
                 </div>
                 {taskInfo.all.map((t) => (
                   <div key={t.id} className="flex items-center justify-between text-xs py-0.5">
-                    <span
-                      className={cn(
-                        t.due_date && t.due_date < taskToday && "text-destructive",
-                        t.due_date === taskToday && "text-amber-600",
-                      )}
-                    >
-                      {t.task_name}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={!!t.completed_at}
+                        onCheckedChange={async () => {
+                          await completeEventTask(t.id);
+                          queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+                        }}
+                      />
+                      <span
+                        className={cn(
+                          t.completed_at && "line-through text-muted-foreground",
+                          !t.completed_at && t.due_date && t.due_date < taskToday && "text-destructive",
+                          !t.completed_at && t.due_date === taskToday && "text-amber-600",
+                        )}
+                      >
+                        {t.task_name}
+                      </span>
+                    </div>
                     <span className="text-[10px] text-muted-foreground">
                       {t.due_date ? formatDateOnly(t.due_date) : "no due date"}
                     </span>
