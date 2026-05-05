@@ -185,10 +185,9 @@ function TodoRow({
       />
       <p
         className={cn(
-          "flex-1 text-xs text-foreground truncate",
+          "flex-1 text-xs text-foreground leading-tight line-clamp-2",
           todo.done && "line-through text-muted-foreground",
         )}
-        title={todo.text}
       >
         {todo.text}
       </p>
