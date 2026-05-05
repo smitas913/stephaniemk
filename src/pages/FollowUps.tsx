@@ -31,7 +31,7 @@ import MobileTodayView from "@/components/mobile/MobileTodayView";
 import type { MobileActionItem } from "@/components/mobile/MobileFollowUpRow";
 import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
 import MobileTeamAttention from "@/components/mobile/MobileTeamAttention";
-import TodoListCard from "@/components/TodoListCard";
+
 import type { MobileTeamItem } from "@/components/mobile/MobileTeamAttention";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -3034,7 +3034,7 @@ export default function FollowUps() {
                   {/* Thoughtful Touches merged into Relationships card above */}
 
                   {/* ═══ SECTION: To-Do List ═══ */}
-                  <TodoListCard />
+                  
                 </div>
                 </div>
               ) : (
