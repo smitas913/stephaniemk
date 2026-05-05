@@ -48,7 +48,7 @@ export default function PCPCatalogUpload() {
     setFileName(file.name);
 
     try {
-      const XLSX: any = await import(/* @vite-ignore */ "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm");
+      const XLSX: any = await import(/* @vite-ignore */ ("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm" as string));
       const ab = await file.arrayBuffer();
       const wb = XLSX.read(ab, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
