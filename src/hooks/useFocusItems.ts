@@ -30,14 +30,17 @@ export interface DayTypeTarget {
 
 // Canonical category auto_track_keys — used to detect stale/legacy configs.
 const CANONICAL_AUTO_KEYS = new Set([
-  "customer_followup", "booking_activity", "hostess_coaching",
-  "consultant_coaching", "relationship",
+  "customer_followup",
+  "booking_activity",
+  "hostess_coaching",
+  "consultant_coaching",
+  "relationship",
 ]);
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 0, label: "Customer Follow-Ups", default_target: 10, auto_track_key: "customer_followup" },
   { sort_order: 1, label: "Booking Activity", default_target: 10, auto_track_key: "booking_activity" },
-  { sort_order: 2, label: "Hostess / Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
+  { sort_order: 2, label: "Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
   { sort_order: 3, label: "Consultant Coaching", default_target: 2, auto_track_key: "consultant_coaching" },
   { sort_order: 4, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
 ];
@@ -47,7 +50,7 @@ export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
   if (configs.length !== 5) return false;
   const expected = ["customer_followup", "booking_activity", "hostess_coaching", "consultant_coaching", "relationship"];
   for (let i = 0; i < 5; i++) {
-    const c = configs.find(cfg => cfg.sort_order === i);
+    const c = configs.find((cfg) => cfg.sort_order === i);
     if (!c || c.auto_track_key !== expected[i]) return false;
   }
   return true;
@@ -93,7 +96,11 @@ export function useFocusItems(dateKey?: string) {
     enabled: !!user,
   });
 
-  const { data: progress = [], isLoading: progressLoading, isFetching: progressFetching } = useQuery({
+  const {
+    data: progress = [],
+    isLoading: progressLoading,
+    isFetching: progressFetching,
+  } = useQuery({
     queryKey: ["daily-focus-progress", user?.id, selectedDate],
     queryFn: async () => {
       if (!user) return [];
@@ -179,11 +186,11 @@ export function useFocusItems(dateKey?: string) {
   };
 
   const getTargetForItem = (sortOrder: number, dayType: DayType): number => {
-    const custom = dayTypeTargets.find(t => t.day_type === dayType && t.sort_order === sortOrder);
+    const custom = dayTypeTargets.find((t) => t.day_type === dayType && t.sort_order === sortOrder);
     if (custom) return custom.target;
     const defaults = DEFAULT_DAY_TYPE_TARGETS[dayType];
     if (defaults && sortOrder < defaults.length) return defaults[sortOrder];
-    const config = configs.find(c => c.sort_order === sortOrder);
+    const config = configs.find((c) => c.sort_order === sortOrder);
     return config?.default_target ?? 1;
   };
 
@@ -197,7 +204,10 @@ export function useFocusItems(dateKey?: string) {
         default_target: item.default_target,
         auto_track_key: item.auto_track_key,
       }));
-      await supabase.from("focus_item_configs" as any).delete().eq("user_id", user.id);
+      await supabase
+        .from("focus_item_configs" as any)
+        .delete()
+        .eq("user_id", user.id);
       const { error } = await supabase.from("focus_item_configs" as any).insert(rows as any);
       if (error) throw error;
     },
@@ -207,7 +217,10 @@ export function useFocusItems(dateKey?: string) {
   const saveConfigs = useMutation({
     mutationFn: async (items: Omit<FocusItemConfig, "id">[]) => {
       if (!user) return;
-      await supabase.from("focus_item_configs" as any).delete().eq("user_id", user.id);
+      await supabase
+        .from("focus_item_configs" as any)
+        .delete()
+        .eq("user_id", user.id);
       const rows = items.map((item) => ({
         user_id: user.id,
         sort_order: item.sort_order,
@@ -222,7 +235,13 @@ export function useFocusItems(dateKey?: string) {
   });
 
   const upsertProgress = useMutation({
-    mutationFn: async (item: { sort_order: number; auto_count?: number; manual_adjustment?: number; is_complete?: boolean; day_type?: DayType }) => {
+    mutationFn: async (item: {
+      sort_order: number;
+      auto_count?: number;
+      manual_adjustment?: number;
+      is_complete?: boolean;
+      day_type?: DayType;
+    }) => {
       if (!user) return;
       const existing = progress.find((p) => p.sort_order === item.sort_order);
       const payload = {
@@ -247,9 +266,12 @@ export function useFocusItems(dateKey?: string) {
     mutationFn: async (targets: { day_type: DayType; sort_order: number; target: number }[]) => {
       if (!user) return;
       // Delete all for this user, re-insert
-      await supabase.from("day_type_targets" as any).delete().eq("user_id", user.id);
+      await supabase
+        .from("day_type_targets" as any)
+        .delete()
+        .eq("user_id", user.id);
       if (targets.length > 0) {
-        const rows = targets.map(t => ({ user_id: user.id, ...t }));
+        const rows = targets.map((t) => ({ user_id: user.id, ...t }));
         const { error } = await supabase.from("day_type_targets" as any).insert(rows as any);
         if (error) throw error;
       }
