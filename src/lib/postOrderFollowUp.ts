@@ -29,13 +29,55 @@ export interface FollowUpIntentOption {
 }
 
 export const FOLLOW_UP_INTENT_OPTIONS: FollowUpIntentOption[] = [
-  { value: "none", label: "No Follow-Up", days: null, reason: "", contexts: ["order", "customer", "event", "prospect"] },
-  { value: "quick_touch", label: "Quick Touch (2 days)", days: 2, reason: "Quick Touch", contexts: ["order", "customer", "event", "prospect"] },
-  { value: "check_in", label: "Check-In (7 days)", days: 7, reason: "Check-In", contexts: ["order", "customer", "prospect"] },
-  { value: "reorder_30", label: "Reorder Cycle (30 days)", days: 30, reason: "Reorder Cycle", contexts: ["order", "customer"] },
-  { value: "reorder_60", label: "Reorder Cycle (60 days)", days: 60, reason: "Reorder Cycle", contexts: ["order", "customer"] },
-  { value: "reorder_90", label: "Reorder Cycle (90 days)", days: 90, reason: "Reorder Cycle", contexts: ["order", "customer"] },
-  { value: "booking", label: "Booking Follow-Up (2 days)", days: 2, reason: "Booking Follow-Up", contexts: ["order", "customer", "event", "prospect"] },
+  {
+    value: "none",
+    label: "No Follow-Up",
+    days: null,
+    reason: "",
+    contexts: ["order", "customer", "event", "prospect"],
+  },
+  {
+    value: "quick_touch",
+    label: "Quick Touch (2 days)",
+    days: 2,
+    reason: "Quick Touch",
+    contexts: ["order", "customer", "event", "prospect"],
+  },
+  {
+    value: "check_in",
+    label: "Check-In (7 days)",
+    days: 7,
+    reason: "Check-In",
+    contexts: ["order", "customer", "prospect"],
+  },
+  {
+    value: "reorder_30",
+    label: "Reorder Cycle (30 days)",
+    days: 30,
+    reason: "Reorder Cycle",
+    contexts: ["order", "customer"],
+  },
+  {
+    value: "reorder_60",
+    label: "Reorder Cycle (60 days)",
+    days: 60,
+    reason: "Reorder Cycle",
+    contexts: ["order", "customer"],
+  },
+  {
+    value: "reorder_90",
+    label: "Reorder Cycle (90 days)",
+    days: 90,
+    reason: "Reorder Cycle",
+    contexts: ["order", "customer"],
+  },
+  {
+    value: "booking",
+    label: "Booking Follow-Up (2 days)",
+    days: 2,
+    reason: "Booking Follow-Up",
+    contexts: ["order", "customer", "event", "prospect"],
+  },
   { value: "reschedule", label: "Reschedule (2 days)", days: 2, reason: "Reschedule", contexts: ["event"] },
 ];
 
@@ -53,8 +95,9 @@ interface ApplyPostOrderFollowUpInput {
 /**
  * Schedule a follow-up only when the user explicitly selects a Follow-Up Intent.
  *  - intent "none" → no-op.
- *  - Otherwise compute orderDate + intent.days, keeping existing next_follow_up_date
- *    if it is sooner and still in the future. Audit logged in customer_notes.
+ *  - For backdated orders, calculates from TODAY so the follow-up is always in the future.
+ *  - For today's orders, calculates from the order date + intent.days.
+ *  - Keeps existing next_follow_up_date if it is sooner and still in the future.
  */
 export async function applyPostOrderFollowUp({
   customerId,
@@ -68,9 +111,9 @@ export async function applyPostOrderFollowUp({
   if (!opt || opt.days == null) return;
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const baseDate = parseISO(orderDate);
+  // Always base follow-up from today for backdated orders so it lands in the future
+  const baseDate = orderDate < todayKey ? new Date() : parseISO(orderDate);
   const proposed = format(addDays(baseDate, opt.days), "yyyy-MM-dd");
-  if (proposed <= todayKey) return;
 
   const { data: cust, error: readErr } = await supabase
     .from("customers")
