@@ -148,9 +148,11 @@ export default function TodoListCard() {
         {loading ? (
           <p className="text-xs text-muted-foreground py-4 text-center">Loading…</p>
         ) : todos.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-4 text-center">No tasks yet — add one above.</p>
+          <p className="text-xs text-muted-foreground py-4 text-center">
+            No tasks yet — add one above.
+          </p>
         ) : (
-          <div className="mt-3 divide-y divide-border/40">
+          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0 min-w-0">
             {open.map((t) => (
               <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onRemove={removeTodo} />
             ))}
@@ -174,7 +176,7 @@ function TodoRow({
   onRemove: (id: string) => void;
 }) {
   return (
-    <div className="py-2 flex items-center gap-3 group">
+    <div className="py-1 flex items-center gap-1.5 group min-w-0">
       <Checkbox
         checked={todo.done}
         onCheckedChange={() => onToggle(todo.id)}
@@ -182,7 +184,11 @@ function TodoRow({
         aria-label={todo.done ? "Mark incomplete" : "Mark complete"}
       />
       <p
-        className={cn("flex-1 text-sm text-foreground break-words", todo.done && "line-through text-muted-foreground")}
+        className={cn(
+          "flex-1 text-xs text-foreground truncate",
+          todo.done && "line-through text-muted-foreground",
+        )}
+        title={todo.text}
       >
         {todo.text}
       </p>
@@ -190,11 +196,11 @@ function TodoRow({
         type="button"
         variant="ghost"
         size="icon"
-        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
         onClick={() => onRemove(todo.id)}
         aria-label="Delete task"
       >
-        <X className="w-3.5 h-3.5 text-muted-foreground" />
+        <X className="w-3 h-3 text-muted-foreground" />
       </Button>
     </div>
   );
