@@ -2800,6 +2800,7 @@ export default function FollowUps() {
                           </div>
                         </CardContent>
                       </Card>
+                      </TodaySectionWrapper>
                     );
                   })()}
 
