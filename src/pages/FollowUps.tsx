@@ -2656,16 +2656,29 @@ export default function FollowUps() {
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Row 1: Booking Activity | Event Follow-Ups */}
-                          {renderCategoryCard(
-                            "Booking Activity",
-                            leadVisible,
-                            leadSorted.length,
-                            leadLimit,
-                            leadOverflow,
-                            "bg-amber-50 dark:bg-amber-950/30",
-                            "text-amber-600",
-                          )}
-                          {renderEventFollowUpsCard()}
+                          <TodaySectionWrapper
+                            sectionKey="booking"
+                            title="Booking Activity"
+                            count={todayActions.filter((i) => i.itemType === "lead").length}
+                            order={order.indexOf("booking")}
+                            totalSections={5}
+                            collapsed={!!collapsed["booking"]}
+                            onToggleCollapsed={() => toggleCollapsed("booking")}
+                            onMove={(d) => moveSection("booking", d)}
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {renderCategoryCard(
+                                "Booking Activity",
+                                leadVisible,
+                                leadSorted.length,
+                                leadLimit,
+                                leadOverflow,
+                                "bg-amber-50 dark:bg-amber-950/30",
+                                "text-amber-600",
+                              )}
+                              {renderEventFollowUpsCard()}
+                            </div>
+                          </TodaySectionWrapper>
 
                           {/* Row 2: Customer Follow-Ups | Prospect Follow-Ups */}
                           {renderCategoryCard(
