@@ -320,6 +320,7 @@ export default function FollowUps() {
 
   // Override is session-only — resets on navigation away or refresh (component unmount).
   const [showFollowUpsOverride, setShowFollowUpsOverride] = useState(false);
+  const [showAllCustomers, setShowAllCustomers] = useState(false);
   // When OOO is on AND override is off, hide workflow sections (follow-ups + team attention).
   // Birthdays (in Today's Schedule) and 6 Most Important always remain visible.
   const hideWorkflow = isOOOActive && !showFollowUpsOverride;
@@ -2694,15 +2695,27 @@ export default function FollowUps() {
                             className="md:col-span-2"
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {renderCategoryCard(
-                                "Customer Follow-Ups",
-                                customerVisible,
-                                customerSorted.length,
-                                customerLimit,
-                                customerOverflow,
-                                "bg-blue-50 dark:bg-blue-950/30",
-                                "text-blue-600",
-                              )}
+                              <div>
+                                {renderCategoryCard(
+                                  "Customer Follow-Ups",
+                                  showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
+                                  customerSorted.length,
+                                  customerLimit,
+                                  customerOverflow,
+                                  "bg-blue-50 dark:bg-blue-950/30",
+                                  "text-blue-600",
+                                )}
+                                {!showAllCustomers && customerVisible.length > 3 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 w-full"
+                                    onClick={() => setShowAllCustomers(true)}
+                                  >
+                                    Show all {customerVisible.length}
+                                  </Button>
+                                )}
+                              </div>
                               {renderProspectCard()}
                             </div>
                           </TodaySectionWrapper>
