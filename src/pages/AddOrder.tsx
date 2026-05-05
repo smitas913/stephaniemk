@@ -729,6 +729,11 @@ export default function AddOrder() {
               );
             })}
           </div>
+          {(isNewCustomer || (customerId && !allOrders.some((o) => o.customer_id === customerId))) && (
+            <p className="text-xs text-muted-foreground mt-1">
+              First order for a new customer? Choose Facial or Party — this tags them as a new face in your metrics.
+            </p>
+          )}
         </div>
       </Layout>
     );
