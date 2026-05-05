@@ -154,16 +154,9 @@ export default function TodoListCard() {
             {open.map((t) => (
               <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onRemove={removeTodo} />
             ))}
-            {done.length > 0 && (
-              <div className="pt-2">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground py-1">
-                  Completed ({done.length})
-                </p>
-                {done.map((t) => (
-                  <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onRemove={removeTodo} />
-                ))}
-              </div>
-            )}
+            {done.map((t) => (
+              <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onRemove={removeTodo} />
+            ))}
           </div>
         )}
       </CardContent>
@@ -185,6 +178,7 @@ function TodoRow({
       <Checkbox
         checked={todo.done}
         onCheckedChange={() => onToggle(todo.id)}
+        className="shrink-0 h-3.5 w-3.5"
         aria-label={todo.done ? "Mark incomplete" : "Mark complete"}
       />
       <p
