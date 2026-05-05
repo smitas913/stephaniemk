@@ -3070,7 +3070,7 @@ export default function FollowUps() {
                               {upcomingAll.length > 0 && (
                                 <div>
                                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Coming up (7 days)</p>
-                                  <div className="divide-y divide-border/40">
+                                  <div className="grid grid-cols-2 gap-3">
                                     {upcomingAll.map((c) => (
                                       <BirthdayRow key={rowKey(c)} item={c} label={`in ${c._daysUntil}d`}
                                         onNavigate={() => navigateToItem(c)} onAction={(type) => openContactDialog(c, type)} />
