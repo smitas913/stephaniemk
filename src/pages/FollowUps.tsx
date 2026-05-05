@@ -2555,12 +2555,24 @@ export default function FollowUps() {
                             ) : (
                               <div className="space-y-4">
                                 {(() => {
-                                  const buckets = splitBuckets(prioritySort(prospectItems));
+                                  const sorted = prioritySort(prospectItems);
+                                  const visible = showAllProspects ? sorted : sorted.slice(0, 3);
+                                  const buckets = splitBuckets(visible);
                                   return (
                                     <>
                                       {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
                                       {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
                                       {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
+                                      {!showAllProspects && sorted.length > 3 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="mt-2 w-full"
+                                          onClick={() => setShowAllProspects(true)}
+                                        >
+                                          Show all {sorted.length}
+                                        </Button>
+                                      )}
                                     </>
                                   );
                                 })()}
