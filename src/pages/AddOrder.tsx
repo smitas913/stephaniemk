@@ -50,6 +50,7 @@ export default function AddOrder() {
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const customerHasPriorOrders = !!customerId && allOrders.some((o: any) => o.customer_id === customerId);
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: financialSettings } = useRQ({ queryKey: ["financial-settings"], queryFn: fetchFinancialSettings });
   const { data: editOrder } = useQuery({
@@ -65,7 +66,6 @@ export default function AddOrder() {
     return "";
   });
   const [customerId, setCustomerId] = useState(preselectedCustomer);
-  const customerHasPriorOrders = !!customerId && allOrders.some((o: any) => o.customer_id === customerId);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [orderDate, setOrderDate] = useState(toLocalDateKey());
@@ -457,23 +457,27 @@ export default function AddOrder() {
 
       // Resolve face_type:
       // - Non-customer → "Non-Customer"
-      // - Reorder → default "Customer" unless user override
-      // - Facial → default "Facial" unless user override
-      // - Party → default "Party" unless user override
-      // - MyShop new customer → "Online"
-      // - Otherwise use override or leave undefined
+      // - Always use manual override if set
+      // - Reorder → "Customer"
+      // - Facial → "Facial"
+      // - Party → "Party"
+      // - Other/MyShop new customer → "Online"
+      // - Other existing customer → "Customer"
+      // - Fallback → "Customer"
       const resolvedFaceType =
         isNonCustomer
           ? "Non-Customer"
-          : orderType === "Reorder"
-            ? (faceTypeOverride || "Customer")
-            : orderType === "Facial"
-              ? (faceTypeOverride || "Facial")
-              : orderType === "Party"
-                ? (faceTypeOverride || "Party")
-                : isMyShopOrder && !customerHasPriorOrders
-                  ? (faceTypeOverride || "Online")
-                  : (faceTypeOverride || undefined);
+          : faceTypeOverride
+            ? faceTypeOverride
+            : orderType === "Reorder"
+              ? "Customer"
+              : orderType === "Facial"
+                ? "Facial"
+                : orderType === "Party"
+                  ? "Party"
+                  : isMyShopOrder && !customerHasPriorOrders
+                    ? "Online"
+                    : "Customer";
 
       const orderPayload: any = {
         customer_id: resolvedCustomerId,
@@ -1221,6 +1225,40 @@ export default function AddOrder() {
           </div>
         )}
 
+
+        {!isNonCustomer && (
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">
+              Face Type <span className="text-muted-foreground font-normal text-xs">(who is this buyer?)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {["Customer", "Facial", "Party", "Consultant", "Former Consultant", "Non-Customer"].map((ft) => {
+                const auto = orderType === "Reorder" ? "Customer"
+                  : orderType === "Facial" ? "Facial"
+                  : orderType === "Party" ? "Party"
+                  : "Customer";
+                const selected = faceTypeOverride ? faceTypeOverride === ft : auto === ft;
+                return (
+                  <button
+                    key={ft}
+                    type="button"
+                    onClick={() => setFaceTypeOverride(faceTypeOverride === ft && auto === ft ? null : ft)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      selected
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {ft}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Auto-selected based on order type. Override if needed.
+            </p>
+          </div>
+        )}
 
         {!isNonCustomer && (
           <label className="flex items-start gap-2 p-3 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors">
