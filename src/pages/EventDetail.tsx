@@ -877,7 +877,132 @@ export default function EventDetail() {
           {/* ── Tab 2: Event Coaching ── */}
           <TabsContent value="prep" className="mt-4 space-y-4">
             {event ? (
-              <>
+              (event.event_status === "Cancelled" || event.reschedule_status === "In Process of Rescheduling") ? (
+                (() => {
+                  const REBOOK_CADENCE = [2, 7, 7, 30, 90, 90, 90, 90, 90, 90];
+                  const attemptNum = (event as any).reschedule_attempt_number || 0;
+                  const lastContact = (event as any).reschedule_last_contact_date;
+                  const nextDue = (event as any).reschedule_next_follow_up_date;
+                  const notInterested = !!(event as any).rebook_not_interested;
+                  const nextOffsetDays = REBOOK_CADENCE[Math.min(attemptNum, REBOOK_CADENCE.length - 1)];
+                  const labelFor = (i: number) => {
+                    const d = REBOOK_CADENCE[Math.min(i, REBOOK_CADENCE.length - 1)];
+                    if (d === 2) return "2 days";
+                    if (d === 7) return "1 week";
+                    if (d === 30) return "1 month";
+                    return "90 days";
+                  };
+                  const logAttempt = async () => {
+                    const today = toLocalDateKey();
+                    const next = notInterested ? null : toLocalDateKey(addDays(new Date(), nextOffsetDays));
+                    const hostessName = event.hostess_name || "Hostess";
+                    await createNote({
+                      entity_type: "Hostess",
+                      note_body: `[${hostessName}] Rebook attempt #${attemptNum + 1} (${labelFor(attemptNum)} cadence)`,
+                      note_type: "Rebook Outreach",
+                      next_step: null,
+                      next_follow_up_date: next,
+                      is_booking_attempt: true,
+                      is_follow_up: true,
+                    } as any);
+                    eventMutation.mutate({
+                      event_id: event.event_id,
+                      reschedule_attempt_number: attemptNum + 1,
+                      reschedule_last_contact_date: today,
+                      reschedule_next_follow_up_date: next,
+                    } as any);
+                    toast.success("Rebook attempt logged");
+                  };
+                  const markNotInterested = () => {
+                    eventMutation.mutate({
+                      event_id: event.event_id,
+                      rebook_not_interested: true,
+                      reschedule_status: "None",
+                      reschedule_next_follow_up_date: null,
+                    } as any);
+                    toast.success("Outreach stopped — kept in hold rate stats");
+                  };
+                  const reactivate = (date: Date | undefined) => {
+                    if (!date) return;
+                    eventMutation.mutate({
+                      event_id: event.event_id,
+                      event_date: toLocalDateKey(date),
+                      event_status: "Booked",
+                      reschedule_status: "None",
+                      reschedule_attempt_number: 0,
+                      reschedule_next_follow_up_date: null,
+                      rebook_not_interested: false,
+                    } as any);
+                    toast.success("Event reactivated");
+                  };
+                  return (
+                    <Card className="border-border/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <CalendarDays className="w-4 h-4 text-primary" />
+                          Rebook Outreach Sequence
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="text-xs text-muted-foreground">
+                          Cadence: 2 days → 1 week → 1 week → 1 month → every 90 days
+                        </div>
+
+                        <div className="space-y-1.5">
+                          {REBOOK_CADENCE.slice(0, 6).map((_, i) => {
+                            const done = i < attemptNum;
+                            const current = i === attemptNum && !notInterested;
+                            return (
+                              <div
+                                key={i}
+                                className={cn(
+                                  "flex items-center justify-between text-sm px-3 py-2 rounded border",
+                                  done && "bg-muted/40 text-muted-foreground line-through",
+                                  current && "border-primary bg-primary/5",
+                                  !done && !current && "border-border/50",
+                                )}
+                              >
+                                <span>Attempt #{i + 1} — {labelFor(i)}</span>
+                                {done && <Badge variant="secondary" className="text-[10px]">Done</Badge>}
+                                {current && <Badge className="text-[10px]">Next</Badge>}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="text-xs text-muted-foreground space-y-0.5">
+                          {lastContact && <div>Last attempt: {formatDateOnly(lastContact)}</div>}
+                          {nextDue && !notInterested && <div>Next due: {formatDateOnly(nextDue)}</div>}
+                          {notInterested && <div className="text-destructive">Marked Not Interested — outreach stopped.</div>}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          <Button size="sm" onClick={logAttempt} disabled={notInterested}>
+                            Log Rebook Attempt
+                          </Button>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
+                                Reactivate with New Date
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" onSelect={reactivate} initialFocus />
+                            </PopoverContent>
+                          </Popover>
+                          {!notInterested && (
+                            <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={markNotInterested}>
+                              Not Interested
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()
+              ) : (
+                <>
                 {/* Progress bar */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
@@ -954,7 +1079,8 @@ export default function EventDetail() {
                     )}
                   </div>
                 </div>
-              </>
+                </>
+              )
             ) : null}
           </TabsContent>
 
