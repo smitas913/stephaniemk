@@ -2,7 +2,16 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, generateEventWorkflowTasks, createNote, fetchAllLatestNotes } from "@/lib/queries";
+import {
+  fetchEvents,
+  fetchOrders,
+  upsertEvent,
+  generateGuestInviteTask,
+  fetchEventTasksByEventId,
+  completeEventTask,
+  createNote,
+  fetchAllLatestNotes,
+} from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { addDays } from "date-fns";
@@ -17,14 +26,28 @@ import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, GraduationCap, ExternalLink, MessageSquare, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  DollarSign,
+  Users,
+  ShoppingBag,
+  TrendingUp,
+  CalendarDays,
+  CalendarIcon,
+  Phone,
+  Mail,
+  ClipboardCheck,
+  ExternalLink,
+  MessageSquare,
+  Plus,
+} from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
@@ -32,6 +55,35 @@ import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
+
+// The prep steps that actually drive booking rate
+const PREP_STEPS = [
+  {
+    field: "checklist_invitations_sent",
+    label: "Invitations sent to guests",
+    hint: "Send invites as soon as the date is confirmed",
+  },
+  {
+    field: "checklist_google_form_completed",
+    label: "Hostess pre-profile form completed",
+    hint: "Helps you personalize the experience",
+  },
+  {
+    field: "checklist_guest_list_received",
+    label: "Guest list received from hostess",
+    hint: "Follow up if you haven't heard back",
+  },
+  {
+    field: "checklist_samples_sent",
+    label: "Samples / goody bag sent to hostess",
+    hint: "Keeps hostess excited and engaged",
+  },
+  {
+    field: "checklist_reminders_sent",
+    label: "Guest reminders sent (24–48 hrs out)",
+    hint: "Big driver of attendance & booking rate",
+  },
+];
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -50,10 +102,12 @@ export default function EventDetail() {
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
 
-  const linkedOrders = useMemo(() =>
-    allOrders.filter((o) => o.event_id === eventId || o.parent_event_id === eventId)
-      .sort((a, b) => a.order_date.localeCompare(b.order_date)),
-    [allOrders, eventId]
+  const linkedOrders = useMemo(
+    () =>
+      allOrders
+        .filter((o) => o.event_id === eventId || o.parent_event_id === eventId)
+        .sort((a, b) => a.order_date.localeCompare(b.order_date)),
+    [allOrders, eventId],
   );
 
   const totalSales = linkedOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
@@ -64,7 +118,7 @@ export default function EventDetail() {
   const avgOrder = orderCount > 0 ? totalSales / orderCount : 0;
   const convRate = guestCount > 0 ? ((orderCount / guestCount) * 100).toFixed(0) : null;
 
-  // ─── Universal Action Panel for Hostess ───
+  // ─── Hostess Action Panel ───
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
 
@@ -78,7 +132,6 @@ export default function EventDetail() {
         actionType: n.note_type || "Note",
         preview: (n.note_body || "").slice(0, 80),
       }));
-
     setActionPanelItem({
       id: event.id,
       personType: "hostess",
@@ -94,7 +147,14 @@ export default function EventDetail() {
   }, [event, unifiedNotes]);
 
   const hostessActionMutation = useMutation({
-    mutationFn: async ({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
+    mutationFn: async ({
+      item: uItem,
+      actionType,
+      note,
+      isBookingAttempt,
+      isFollowUp,
+      nextFollowUpDate,
+    }: {
       item: UniversalActionItem;
       actionType: string;
       note: string;
@@ -102,18 +162,15 @@ export default function EventDetail() {
       isFollowUp: boolean;
       nextFollowUpDate?: string | null;
     }) => {
-      // Update event hostess follow-up date
       const updates: Record<string, string | null> = {};
       if (nextFollowUpDate) updates.hostess_next_action_date = nextFollowUpDate;
       if (Object.keys(updates).length > 0) {
         await upsertEvent({ event_id: event!.event_id, ...updates } as any);
       }
-      // Include hostess name in note_body for identity resolution in drill-downs
       const hostessName = event!.hostess_name || "Hostess";
       const hostessNoteBody = note.trim()
         ? `[${hostessName}] ${note.trim()}`
         : `[${hostessName}] ${actionType} hostess contact`;
-      // Create centralized activity log entry
       await createNote({
         entity_type: "Hostess",
         note_body: hostessNoteBody,
@@ -133,34 +190,28 @@ export default function EventDetail() {
     },
   });
 
-  const handleHostessAction = useCallback((params: {
-    item: UniversalActionItem;
-    actionType: string;
-    note: string;
-    isBookingAttempt: boolean;
-    isFollowUp: boolean;
-    nextFollowUpDate?: string | null;
-  }) => {
-    hostessActionMutation.mutate(params);
-  }, [hostessActionMutation]);
+  const handleHostessAction = useCallback(
+    (params: any) => {
+      hostessActionMutation.mutate(params);
+    },
+    [hostessActionMutation],
+  );
 
   const eventMutation = useMutation({
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["events"] }),
   });
 
-  // Post-event completion dialog state
+  // Post-event completion dialog
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
-  const [completionData, setCompletionData] = useState({ guest_count: "", bookings: "", sharings: "", sales: "" });
+  const [completionData, setCompletionData] = useState({ guest_count: "", bookings: "", sharings: "" });
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const handleStatusChange = (val: string) => {
     if (!event || val === (event.event_status || "Booked")) return;
     if (val === "Held") {
       setPendingStatus(val);
-      setCompletionData({ guest_count: "", bookings: "", sharings: "", sales: "" });
+      setCompletionData({ guest_count: "", bookings: "", sharings: "" });
       setShowCompletionDialog(true);
     } else {
       eventMutation.mutate({ event_id: event.event_id, event_status: val } as any);
@@ -180,10 +231,10 @@ export default function EventDetail() {
     setPendingStatus(null);
   };
 
-  // Legacy post-event prompt state (auto-prompt for past booked events)
+  // Post-event prompt for past booked events
   const [showPostEventPrompt, setShowPostEventPrompt] = useState(false);
-  const isPastEvent = event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
-
+  const isPastEvent =
+    event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
   useEffect(() => {
     if (isPastEvent) setShowPostEventPrompt(true);
   }, [isPastEvent]);
@@ -207,8 +258,6 @@ export default function EventDetail() {
     if (!event) return;
     const newValue = !(event as any)[field];
     eventMutation.mutate({ event_id: event.event_id, [field]: newValue } as any);
-
-    // Trigger guest invite task when hostess form (google form) is completed
     if (field === "checklist_google_form_completed" && newValue) {
       try {
         await generateGuestInviteTask(event.event_id);
@@ -231,27 +280,52 @@ export default function EventDetail() {
     }
   };
 
+  // Prep progress
+  const prepDone = event ? PREP_STEPS.filter((s) => (event as any)[s.field]).length : 0;
+  const prepTotal = PREP_STEPS.length;
+
+  // Pending workflow tasks
+  const pendingTasks = eventTasks.filter((t: EventTask) => !t.is_completed);
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   return (
     <Layout>
-      <div className="space-y-6 pb-8">
+      <div className="space-y-5 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-            const from = (location.state as any)?.from;
-            if (from) navigate(from);
-            else navigate(-1);
-          }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => {
+              const from = (location.state as any)?.from;
+              if (from) navigate(from);
+              else navigate(-1);
+            }}
+          >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">
               {event?.hostess_name ? `${event.hostess_name}'s Event` : "Event Detail"}
             </h2>
-            <p className="text-sm text-muted-foreground font-mono">{eventId}</p>
+            <p className="text-sm text-muted-foreground">
+              {event?.event_date ? formatDateOnly(event.event_date) : "No date set"}
+              {event?.event_type ? ` · ${event.event_type}` : ""}
+            </p>
           </div>
           {event && (
-            <div className="flex items-center gap-1.5">
-              <Badge variant={event.event_status === "Held" ? "default" : event.event_status === "Cancelled" ? "destructive" : "secondary"} className="text-xs">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Badge
+                variant={
+                  event.event_status === "Held"
+                    ? "default"
+                    : event.event_status === "Cancelled"
+                      ? "destructive"
+                      : "secondary"
+                }
+                className="text-xs"
+              >
                 {event.event_status || "Booked"}
               </Badge>
               {event.reschedule_status && event.reschedule_status !== "None" && (
@@ -263,7 +337,7 @@ export default function EventDetail() {
           )}
         </div>
 
-        {/* KPI cards */}
+        {/* KPI Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3">
@@ -271,712 +345,630 @@ export default function EventDetail() {
                 <CalendarDays className="w-4 h-4 text-primary" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Date</span>
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "h-auto p-0 text-sm font-bold text-foreground hover:text-primary hover:bg-transparent",
-                      !event?.event_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="w-3 h-3 mr-1 opacity-50" />
-                    {event?.event_date ? formatDateOnly(event.event_date) : "Set date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={event?.event_date ? parseLocalDate(event.event_date) : undefined}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="w-4 h-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Total Sales</span>
-              </div>
-              <p className="text-lg font-bold text-foreground">${totalSales.toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <ShoppingBag className="w-4 h-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Orders</span>
-              </div>
-              <p className="text-lg font-bold text-foreground">{orderCount}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 shadow-sm">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Conversion</span>
-              </div>
-              <p className="text-lg font-bold text-foreground">
-                {convRate ? `${convRate}%` : "—"}
+              <p className="text-sm font-bold text-foreground">
+                {event?.event_date ? formatDateOnly(event.event_date) : "—"}
               </p>
-              <p className="text-[10px] text-muted-foreground">{guestCount} guests</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-4 h-4 text-green-600" />
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Sales</span>
+              </div>
+              <p className="text-lg font-bold text-green-600">${totalSales.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-purple-600" />
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Guests</span>
+              </div>
+              <p className="text-lg font-bold text-purple-600">{guestCount || "—"}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Conversion
+                </span>
+              </div>
+              <p className="text-lg font-bold text-blue-600">{convRate ? `${convRate}%` : "—"}</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Event metadata editable */}
-        {event && (
-          <Card className="border-border/50">
-            <CardContent className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Event Details</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Event Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-8 text-sm justify-start text-left font-normal",
-                          !event.event_date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="w-3.5 h-3.5 mr-1.5" />
-                        {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={event.event_date ? parseLocalDate(event.event_date) : undefined}
-                        onSelect={handleDateSelect}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Event Type</label>
-                  <Select
-                    value={event.event_type || ""}
-                    onValueChange={(val) => {
-                      if (val !== (event.event_type || "")) {
-                        eventMutation.mutate({ event_id: event.event_id, event_type: val });
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EVENT_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Format</label>
-                  <Select
-                    value={event.event_format || "In-Person"}
-                    onValueChange={(val) => {
-                      if (val !== (event.event_format || "In-Person")) {
-                        eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue placeholder="Select format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EVENT_FORMATS.map((f) => (
-                        <SelectItem key={f} value={f}>{f}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Status</label>
-                  <Select
-                    value={event.event_status || "Booked"}
-                    onValueChange={handleStatusChange}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EVENT_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Reschedule</label>
-                  <Select
-                    value={(event as any).reschedule_status || "None"}
-                    onValueChange={(val) => {
-                      if (val !== ((event as any).reschedule_status || "None")) {
-                        eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RESCHEDULE_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Guest Count</label>
-                  <Input
-                    type="number" min={0} className="h-8 text-sm"
-                    defaultValue={event.guest_count || ""}
-                    key={`gc-${event.guest_count}`}
-                    onBlur={(e) => {
-                      const val = parseInt(e.target.value) || 0;
-                      if (val !== (event.guest_count || 0)) {
-                        eventMutation.mutate({ event_id: event.event_id, guest_count: val });
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Event Time</label>
-                  <Input
-                    type="time"
-                    className="h-8 text-sm"
-                    defaultValue={(event as any).event_time || ""}
-                    key={`et-${(event as any).event_time}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== ((event as any).event_time || "")) {
-                        updateField("event_time", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-                <div className={cn("col-span-1 sm:col-span-3")}>
-                  <label className="text-xs text-muted-foreground">
-                    {(event.event_format || "In-Person") === "Virtual" ? "Virtual Link / Location" : "Location"}
-                  </label>
-                  <Input
-                    className="h-8 text-sm"
-                    placeholder={(event.event_format || "In-Person") === "Virtual" ? "Meeting link or venue" : "Address or venue"}
-                    defaultValue={(event as any).event_location || ""}
-                    key={`el-${(event as any).event_location}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== ((event as any).event_location || "")) {
-                        updateField("event_location", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Bookings</label>
-                  <Input
-                    type="number" min={0} className="h-8 text-sm"
-                    defaultValue={event.future_bookings_count || ""}
-                    key={`fb-${event.future_bookings_count}`}
-                    onBlur={(e) => {
-                      const val = parseInt(e.target.value) || 0;
-                      eventMutation.mutate({ event_id: event.event_id, future_bookings_count: val } as any);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Sharings</label>
-                  <Input
-                    type="number" min={0} className="h-8 text-sm"
-                    defaultValue={event.sharing_appointments_count || ""}
-                    key={`sa-${event.sharing_appointments_count}`}
-                    onBlur={(e) => {
-                      const val = parseInt(e.target.value) || 0;
-                      eventMutation.mutate({ event_id: event.event_id, sharing_appointments_count: val } as any);
-                    }}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-muted-foreground">Notes</label>
-                  <Input
-                    className="h-8 text-sm"
-                    defaultValue={event.notes || ""}
-                    key={`notes-${event.notes}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.notes || "")) {
-                        eventMutation.mutate({ event_id: event.event_id, notes: e.target.value || null });
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Hostess Coaching */}
-        {event && (
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-primary" />
-                Hostess Coaching
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Hostess Name</label>
-                  <Input
-                    className="h-8 text-sm"
-                    defaultValue={event.hostess_name || ""}
-                    key={`hn-${event.hostess_name}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.hostess_name || "")) {
-                        updateField("hostess_name", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Phone</label>
-                  <Input
-                    className="h-8 text-sm"
-                    defaultValue={event.hostess_phone || ""}
-                    key={`hp-${event.hostess_phone}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.hostess_phone || "")) {
-                        updateField("hostess_phone", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Email</label>
-                  <Input
-                    className="h-8 text-sm"
-                    defaultValue={event.hostess_email || ""}
-                    key={`he-${event.hostess_email}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.hostess_email || "")) {
-                        updateField("hostess_email", e.target.value || null);
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Coaching Status</label>
-                  <Select
-                    value={event.coaching_status || "Booked"}
-                    onValueChange={(v) => updateField("coaching_status", v)}
-                  >
-                    <SelectTrigger className="h-8 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COACHING_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {/* Coaching Notes - collapsed/de-emphasized */}
-              {event.coaching_notes && (
-                <p className="text-xs text-muted-foreground italic border-l-2 border-border pl-2">
-                  {event.coaching_notes}
-                </p>
+        {/* Tabs */}
+        <Tabs defaultValue="details">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="details" className="flex-1 sm:flex-none">
+              Details
+            </TabsTrigger>
+            <TabsTrigger value="hostess" className="flex-1 sm:flex-none">
+              Hostess
+            </TabsTrigger>
+            <TabsTrigger value="prep" className="flex-1 sm:flex-none">
+              Prep
+              {event && prepDone < prepTotal && (
+                <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-700 font-bold rounded-full px-1.5">
+                  {prepTotal - prepDone}
+                </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="guests" className="flex-1 sm:flex-none">
+              Guests & Orders
+              {orderCount > 0 && (
+                <span className="ml-1.5 text-[10px] bg-muted text-muted-foreground font-bold rounded-full px-1.5">
+                  {orderCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-              {/* Recent Activity History */}
-              {(() => {
-                const hostessNotes = unifiedNotes
-                  .filter((n: any) => n.entity_type === "Hostess" && event.hostess_name && n.note_body?.includes(event.hostess_name))
-                  .slice(0, 5);
-                if (hostessNotes.length === 0) return null;
-                return (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Activity</p>
-                    <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-2.5">
-                      {hostessNotes.map((note: any, i: number) => (
-                        <div key={i} className={cn(
-                          "flex items-start gap-2 text-xs rounded px-1.5 py-1",
-                          i === 0 ? "bg-primary/10 ring-1 ring-primary/20" : ""
-                        )}>
-                          <span className="text-muted-foreground whitespace-nowrap shrink-0">
-                            {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
-                          </span>
-                          <span className="text-muted-foreground">—</span>
-                          <span className="font-medium text-foreground shrink-0">{note.note_type || "Note"}</span>
-                          {i === 0 && (
-                            <span className="text-[9px] px-1 py-0 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
-                          )}
-                          {note.note_body && (
-                            <>
-                              <span className="text-muted-foreground">—</span>
-                              <span className="text-muted-foreground truncate">{(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 80)}</span>
-                            </>
-                          )}
-                        </div>
-                      ))}
+          {/* ── Tab 1: Details ── */}
+          <TabsContent value="details" className="mt-4">
+            {event ? (
+              <Card className="border-border/50">
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Date */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Event Date
+                      </label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full h-9 text-sm justify-start font-normal",
+                              !event.event_date && "text-muted-foreground",
+                            )}
+                          >
+                            <CalendarIcon className="w-3.5 h-3.5 mr-2" />
+                            {event.event_date ? formatDateOnly(event.event_date, "MMM d, yyyy") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={event.event_date ? parseLocalDate(event.event_date) : undefined}
+                            onSelect={handleDateSelect}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Time */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Event Time
+                      </label>
+                      <Input
+                        type="time"
+                        className="h-9 text-sm"
+                        defaultValue={(event as any).event_time || ""}
+                        key={`et-${(event as any).event_time}`}
+                        onBlur={(e) => {
+                          if (e.target.value !== ((event as any).event_time || ""))
+                            updateField("event_time", e.target.value || null);
+                        }}
+                      />
+                    </div>
+
+                    {/* Event Type */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Event Type
+                      </label>
+                      <Select
+                        value={event.event_type || ""}
+                        onValueChange={(val) => {
+                          if (val !== (event.event_type || ""))
+                            eventMutation.mutate({ event_id: event.event_id, event_type: val });
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EVENT_TYPES.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Format */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Format
+                      </label>
+                      <Select
+                        value={event.event_format || "In-Person"}
+                        onValueChange={(val) => {
+                          if (val !== (event.event_format || "In-Person"))
+                            eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EVENT_FORMATS.map((f) => (
+                            <SelectItem key={f} value={f}>
+                              {f}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Status */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Status
+                      </label>
+                      <Select value={event.event_status || "Booked"} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EVENT_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Reschedule Status */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Reschedule Status
+                      </label>
+                      <Select
+                        value={(event as any).reschedule_status || "None"}
+                        onValueChange={(val) => {
+                          if (val !== ((event as any).reschedule_status || "None"))
+                            eventMutation.mutate({ event_id: event.event_id, reschedule_status: val } as any);
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RESCHEDULE_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Location — full width */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        {(event.event_format || "In-Person") === "Virtual" ? "Meeting Link" : "Location / Venue"}
+                      </label>
+                      <Input
+                        className="h-9 text-sm"
+                        placeholder={
+                          (event.event_format || "In-Person") === "Virtual"
+                            ? "Zoom link or meeting URL"
+                            : "Address or venue name"
+                        }
+                        defaultValue={(event as any).event_location || ""}
+                        key={`el-${(event as any).event_location}`}
+                        onBlur={(e) => {
+                          if (e.target.value !== ((event as any).event_location || ""))
+                            updateField("event_location", e.target.value || null);
+                        }}
+                      />
                     </div>
                   </div>
-                );
-              })()}
+                </CardContent>
+              </Card>
+            ) : (
+              <p className="text-muted-foreground text-sm py-8 text-center">Loading event...</p>
+            )}
+          </TabsContent>
 
-              {/* Quick contact & Log Activity buttons */}
-              <div className="flex gap-1.5 flex-wrap">
-                {event.hostess_phone && (
-                  <>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                      <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3 mr-1" />Call</a>
-                    </Button>
-                    <TextActionButton phone={event.hostess_phone} trigger="labeled" className="h-7 text-xs" />
-                  </>
-                )}
-                {event.hostess_email && (
-                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                    <a href={`mailto:${event.hostess_email}`} onClick={(e) => openEmail(event.hostess_email!, e)}><Mail className="w-3 h-3 mr-1" />Email</a>
-                  </Button>
-                )}
-                {event.hostess_name && (
-                  <Button size="sm" className="h-7 text-xs" onClick={openHostessActionPanel}>
-                    📋 Log Activity
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          {/* ── Tab 2: Hostess ── */}
+          <TabsContent value="hostess" className="mt-4 space-y-4">
+            {event ? (
+              <>
+                <Card className="border-border/50">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Name
+                        </label>
+                        <Input
+                          className="h-9 text-sm"
+                          defaultValue={event.hostess_name || ""}
+                          key={`hn-${event.hostess_name}`}
+                          onBlur={(e) => {
+                            if (e.target.value !== (event.hostess_name || ""))
+                              updateField("hostess_name", e.target.value || null);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Phone
+                        </label>
+                        <Input
+                          className="h-9 text-sm"
+                          defaultValue={event.hostess_phone || ""}
+                          key={`hp-${event.hostess_phone}`}
+                          onBlur={(e) => {
+                            if (e.target.value !== (event.hostess_phone || ""))
+                              updateField("hostess_phone", e.target.value || null);
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Email
+                        </label>
+                        <Input
+                          className="h-9 text-sm"
+                          defaultValue={event.hostess_email || ""}
+                          key={`he-${event.hostess_email}`}
+                          onBlur={(e) => {
+                            if (e.target.value !== (event.hostess_email || ""))
+                              updateField("hostess_email", e.target.value || null);
+                          }}
+                        />
+                      </div>
+                    </div>
 
-        {/* Pre-Party Checklist */}
-        {event && (
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <ClipboardCheck className="w-4 h-4 text-primary" />
-                Pre-Party Checklist
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[
-                  { field: "checklist_invitations_sent", label: "Invitations Sent" },
-                  { field: "checklist_guest_list_received", label: "Guest List Received" },
-                  { field: "checklist_google_form_completed", label: "Google Form Completed" },
-                  { field: "checklist_samples_sent", label: "Samples Sent" },
-                  { field: "checklist_reminders_sent", label: "Reminder Messages Sent" },
-                ].map(({ field, label }) => (
-                  <label key={field} className="flex items-center gap-2 cursor-pointer py-1">
-                    <Checkbox
-                      checked={(event as any)[field] || false}
-                      onCheckedChange={() => toggleChecklist(field)}
+                    {/* Contact buttons */}
+                    <div className="flex gap-2 flex-wrap pt-1">
+                      {event.hostess_phone && (
+                        <>
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" asChild>
+                            <a href={`tel:${phoneForLink(event.hostess_phone)}`}>
+                              <Phone className="w-3 h-3" />
+                              Call
+                            </a>
+                          </Button>
+                          <TextActionButton phone={event.hostess_phone} trigger="labeled" className="h-8 text-xs" />
+                        </>
+                      )}
+                      {event.hostess_email && (
+                        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" asChild>
+                          <a href={`mailto:${event.hostess_email}`} onClick={(e) => openEmail(event.hostess_email!, e)}>
+                            <Mail className="w-3 h-3" />
+                            Email
+                          </a>
+                        </Button>
+                      )}
+                      {event.hostess_name && (
+                        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={openHostessActionPanel}>
+                          <MessageSquare className="w-3 h-3" /> Log Activity
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recent activity */}
+                {(() => {
+                  const hostessNotes = unifiedNotes
+                    .filter(
+                      (n: any) =>
+                        n.entity_type === "Hostess" && event.hostess_name && n.note_body?.includes(event.hostess_name),
+                    )
+                    .slice(0, 5);
+                  if (hostessNotes.length === 0)
+                    return (
+                      <p className="text-sm text-muted-foreground text-center py-4">No hostess activity logged yet.</p>
+                    );
+                  return (
+                    <Card className="border-border/50">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Recent Activity</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="divide-y divide-border">
+                          {hostessNotes.map((note: any, i: number) => (
+                            <div key={i} className="flex items-start gap-3 px-4 py-3">
+                              <div className="text-xs text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
+                                {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium text-foreground">
+                                    {note.note_type || "Note"}
+                                  </span>
+                                  {i === 0 && (
+                                    <span className="text-[9px] px-1.5 py-0 rounded-full bg-primary text-primary-foreground font-semibold uppercase tracking-wide">
+                                      Latest
+                                    </span>
+                                  )}
+                                </div>
+                                {note.note_body && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    {(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 100)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+              </>
+            ) : null}
+          </TabsContent>
+
+          {/* ── Tab 3: Prep ── */}
+          <TabsContent value="prep" className="mt-4 space-y-4">
+            {event ? (
+              <>
+                {/* Progress bar */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${(prepDone / prepTotal) * 100}%` }}
                     />
-                    <span className={cn("text-sm", (event as any)[field] ? "text-foreground" : "text-muted-foreground")}>
-                      {label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <label className="text-xs text-muted-foreground">Google Form Link</label>
-                  <Input
-                    className="h-8 text-sm"
-                    placeholder="https://forms.google.com/..."
-                    defaultValue={event.google_form_link || ""}
-                    key={`gfl-${event.google_form_link}`}
-                    onBlur={(e) => {
-                      if (e.target.value !== (event.google_form_link || "")) {
-                        updateField("google_form_link", e.target.value || null);
-                      }
-                    }}
-                  />
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {prepDone} of {prepTotal} done
+                  </span>
                 </div>
-                {event.google_form_link && (
-                  <Button size="sm" variant="outline" className="h-8" asChild>
-                    <a href={event.google_form_link} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-3 h-3 mr-1" />Open
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Event Workflow Tasks */}
-        {event && eventTasks.length > 0 && (
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <CalendarDays className="w-4 h-4 text-primary" />
-                Event Workflow Tasks
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {eventTasks.map((task: EventTask) => (
-                <label key={task.id} className="flex items-center gap-3 py-1.5 cursor-pointer">
-                  <Checkbox
-                    checked={task.is_completed}
-                    onCheckedChange={() => {
-                      if (!task.is_completed) handleCompleteTask(task.id);
-                    }}
-                    disabled={task.is_completed}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className={cn("text-sm", task.is_completed ? "line-through text-muted-foreground" : "text-foreground font-medium")}>
-                      {task.task_name}
-                    </span>
-                    {task.due_date && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        Due: {formatDateOnly(task.due_date)}
-                      </span>
+                {/* Prep checklist */}
+                <Card className="border-border/50">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ClipboardCheck className="w-4 h-4 text-primary" />
+                      Event Prep
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y divide-border">
+                      {PREP_STEPS.map(({ field, label, hint }) => {
+                        const done = !!(event as any)[field];
+                        return (
+                          <label
+                            key={field}
+                            className={cn(
+                              "flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30",
+                              done && "opacity-60",
+                            )}
+                          >
+                            <Checkbox
+                              checked={done}
+                              onCheckedChange={() => toggleChecklist(field)}
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className={cn("text-sm", done && "line-through text-muted-foreground")}>
+                                {label}
+                              </span>
+                              {!done && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Google Form Link */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Hostess Pre-Profile Form Link
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      className="h-9 text-sm flex-1"
+                      placeholder="https://forms.google.com/..."
+                      defaultValue={event.google_form_link || ""}
+                      key={`gfl-${event.google_form_link}`}
+                      onBlur={(e) => {
+                        if (e.target.value !== (event.google_form_link || ""))
+                          updateField("google_form_link", e.target.value || null);
+                      }}
+                    />
+                    {event.google_form_link && (
+                      <Button size="sm" variant="outline" className="h-9 shrink-0" asChild>
+                        <a href={event.google_form_link} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                          Open
+                        </a>
+                      </Button>
                     )}
                   </div>
-                </label>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                </div>
 
-        {/* Guest Tracking */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" />
-              Guest Tracking
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EventGuestPanel eventId={eventId} />
-          </CardContent>
-        </Card>
+                {/* Workflow tasks — only if any pending */}
+                {pendingTasks.length > 0 && (
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-1">
+                      <CardTitle className="text-sm">Workflow Tasks</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="divide-y divide-border">
+                        {pendingTasks.map((task: EventTask) => (
+                          <label
+                            key={task.id}
+                            className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/30"
+                          >
+                            <Checkbox checked={false} onCheckedChange={() => handleCompleteTask(task.id)} />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm text-foreground font-medium">{task.task_name}</span>
+                              {task.due_date && (
+                                <span
+                                  className={cn(
+                                    "text-xs ml-2",
+                                    task.due_date < todayStr
+                                      ? "text-destructive font-medium"
+                                      : task.due_date === todayStr
+                                        ? "text-amber-600 font-medium"
+                                        : "text-muted-foreground",
+                                  )}
+                                >
+                                  {task.due_date < todayStr
+                                    ? "Overdue · "
+                                    : task.due_date === todayStr
+                                      ? "Due today · "
+                                      : "Due "}
+                                  {formatDateOnly(task.due_date)}
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            ) : null}
+          </TabsContent>
 
-        {/* Performance Summary */}
-        <Card className="border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" />
-              Performance Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Guests</div>
-                <div className="text-base font-bold text-foreground">{guestCount || "—"}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Orders</div>
-                <div className="text-base font-bold text-foreground">{orderCount}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Sales</div>
-                <div className="text-base font-bold text-green-600">${totalSales.toFixed(2)}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg Order</div>
-                <div className="text-base font-bold text-foreground">${avgOrder.toFixed(2)}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Discounts</div>
-                <div className="text-base font-bold text-amber-600">${totalDiscounts.toFixed(2)}</div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Est. Net Profit</div>
-                <div className="text-base font-bold text-primary">${totalNetProfit.toFixed(2)}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* ── Tab 4: Guests & Orders ── */}
+          <TabsContent value="guests" className="mt-4 space-y-4">
+            {/* Guest Panel */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  Guests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EventGuestPanel eventId={eventId} />
+              </CardContent>
+            </Card>
 
-        {/* Linked Orders */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-foreground">Linked Orders ({orderCount})</h3>
-            {event && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 h-8"
-                onClick={() => navigate(`/orders/new?eventId=${event.event_id}&type=${event.event_type || "Party"}`)}
-              >
-                <Plus className="w-3.5 h-3.5" /> Add Order
-              </Button>
+            {/* Performance numbers */}
+            {orderCount > 0 && (
+              <Card className="border-border/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Total Sales</div>
+                      <div className="text-base font-bold text-green-600">${totalSales.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Orders</div>
+                      <div className="text-base font-bold text-foreground">{orderCount}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Avg Order</div>
+                      <div className="text-base font-bold text-foreground">${avgOrder.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Discounts</div>
+                      <div className="text-base font-bold text-amber-600">${totalDiscounts.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Est. Profit</div>
+                      <div className="text-base font-bold text-primary">${totalNetProfit.toFixed(2)}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </div>
-          {linkedOrders.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No orders linked to this event.</p>
-          ) : (
-            <div className="border border-border rounded-lg overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-xs">Customer</TableHead>
-                    <TableHead className="text-xs text-right">Amount</TableHead>
-                    <TableHead className="text-xs">Type</TableHead>
-                    <TableHead className="text-xs">Payment</TableHead>
-                    <TableHead className="text-xs">Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {linkedOrders.map((o) => (
-                    <TableRow key={o.id} className="hover:bg-muted/50">
-                      <TableCell className="text-xs whitespace-nowrap">{formatDateOnly(o.order_date)}</TableCell>
-                      <TableCell className="text-sm font-medium">{o.customer_name || o.customers?.full_name || "—"}</TableCell>
-                      <TableCell className="text-sm font-semibold text-right">${Number(o.retail_amount).toFixed(2)}</TableCell>
-                      <TableCell>
-                        {o.order_type && (
-                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
-                            o.order_type === "Reorder" ? "bg-accent text-accent-foreground" :
-                            o.order_type === "Party" ? "bg-primary/10 text-primary" :
-                            "bg-muted text-muted-foreground"
-                          )}>{o.order_type}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
-                      <TableCell className="text-xs max-w-[150px] truncate">{o.notes || ""}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
 
-        {/* Save Details Button */}
-        {event && (
-          <div className="flex gap-3 pt-2">
-            <Button
-              className="h-11 px-8"
-              onClick={() => {
-                toast.success("Details saved");
-                navigate("/events");
-              }}
-            >
-              Save Details
-            </Button>
-            <Button variant="outline" className="h-11" onClick={() => navigate("/events")}>
-              Back to Events
-            </Button>
-          </div>
-        )}
-
-        {/* Post-Event Prompt */}
-        <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="text-base">What happened with this event?</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              This event's date has passed. Please select the current status.
-            </p>
-            <div className="flex flex-col gap-2 pt-2">
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setShowPostEventPrompt(false);
-                  handleStatusChange("Held");
-                }}
-              >
-                ✅ Held — Enter Results
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  eventMutation.mutate({
-                    event_id: event!.event_id,
-                    reschedule_status: "In Process of Rescheduling",
-                    reschedule_attempt_number: 0,
-                    reschedule_next_follow_up_date: toLocalDateKey(addDays(new Date(), 1)),
-                  } as any);
-                  setShowPostEventPrompt(false);
-                  toast.success("Event moved to rescheduling workflow");
-                }}
-              >
-                🔄 Rescheduling in Progress
-              </Button>
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={() => {
-                  eventMutation.mutate({ event_id: event!.event_id, event_status: "Cancelled" } as any);
-                  setShowPostEventPrompt(false);
-                }}
-              >
-                ❌ Cancelled
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Event Completion Dialog */}
-        <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Event Results</DialogTitle>
-              <p className="text-sm text-muted-foreground">How did the event go? Enter the results below.</p>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="text-sm font-medium text-foreground">Guest Count (Faces)</label>
-                <Input
-                  type="number" min={0} placeholder="0"
-                  value={completionData.guest_count}
-                  onChange={(e) => setCompletionData(p => ({ ...p, guest_count: e.target.value }))}
-                  className="h-10 mt-1"
-                />
+            {/* Linked Orders */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Orders ({orderCount})</h3>
+                {event && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5"
+                    onClick={() =>
+                      navigate(`/orders/new?eventId=${event.event_id}&type=${event.event_type || "Party"}`)
+                    }
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Order
+                  </Button>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Bookings</label>
-                  <Input
-                    type="number" min={0} placeholder="0"
-                    value={completionData.bookings}
-                    onChange={(e) => setCompletionData(p => ({ ...p, bookings: e.target.value }))}
-                    className="h-10 mt-1"
-                  />
+              {linkedOrders.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  No orders yet. Add the first one above.
+                </p>
+              ) : (
+                <div className="border border-border rounded-lg overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30">
+                        <TableHead className="text-xs">Date</TableHead>
+                        <TableHead className="text-xs">Customer</TableHead>
+                        <TableHead className="text-xs text-right">Amount</TableHead>
+                        <TableHead className="text-xs">Type</TableHead>
+                        <TableHead className="text-xs">Payment</TableHead>
+                        <TableHead className="text-xs">Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {linkedOrders.map((o) => (
+                        <TableRow key={o.id} className="hover:bg-muted/50">
+                          <TableCell className="text-xs whitespace-nowrap">{formatDateOnly(o.order_date)}</TableCell>
+                          <TableCell className="text-sm font-medium">
+                            {o.customer_name || o.customers?.full_name || "—"}
+                          </TableCell>
+                          <TableCell className="text-sm font-semibold text-right">
+                            ${Number(o.retail_amount).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {o.order_type && (
+                              <span
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                                  o.order_type === "Reorder"
+                                    ? "bg-accent text-accent-foreground"
+                                    : o.order_type === "Party"
+                                      ? "bg-primary/10 text-primary"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {o.order_type}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
+                          <TableCell className="text-xs max-w-[150px] truncate">{o.notes || ""}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Sharings</label>
-                  <Input
-                    type="number" min={0} placeholder="0"
-                    value={completionData.sharings}
-                    onChange={(e) => setCompletionData(p => ({ ...p, sharings: e.target.value }))}
-                    className="h-10 mt-1"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button className="flex-1 h-10" onClick={submitCompletion}>
-                  Save Results
-                </Button>
-                <Button variant="outline" className="h-10" onClick={() => {
-                  setShowCompletionDialog(false);
-                  setPendingStatus(null);
-                }}>
-                  Skip
-                </Button>
-              </div>
+              )}
             </div>
-          </DialogContent>
-        </Dialog>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Hostess Universal Action Panel */}
+      {/* Hostess Action Panel */}
       <UniversalActionPanel
         item={actionPanelItem}
         open={actionPanelOpen}
@@ -984,6 +976,115 @@ export default function EventDetail() {
         onLogAction={handleHostessAction}
         isPending={hostessActionMutation.isPending}
       />
+
+      {/* Post-Event Status Prompt */}
+      <Dialog open={showPostEventPrompt} onOpenChange={setShowPostEventPrompt}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base">What happened with this event?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">This event's date has passed — please update the status.</p>
+          <div className="flex flex-col gap-2 pt-2">
+            <Button
+              className="w-full"
+              onClick={() => {
+                setShowPostEventPrompt(false);
+                handleStatusChange("Held");
+              }}
+            >
+              ✅ Held — Enter Results
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                eventMutation.mutate({
+                  event_id: event!.event_id,
+                  reschedule_status: "In Process of Rescheduling",
+                  reschedule_attempt_number: 0,
+                  reschedule_next_follow_up_date: toLocalDateKey(addDays(new Date(), 1)),
+                } as any);
+                setShowPostEventPrompt(false);
+                toast.success("Event moved to rescheduling workflow");
+              }}
+            >
+              🔄 Rescheduling in Progress
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => {
+                eventMutation.mutate({ event_id: event!.event_id, event_status: "Cancelled" } as any);
+                setShowPostEventPrompt(false);
+              }}
+            >
+              ❌ Cancelled
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Completion Dialog */}
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Event Results</DialogTitle>
+            <p className="text-sm text-muted-foreground">How did it go? Enter the results below.</p>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-sm font-medium">Guest Count (Faces)</label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={completionData.guest_count}
+                onChange={(e) => setCompletionData((p) => ({ ...p, guest_count: e.target.value }))}
+                className="h-10 mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Bookings</label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={completionData.bookings}
+                  onChange={(e) => setCompletionData((p) => ({ ...p, bookings: e.target.value }))}
+                  className="h-10 mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Sharings</label>
+                <Input
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={completionData.sharings}
+                  onChange={(e) => setCompletionData((p) => ({ ...p, sharings: e.target.value }))}
+                  className="h-10 mt-1"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button className="flex-1 h-10" onClick={submitCompletion}>
+                Save Results
+              </Button>
+              <Button
+                variant="outline"
+                className="h-10"
+                onClick={() => {
+                  setShowCompletionDialog(false);
+                  setPendingStatus(null);
+                }}
+              >
+                Skip
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
