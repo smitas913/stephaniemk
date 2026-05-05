@@ -4,7 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
-import { useFocusItems, DEFAULT_DAY_TYPE_TARGETS, DEFAULT_FOCUS_ITEMS, configsAreCanonical } from "@/hooks/useFocusItems";
+import {
+  useFocusItems,
+  DEFAULT_DAY_TYPE_TARGETS,
+  DEFAULT_FOCUS_ITEMS,
+  configsAreCanonical,
+} from "@/hooks/useFocusItems";
 import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -56,7 +61,9 @@ const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsF
   relationship: "relationshipDetails",
 };
 
-function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key" | "label" | "sort_order">): AutoCountKey | null {
+function getEffectiveAutoTrackKey(
+  config: Pick<FocusItemConfig, "auto_track_key" | "label" | "sort_order">,
+): AutoCountKey | null {
   if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
 
   const normalizedLabel = config.label.trim().toLowerCase();
@@ -73,7 +80,13 @@ function getEffectiveAutoTrackKey(config: Pick<FocusItemConfig, "auto_track_key"
   return null;
 }
 
-export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate, suggestedDayType, compact }: SixMostImportantProps) {
+export default function SixMostImportant({
+  autoCounts,
+  rawData,
+  onDetailNavigate,
+  suggestedDayType,
+  compact,
+}: SixMostImportantProps) {
   const isMobile = useIsMobile();
   const todayKey = toLocalDateKey();
   const [selectedDate, setSelectedDate] = useState(todayKey);
@@ -85,9 +98,20 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
 
   const isToday = selectedDate === todayKey;
   const {
-    configs, progress, dayTypeTargets, isLoading, isOOO, isNonWorkday,
-    getTargetForItem, seedDefaults, saveConfigs, upsertProgress,
-    saveDayTypeTargets, fetchWeekProgress, noHistoricalData, progressFetching,
+    configs,
+    progress,
+    dayTypeTargets,
+    isLoading,
+    isOOO,
+    isNonWorkday,
+    getTargetForItem,
+    seedDefaults,
+    saveConfigs,
+    upsertProgress,
+    saveDayTypeTargets,
+    fetchWeekProgress,
+    noHistoricalData,
+    progressFetching,
   } = useFocusItems(selectedDate);
   const isLightDay = isOOO || isNonWorkday;
 
@@ -97,7 +121,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
 
   useEffect(() => {
     if (progress.length > 0) {
-      setDayTypeLocal(progress[0].day_type as DayType || "power");
+      setDayTypeLocal((progress[0].day_type as DayType) || "power");
     }
   }, [progress, selectedDate]);
 
@@ -132,9 +156,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     return configs.map((config) => {
       const prog = progress.find((p) => p.sort_order === config.sort_order);
       const autoKey = getEffectiveAutoTrackKey(config);
-      const autoCount = isToday && autoCounts && autoKey
-        ? autoCounts[autoKey] ?? 0
-        : prog?.auto_count ?? 0;
+      const autoCount = isToday && autoCounts && autoKey ? (autoCounts[autoKey] ?? 0) : (prog?.auto_count ?? 0);
       // Manual +/- adjustment removed: counts now reflect only real logged activity.
       const current = Math.max(0, autoCount);
       const target = isLightDay ? 0 : getTargetForItem(config.sort_order, dayType);
@@ -147,8 +169,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
   const winStatus = useMemo(() => {
-    if (completedCount >= 5) return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
-    if (completedCount >= 4) return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
+    if (completedCount >= 5)
+      return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
+    if (completedCount >= 4)
+      return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
     if (completedCount >= 3) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
     return null;
   }, [completedCount]);
@@ -173,15 +197,18 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
   });
 
   // Handlers
-  const handleDayTypeChange = useCallback((type: DayType) => {
-    setDayTypeLocal(type);
-    if (isToday) {
-      // Update all progress rows with new day type
-      for (const config of configs) {
-        upsertProgress({ sort_order: config.sort_order, day_type: type });
+  const handleDayTypeChange = useCallback(
+    (type: DayType) => {
+      setDayTypeLocal(type);
+      if (isToday) {
+        // Update all progress rows with new day type
+        for (const config of configs) {
+          upsertProgress({ sort_order: config.sort_order, day_type: type });
+        }
       }
-    }
-  }, [isToday, configs, upsertProgress]);
+    },
+    [isToday, configs, upsertProgress],
+  );
 
   // Manual +/- adjustment removed — counts come solely from logged activity.
 
@@ -190,7 +217,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
       const existing = progress.find((p) => p.sort_order === sortOrder);
       upsertProgress({ sort_order: sortOrder, is_complete: !(existing?.is_complete ?? false), day_type: dayType });
     },
-    [progress, upsertProgress, dayType]
+    [progress, upsertProgress, dayType],
   );
 
   // Edit mode
@@ -200,7 +227,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     const dtt: Record<DayType, number[]> = { power: [], appointment: [], flex: [] };
     for (const dt of ["power", "appointment", "flex"] as DayType[]) {
       dtt[dt] = configs.map((c) => {
-        const custom = dayTypeTargets.find(t => t.day_type === dt && t.sort_order === c.sort_order);
+        const custom = dayTypeTargets.find((t) => t.day_type === dt && t.sort_order === c.sort_order);
         if (custom) return custom.target;
         return DEFAULT_DAY_TYPE_TARGETS[dt]?.[c.sort_order] ?? c.default_target;
       });
@@ -235,7 +262,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     if (!rawData) return [];
     const metrics = isToday ? computeMetricsForDate(todayKey, rawData) : historicalMetrics;
     if (!metrics) return [];
-    const config = configs.find(c => c.sort_order === sortOrder);
+    const config = configs.find((c) => c.sort_order === sortOrder);
     if (!config) return [];
     const autoKey = getEffectiveAutoTrackKey(config);
     // Map by auto_track_key
@@ -246,20 +273,23 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
     // Fallback by label
     const label = config.label.toLowerCase();
     if (label.includes("booking activity")) return metrics.bookingActivityDetails;
-    if (label.includes("booking")) return metrics.bookingAttemptDetails;
+    if (label.includes("booking attempt")) return metrics.bookingAttemptDetails;
     if (label.includes("customer follow")) return metrics.customerFollowUpDetails;
     if (label.includes("lead follow")) return metrics.bookingActivityDetails;
     if (label.includes("client")) return metrics.clientFollowUpDetails;
-    if (label.includes("hostess") || label.includes("event")) return metrics.hostessCoachingDetails;
+    if (label.includes("event coaching") || label.includes("hostess")) return metrics.hostessCoachingDetails;
     if (label.includes("recruiting") || label.includes("prospect")) return metrics.recruitingFollowUpDetails;
-    if (label.includes("consultant") || label.includes("team") || label.includes("coach")) return metrics.coachingDetails;
+    if (label.includes("consultant") || label.includes("team") || label.includes("coach"))
+      return metrics.coachingDetails;
     if (label.includes("relationship")) return metrics.relationshipDetails;
     return [];
   };
 
-  const drillDownConfig = drillDownIndex !== null ? configs.find(c => c.sort_order === drillDownIndex) : null;
+  const drillDownConfig = drillDownIndex !== null ? configs.find((c) => c.sort_order === drillDownIndex) : null;
   const drillDownItems = drillDownIndex !== null ? getDrillDownItems(drillDownIndex) : [];
-  const drillDownShowFilter = drillDownConfig?.auto_track_key === "booking_attempts" || drillDownConfig?.label.toLowerCase().includes("booking");
+  const drillDownShowFilter =
+    drillDownConfig?.auto_track_key === "booking_attempts" ||
+    drillDownConfig?.label.toLowerCase().includes("booking attempt");
 
   const dateLabel = (() => {
     if (isToday) return "Today";
@@ -299,7 +329,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                 {completedCount} / {items.length || 5} activities
               </Badge>
               {winStatus && (
-                <Badge variant="outline" className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}>
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}
+                >
                   <winStatus.icon className="w-3 h-3" />
                   {winStatus.label}
                 </Badge>
@@ -317,7 +350,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
             todayKey={todayKey}
             viewMode={viewMode}
             isOOO={isOOO}
-            onDateChange={(d) => { setSelectedDate(d); setViewMode("daily"); }}
+            onDateChange={(d) => {
+              setSelectedDate(d);
+              setViewMode("daily");
+            }}
             onViewModeChange={setViewMode}
             selectedWeekStart={selectedWeekStart}
             onWeekChange={setSelectedWeekStart}
@@ -347,7 +383,10 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
             <FocusWeeklyView
               configs={configs}
               weekData={weekData}
-              onDayClick={(d) => { setSelectedDate(d); setViewMode("daily"); }}
+              onDayClick={(d) => {
+                setSelectedDate(d);
+                setViewMode("daily");
+              }}
               weekStart={selectedWeekStart}
             />
           ) : (
@@ -389,7 +428,7 @@ export default function SixMostImportant({ autoCounts, rawData, onDetailNavigate
                           isMobile={isMobile}
                           lightDay={isLightDay}
                         />
-                      )
+                      ),
                     )}
                     <SalesRevenueTile selectedDate={selectedDate} compact={!!compact} />
                   </div>
