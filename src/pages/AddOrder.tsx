@@ -65,6 +65,7 @@ export default function AddOrder() {
     return "";
   });
   const [customerId, setCustomerId] = useState(preselectedCustomer);
+  const customerHasPriorOrders = !!customerId && allOrders.some((o: any) => o.customer_id === customerId);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [orderDate, setOrderDate] = useState(toLocalDateKey());
