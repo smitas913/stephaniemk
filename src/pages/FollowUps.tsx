@@ -3114,7 +3114,6 @@ export default function FollowUps() {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
               </div>
               )}
             </div>
