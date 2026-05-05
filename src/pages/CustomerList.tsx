@@ -111,11 +111,11 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
 
   const addMutation = useMutation({
     mutationFn: createCustomer,
-    onSuccess: () => {
+    onSuccess: (newCustomer) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       setOpen(false);
       setForm({ full_name: "", phone: "", email: "" });
-      toast.success("Customer added!");
+      navigate(`/customers/${newCustomer.id}`);
     },
   });
 
