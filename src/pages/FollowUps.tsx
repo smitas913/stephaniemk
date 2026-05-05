@@ -3087,6 +3087,7 @@ export default function FollowUps() {
                       </div>
                     </CardContent>
                   </Card>
+                  </TodaySectionWrapper>
 
                   {/* Daily Scorecard removed — 6 Most Important Things is the single source of truth for daily execution. */}
 
