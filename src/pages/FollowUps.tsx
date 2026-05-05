@@ -2332,7 +2332,21 @@ export default function FollowUps() {
                      // Split into the three categories. Customers and leads are capped
                      // independently; prospects (recruiting) are unlimited per spec.
                      const allCustomerItems = followUpItems.filter(i => i.itemType === "customer");
-                     const allLeadItems = followUpItems.filter(i => i.itemType === "lead");
+                      const rescheduleLeadItems: ActionItem[] = events
+                        .filter((e) => (e.reschedule_status || "None") === "In Process of Rescheduling")
+                        .map((e) => ({
+                          id: e.id,
+                          itemType: "lead",
+                          name: e.hostess_name || e.event_id,
+                          phone: e.hostess_phone ?? null,
+                          email: e.hostess_email ?? null,
+                          next_follow_up: e.reschedule_next_follow_up_date ?? null,
+                          follow_up_status: e.reschedule_next_follow_up_date && e.reschedule_next_follow_up_date < toLocalDateKey() ? "OVERDUE" : "TODAY",
+                          actionLabel: "Reschedule",
+                          followUpReason: "Reschedule",
+                          _eventId: e.event_id,
+                        }));
+                      const allLeadItems = [...followUpItems.filter(i => i.itemType === "lead"), ...rescheduleLeadItems];
                      const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
 
                      // Priority sort within a category: most overdue first, then due-today, then general.
