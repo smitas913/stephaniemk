@@ -3314,7 +3314,8 @@ export default function FollowUps() {
                     <Button size="sm" onClick={() => detailNoteMutation.mutate()} disabled={detailNoteMutation.isPending || !detailNoteText.trim()}>
                       {detailNoteMutation.isPending ? "Saving..." : "Save Note"}
                     </Button>
-                  </div>
+                          </div>
+                        </div>
 
                   {/* Notes Timeline (Prospects) */}
                   <div>
