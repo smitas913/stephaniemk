@@ -1,0 +1,1 @@
+ALTER TABLE public.zoom_defaults ADD COLUMN IF NOT EXISTS home_office_address text;

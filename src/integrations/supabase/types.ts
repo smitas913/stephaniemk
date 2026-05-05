@@ -1877,6 +1877,7 @@ export type Database = {
       zoom_defaults: {
         Row: {
           created_at: string
+          home_office_address: string | null
           id: string
           updated_at: string
           user_id: string
@@ -1886,6 +1887,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          home_office_address?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -1895,6 +1897,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          home_office_address?: string | null
           id?: string
           updated_at?: string
           user_id?: string
