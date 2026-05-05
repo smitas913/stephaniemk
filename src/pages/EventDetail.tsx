@@ -308,6 +308,9 @@ export default function EventDetail() {
       }) || null
     );
   }, [customers, event?.hostess_name, event?.hostess_phone]);
+
+  // Prep progress
+  const prepDone = event ? PREP_STEPS.filter((s) => (event as any)[s.field]).length : 0;
   const prepTotal = PREP_STEPS.length;
 
   // Pending workflow tasks
