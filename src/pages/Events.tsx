@@ -8,10 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList, SlidersHorizontal, MoreHorizontal, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
@@ -42,15 +45,29 @@ export default function Events() {
   const [formatFilter, setFormatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rescheduleFilter, setRescheduleFilter] = useState("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
+  const [expandedTasksFor, setExpandedTasksFor] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
   const { data: allTasks = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
-  const [expandedTasksFor, setExpandedTasksFor] = useState<string | null>(null);
 
-  // Next pending task per event_id (overdue/due-today first, then soonest)
+  const activeFilterCount = [
+    typeFilter !== "all",
+    formatFilter !== "all",
+    statusFilter !== "all",
+    rescheduleFilter !== "all",
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setTypeFilter("all");
+    setFormatFilter("all");
+    setStatusFilter("all");
+    setRescheduleFilter("all");
+  };
+
   const nextTaskByEvent = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     const grouped = new Map<string, EventTask[]>();
@@ -71,7 +88,6 @@ export default function Events() {
     return { map, today };
   }, [allTasks]);
 
-  // ─── Universal Action Panel for Hostess ───
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
 
@@ -85,7 +101,6 @@ export default function Events() {
         actionType: n.note_type || "Note",
         preview: (n.note_body || "").slice(0, 80),
       }));
-
     setActionPanelItem({
       id: e.id,
       personType: "hostess",
@@ -102,19 +117,13 @@ export default function Events() {
 
   const hostessActionMutation = useMutation({
     mutationFn: async ({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate }: {
-      item: UniversalActionItem;
-      actionType: string;
-      note: string;
-      isBookingAttempt: boolean;
-      isFollowUp: boolean;
-      nextFollowUpDate?: string | null;
+      item: UniversalActionItem; actionType: string; note: string;
+      isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
     }) => {
-      // Find the event to update
       const ev = events.find((e) => e.id === uItem.id);
       if (ev && nextFollowUpDate) {
         await upsertEvent({ event_id: ev.event_id, hostess_next_action_date: nextFollowUpDate } as any);
       }
-      // Create centralized activity log entry
       await createNote({
         entity_type: "Hostess",
         note_body: note.trim() || `${actionType} hostess contact`,
@@ -136,15 +145,9 @@ export default function Events() {
   });
 
   const handleHostessAction = useCallback((params: {
-    item: UniversalActionItem;
-    actionType: string;
-    note: string;
-    isBookingAttempt: boolean;
-    isFollowUp: boolean;
-    nextFollowUpDate?: string | null;
-  }) => {
-    hostessActionMutation.mutate(params);
-  }, [hostessActionMutation]);
+    item: UniversalActionItem; actionType: string; note: string;
+    isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
+  }) => { hostessActionMutation.mutate(params); }, [hostessActionMutation]);
 
   const deleteMutation = useMutation({
     mutationFn: (eventId: string) => deleteEvent(eventId),
@@ -198,34 +201,214 @@ export default function Events() {
     });
   }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
 
-  const sorted = useMemo(() =>
-    [...filtered].sort((a, b) => (b.event_date || "").localeCompare(a.event_date || "")),
-    [filtered]
-  );
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const { upcoming, past } = useMemo(() => {
+    const sortAsc = [...filtered].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
+    const upcoming = sortAsc
+      .filter((e) => (e.event_date || "") >= todayStr && e.event_status !== "Cancelled")
+      .reverse();
+    const past = sortAsc
+      .filter((e) => (e.event_date || "") < todayStr || e.event_status === "Cancelled")
+      .reverse();
+    return { upcoming, past };
+  }, [filtered, todayStr]);
 
-  const totalEvents = sorted.length;
-  const totalSales = sorted.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
-  const totalGuests = sorted.reduce((s, e) => s + (e.guest_count || 0), 0);
-
+  const totalSales = filtered.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
+  const totalGuests = filtered.reduce((s, e) => s + (e.guest_count || 0), 0);
   const deleteTargetLinkedCount = deleteTarget ? (eventSales.get(deleteTarget.event_id)?.orderCount || 0) : 0;
+
+  const EventRow = ({ e }: { e: EventRecord }) => {
+    const sales = eventSales.get(e.event_id);
+    const orderCount = sales?.orderCount || 0;
+    const evTotalSales = sales?.total || 0;
+    const guestCount = e.guest_count || 0;
+    const rStatus = e.reschedule_status || "None";
+    const taskInfo = nextTaskByEvent.map.get(e.event_id);
+    const isExpanded = expandedTasksFor === e.event_id;
+    const taskToday = nextTaskByEvent.today;
+    const isHeld = e.event_status === "Held";
+
+    return (
+      <Fragment>
+        <TableRow
+          className="hover:bg-muted/50 cursor-pointer transition-colors"
+          onClick={() => navigate(`/events/${e.event_id}`)}
+        >
+          <TableCell className="text-xs whitespace-nowrap font-medium">
+            {formatDateOnly(e.event_date)}
+          </TableCell>
+          <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
+          <TableCell className="text-xs">
+            {e.event_type || "—"}
+            {(e.event_format && e.event_format !== "In-Person") && (
+              <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
+            )}
+          </TableCell>
+          <TableCell>
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(e.event_status))}>
+                {e.event_status}
+              </Badge>
+              {rStatus !== "None" && (
+                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
+                  {rStatus === "In Process of Rescheduling" ? "Rescheduling" : rStatus}
+                </Badge>
+              )}
+            </div>
+          </TableCell>
+          <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
+          <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
+          <TableCell className="text-right text-sm font-semibold">
+            {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
+          </TableCell>
+          <TableCell className="text-xs">
+            {taskInfo ? (
+              <button
+                type="button"
+                onClick={(ev) => { ev.stopPropagation(); setExpandedTasksFor(isExpanded ? null : e.event_id); }}
+                className="text-left hover:underline"
+              >
+                <div className={cn(
+                  "font-medium",
+                  taskInfo.next.due_date && taskInfo.next.due_date < taskToday && "text-destructive",
+                  taskInfo.next.due_date === taskToday && "text-amber-600",
+                )}>
+                  {taskInfo.next.task_name}
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {taskInfo.next.due_date ? formatDateOnly(taskInfo.next.due_date) : "no due date"}
+                  {taskInfo.remaining > 0 && ` • +${taskInfo.remaining} more`}
+                </div>
+              </button>
+            ) : (
+              <span className="text-muted-foreground">—</span>
+            )}
+          </TableCell>
+
+          {/* ── Simplified Actions ── */}
+          <TableCell className="text-right">
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                variant="ghost" size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-primary"
+                title="Add order"
+                onClick={(ev) => { ev.stopPropagation(); navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`); }}
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+              </Button>
+              {e.hostess_name && (
+                <Button
+                  variant="ghost" size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-primary"
+                  title="Log hostess activity"
+                  onClick={(ev) => { ev.stopPropagation(); openHostessPanel(e); }}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                </Button>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={(ev) => ev.stopPropagation()}
+                  >
+                    <MoreHorizontal className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44" onClick={(ev) => ev.stopPropagation()}>
+                  <DropdownMenuItem onClick={() => navigate(`/events/${e.event_id}?addGuest=1`)}>
+                    <Users className="w-3.5 h-3.5 mr-2" /> Add guest
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/events/${e.event_id}?reschedule=1`)}>
+                    <Calendar className="w-3.5 h-3.5 mr-2" /> Reschedule
+                  </DropdownMenuItem>
+                  {!isHeld && (
+                    <DropdownMenuItem
+                      disabled={markHeldMutation.isPending}
+                      onClick={() => markHeldMutation.mutate(e)}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Mark complete
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeleteTarget(e)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete event
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </TableCell>
+        </TableRow>
+
+        {isExpanded && taskInfo && (
+          <TableRow className="bg-muted/20">
+            <TableCell colSpan={9} className="py-2">
+              <div className="pl-6 space-y-1">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+                  <ClipboardList className="w-3 h-3" /> All pending tasks
+                </div>
+                {taskInfo.all.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between text-xs py-0.5">
+                    <span className={cn(
+                      t.due_date && t.due_date < taskToday && "text-destructive",
+                      t.due_date === taskToday && "text-amber-600",
+                    )}>{t.task_name}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {t.due_date ? formatDateOnly(t.due_date) : "no due date"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </Fragment>
+    );
+  };
+
+  const EventTable = ({ rows }: { rows: EventRecord[] }) => (
+    <div className="border border-border rounded-lg overflow-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/30">
+            <TableHead className="text-xs">Date</TableHead>
+            <TableHead className="text-xs">Hostess</TableHead>
+            <TableHead className="text-xs">Type</TableHead>
+            <TableHead className="text-xs">Status</TableHead>
+            <TableHead className="text-xs text-center">Guests</TableHead>
+            <TableHead className="text-xs text-center">Orders</TableHead>
+            <TableHead className="text-xs text-right">Sales</TableHead>
+            <TableHead className="text-xs">Next Task</TableHead>
+            <TableHead className="text-xs w-[110px] text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((e) => <EventRow key={e.id} e={e} />)}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <Layout>
       <div className="space-y-5">
+
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
-            <p className="text-sm text-muted-foreground">{totalEvents} events</p>
+            <p className="text-sm text-muted-foreground">{filtered.length} event{filtered.length !== 1 ? "s" : ""}</p>
           </div>
-          <Button
-            onClick={() => navigate("/events/new")}
-            className="gap-1.5"
-          >
+          <Button onClick={() => navigate("/events/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New Event
           </Button>
         </div>
 
-        {/* Summary */}
+        {/* Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-3">
@@ -233,7 +416,7 @@ export default function Events() {
                 <Calendar className="w-4 h-4 text-blue-600" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Events</span>
               </div>
-              <p className="text-lg font-bold text-blue-600">{totalEvents}</p>
+              <p className="text-lg font-bold text-blue-600">{filtered.length}</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
@@ -256,249 +439,125 @@ export default function Events() {
           </Card>
         </div>
 
-        {/* Search & Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm flex-1 min-w-[180px]">
+        {/* Search + Filters bar */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search hostess, event ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            <Input
+              placeholder="Search hostess, event ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-9"
+            />
           </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="h-9 w-[130px] text-sm">
-              <SelectValue placeholder="All Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="Party">Party</SelectItem>
-              <SelectItem value="Facial">Facial</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={formatFilter} onValueChange={setFormatFilter}>
-            <SelectTrigger className="h-9 w-[140px] text-sm">
-              <SelectValue placeholder="All Formats" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Formats</SelectItem>
-              <SelectItem value="In-Person">In-Person</SelectItem>
-              <SelectItem value="Zoom">Zoom</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 w-[140px] text-sm">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Booked">Booked</SelectItem>
-              <SelectItem value="Held">Held</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={rescheduleFilter} onValueChange={setRescheduleFilter}>
-            <SelectTrigger className="h-9 w-[180px] text-sm">
-              <SelectValue placeholder="Reschedule" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Reschedule</SelectItem>
-              <SelectItem value="None">None</SelectItem>
-              <SelectItem value="In Process of Rescheduling">In Process</SelectItem>
-              <SelectItem value="Rescheduled">Rescheduled</SelectItem>
-            </SelectContent>
-          </Select>
+          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-2">
+                <SlidersHorizontal className="w-4 h-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Filters</span>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" /> Clear all
+                  </button>
+                )}
+              </div>
+              <Separator />
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All Types" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="Party">Party</SelectItem>
+                      <SelectItem value="Facial">Facial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Format</label>
+                  <Select value={formatFilter} onValueChange={setFormatFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All Formats" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Formats</SelectItem>
+                      <SelectItem value="In-Person">In-Person</SelectItem>
+                      <SelectItem value="Zoom">Zoom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="Booked">Booked</SelectItem>
+                      <SelectItem value="Held">Held</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reschedule</label>
+                  <Select value={rescheduleFilter} onValueChange={setRescheduleFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any</SelectItem>
+                      <SelectItem value="None">None</SelectItem>
+                      <SelectItem value="In Process of Rescheduling">In Process</SelectItem>
+                      <SelectItem value="Rescheduled">Rescheduled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        {/* Table */}
+        {/* Event Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : sorted.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="text-muted-foreground text-center py-12">No events found.</p>
         ) : (
-          <div className="border border-border rounded-lg overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Hostess</TableHead>
-                  <TableHead className="text-xs">Type</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-center">Guests</TableHead>
-                  <TableHead className="text-xs text-center">Orders</TableHead>
-                  <TableHead className="text-xs text-right">Sales</TableHead>
-                  <TableHead className="text-xs">Next Task</TableHead>
-                  <TableHead className="text-xs w-[200px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sorted.map((e) => {
-                  const sales = eventSales.get(e.event_id);
-                  const orderCount = sales?.orderCount || 0;
-                  const evTotalSales = sales?.total || 0;
-                  const guestCount = e.guest_count || 0;
-                  const rStatus = e.reschedule_status || "None";
-                  const taskInfo = nextTaskByEvent.map.get(e.event_id);
-                  const isExpanded = expandedTasksFor === e.event_id;
-                  const today = nextTaskByEvent.today;
-                  const isHeld = e.event_status === "Held";
-
-                  return (
-                    <Fragment key={e.id}>
-                    <TableRow
-                      key={e.id}
-                      className="hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/events/${e.event_id}`)}
-                    >
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {formatDateOnly(e.event_date)}
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
-                      <TableCell className="text-xs">
-                        {e.event_type || "—"}
-                        {(e.event_format && e.event_format !== "In-Person") && (
-                          <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(e.event_status))}>
-                            {e.event_status}
-                          </Badge>
-                          {rStatus !== "None" && (
-                            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
-                              {rStatus === "In Process of Rescheduling" ? "Rescheduling" : rStatus}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
-                      <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
-                      <TableCell className="text-right text-sm font-semibold">
-                        {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {taskInfo ? (
-                          <button
-                            type="button"
-                            onClick={(ev) => {
-                              ev.stopPropagation();
-                              setExpandedTasksFor(isExpanded ? null : e.event_id);
-                            }}
-                            className="text-left hover:underline"
-                          >
-                            <div className="flex items-center gap-1">
-                              <span className={cn(
-                                "font-medium",
-                                taskInfo.next.due_date && taskInfo.next.due_date < today && "text-destructive",
-                                taskInfo.next.due_date === today && "text-amber-600",
-                              )}>
-                                {taskInfo.next.task_name}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {taskInfo.next.due_date ? formatDateOnly(taskInfo.next.due_date) : "no due date"}
-                              {taskInfo.remaining > 0 && ` • +${taskInfo.remaining} more`}
-                            </div>
-                          </button>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary"
-                            title="Add guest"
-                            onClick={(ev) => { ev.stopPropagation(); navigate(`/events/${e.event_id}?addGuest=1`); }}
-                          >
-                            <Users className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary"
-                            title="Add order"
-                            onClick={(ev) => { ev.stopPropagation(); navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`); }}
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                          </Button>
-                          {!isHeld && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-green-600"
-                              title="Mark complete"
-                              disabled={markHeldMutation.isPending}
-                              onClick={(ev) => { ev.stopPropagation(); markHeldMutation.mutate(e); }}
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-amber-600"
-                            title="Reschedule"
-                            onClick={(ev) => { ev.stopPropagation(); navigate(`/events/${e.event_id}?reschedule=1`); }}
-                          >
-                            <Calendar className="w-3.5 h-3.5" />
-                          </Button>
-                          {e.hostess_name && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-primary"
-                              title="Log hostess activity"
-                              onClick={(ev) => { ev.stopPropagation(); openHostessPanel(e); }}
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title="Delete event"
-                            onClick={(ev) => { ev.stopPropagation(); setDeleteTarget(e); }}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                    {isExpanded && taskInfo && (
-                      <TableRow key={`${e.id}-tasks`} className="bg-muted/20">
-                        <TableCell colSpan={10} className="py-2">
-                          <div className="pl-6 space-y-1">
-                            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                              <ClipboardList className="w-3 h-3" /> All pending tasks
-                            </div>
-                            {taskInfo.all.map((t) => (
-                              <div key={t.id} className="flex items-center justify-between text-xs py-0.5">
-                                <span className={cn(
-                                  t.due_date && t.due_date < today && "text-destructive",
-                                  t.due_date === today && "text-amber-600",
-                                )}>{t.task_name}</span>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {t.due_date ? formatDateOnly(t.due_date) : "no due date"}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          <div className="space-y-6">
+            {upcoming.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">Upcoming</h3>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{upcoming.length}</span>
+                </div>
+                <EventTable rows={upcoming} />
+              </div>
+            )}
+            {past.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Past & Cancelled</h3>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{past.length}</span>
+                </div>
+                <EventTable rows={past} />
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Hostess Universal Action Panel */}
       <UniversalActionPanel
         item={actionPanelItem}
         open={actionPanelOpen}
@@ -511,7 +570,6 @@ export default function Events() {
         isPending={hostessActionMutation.isPending}
       />
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -541,3 +599,4 @@ export default function Events() {
     </Layout>
   );
 }
+
