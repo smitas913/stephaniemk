@@ -30,7 +30,8 @@ export default function TodoListCard() {
         .from("todos")
         .select("id, text, done")
         .eq("user_id", user.id)
-        .eq("todo_date", dateKey)
+        .lte("todo_date", dateKey)
+        .or(`done.eq.false,todo_date.eq.${dateKey}`)
         .order("created_at", { ascending: false });
       if (!cancelled) {
         if (error) {
