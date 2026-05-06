@@ -154,10 +154,7 @@ export default function TodoListCard() {
           </p>
         ) : (
           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0 min-w-0">
-            {open.map((t) => (
-              <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onRemove={removeTodo} />
-            ))}
-            {done.map((t) => (
+            {todos.map((t) => (
               <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onRemove={removeTodo} />
             ))}
           </div>
