@@ -99,8 +99,18 @@ export default function QuickCareerChatDialog({
 
       const personName = selected?.name || query.trim();
 
+      // Smart follow-up based on interest level
+      const getFollowUpDays = (level: number | null) => {
+        if (!level) return 14;
+        if (level >= 7) return 3;
+        if (level >= 4) return 10;
+        return 30;
+      };
+      const followUpDate = format(addDays(new Date(), getFollowUpDays(interestLevel)), "yyyy-MM-dd");
+
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+
       if (isForConsultant && selectedConsultant) {
-        // Log under consultant profile
         await createNote({
           entity_type: "Consultant",
           person_type: "consultant",
@@ -110,50 +120,69 @@ export default function QuickCareerChatDialog({
           note_date: today,
           result_type: "Career Chat",
         });
-        // Set consultant follow-up reminder
         if (nextStep === "coach_followup") {
-          const followUpDate = format(addDays(new Date(), 3), "yyyy-MM-dd");
           await supabase.from("team_consultants" as any)
             .update({ next_follow_up_date: followUpDate, follow_up_notes: `Coach on prospect: ${personName}` } as any)
             .eq("id", selectedConsultant.id);
         }
-      } else if (selected) {
-        const entityType = selected.kind === "customer" ? "Customer"
-          : selected.kind === "prospect" ? "Prospect" : "Lead";
+        return;
+      }
+
+      // Always create or find a Prospect record for career chats
+      let prospectId: string | null = null;
+
+      if (selected?.kind === "prospect") {
+        // Update existing prospect
+        prospectId = selected.id;
+        await supabase.from("prospects" as any).update({
+          interest_level: interestLevel,
+          last_contact_date: today,
+          next_follow_up_date: followUpDate,
+          opportunity_status: interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up",
+          updated_at: new Date().toISOString(),
+        } as any).eq("id", selected.id);
+      } else {
+        // Create new prospect — even if they're an existing customer
+        const { data: newProspect, error } = await supabase
+          .from("prospects" as any)
+          .insert({
+            name: personName,
+            customer_id: selected?.kind === "customer" ? selected.id : null,
+            opportunity_status: interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up",
+            interest_level: interestLevel,
+            date_shared: today,
+            last_contact_date: today,
+            next_follow_up_date: followUpDate,
+            owner_user_id: userId,
+            ownership_type: "personal",
+          } as any)
+          .select()
+          .single();
+        if (error) throw error;
+        prospectId = (newProspect as any).id;
+      }
+
+      // Log note under prospect
+      if (prospectId) {
         await createNote({
-          entity_type: entityType as any,
-          person_type: selected.kind as any,
-          person_id: selected.id,
-          customer_id: selected.kind === "customer" ? selected.id : undefined,
-          prospect_id: selected.kind === "prospect" ? selected.id : undefined,
+          entity_type: "Prospect",
+          person_type: "prospect",
+          person_id: prospectId,
+          prospect_id: prospectId,
           note_body: noteBody,
           note_type: "Career Chat",
           note_date: today,
           result_type: "Career Chat",
         });
-        // Apply next step for existing person
-        if (selected.kind === "customer" && nextStep === "follow_up") {
-          const followUpDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
-          await updateCustomer(selected.id, { next_follow_up_date: followUpDate, follow_up_reason: "Career Chat Follow-Up" } as any);
-        }
-      } else if (personName) {
-        // New person — create prospect directly via supabase
-        const userId = (await supabase.auth.getUser()).data.user?.id;
-        const { data: newProspect, error } = await supabase
-          .from("prospects" as any)
-          .insert({
-            name: personName,
-            opportunity_status: interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up",
-            owner_user_id: userId,
-          } as any)
-          .select()
-          .single();
-        if (error) throw error;
+      }
+
+      // Also log on customer profile if they're an existing customer
+      if (selected?.kind === "customer") {
         await createNote({
-          entity_type: "Prospect",
-          person_type: "prospect",
-          person_id: (newProspect as any).id,
-          prospect_id: (newProspect as any).id,
+          entity_type: "Customer",
+          person_type: "customer",
+          person_id: selected.id,
+          customer_id: selected.id,
           note_body: noteBody,
           note_type: "Career Chat",
           note_date: today,
