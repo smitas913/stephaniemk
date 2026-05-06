@@ -560,9 +560,10 @@ export default function QuickAddPersonDialog({
                             const userId = (await supabase.auth.getUser()).data.user?.id;
                             await supabase.from("event_guests" as any).insert({
                               event_id: evt.event_id,
-                              guest_name: query.trim(),
-                              guest_phone: note.trim() || null,
+                              name: query.trim(),
+                              phone: note.trim() || null,
                               owner_user_id: userId,
+                              attending: true,
                             } as any);
                             // Update guest count
                             const newCount = (evt.guest_count || 0) + 1;
