@@ -1,0 +1,1 @@
+ALTER TABLE public.prospects ADD COLUMN IF NOT EXISTS interest_level integer CHECK (interest_level >= 1 AND interest_level <= 10), ADD COLUMN IF NOT EXISTS is_archived boolean DEFAULT false;
