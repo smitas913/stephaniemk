@@ -20,7 +20,7 @@ const TIME_SLOTS = [
   "6:30 PM", "7:00 PM", "7:30 PM",
 ];
 
-const EVENT_TYPES = ["Party", "Facial", "Career Chat", "Sharing Appointment"] as const;
+const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Career Chat", "Sharing Appointment"] as const;
 
 export default function QuickBookingDialog({
   open,
