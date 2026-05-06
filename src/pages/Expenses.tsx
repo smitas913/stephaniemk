@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchExpenses, createExpense, deleteExpense, uploadReceiptImage } from "@/lib/queries";
+import { fetchExpenses, createExpense, deleteExpense, updateExpense, uploadReceiptImage } from "@/lib/queries";
 import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, DollarSign, Upload, Image, X } from "lucide-react";
+import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatDateOnly } from "@/lib/dateOnly";
@@ -34,6 +34,7 @@ export default function Expenses() {
   const { data: expenses = [], isLoading } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
 
   const [showAdd, setShowAdd] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any | null>(null);
   const [filterCat, setFilterCat] = useState<string>("all");
   const [formDate, setFormDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [formAmount, setFormAmount] = useState("");
@@ -75,9 +76,10 @@ export default function Expenses() {
   const resetForm = () => {
     setFormAmount("");
     setFormNotes("");
-    setFormCategory("Inventory");
+    setFormCategory("Section 1 (Wholesale Products)");
     setFormEventType("");
     setFormEventYear("");
+    setEditingExpense(null);
     clearReceipt();
   };
 
@@ -117,6 +119,34 @@ export default function Expenses() {
       toast.success("Expense deleted");
     },
   });
+
+  const editMut = useMutation({
+    mutationFn: async () => {
+      if (!editingExpense) return;
+      await updateExpense(editingExpense.id, {
+        amount: Number(formAmount),
+        category: formCategory,
+        notes: formNotes || null,
+        expense_date: formDate,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      setEditingExpense(null);
+      resetForm();
+      toast.success("Expense updated!");
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update expense"),
+  });
+
+  const openEdit = (expense: any) => {
+    setEditingExpense(expense);
+    setFormDate(expense.expense_date || format(new Date(), "yyyy-MM-dd"));
+    setFormAmount(String(expense.amount || ""));
+    setFormCategory(expense.category || "Section 1 (Wholesale Products)");
+    setFormNotes(expense.notes || "");
+    setShowAdd(true);
+  };
 
   return (
     <Layout>
@@ -173,6 +203,9 @@ export default function Expenses() {
                       {e.notes && ` — ${e.notes}`}
                     </p>
                   </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(e)}>
+                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => deleteMut.mutate(e.id)}>
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
                   </Button>
@@ -186,7 +219,7 @@ export default function Expenses() {
         <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetForm(); }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-base">Add Expense</DialogTitle>
+              <DialogTitle className="text-base">{editingExpense ? "Edit Expense" : "Add Expense"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
               <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
@@ -250,8 +283,8 @@ export default function Expenses() {
                 )}
               </div>
 
-              <Button className="w-full" onClick={() => createMut.mutate()} disabled={!formAmount || createMut.isPending || uploading}>
-                {uploading ? "Uploading..." : createMut.isPending ? "Adding..." : "Add Expense"}
+              <Button className="w-full" onClick={() => editingExpense ? editMut.mutate() : createMut.mutate()} disabled={!formAmount || createMut.isPending || editMut.isPending || uploading}>
+                {uploading ? "Uploading..." : editingExpense ? (editMut.isPending ? "Saving..." : "Save Changes") : (createMut.isPending ? "Adding..." : "Add Expense")}
               </Button>
             </div>
           </DialogContent>
