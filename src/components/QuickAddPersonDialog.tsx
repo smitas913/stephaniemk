@@ -5,13 +5,16 @@ import {
   fetchProspects,
   fetchBookingLeads,
   fetchTeamConsultants,
+  fetchEvents,
   createBookingLead,
   createCustomer,
   createNote,
   flagCustomer,
   updateCustomer,
+  upsertEvent,
 } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,6 +74,18 @@ export default function QuickAddPersonDialog({
   const [createNewIntent, setCreateNewIntent] = useState(false);
   // Face flow: Outcome step (Customer vs Non-Customer) for brand-new names on Face logs
   const [faceOutcomePrompt, setFaceOutcomePrompt] = useState<{ name: string } | null>(null);
+  const [faceEventCheck, setFaceEventCheck] = useState<boolean | null>(null); // null = not asked yet
+  const [faceEventId, setFaceEventId] = useState<string | null>(null);
+
+  // Fetch upcoming/recent booked events for the event connection check
+  const { data: bookedEvents = [] } = useQuery({
+    queryKey: ["events"],
+    queryFn: fetchEvents,
+    enabled: open && resultType === "Face",
+    select: (data: any[]) => data.filter(e =>
+      e.event_status === "Booked" || e.event_status === "Held"
+    ).slice(0, 10),
+  });
   // Face flow: Non-customer post-step (tags + follow-up + DNC + Skip)
   const [nonCustomerPrompt, setNonCustomerPrompt] = useState<{ customerId: string; name: string } | null>(null);
   const [nonCustomerTags, setNonCustomerTags] = useState<{ lead: boolean; prospect: boolean; dnc: boolean }>({ lead: false, prospect: false, dnc: false });
@@ -91,6 +106,8 @@ export default function QuickAddPersonDialog({
       setCustomFollowUpDate("");
       setCreateNewIntent(false);
       setFaceOutcomePrompt(null);
+      setFaceEventCheck(null);
+      setFaceEventId(null);
       setNonCustomerPrompt(null);
       setNonCustomerTags({ lead: false, prospect: false, dnc: false });
       setNonCustomerFollowUpDate("");
@@ -444,7 +461,134 @@ export default function QuickAddPersonDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {faceOutcomePrompt ? (
+        {/* Step 0 — Event Connection Check (shown first for Face type) */}
+        {resultType === "Face" && faceEventCheck === null ? (
+          <div className="space-y-3">
+            <p className="text-sm text-foreground font-medium">Was this face part of a booked event?</p>
+            <p className="text-xs text-muted-foreground">
+              If this person was at a party or facial appointment already in your Events list, update the guest count there instead — otherwise it'll be counted twice.
+            </p>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-3 justify-start gap-3 hover:bg-primary/5 hover:border-primary/40"
+                onClick={() => setFaceEventCheck(true)}
+              >
+                <span className="text-lg">📅</span>
+                <div className="text-left">
+                  <div className="text-sm font-semibold">Yes — update an event's guest count</div>
+                  <div className="text-[11px] text-muted-foreground">Takes you to pick the event</div>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-auto py-3 justify-start gap-3 hover:bg-primary/5 hover:border-primary/40"
+                onClick={() => setFaceEventCheck(false)}
+              >
+                <span className="text-lg">👤</span>
+                <div className="text-left">
+                  <div className="text-sm font-semibold">No — this is a standalone face</div>
+                  <div className="text-[11px] text-muted-foreground">1:1 facial, warm chatter, sample — not in an event</div>
+                </div>
+              </Button>
+            </div>
+          </div>
+        ) : resultType === "Face" && faceEventCheck === true ? (
+          // Event picker — select event, add person as guest
+          <div className="space-y-3">
+            {!faceEventId ? (
+              <>
+                <p className="text-sm font-medium text-foreground">Which event?</p>
+                <p className="text-xs text-muted-foreground">Select the event this person attended.</p>
+                <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                  {(bookedEvents as any[]).length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-3 text-center">No upcoming events found</p>
+                  ) : (
+                    (bookedEvents as any[]).map((e: any) => (
+                      <button
+                        key={e.id}
+                        className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                        onClick={() => setFaceEventId(e.id)}
+                      >
+                        <p className="text-sm font-medium text-foreground">{e.hostess_name || e.event_id}</p>
+                        <p className="text-xs text-muted-foreground">{e.event_type} · {e.event_date} · {e.guest_count || 0} guests so far</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setFaceEventCheck(null)}>Back</Button>
+              </>
+            ) : (
+              // Person entry after event selected
+              (() => {
+                const evt = (bookedEvents as any[]).find((e: any) => e.id === faceEventId);
+                return (
+                  <>
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 border border-border">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground">{evt?.hostess_name || "Event"}</p>
+                        <p className="text-xs text-muted-foreground">{evt?.event_type} · {evt?.event_date}</p>
+                      </div>
+                      <button className="text-xs text-primary" onClick={() => setFaceEventId(null)}>Change</button>
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Add guest details</p>
+                    <div className="space-y-2">
+                      <Input
+                        autoFocus
+                        placeholder="Guest name *"
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                      <Input
+                        placeholder="Phone (optional)"
+                        value={note}
+                        onChange={e => setNote(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setFaceEventId(null)}>Back</Button>
+                      <Button
+                        className="flex-1"
+                        disabled={!query.trim() || busy}
+                        onClick={async () => {
+                          if (!query.trim() || !evt) return;
+                          setBusy(true);
+                          try {
+                            // Add as event guest
+                            const userId = (await supabase.auth.getUser()).data.user?.id;
+                            await supabase.from("event_guests" as any).insert({
+                              event_id: evt.event_id,
+                              guest_name: query.trim(),
+                              guest_phone: note.trim() || null,
+                              owner_user_id: userId,
+                            } as any);
+                            // Update guest count
+                            const newCount = (evt.guest_count || 0) + 1;
+                            await upsertEvent({ event_id: evt.event_id, guest_count: newCount } as any);
+                            toast.success(`${query.trim()} added as guest on ${evt.hostess_name || "event"}! Guest count: ${newCount} 🎉`);
+                            onLogged();
+                            onOpenChange(false);
+                          } catch (e: any) {
+                            toast.error(e?.message || "Failed to add guest");
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        {busy ? "Adding..." : "Add Guest to Event"}
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground text-center">
+                      You can convert them to a customer from the event's Guests & Orders tab
+                    </p>
+                  </>
+                );
+              })()
+            )}
+          </div>
+        ) : faceOutcomePrompt ? (
           <div className="space-y-3">
             <div className="text-sm">
               <p className="text-foreground font-medium">Outcome?</p>
