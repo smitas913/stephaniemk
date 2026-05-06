@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
-const EVENT_TYPES = ["Party", "Facial", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
+const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
 
 // Coaching prep steps in order — each one drives booking rate
