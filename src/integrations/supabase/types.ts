@@ -2058,6 +2058,10 @@ export type Database = {
         | "Meals"
         | "Travel"
         | "Networking"
+        | "Section 1 (Wholesale Products)"
+        | "Section 2 (MK Supplies & Samples)"
+        | "Inventory Freight"
+        | "Shipping / Postage"
       income_category: "Commission" | "Bonus" | "Referral" | "Other"
       opportunity_status:
         | "New"
@@ -2214,6 +2218,10 @@ export const Constants = {
         "Meals",
         "Travel",
         "Networking",
+        "Section 1 (Wholesale Products)",
+        "Section 2 (MK Supplies & Samples)",
+        "Inventory Freight",
+        "Shipping / Postage",
       ],
       income_category: ["Commission", "Bonus", "Referral", "Other"],
       opportunity_status: [
