@@ -98,6 +98,7 @@ export const RESCHEDULE_STATUSES = ["None", "Rescheduled", "In Process of Resche
 export type RescheduleStatus = typeof RESCHEDULE_STATUSES[number];
 
 export const COACHING_STATUSES = ["Booked", "Coaching Scheduled", "Invites Sent", "Confirmed", "Completed"] as const;
+
 export const RSVP_OPTIONS = ["Yes", "No", "Maybe"] as const;
 
 export interface EventRecord {
@@ -238,6 +239,8 @@ export interface Prospect {
   next_step_notes: string | null;
   ownership_type: string;
   assigned_consultant_id: string | null;
+  interest_level: number | null;
+  is_archived: boolean | null;
 }
 
 export interface ProspectNote {
@@ -308,9 +311,7 @@ export interface BookingLead {
 }
 
 export const CONSULTANT_STATUSES = ["Active", "Inactive", "At Risk"] as const;
-
 export const ONBOARDING_STAGES = ["New", "Started", "First Order", "First Party", "First Team Member", "Active Builder"] as const;
-
 export const FOCUS_GROUPS = ["General", "New Consultant", "Key Consultant"] as const;
 
 export const COACHING_FOCUS_OPTIONS = [
