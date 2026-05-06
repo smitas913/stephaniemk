@@ -616,7 +616,7 @@ export const createExpense = async (expense: {
   if (error) throw error;
 };
 
-export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null }>) => {
+export const updateExpense = async (id: string, updates: Record<string, any>) => {
   const { error } = await supabase
     .from("expenses")
     .update(updates as any)
