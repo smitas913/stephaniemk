@@ -46,6 +46,19 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Prospect | null>(null);
+  const [sortBy, setSortBy] = useState<"interest" | "last_contact" | "follow_up" | "name">("interest");
+  const [showArchived, setShowArchived] = useState(false);
+
+  const archiveMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.from("prospects" as any).update({ is_archived: true } as any).eq("id", id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      toast.success("Prospect removed from active list");
+    },
+  });
 
   // Add form
   const [formName, setFormName] = useState("");
@@ -74,6 +87,8 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
 
   const filtered = useMemo(() => {
     let list = prospects;
+    // Archive filter
+    list = list.filter((p) => showArchived ? (p as any).is_archived : !(p as any).is_archived);
     // DNC filter via linked customer
     list = list.filter((p) => {
       const isDnc = !!p.customer_id && customerDncSet.has(p.customer_id);
@@ -86,8 +101,16 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       const q = search.toLowerCase();
       list = list.filter((p) => p.name.toLowerCase().includes(q) || p.phone?.includes(q) || p.email?.toLowerCase().includes(q));
     }
+    // Sort
+    list = [...list].sort((a, b) => {
+      if (sortBy === "interest") return ((b as any).interest_level || 0) - ((a as any).interest_level || 0);
+      if (sortBy === "last_contact") return (b.last_contact_date || "").localeCompare(a.last_contact_date || "");
+      if (sortBy === "follow_up") return (a.next_follow_up_date || "9999").localeCompare(b.next_follow_up_date || "9999");
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      return 0;
+    });
     return list;
-  }, [prospects, filterStatus, filterOwnership, filterConsultant, filterDnc, customerDncSet, search]);
+  }, [prospects, filterStatus, filterOwnership, filterConsultant, filterDnc, customerDncSet, search, sortBy, showArchived]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -150,9 +173,31 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
         <div className="flex items-center justify-between">
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Prospects</h2>}
-            <p className="text-sm text-muted-foreground mt-0.5">{prospects.length} total</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} active career chats</p>
           </div>
           <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Prospect</Button>
+        </div>
+
+        {/* Sort + Archive controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Sort by:</span>
+          {[
+            { value: "interest", label: "Interest Level" },
+            { value: "last_contact", label: "Last Contact" },
+            { value: "follow_up", label: "Follow-Up Date" },
+            { value: "name", label: "Name" },
+          ].map(s => (
+            <button key={s.value}
+              onClick={() => setSortBy(s.value as any)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${sortBy === s.value ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-muted"}`}>
+              {s.label}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`text-xs px-2.5 py-1 rounded-full border ml-auto transition-colors ${showArchived ? "border-amber-300 bg-amber-50 text-amber-700" : "border-border text-muted-foreground hover:bg-muted"}`}>
+            {showArchived ? "Hide Archived" : "Show Archived"}
+          </button>
         </div>
 
         {/* Status filter chips */}
@@ -243,11 +288,23 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
                   className={cn(
                     "border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-colors",
                     overdue && "border-destructive/40 bg-destructive/5",
-                    today && "border-primary/40 bg-primary/5"
+                    today && "border-primary/40 bg-primary/5",
+                    (p as any).is_archived && "opacity-60"
                   )}
                   onClick={() => navigate(`/prospects/${p.id}`)}
                 >
                   <CardContent className="p-3 flex items-center gap-3">
+                    {/* Interest level indicator */}
+                    {(p as any).interest_level && (
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                        (p as any).interest_level >= 7 ? "bg-green-100 text-green-700" :
+                        (p as any).interest_level >= 4 ? "bg-amber-100 text-amber-700" :
+                        "bg-blue-100 text-blue-700"
+                      )}>
+                        {(p as any).interest_level}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
@@ -255,34 +312,22 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
                         <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
                           {p.opportunity_status}
                         </Badge>
-                        <Badge variant="outline" className="text-[10px] shrink-0 gap-0.5">
-                          {ownershipType === "unit" ? <Users className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
-                          {ownershipType === "unit" ? "Unit" : "Personal"}
-                        </Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <CalendarDays className="w-3 h-3 text-muted-foreground shrink-0" />
-                          {p.next_step_type || p.next_step_date ? (
-                            <span className={cn("text-xs truncate",
-                              overdue ? "text-destructive font-medium" :
-                              today ? "text-primary font-medium" :
-                              "text-muted-foreground"
-                            )}>
-                              {p.next_step_type || "Next step"}
-                              {p.next_step_date && ` • ${formatDateOnly(p.next_step_date, "MMM d")}`}
-                              {overdue && " • Overdue"}
-                              {today && " • Today"}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/60 italic">No next step scheduled</span>
-                          )}
-                        </div>
+                        {p.last_contact_date && (
+                          <span className="text-xs text-muted-foreground">Last contact: {formatDateOnly(p.last_contact_date, "MMM d")}</span>
+                        )}
+                        {p.next_follow_up_date && (
+                          <span className={cn("text-xs",
+                            p.next_follow_up_date < new Date().toISOString().split("T")[0] ? "text-destructive font-medium" :
+                            p.next_follow_up_date === new Date().toISOString().split("T")[0] ? "text-primary font-medium" :
+                            "text-muted-foreground"
+                          )}>
+                            Follow-up: {formatDateOnly(p.next_follow_up_date, "MMM d")}
+                          </span>
+                        )}
                         {assignedName && (
                           <span className="text-xs text-muted-foreground">→ {assignedName}</span>
-                        )}
-                        {p.last_contact_date && (
-                          <span className="text-xs text-muted-foreground">Last: {formatDateOnly(p.last_contact_date, "MMM d")}</span>
                         )}
                       </div>
                     </div>
@@ -300,7 +345,16 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7"
-                        title="Delete"
+                        title={(p as any).is_archived ? "Restore" : "Remove from active list"}
+                        onClick={(e) => { e.stopPropagation(); archiveMut.mutate(p.id); }}
+                      >
+                        <span className="text-xs text-muted-foreground">{(p as any).is_archived ? "↩" : "✕"}</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Delete permanently"
                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
                       >
                         <Trash2 className="w-3.5 h-3.5 text-destructive" />
