@@ -1489,6 +1489,8 @@ export type Database = {
           date_shared: string | null
           email: string | null
           id: string
+          interest_level: number | null
+          is_archived: boolean | null
           last_contact_date: string | null
           name: string
           next_follow_up_date: string | null
@@ -1514,6 +1516,8 @@ export type Database = {
           date_shared?: string | null
           email?: string | null
           id?: string
+          interest_level?: number | null
+          is_archived?: boolean | null
           last_contact_date?: string | null
           name: string
           next_follow_up_date?: string | null
@@ -1539,6 +1543,8 @@ export type Database = {
           date_shared?: string | null
           email?: string | null
           id?: string
+          interest_level?: number | null
+          is_archived?: boolean | null
           last_contact_date?: string | null
           name?: string
           next_follow_up_date?: string | null
