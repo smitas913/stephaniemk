@@ -20,15 +20,7 @@ export interface FocusRawData {
   events: any[];
 }
 
-const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set([
-  "Call",
-  "Text",
-  "Email",
-  "In Person",
-  "Delivery",
-  "Reorder Conversation",
-  "Did Not Connect",
-]);
+const CUSTOMER_DAILY_ACTIVITY_TYPES = new Set(["Call", "Text", "Email", "In Person", "Delivery", "Reorder Conversation", "Did Not Connect"]);
 
 function getTimestampDateKey(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -39,13 +31,7 @@ function getTimestampDateKey(value: string | null | undefined): string | null {
 
 /** Returns true only if the item resolved to a real person/record */
 function isResolved(item: FocusDetailItem): boolean {
-  return (
-    !!item.name &&
-    item.name !== "Unknown" &&
-    item.name !== "Customer" &&
-    item.name !== "Prospect" &&
-    item.name !== "Consultant"
-  );
+  return !!item.name && item.name !== "Unknown" && item.name !== "Customer" && item.name !== "Prospect" && item.name !== "Consultant";
 }
 
 function resolveNoteIdentity(
@@ -95,10 +81,7 @@ function resolveNoteIdentity(
   return null;
 }
 
-export function computeMetricsForDate(
-  dateKey: string,
-  rawData: FocusRawData,
-): {
+export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   reachOuts: number;
   bookings: number;
   sharing: number;
@@ -121,12 +104,7 @@ export function computeMetricsForDate(
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
   // Notes that represent administrative/cleanup actions — never count as outreach or booking activity.
   const NON_OUTREACH_NOTE_TYPES = new Set([
-    "Skipped",
-    "No Follow-Up",
-    "No Follow-Up Needed",
-    "Cleared",
-    "DNC",
-    "Not Interested",
+    "Skipped", "No Follow-Up", "No Follow-Up Needed", "Cleared", "DNC", "Not Interested",
   ]);
   const isOutreachNote = (n: any) => {
     if (NON_OUTREACH_NOTE_TYPES.has(n.note_type)) return false;
@@ -134,8 +112,7 @@ export function computeMetricsForDate(
     if (n.is_follow_up === false && n.is_booking_attempt === false) return false;
     // Body-tag heuristics for DNC/no-follow-up notes that may slip through with contact note_types.
     const body = (n.note_body || "").toLowerCase();
-    if (body.includes("[not interested") || body.includes("[dnc]") || body.includes("no follow-up needed"))
-      return false;
+    if (body.includes("[not interested") || body.includes("[dnc]") || body.includes("no follow-up needed")) return false;
     return true;
   };
 
@@ -154,13 +131,7 @@ export function computeMetricsForDate(
     .map((n: any) => {
       const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
       if (!resolved) return null;
-      return {
-        id: resolved.id,
-        name: resolved.name,
-        type: resolved.type,
-        method: n.note_type,
-        detail: undefined,
-      } as FocusDetailItem;
+      return { id: resolved.id, name: resolved.name, type: resolved.type, method: n.note_type, detail: undefined } as FocusDetailItem;
     })
     .filter((item): item is FocusDetailItem => item !== null);
 
@@ -192,12 +163,13 @@ export function computeMetricsForDate(
     if (n.is_booking_attempt === true) leadIdsWithBookingAttemptToday.add(id);
   }
   const leadReachOutItems: FocusDetailItem[] = bookingLeads
-    .filter((l: any) => leadIdsWithOutreachToday.has(l.id) && !l.converted_customer_id && l.status !== "Not Interested")
+    .filter((l: any) =>
+      leadIdsWithOutreachToday.has(l.id) &&
+      !l.converted_customer_id &&
+      l.status !== "Not Interested",
+    )
     .map((l: any) => ({
-      id: l.id,
-      name: l.name,
-      type: "Lead",
-      method: "Call",
+      id: l.id, name: l.name, type: "Lead", method: "Call",
       detail: l.lead_activity || undefined,
     }));
 
@@ -214,10 +186,7 @@ export function computeMetricsForDate(
       name: resolved.name,
       type: "Consultant",
       method: (n as any).note_type || "Coaching",
-      detail:
-        (n as any).note_body?.replace(`[${resolved.name}] `, "").slice(0, 60) ||
-        consultants.find((c: any) => c.id === resolved.id)?.coaching_focus ||
-        undefined,
+      detail: (n as any).note_body?.replace(`[${resolved.name}] `, '').slice(0, 60) || consultants.find((c: any) => c.id === resolved.id)?.coaching_focus || undefined,
     });
   }
 
@@ -225,19 +194,14 @@ export function computeMetricsForDate(
   const seenIds = new Set<string>();
   const allReachOutItems: FocusDetailItem[] = [];
   for (const item of [...reachOutItems, ...customerNoteItems, ...leadReachOutItems]) {
-    if (!seenIds.has(item.id)) {
-      seenIds.add(item.id);
-      allReachOutItems.push(item);
-    }
+    if (!seenIds.has(item.id)) { seenIds.add(item.id); allReachOutItems.push(item); }
   }
 
   // ─── Bookings (events created on date) ───
   const bookingItems: FocusDetailItem[] = events
     .filter((e: any) => e.created_at.startsWith(dateKey))
     .map((e: any) => ({
-      id: e.event_id,
-      name: e.hostess_name || e.event_id,
-      type: "Event",
+      id: e.event_id, name: e.hostess_name || e.event_id, type: "Event",
       detail: e.event_type || undefined,
     }));
 
@@ -249,30 +213,26 @@ export function computeMetricsForDate(
       if (n.is_booking_attempt !== true) return false;
       // Exclude administrative/cleanup notes even if mistakenly flagged.
       if (!isOutreachNote(n)) return false;
+      // Exclude rebook sequence notes — those go to Booking Activity not attempts
+      if (n.note_body?.includes("Rebook attempt")) return false;
+      if (n.entity_type === "Hostess") return false;
       return true;
     })
     .map((n: any) => {
       const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
       if (!resolved) return null;
-      return {
-        id: resolved.id,
-        name: resolved.name,
-        type: resolved.type,
-        method: n.note_type,
-        detail: n.note_body?.slice(0, 60) || undefined,
-        isBookingAttempt: true,
-      } as FocusDetailItem;
+      return { id: resolved.id, name: resolved.name, type: resolved.type, method: n.note_type, detail: n.note_body?.slice(0, 60) || undefined, isBookingAttempt: true } as FocusDetailItem;
     })
     .filter((item): item is FocusDetailItem => item !== null);
 
   const leadBookingAttemptItems: FocusDetailItem[] = bookingLeads
-    .filter(
-      (l: any) => leadIdsWithBookingAttemptToday.has(l.id) && !l.converted_customer_id && l.status !== "Not Interested",
+    .filter((l: any) =>
+      leadIdsWithBookingAttemptToday.has(l.id) &&
+      !l.converted_customer_id &&
+      l.status !== "Not Interested",
     )
     .map((l: any) => ({
-      id: l.id,
-      name: l.name,
-      type: "Lead",
+      id: l.id, name: l.name, type: "Lead",
       method: l.lead_activity || "Call",
       detail: undefined,
       isBookingAttempt: true,
@@ -281,10 +241,7 @@ export function computeMetricsForDate(
   const seenAttemptIds = new Set<string>();
   const allBookingAttemptItems: FocusDetailItem[] = [];
   for (const item of [...bookingAttemptItems, ...leadBookingAttemptItems]) {
-    if (!seenAttemptIds.has(item.id)) {
-      seenAttemptIds.add(item.id);
-      allBookingAttemptItems.push(item);
-    }
+    if (!seenAttemptIds.has(item.id)) { seenAttemptIds.add(item.id); allBookingAttemptItems.push(item); }
   }
 
   // ─── Sharing items ───
@@ -295,9 +252,7 @@ export function computeMetricsForDate(
     ...events
       .filter((e: any) => e.event_date === dateKey && ((e as any).sharing_appointments_count || 0) > 0)
       .map((e: any) => ({
-        id: e.event_id,
-        name: e.hostess_name || e.event_id,
-        type: "Event" as const,
+        id: e.event_id, name: e.hostess_name || e.event_id, type: "Event" as const,
         detail: `${(e as any).sharing_appointments_count} sharing appt${((e as any).sharing_appointments_count || 0) > 1 ? "s" : ""}`,
       })),
   ];
@@ -307,10 +262,14 @@ export function computeMetricsForDate(
 
   // ─── Client/Lead Follow-Up details (customer + lead activities, deduplicated) ───
   const clientFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
-    (item) => item.type === "Customer" || item.type === "Lead",
+    (item) => item.type === "Customer" || item.type === "Lead"
   );
-  const customerFollowUpItems: FocusDetailItem[] = allReachOutItems.filter((item) => item.type === "Customer");
-  const leadFollowUpItems: FocusDetailItem[] = allReachOutItems.filter((item) => item.type === "Lead");
+  const customerFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Customer"
+  );
+  const leadFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
+    (item) => item.type === "Lead"
+  );
 
   // ─── Hostess/Event Coaching details ───
   // Shows upcoming event prep tasks due today or overdue
@@ -326,13 +285,10 @@ export function computeMetricsForDate(
     if ((n as any).entity_type !== "Hostess") continue;
     const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
     if (!resolved) continue;
-    if (!hostessCoachingItems.some((h) => h.id === resolved.id)) {
+    if (!hostessCoachingItems.some(h => h.id === resolved.id)) {
       hostessCoachingItems.push({
-        id: resolved.id,
-        name: resolved.name,
-        type: "Hostess",
-        method: (n as any).note_type,
-        detail: undefined,
+        id: resolved.id, name: resolved.name, type: "Hostess",
+        method: (n as any).note_type, detail: undefined,
       });
     }
   }
@@ -343,8 +299,10 @@ export function computeMetricsForDate(
     if (!e.hostess_name) continue;
     // Check if this event has tasks due today or overdue
     const evTasks = (e as any)._tasks || [];
-    const hasDueTask = evTasks.some((t: any) => !t.is_completed && t.due_date && t.due_date <= dateKey);
-    if (hasDueTask && !hostessCoachingItems.some((h) => h.id === e.id)) {
+    const hasDueTask = evTasks.some((t: any) =>
+      !t.is_completed && t.due_date && t.due_date <= dateKey
+    );
+    if (hasDueTask && !hostessCoachingItems.some(h => h.id === e.id)) {
       hostessCoachingItems.push({
         id: e.id,
         name: e.hostess_name,
@@ -363,25 +321,17 @@ export function computeMetricsForDate(
     if ((n as any).entity_type !== "Prospect") continue;
     const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
     if (!resolved) continue;
-    if (!recruitingFollowUpItems.some((r) => r.id === resolved.id)) {
+    if (!recruitingFollowUpItems.some(r => r.id === resolved.id)) {
       recruitingFollowUpItems.push({
-        id: resolved.id,
-        name: resolved.name,
-        type: "Prospect",
-        method: (n as any).note_type,
-        detail: undefined,
+        id: resolved.id, name: resolved.name, type: "Prospect",
+        method: (n as any).note_type, detail: undefined,
       });
     }
   }
   // Also include prospects with last_contact_date = dateKey
   for (const p of prospects) {
-    if ((p as any).last_contact_date === dateKey && !recruitingFollowUpItems.some((r) => r.id === p.id)) {
-      recruitingFollowUpItems.push({
-        id: p.id,
-        name: p.name,
-        type: "Prospect",
-        detail: (p as any).opportunity_status || undefined,
-      });
+    if ((p as any).last_contact_date === dateKey && !recruitingFollowUpItems.some(r => r.id === p.id)) {
+      recruitingFollowUpItems.push({ id: p.id, name: p.name, type: "Prospect", detail: (p as any).opportunity_status || undefined });
     }
   }
 
@@ -400,10 +350,7 @@ export function computeMetricsForDate(
   const relSeen = new Set<string>();
   const dedupedRelationship: FocusDetailItem[] = [];
   for (const item of relationshipItems) {
-    if (!relSeen.has(item.id)) {
-      relSeen.add(item.id);
-      dedupedRelationship.push(item);
-    }
+    if (!relSeen.has(item.id)) { relSeen.add(item.id); dedupedRelationship.push(item); }
   }
 
   const bookingAttemptsCount = allBookingAttemptItems.length;
@@ -444,7 +391,7 @@ export function computeMetricsForDate(
   return {
     reachOuts: allReachOutItems.length,
     bookings: bookingsCount,
-    sharing: sharingItems.filter((s) => s.type === "Prospect").length + sharingFromEvents,
+    sharing: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
     bookingAttempts: bookingAttemptsCount,
     bookingActivity: bookingActivityItems.length,
     bookingConversionRate: conversionRate,
