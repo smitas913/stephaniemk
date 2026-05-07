@@ -420,7 +420,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
 
     // For Facial/Party — navigate to create new event
     handleClose();
-    const fromPath = window.location.pathname;
+    const fromPath = window.location.pathname + window.location.search;
     const params = new URLSearchParams({
       type: t,
       hostess: item.name || "",
@@ -1453,7 +1453,6 @@ function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToPro
     </Sheet>
   );
 }
-
 
 function ReasonChip({ reason, selected, onClick }: { reason: string; selected: boolean; onClick: () => void }) {
   return (
