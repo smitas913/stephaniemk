@@ -732,7 +732,6 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </button>
                   ))}
                 </div>
-                </div>
                 <Button
                   variant="ghost"
                   className="w-full text-xs"
