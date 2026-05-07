@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
+import { fetchEvents, upsertEvent, generateEventWorkflowTasks, generateGuestEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import Layout from "@/components/Layout";
@@ -65,16 +65,24 @@ export default function NewEvent() {
   const [virtualNotes, setVirtualNotes] = useState("");
 
   // Prefill from query params (e.g. when navigated from "Booking Created" in interaction panel)
+  const [pendingGuestName, setPendingGuestName] = useState("");
+  const [pendingGuestPhone, setPendingGuestPhone] = useState("");
+
   useEffect(() => {
     const t = searchParams.get("type");
     const h = searchParams.get("hostess");
     const p = searchParams.get("phone");
-    if (t && ["Party", "Facial", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
+    if (t && ["Party", "Facial", "Guest Event", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
       setEventType(t);
     }
-    if (h) setHostessName(h);
-    if (p) setHostessPhone(p);
-    // run once on mount
+    if (t === "Guest Event") {
+      // For Guest Events, the "hostess" param is actually a guest — save for later
+      if (h) setPendingGuestName(h);
+      if (p) setPendingGuestPhone(p);
+    } else {
+      if (h) setHostessName(h);
+      if (p) setHostessPhone(p);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -133,12 +141,39 @@ export default function NewEvent() {
     },
     onSuccess: async (eventId) => {
       try {
-        await generateEventWorkflowTasks(eventId, eventDate || null);
+        if (eventType === "Guest Event") {
+          await generateGuestEventWorkflowTasks(eventId, eventDate || null);
+        } else {
+          await generateEventWorkflowTasks(eventId, eventDate || null);
+        }
       } catch (e) {
         console.error("Failed to generate workflow tasks", e);
       }
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+
+      // Auto-add pending guest for Guest Events booked from lead/booking flow
+      if (eventType === "Guest Event" && pendingGuestName) {
+        try {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const userId = (await supabase.auth.getUser()).data.user?.id;
+          const { data: newEvent } = await supabase
+            .from("events" as any).select("event_id").eq("id", eventId).single();
+          if (newEvent) {
+            await supabase.from("event_guests" as any).insert({
+              event_id: (newEvent as any).event_id,
+              name: pendingGuestName,
+              phone: pendingGuestPhone || null,
+              owner_user_id: userId,
+              attending: false,
+            } as any);
+            toast.success(`${pendingGuestName} added as guest to your new event! 🎉`);
+          }
+        } catch (e) {
+          console.error("Failed to add pending guest", e);
+        }
+      }
+
       toast.success("Event created");
       navigate(fromPath, { state: { eventCreated: true } });
     },
