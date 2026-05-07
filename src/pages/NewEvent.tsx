@@ -171,7 +171,11 @@ export default function NewEvent() {
       }
 
       toast.success("Event created");
-      navigate(fromPath, { state: { eventCreated: true } });
+      if (eventType === 'Guest Event' && pendingGuestName) {
+        navigate(`/events/${eventId}?tab=guests`);
+      } else {
+        navigate(fromPath, { state: { eventCreated: true } });
+      }
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to create event");
