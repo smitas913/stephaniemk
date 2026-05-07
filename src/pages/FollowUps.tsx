@@ -920,7 +920,7 @@ export default function FollowUps() {
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
         const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
         // Build a clear display name: "Hostess Name — Task (Event Type M/D)"
-        const hostessName = matchedEvent?.hostess_name || "Hostess";
+        const hostessName = matchedEvent?.event_type === "Guest Event" ? (matchedEvent?.hostess_name || "Guest Event") : (matchedEvent?.hostess_name || "Hostess");
         const eventDateFormatted = matchedEvent?.event_date
           ? (() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ""; })()
           : "";
