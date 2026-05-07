@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -14,8 +15,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
-import { formatDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
+import { supabase } from "@/integrations/supabase/client";
 import TextActionButton from "@/components/TextActionButton";
 import { INTENT_CATEGORIES, REASONS_BY_CATEGORY, resolveIntentCategory, type IntentCategory } from "@/lib/intentCategory";
 import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
@@ -239,7 +241,9 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [source, setSource] = useState<string | null>(null);
-  const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Career Chat" | null>(null);
+  const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Guest Event" | "Career Chat" | null>(null);
+  const [showEventPicker, setShowEventPicker] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [mailedSample, setMailedSample] = useState(false);
 
   const reset = useCallback(() => {
@@ -371,37 +375,59 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
 
   // Booked + event type chosen → log activity, then navigate to Create Event
   // (Career Chat is a conversation, not an event — log only).
-  const handleBookedTypeConfirm = useCallback((t: "Facial" | "Party" | "Career Chat") => {
+  const handleBookedTypeConfirm = useCallback(async (t: "Facial" | "Party" | "Guest Event" | "Career Chat") => {
     setBookedEventType(t);
-    setTimeout(() => {
-      const category: IntentCategory = "Booking";
-      const parts: string[] = [];
-      if (activity) parts.push(`[${activity}]`);
-      if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
-      parts.push("[Booked]");
-      parts.push(`[Booking Created: ${t}]`);
-      if (noteText.trim()) parts.push(noteText.trim());
-      onLogAction({
-        item,
-        actionType: action || "Call",
-        note: parts.join(" "),
-        isBookingAttempt: true,
-        isFollowUp: false,
-        // No next follow-up — the event itself becomes the next touchpoint.
-        nextFollowUpDate: null,
-        followUpReason: null,
-        category,
-      });
+    const category: IntentCategory = "Booking";
+    const parts: string[] = [];
+    if (activity) parts.push(`[${activity}]`);
+    if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
+    parts.push("[Booked]");
+    parts.push(`[Booking Created: ${t}]`);
+    if (noteText.trim()) parts.push(noteText.trim());
+    onLogAction({
+      item,
+      actionType: action || "Call",
+      note: parts.join(" "),
+      isBookingAttempt: true,
+      isFollowUp: false,
+      nextFollowUpDate: null,
+      followUpReason: null,
+      category,
+    });
+
+    if (t === "Career Chat") {
       handleClose();
-      if (t !== "Career Chat") {
-        const params = new URLSearchParams({
-          type: t,
-          hostess: item.name || "",
-          ...(item.phone ? { phone: item.phone } : {}),
-        });
-        navigate(`/events/new?${params.toString()}`);
-      }
-    }, 0);
+      return;
+    }
+
+    // For Guest Event — show upcoming events picker
+    if (t === "Guest Event") {
+      try {
+        const today = toLocalDateKey();
+        const { data } = await supabase
+          .from("events" as any)
+          .select("id, event_id, hostess_name, event_type, event_date, event_status")
+          .eq("event_type", "Guest Event")
+          .eq("event_status", "Booked")
+          .gte("event_date", today)
+          .order("event_date", { ascending: true })
+          .limit(10);
+        setUpcomingEvents(data || []);
+      } catch {}
+      setShowEventPicker(true);
+      return;
+    }
+
+    // For Facial/Party — navigate to create new event
+    handleClose();
+    const fromPath = window.location.pathname;
+    const params = new URLSearchParams({
+      type: t,
+      hostess: item.name || "",
+      ...(item.phone ? { phone: item.phone } : {}),
+      from: fromPath,
+    });
+    navigate(`/events/new?${params.toString()}`);
   }, [activity, action, source, noteText, item, onLogAction, handleClose, navigate]);
 
 
@@ -687,7 +713,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                   We'll log this booking and open Create Event with {item.name} pre-filled.
                 </p>
                 <div className="grid grid-cols-1 gap-2">
-                  {(["Facial", "Party", "Career Chat"] as const).map((t) => (
+                  {(["Facial", "Party", "Guest Event", "Career Chat"] as const).map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -701,10 +727,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     >
                       <span className="font-semibold text-foreground">{t}</span>
                       <span className="text-[10px] text-muted-foreground">
-                        {t === "Career Chat" ? "Logged only" : "Opens Create Event"}
+                        {t === "Career Chat" ? "Logged only" : t === "Guest Event" ? "Pick upcoming event" : "Opens Create Event"}
                       </span>
                     </button>
                   ))}
+                </div>
                 </div>
                 <Button
                   variant="ghost"
@@ -1378,6 +1405,51 @@ function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToPro
         </ScrollArea>
       </SheetContent>
     </Sheet>
+
+    {/* Guest Event Picker Dialog */}
+    <Dialog open={showEventPicker} onOpenChange={(o) => { if (!o) { setShowEventPicker(false); handleClose(); }}}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-base">Which event is {item.name} coming to?</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {upcomingEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No upcoming Guest Events found. Create one first from the Events page.</p>
+          ) : (
+            upcomingEvents.map((e: any) => (
+              <button key={e.id}
+                className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+                onClick={async () => {
+                  try {
+                    const userId = (await supabase.auth.getUser()).data.user?.id;
+                    await supabase.from("event_guests" as any).insert({
+                      event_id: e.event_id,
+                      name: item.name,
+                      phone: item.phone || null,
+                      owner_user_id: userId,
+                      attending: true,
+                    } as any);
+                    const newCount = (e.guest_count || 0) + 1;
+                    await supabase.from("events" as any).update({ guest_count: newCount } as any).eq("event_id", e.event_id);
+                  } catch {}
+                  setShowEventPicker(false);
+                  handleClose();
+                }}>
+                <p className="text-sm font-medium text-foreground">{e.hostess_name || e.event_id}</p>
+                <p className="text-xs text-muted-foreground">{e.event_type} · {formatDateOnly(e.event_date, "MMM d, yyyy")}</p>
+              </button>
+            ))
+          )}
+        </div>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => {
+          setShowEventPicker(false);
+          handleClose();
+          navigate(`/events/new?type=Guest Event&hostess=${encodeURIComponent(item.name || "")}&from=${encodeURIComponent(window.location.pathname)}`);
+        }}>
+          + Create a new Guest Event instead
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }
 
