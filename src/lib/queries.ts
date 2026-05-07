@@ -1423,6 +1423,17 @@ export const generateGuestEventWorkflowTasks = async (eventId: string, eventDate
   const { error } = await supabase.from("event_tasks" as any).insert(tasks as any);
   if (error) throw error;
 };
+/** Create a todo item for today's MIT list */
+export const createTodoForToday = async (text: string) => {
+  const userId = await getCurrentUserId();
+  if (!userId) return;
+  const today = toLocalDateKeyImport(new Date());
+  const { error } = await supabase
+    .from("todos" as any)
+    .insert({ user_id: userId, text, done: false, todo_date: today } as any);
+  if (error) console.error("Failed to create todo:", error);
+};
+
 export const generateGuestInviteTask = async (eventId: string) => {
   const userId = await getCurrentUserId();
   const ooo = await fetchScheduleSettings();
