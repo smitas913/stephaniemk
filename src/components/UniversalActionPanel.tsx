@@ -1451,7 +1451,6 @@ function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToPro
         </ScrollArea>
       </SheetContent>
     </Sheet>
-    </>
   );
 }
 
