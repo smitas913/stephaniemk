@@ -1,29 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import type {
-  Customer,
-  Order,
-  OrderWithCustomer,
-  EventRecord,
-  EventGuest,
-  CustomerNote,
-  Prospect,
-  ProspectNote,
-  Expense,
-  Income,
-  Note,
-  BookingLead,
-  TeamConsultant,
-  LeadershipMember,
-  PaymentStatus,
-} from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
-import {
-  nextAvailableWeekday,
-  nextAvailableDay,
-  spreadTasks,
-  buildWorkdayFlags,
-  type OOOPeriod,
-} from "./smartSchedule";
+import { nextAvailableWeekday, nextAvailableDay, spreadTasks, buildWorkdayFlags, type OOOPeriod } from "./smartSchedule";
 import { normalizePhoneForStorage, stripPhone, normalizeEmail } from "./phoneUtils";
 
 // Helper to get current user id for ownership
@@ -45,12 +23,7 @@ function withNormalizedPhone<T extends Record<string, any>>(payload: T): T {
  * Search customers + consultants for an existing record with a matching
  * normalized phone or email. Returns the first match, or null.
  */
-export async function findDuplicatePerson(opts: {
-  phone?: string | null;
-  email?: string | null;
-  excludeCustomerId?: string;
-  excludeConsultantId?: string;
-}): Promise<
+export async function findDuplicatePerson(opts: { phone?: string | null; email?: string | null; excludeCustomerId?: string; excludeConsultantId?: string }): Promise<
   | { kind: "customer"; id: string; name: string; phone: string | null; email: string | null }
   | { kind: "consultant"; id: string; name: string; phone: string | null; email: string | null }
   | null
@@ -66,22 +39,10 @@ export async function findDuplicatePerson(opts: {
     const cp = stripPhone((c as any).phone);
     const ce = normalizeEmail((c as any).email);
     if (phoneDigits && cp && phoneDigits.length >= 7 && cp === phoneDigits) {
-      return {
-        kind: "customer",
-        id: c.id,
-        name: (c as any).full_name,
-        phone: (c as any).phone,
-        email: (c as any).email,
-      };
+      return { kind: "customer", id: c.id, name: (c as any).full_name, phone: (c as any).phone, email: (c as any).email };
     }
     if (emailNorm && ce && ce === emailNorm) {
-      return {
-        kind: "customer",
-        id: c.id,
-        name: (c as any).full_name,
-        phone: (c as any).phone,
-        email: (c as any).email,
-      };
+      return { kind: "customer", id: c.id, name: (c as any).full_name, phone: (c as any).phone, email: (c as any).email };
     }
   }
 
@@ -241,7 +202,11 @@ export const fetchCustomerOrders = async (customerId: string): Promise<Order[]> 
 };
 
 export const fetchOrder = async (id: string) => {
-  const { data, error } = await supabase.from("orders").select("*, customers(full_name)").eq("id", id).single();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, customers(full_name)")
+    .eq("id", id)
+    .single();
   if (error) throw error;
   return data as unknown as OrderWithCustomer;
 };
@@ -273,22 +238,13 @@ export const createOrder = async (order: {
   is_myshop_order?: boolean;
 }) => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("orders")
-    .insert({ ...order, owner_user_id: userId } as any)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("orders").insert({ ...order, owner_user_id: userId } as any).select().single();
   if (error) throw error;
   return data;
 };
 
 export const updateOrder = async (id: string, updates: Record<string, unknown>) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .update(updates as any)
-    .eq("id", id)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("orders").update(updates as any).eq("id", id).select().single();
   if (error) throw error;
   return data;
 };
@@ -372,7 +328,10 @@ export const deleteEvent = async (eventId: string) => {
   if (oErr2) throw oErr2;
 
   // Delete event guests (they belong to the event)
-  const { error: gErr } = await supabase.from("event_guests").delete().eq("event_id", eventId);
+  const { error: gErr } = await supabase
+    .from("event_guests")
+    .delete()
+    .eq("event_id", eventId);
   if (gErr) throw gErr;
 
   // Delete event workflow tasks
@@ -383,7 +342,10 @@ export const deleteEvent = async (eventId: string) => {
   if (tErr) throw tErr;
 
   // Delete the event itself
-  const { error } = await supabase.from("events").delete().eq("event_id", eventId);
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("event_id", eventId);
   if (error) throw error;
 };
 
@@ -399,17 +361,15 @@ export const fetchEventGuests = async (eventId: string): Promise<EventGuest[]> =
 };
 
 export const fetchAllEventGuests = async (): Promise<EventGuest[]> => {
-  const { data, error } = await supabase.from("event_guests").select("*").order("created_at", { ascending: true });
+  const { data, error } = await supabase
+    .from("event_guests")
+    .select("*")
+    .order("created_at", { ascending: true });
   if (error) throw error;
   return data as unknown as EventGuest[];
 };
 
-export const createEventGuest = async (guest: {
-  event_id: string;
-  name: string;
-  phone?: string | null;
-  notes?: string | null;
-}) => {
+export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; notes?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("event_guests")
@@ -458,10 +418,7 @@ export const convertHostessToCustomer = async (event: EventRecord) => {
       .maybeSingle();
     if (existing) {
       // Already exists — just link and return
-      await supabase
-        .from("events")
-        .update({ hostess_converted_customer_id: existing.id } as any)
-        .eq("event_id", event.event_id);
+      await supabase.from("events").update({ hostess_converted_customer_id: existing.id } as any).eq("event_id", event.event_id);
       return existing;
     }
   }
@@ -479,10 +436,7 @@ export const convertHostessToCustomer = async (event: EventRecord) => {
     .single();
   if (cErr) throw cErr;
   // Store link back on event so button shows converted state
-  await supabase
-    .from("events")
-    .update({ hostess_converted_customer_id: customer.id } as any)
-    .eq("event_id", event.event_id);
+  await supabase.from("events").update({ hostess_converted_customer_id: customer.id } as any).eq("event_id", event.event_id);
   return customer;
 };
 
@@ -507,7 +461,10 @@ export const fetchCustomerNotes = async (customerId: string): Promise<CustomerNo
 };
 
 export const fetchLatestNotes = async (): Promise<CustomerNote[]> => {
-  const { data, error } = await supabase.from("customer_notes").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("customer_notes")
+    .select("*")
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as CustomerNote[];
 };
@@ -525,7 +482,11 @@ export const createCustomerNote = async (note: { customer_id: string; note_text:
 
 export const deleteCustomerNote = async (id: string) => {
   // Look up customer_id first so we can rebuild parent state after deletion.
-  const { data: row } = await supabase.from("customer_notes").select("customer_id").eq("id", id).maybeSingle();
+  const { data: row } = await supabase
+    .from("customer_notes")
+    .select("customer_id")
+    .eq("id", id)
+    .maybeSingle();
   const { error } = await supabase.from("customer_notes").delete().eq("id", id);
   if (error) throw error;
   const customerId = (row as any)?.customer_id;
@@ -539,13 +500,20 @@ export const deleteCustomerNote = async (id: string) => {
 // Prospects
 
 export const fetchProspects = async (): Promise<Prospect[]> => {
-  const { data, error } = await supabase.from("prospects").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("*")
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as Prospect[];
 };
 
 export const fetchProspect = async (id: string): Promise<Prospect> => {
-  const { data, error } = await supabase.from("prospects").select("*").eq("id", id).single();
+  const { data, error } = await supabase
+    .from("prospects")
+    .select("*")
+    .eq("id", id)
+    .single();
   if (error) throw error;
   return data as unknown as Prospect;
 };
@@ -585,7 +553,9 @@ export const fetchProspectNotes = async (prospectId: string): Promise<ProspectNo
 
 export const createProspectNote = async (note: { prospect_id: string; note_text: string }) => {
   const userId = await getCurrentUserId();
-  const { error } = await supabase.from("prospect_notes").insert({ ...note, owner_user_id: userId } as any);
+  const { error } = await supabase
+    .from("prospect_notes")
+    .insert({ ...note, owner_user_id: userId } as any);
   if (error) throw error;
 };
 
@@ -597,22 +567,19 @@ export const deleteProspectNote = async (id: string) => {
 // Expenses
 
 export const fetchExpenses = async (): Promise<Expense[]> => {
-  const { data, error } = await supabase.from("expenses").select("*").order("expense_date", { ascending: false });
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("*")
+    .order("expense_date", { ascending: false });
   if (error) throw error;
   return data as unknown as Expense[];
 };
 
-export const createExpense = async (expense: {
-  expense_date: string;
-  amount: number;
-  category: string;
-  notes?: string | null;
-  receipt_url?: string | null;
-  event_type?: string | null;
-  event_year?: number | null;
-}) => {
+export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null; event_type?: string | null; event_year?: number | null }) => {
   const userId = await getCurrentUserId();
-  const { error } = await supabase.from("expenses").insert({ ...expense, owner_user_id: userId } as any);
+  const { error } = await supabase
+    .from("expenses")
+    .insert({ ...expense, owner_user_id: userId } as any);
   if (error) throw error;
 };
 
@@ -638,20 +605,19 @@ export const deleteExpense = async (id: string) => {
 // Income (commissions, bonuses, etc.)
 
 export const fetchIncome = async (): Promise<Income[]> => {
-  const { data, error } = await supabase.from("income").select("*").order("income_date", { ascending: false });
+  const { data, error } = await supabase
+    .from("income")
+    .select("*")
+    .order("income_date", { ascending: false });
   if (error) throw error;
   return data as unknown as Income[];
 };
 
-export const createIncome = async (income: {
-  income_date: string;
-  amount: number;
-  category: string;
-  source?: string | null;
-  notes?: string | null;
-}) => {
+export const createIncome = async (income: { income_date: string; amount: number; category: string; source?: string | null; notes?: string | null }) => {
   const userId = await getCurrentUserId();
-  const { error } = await supabase.from("income").insert({ ...income, owner_user_id: userId } as any);
+  const { error } = await supabase
+    .from("income")
+    .insert({ ...income, owner_user_id: userId } as any);
   if (error) throw error;
 };
 
@@ -683,7 +649,9 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
       .eq("customer_id", entityId)
       .order("created_at", { ascending: false });
     if (legacyErr) throw legacyErr;
-    const seen = new Set(unified.map((n) => `${(n.note_body || "").trim()}|${(n.note_date || "").slice(0, 10)}`));
+    const seen = new Set(
+      unified.map((n) => `${(n.note_body || "").trim()}|${(n.note_date || "").slice(0, 10)}`)
+    );
     const legacyMapped: Note[] = ((legacy || []) as any[])
       .filter((l) => {
         const key = `${(l.note_text || "").trim()}|${(l.created_at || "").slice(0, 10)}`;
@@ -716,7 +684,10 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
 };
 
 export const fetchAllLatestNotes = async (): Promise<Note[]> => {
-  const { data, error } = await supabase.from("notes").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("notes")
+    .select("*")
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as Note[];
 };
@@ -745,13 +716,50 @@ export const createNote = async (note: {
     .single();
   if (error) throw error;
 
+  // ── Conversation follow-up push ──
+  // Call/Text = real two-way conversation → push 60 days
+  // Card/Gift/Thoughtful Touch/Catalog = one-way, don't move the follow-up window
+  const CONVERSATION_PUSH: Record<string, number> = {
+    "Call": 60,
+    "Text": 60,
+  };
+  const customerId = note.customer_id || (note.entity_type === "Customer" ? note.person_id : null);
+  const pushDays = note.note_type ? CONVERSATION_PUSH[note.note_type] : undefined;
+  if (
+    customerId &&
+    note.entity_type === "Customer" &&
+    pushDays !== undefined &&
+    !note.next_follow_up_date
+  ) {
+    const { format, addDays } = await import("date-fns");
+    const todayKey = format(new Date(), "yyyy-MM-dd");
+    const proposed = format(addDays(new Date(), pushDays), "yyyy-MM-dd");
+
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("next_follow_up_date")
+      .eq("id", customerId)
+      .maybeSingle();
+
+    const existing = (cust as any)?.next_follow_up_date as string | null;
+    if (!existing || existing <= todayKey || existing < proposed) {
+      await supabase
+        .from("customers")
+        .update({
+          next_follow_up_date: proposed,
+          follow_up_reason: "Customer Care",
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", customerId);
+    }
+  }
+
   // Auto-progress booking lead status based on logged activity.
   if (note.entity_type === "Lead" && note.person_id) {
     const { autoProgressLeadFromNote } = await import("./leadAutoStatus");
-    // tags array contains a category tag like "Booking" or "Follow-Up"
-    const category =
-      (note.tags || []).find((t) => ["Booking", "Coaching", "Recruiting", "Team Building", "Follow-Up"].includes(t)) ||
-      null;
+    const category = (note.tags || []).find((t) =>
+      ["Booking", "Coaching", "Recruiting", "Team Building", "Follow-Up"].includes(t)
+    ) || null;
     await autoProgressLeadFromNote({
       leadId: note.person_id,
       actionType: note.note_type || null,
@@ -779,104 +787,20 @@ export interface MomentumGoal {
 export const DEFAULT_MOMENTUM_GOALS: Omit<MomentumGoal, "id" | "user_id">[] = [
   // Weekly
   { metric_key: "faces", metric_label: "Faces", period: "weekly", goal_value: 10, is_visible: true, sort_order: 1 },
-  {
-    metric_key: "career_chats",
-    metric_label: "Career Chats",
-    period: "weekly",
-    goal_value: 5,
-    is_visible: true,
-    sort_order: 2,
-  },
-  {
-    metric_key: "booking_conversations",
-    metric_label: "Booking Conversations",
-    period: "weekly",
-    goal_value: 5,
-    is_visible: true,
-    sort_order: 3,
-  },
-  {
-    metric_key: "appointments_held",
-    metric_label: "Appointments Held",
-    period: "weekly",
-    goal_value: 3,
-    is_visible: true,
-    sort_order: 4,
-  },
-  {
-    metric_key: "new_bookings",
-    metric_label: "New Bookings",
-    period: "weekly",
-    goal_value: 2,
-    is_visible: true,
-    sort_order: 5,
-  },
-  {
-    metric_key: "follow_ups",
-    metric_label: "Follow-ups Completed",
-    period: "weekly",
-    goal_value: 15,
-    is_visible: true,
-    sort_order: 6,
-  },
+  { metric_key: "career_chats", metric_label: "Career Chats", period: "weekly", goal_value: 5, is_visible: true, sort_order: 2 },
+  { metric_key: "booking_conversations", metric_label: "Booking Conversations", period: "weekly", goal_value: 5, is_visible: true, sort_order: 3 },
+  { metric_key: "appointments_held", metric_label: "Appointments Held", period: "weekly", goal_value: 3, is_visible: true, sort_order: 4 },
+  { metric_key: "new_bookings", metric_label: "New Bookings", period: "weekly", goal_value: 2, is_visible: true, sort_order: 5 },
+  { metric_key: "follow_ups", metric_label: "Follow-ups Completed", period: "weekly", goal_value: 15, is_visible: true, sort_order: 6 },
   // Monthly
   { metric_key: "faces", metric_label: "Faces", period: "monthly", goal_value: 40, is_visible: true, sort_order: 1 },
-  {
-    metric_key: "career_chats",
-    metric_label: "Career Chats",
-    period: "monthly",
-    goal_value: 20,
-    is_visible: true,
-    sort_order: 2,
-  },
-  {
-    metric_key: "booking_conversations",
-    metric_label: "Booking Conversations",
-    period: "monthly",
-    goal_value: 20,
-    is_visible: true,
-    sort_order: 3,
-  },
-  {
-    metric_key: "appointments_held",
-    metric_label: "Appointments Held",
-    period: "monthly",
-    goal_value: 12,
-    is_visible: true,
-    sort_order: 4,
-  },
-  {
-    metric_key: "new_bookings",
-    metric_label: "New Bookings",
-    period: "monthly",
-    goal_value: 8,
-    is_visible: true,
-    sort_order: 5,
-  },
-  {
-    metric_key: "follow_ups",
-    metric_label: "Follow-ups Completed",
-    period: "monthly",
-    goal_value: 60,
-    is_visible: true,
-    sort_order: 6,
-  },
-  {
-    metric_key: "new_customers",
-    metric_label: "New Customers",
-    period: "monthly",
-    goal_value: 5,
-    is_visible: true,
-    sort_order: 7,
-  },
-  {
-    metric_key: "new_team_members",
-    metric_label: "New Personal Team Members",
-    period: "monthly",
-    goal_value: 1,
-    is_visible: true,
-    sort_order: 8,
-  },
+  { metric_key: "career_chats", metric_label: "Career Chats", period: "monthly", goal_value: 20, is_visible: true, sort_order: 2 },
+  { metric_key: "booking_conversations", metric_label: "Booking Conversations", period: "monthly", goal_value: 20, is_visible: true, sort_order: 3 },
+  { metric_key: "appointments_held", metric_label: "Appointments Held", period: "monthly", goal_value: 12, is_visible: true, sort_order: 4 },
+  { metric_key: "new_bookings", metric_label: "New Bookings", period: "monthly", goal_value: 8, is_visible: true, sort_order: 5 },
+  { metric_key: "follow_ups", metric_label: "Follow-ups Completed", period: "monthly", goal_value: 60, is_visible: true, sort_order: 6 },
+  { metric_key: "new_customers", metric_label: "New Customers", period: "monthly", goal_value: 5, is_visible: true, sort_order: 7 },
+  { metric_key: "new_team_members", metric_label: "New Personal Team Members", period: "monthly", goal_value: 1, is_visible: true, sort_order: 8 },
 ];
 
 export const fetchMomentumGoals = async (): Promise<MomentumGoal[]> => {
@@ -908,14 +832,8 @@ export const fetchMomentumGoals = async (): Promise<MomentumGoal[]> => {
   return existing;
 };
 
-export const updateMomentumGoal = async (
-  id: string,
-  updates: Partial<Pick<MomentumGoal, "goal_value" | "is_visible">>,
-) => {
-  const { error } = await supabase
-    .from("momentum_goals")
-    .update(updates as any)
-    .eq("id", id);
+export const updateMomentumGoal = async (id: string, updates: Partial<Pick<MomentumGoal, "goal_value" | "is_visible">>) => {
+  const { error } = await supabase.from("momentum_goals").update(updates as any).eq("id", id);
   if (error) throw error;
 };
 
@@ -936,74 +854,14 @@ export interface BusinessGoal {
 
 export const DEFAULT_BUSINESS_GOALS: Omit<BusinessGoal, "id" | "user_id">[] = [
   // Goal values seed at 0 — no hidden defaults. Users set their own targets in Business Goals.
-  {
-    metric_key: "production",
-    metric_label: "Production",
-    period: "weekly",
-    goal_value: 0,
-    manual_actual: null,
-    auto_track_key: null,
-    unit: "currency",
-    is_visible: true,
-    sort_order: 1,
-  },
-  {
-    metric_key: "unit_size",
-    metric_label: "Unit Size",
-    period: "weekly",
-    goal_value: 0,
-    manual_actual: null,
-    auto_track_key: "consultant_count",
-    unit: "count",
-    is_visible: true,
-    sort_order: 2,
-  },
-  {
-    metric_key: "production",
-    metric_label: "Production",
-    period: "monthly",
-    goal_value: 0,
-    manual_actual: null,
-    auto_track_key: null,
-    unit: "currency",
-    is_visible: true,
-    sort_order: 1,
-  },
-  {
-    metric_key: "unit_size",
-    metric_label: "Unit Size",
-    period: "monthly",
-    goal_value: 0,
-    manual_actual: null,
-    auto_track_key: "consultant_count",
-    unit: "count",
-    is_visible: true,
-    sort_order: 2,
-  },
+  { metric_key: "production", metric_label: "Production", period: "weekly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
+  { metric_key: "unit_size", metric_label: "Unit Size", period: "weekly", goal_value: 0, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
+  { metric_key: "production", metric_label: "Production", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 1 },
+  { metric_key: "unit_size", metric_label: "Unit Size", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: "consultant_count", unit: "count", is_visible: true, sort_order: 2 },
   // Sales Goals (monthly): baseline = "production" above (kept for back-compat).
   // Stretch + optional Profit goal added so directors can track upside + profit.
-  {
-    metric_key: "sales_stretch",
-    metric_label: "Monthly Stretch Sales",
-    period: "monthly",
-    goal_value: 0,
-    manual_actual: null,
-    auto_track_key: null,
-    unit: "currency",
-    is_visible: true,
-    sort_order: 3,
-  },
-  {
-    metric_key: "profit_goal",
-    metric_label: "Monthly Profit Goal (optional)",
-    period: "monthly",
-    goal_value: 0,
-    manual_actual: null,
-    auto_track_key: null,
-    unit: "currency",
-    is_visible: true,
-    sort_order: 4,
-  },
+  { metric_key: "sales_stretch", metric_label: "Monthly Stretch Sales", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 3 },
+  { metric_key: "profit_goal", metric_label: "Monthly Profit Goal (optional)", period: "monthly", goal_value: 0, manual_actual: null, auto_track_key: null, unit: "currency", is_visible: true, sort_order: 4 },
 ];
 
 export const fetchBusinessGoals = async (): Promise<BusinessGoal[]> => {
@@ -1033,14 +891,8 @@ export const fetchBusinessGoals = async (): Promise<BusinessGoal[]> => {
   return existing;
 };
 
-export const updateBusinessGoal = async (
-  id: string,
-  updates: Partial<Pick<BusinessGoal, "goal_value" | "manual_actual" | "is_visible">>,
-) => {
-  const { error } = await supabase
-    .from("business_goals" as any)
-    .update(updates as any)
-    .eq("id", id);
+export const updateBusinessGoal = async (id: string, updates: Partial<Pick<BusinessGoal, "goal_value" | "manual_actual" | "is_visible">>) => {
+  const { error } = await supabase.from("business_goals" as any).update(updates as any).eq("id", id);
   if (error) throw error;
 };
 
@@ -1054,7 +906,11 @@ export const updateBusinessGoal = async (
  */
 export const deleteNote = async (id: string) => {
   // 1. Fetch the note we're about to delete so we can roll back its effects.
-  const { data: noteRow } = await supabase.from("notes").select("*").eq("id", id).maybeSingle();
+  const { data: noteRow } = await supabase
+    .from("notes")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
   const note = noteRow as any;
 
   // 2. Cascade-remove any legacy customer_notes mirror so the row doesn't
@@ -1068,7 +924,10 @@ export const deleteNote = async (id: string) => {
         .select("id, note_text, created_at")
         .eq("customer_id", note.customer_id);
       for (const m of (mirrors as any[]) || []) {
-        if ((m.note_text || "").trim() === body && (m.created_at || "").slice(0, 10) === dateKey) {
+        if (
+          (m.note_text || "").trim() === body &&
+          (m.created_at || "").slice(0, 10) === dateKey
+        ) {
           await supabase.from("customer_notes").delete().eq("id", m.id);
         }
       }
@@ -1201,28 +1060,24 @@ async function rollbackLeadStatusFromNotes(leadId: string) {
   updates.next_follow_up_date = futureFollowUps[0] || null;
 
   if (Object.keys(updates).length > 0) {
-    await supabase
-      .from("booking_leads" as any)
-      .update(updates as any)
-      .eq("id", leadId);
+    await supabase.from("booking_leads" as any).update(updates as any).eq("id", leadId);
   }
 }
 
 export const updateNote = async (
   id: string,
-  updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null },
+  updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null }
 ) => {
-  const { error } = await supabase
-    .from("notes")
-    .update(updates as any)
-    .eq("id", id);
+  const { error } = await supabase.from("notes").update(updates as any).eq("id", id);
   if (error) throw error;
 };
 
 // Follow-up queue view
 
 export const fetchFollowUpQueue = async () => {
-  const { data, error } = await supabase.from("follow_up_queue" as any).select("*");
+  const { data, error } = await supabase
+    .from("follow_up_queue" as any)
+    .select("*");
   if (error) throw error;
   return data;
 };
@@ -1230,7 +1085,9 @@ export const fetchFollowUpQueue = async () => {
 // Order financials view
 
 export const fetchOrderFinancials = async () => {
-  const { data, error } = await supabase.from("order_financials" as any).select("*");
+  const { data, error } = await supabase
+    .from("order_financials" as any)
+    .select("*");
   if (error) throw error;
   return data;
 };
@@ -1238,7 +1095,9 @@ export const fetchOrderFinancials = async () => {
 // Customer summary view
 
 export const fetchCustomerSummary = async () => {
-  const { data, error } = await supabase.from("customer_summary" as any).select("*");
+  const { data, error } = await supabase
+    .from("customer_summary" as any)
+    .select("*");
   if (error) throw error;
   return data;
 };
@@ -1324,15 +1183,17 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const eventType = "Party";
   const eventId = generateEventId(eventType, dateStr, lead.name, existingEventIds);
-  const { error: evErr } = await supabase.from("events").insert({
-    event_id: eventId,
-    event_type: eventType,
-    event_date: null, // date TBD, user sets on event page
-    hostess_name: lead.name,
-    guest_count: 0,
-    owner_user_id: userId,
-    notes: lead.notes ? `Converted from booking lead. ${lead.notes}` : "Converted from booking lead.",
-  } as any);
+  const { error: evErr } = await supabase
+    .from("events")
+    .insert({
+      event_id: eventId,
+      event_type: eventType,
+      event_date: null, // date TBD, user sets on event page
+      hostess_name: lead.name,
+      guest_count: 0,
+      owner_user_id: userId,
+      notes: lead.notes ? `Converted from booking lead. ${lead.notes}` : "Converted from booking lead.",
+    } as any);
   if (evErr) throw evErr;
 
   // Generate workflow tasks for the new event
@@ -1352,24 +1213,15 @@ export const fetchTeamConsultants = async (): Promise<TeamConsultant[]> => {
   return data as unknown as TeamConsultant[];
 };
 
-export const createTeamConsultant = async (
-  consultant: Partial<TeamConsultant> & { name: string },
-): Promise<TeamConsultant> => {
+export const createTeamConsultant = async (consultant: Partial<TeamConsultant> & { name: string }): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("team_consultants")
-    .insert(withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("team_consultants").insert(withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any).select().single();
   if (error) throw error;
   return data as unknown as TeamConsultant;
 };
 
 export const updateTeamConsultant = async (id: string, updates: Partial<TeamConsultant>): Promise<void> => {
-  const { error } = await supabase
-    .from("team_consultants")
-    .update(withNormalizedPhone(updates) as any)
-    .eq("id", id);
+  const { error } = await supabase.from("team_consultants").update(withNormalizedPhone(updates) as any).eq("id", id);
   if (error) throw error;
 };
 
@@ -1385,24 +1237,15 @@ export const fetchLeadershipMembers = async (): Promise<LeadershipMember[]> => {
   return data as unknown as LeadershipMember[];
 };
 
-export const createLeadershipMember = async (
-  member: Partial<LeadershipMember> & { name: string },
-): Promise<LeadershipMember> => {
+export const createLeadershipMember = async (member: Partial<LeadershipMember> & { name: string }): Promise<LeadershipMember> => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("leadership_members")
-    .insert({ ...member, owner_user_id: userId } as any)
-    .select()
-    .single();
+  const { data, error } = await supabase.from("leadership_members").insert({ ...member, owner_user_id: userId } as any).select().single();
   if (error) throw error;
   return data as unknown as LeadershipMember;
 };
 
 export const updateLeadershipMember = async (id: string, updates: Partial<LeadershipMember>): Promise<void> => {
-  const { error } = await supabase
-    .from("leadership_members")
-    .update(updates as any)
-    .eq("id", id);
+  const { error } = await supabase.from("leadership_members").update(updates as any).eq("id", id);
   if (error) throw error;
 };
 
@@ -1445,12 +1288,7 @@ export const fetchEventTasksByEventId = async (eventId: string): Promise<EventTa
   return data as unknown as EventTask[];
 };
 
-export const createEventTask = async (task: {
-  event_id: string;
-  task_name: string;
-  task_type: string;
-  due_date?: string | null;
-}) => {
+export const createEventTask = async (task: { event_id: string; task_name: string; task_type: string; due_date?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("event_tasks" as any)
@@ -1497,83 +1335,94 @@ export const generateEventWorkflowTasks = async (eventId: string, eventDate: str
   const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
   const today = toLocalDateKeyImport(todayAdjusted);
 
-  const tasks: Array<{
-    event_id: string;
-    task_name: string;
-    task_type: string;
-    due_date: string | null;
-    owner_user_id: string | null;
-  }> = [
-    {
-      event_id: eventId,
-      task_name: "Send hostess pre-profile form",
-      task_type: "hostess_form",
-      due_date: today,
-      owner_user_id: userId,
-    },
+  const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
+    { event_id: eventId, task_name: "Send hostess pre-profile form", task_type: "hostess_form", due_date: today, owner_user_id: userId },
   ];
 
   // Pre-event tasks (only if event_date is set)
   if (eventDate) {
     const ed = new Date(eventDate + "T12:00:00");
-    const sevenBefore = new Date(ed);
-    sevenBefore.setDate(ed.getDate() - 7);
-    const fiveBefore = new Date(ed);
-    fiveBefore.setDate(ed.getDate() - 5);
-    const threeBefore = new Date(ed);
-    threeBefore.setDate(ed.getDate() - 3);
-    const twoBefore = new Date(ed);
-    twoBefore.setDate(ed.getDate() - 2);
-    const oneBefore = new Date(ed);
-    oneBefore.setDate(ed.getDate() - 1);
+    const sevenBefore = new Date(ed); sevenBefore.setDate(ed.getDate() - 7);
+    const fiveBefore = new Date(ed); fiveBefore.setDate(ed.getDate() - 5);
+    const threeBefore = new Date(ed); threeBefore.setDate(ed.getDate() - 3);
+    const twoBefore = new Date(ed); twoBefore.setDate(ed.getDate() - 2);
+    const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
 
     // Smart-schedule each pre-event task
     const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
 
     tasks.push(
-      {
+      { event_id: eventId, task_name: "Follow up: has hostess filled out form?", task_type: "pre_profile", due_date: fmt(fiveBefore), owner_user_id: userId },
+      { event_id: eventId, task_name: "Invitation made & sent to guests", task_type: "invitation_sent", due_date: fmt(fiveBefore), owner_user_id: userId },
+      { event_id: eventId, task_name: "Soft reach out #1 to hostess (1 week out)", task_type: "soft_reach_1", due_date: fmt(sevenBefore), owner_user_id: userId },
+      { event_id: eventId, task_name: "Soft reach out #2 + guest reminders (2-3 days out)", task_type: "soft_reach_2", due_date: fmt(threeBefore), owner_user_id: userId },
+      { event_id: eventId, task_name: "Day-before confirmation with hostess", task_type: "final_confirmation", due_date: fmt(oneBefore), owner_user_id: userId },
+    );
+  }
+
+  const { error } = await supabase
+    .from("event_tasks" as any)
+    .insert(tasks as any);
+  if (error) throw error;
+};
+
+/** Generate workflow tasks specifically for Guest Events */
+export const generateGuestEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
+  const userId = await getCurrentUserId();
+  const ooo = await fetchScheduleSettings();
+  const workdays = buildWorkdayFlags(ooo);
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
+  const today = toLocalDateKeyImport(todayAdjusted);
+  const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
+
+  const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
+    { event_id: eventId, task_name: "Send invite / event info to guests", task_type: "guest_invite_send", due_date: today, owner_user_id: userId },
+  ];
+
+  if (eventDate) {
+    const ed = new Date(eventDate + "T12:00:00");
+    const daysUntil = Math.round((ed.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+    const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
+    const threeBefore = new Date(ed); threeBefore.setDate(ed.getDate() - 3);
+    const sevenBefore = new Date(ed); sevenBefore.setDate(ed.getDate() - 7);
+
+    // Always add day-before reminder
+    tasks.push({
+      event_id: eventId,
+      task_name: "Day-before excitement text to guests 🎉",
+      task_type: "guest_reminder_1day",
+      due_date: fmt(oneBefore),
+      owner_user_id: userId,
+    });
+
+    // Add 3-day reminder if event is 4+ days away
+    if (daysUntil >= 4) {
+      tasks.push({
         event_id: eventId,
-        task_name: "Follow up: has hostess filled out form?",
-        task_type: "pre_profile",
-        due_date: fmt(fiveBefore),
-        owner_user_id: userId,
-      },
-      {
-        event_id: eventId,
-        task_name: "Invitation made & sent to guests",
-        task_type: "invitation_sent",
-        due_date: fmt(fiveBefore),
-        owner_user_id: userId,
-      },
-      {
-        event_id: eventId,
-        task_name: "Soft reach out #1 to hostess (1 week out)",
-        task_type: "soft_reach_1",
-        due_date: fmt(sevenBefore),
-        owner_user_id: userId,
-      },
-      {
-        event_id: eventId,
-        task_name: "Soft reach out #2 + guest reminders (2-3 days out)",
-        task_type: "soft_reach_2",
+        task_name: "3-day reminder to guests",
+        task_type: "guest_reminder_3day",
         due_date: fmt(threeBefore),
         owner_user_id: userId,
-      },
-      {
+      });
+    }
+
+    // Add 1-week reminder if event is 7+ days away
+    if (daysUntil >= 7) {
+      tasks.push({
         event_id: eventId,
-        task_name: "Day-before confirmation with hostess",
-        task_type: "final_confirmation",
-        due_date: fmt(oneBefore),
+        task_name: "1-week reminder to guests",
+        task_type: "guest_reminder_1week",
+        due_date: fmt(sevenBefore),
         owner_user_id: userId,
-      },
-    );
+      });
+    }
   }
 
   const { error } = await supabase.from("event_tasks" as any).insert(tasks as any);
   if (error) throw error;
 };
-
-/** Trigger task when hostess form is completed */
 export const generateGuestInviteTask = async (eventId: string) => {
   const userId = await getCurrentUserId();
   const ooo = await fetchScheduleSettings();
@@ -1593,13 +1442,7 @@ export const generateGuestInviteTask = async (eventId: string) => {
 
   const { error } = await supabase
     .from("event_tasks" as any)
-    .insert({
-      event_id: eventId,
-      task_name: "Send guest invite + guest form",
-      task_type: "guest_invite",
-      due_date: today,
-      owner_user_id: userId,
-    } as any);
+    .insert({ event_id: eventId, task_name: "Send guest invite + guest form", task_type: "guest_invite", due_date: today, owner_user_id: userId } as any);
   if (error) throw error;
 };
 
@@ -1702,9 +1545,7 @@ export const deleteBlackoutDay = async (id: string): Promise<void> => {
  * next_follow_up_date is on/before `cutoffDate` (i.e. became due/overdue
  * during or before the cutoff). Counts are per-table.
  */
-export const countOverdueFollowUps = async (
-  cutoffDate: string,
-): Promise<{
+export const countOverdueFollowUps = async (cutoffDate: string): Promise<{
   customers: number;
   prospects: number;
   booking_leads: number;
@@ -1714,19 +1555,13 @@ export const countOverdueFollowUps = async (
   if (!userId) return { customers: 0, prospects: 0, booking_leads: 0, total: 0 };
 
   const [c, p, b] = await Promise.all([
-    supabase
-      .from("customers")
-      .select("id", { count: "exact", head: true })
+    supabase.from("customers").select("id", { count: "exact", head: true })
       .not("next_follow_up_date", "is", null)
       .lte("next_follow_up_date", cutoffDate),
-    supabase
-      .from("prospects")
-      .select("id", { count: "exact", head: true })
+    supabase.from("prospects").select("id", { count: "exact", head: true })
       .not("next_follow_up_date", "is", null)
       .lte("next_follow_up_date", cutoffDate),
-    supabase
-      .from("booking_leads")
-      .select("id", { count: "exact", head: true })
+    supabase.from("booking_leads").select("id", { count: "exact", head: true })
       .not("next_follow_up_date", "is", null)
       .lte("next_follow_up_date", cutoffDate),
   ]);
@@ -1744,7 +1579,7 @@ export const countOverdueFollowUps = async (
  */
 export const resetOverdueFollowUps = async (
   cutoffDate: string,
-  mode: "today" | "clear",
+  mode: "today" | "clear"
 ): Promise<{ customers: number; prospects: number; booking_leads: number }> => {
   const today = new Date().toISOString().split("T")[0];
   const newDate: string | null = mode === "today" ? today : null;
@@ -1771,43 +1606,33 @@ export const resetOverdueFollowUps = async (
 
 export const convertProspectToConsultant = async (
   prospect: Prospect,
-  extras?: { next_coaching_date?: string | null; coaching_focus?: string | null },
+  extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
 ): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
-  const { data: consultant, error: cErr } = await supabase
-    .from("team_consultants")
-    .insert({
-      name: prospect.name,
-      phone: prospect.phone,
-      email: prospect.email,
-      address_line_1: (prospect as any).address_line_1 || null,
-      city: (prospect as any).city || null,
-      state_territory: (prospect as any).state_territory || null,
-      postal_code: (prospect as any).postal_code || null,
-      prospect_id: prospect.id,
-      join_date: new Date().toISOString().split("T")[0],
-      status: "Active",
-      focus_group: "New Consultant",
-      onboarding_stage: "New",
-      coaching_focus: extras?.coaching_focus || null,
-      next_coaching_date: extras?.next_coaching_date || null,
-      notes: prospect.notes ? `Converted from prospect. ${prospect.notes}` : "Converted from prospect.",
-      owner_user_id: userId,
-    } as any)
-    .select()
-    .single();
+  const { data: consultant, error: cErr } = await supabase.from("team_consultants").insert({
+    name: prospect.name,
+    phone: prospect.phone,
+    email: prospect.email,
+    address_line_1: (prospect as any).address_line_1 || null,
+    city: (prospect as any).city || null,
+    state_territory: (prospect as any).state_territory || null,
+    postal_code: (prospect as any).postal_code || null,
+    prospect_id: prospect.id,
+    join_date: new Date().toISOString().split("T")[0],
+    status: "Active",
+    focus_group: "New Consultant",
+    onboarding_stage: "New",
+    coaching_focus: extras?.coaching_focus || null,
+    next_coaching_date: extras?.next_coaching_date || null,
+    notes: prospect.notes ? `Converted from prospect. ${prospect.notes}` : "Converted from prospect.",
+    owner_user_id: userId,
+  } as any).select().single();
   if (cErr) throw cErr;
 
-  await supabase
-    .from("prospects")
-    .update({ opportunity_status: "Converted" } as any)
-    .eq("id", prospect.id);
+  await supabase.from("prospects").update({ opportunity_status: "Converted" } as any).eq("id", prospect.id);
 
   if (prospect.customer_id) {
-    await supabase
-      .from("customers")
-      .update({ relationship_status: "Consultant" } as any)
-      .eq("id", prospect.customer_id);
+    await supabase.from("customers").update({ relationship_status: "Consultant" } as any).eq("id", prospect.customer_id);
   }
 
   return consultant as unknown as TeamConsultant;
@@ -1816,7 +1641,7 @@ export const convertProspectToConsultant = async (
 // Convert a customer to a consultant (creates team_consultants record, updates customer)
 export const convertCustomerToConsultant = async (
   customer: Customer,
-  extras?: { next_coaching_date?: string | null; coaching_focus?: string | null },
+  extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
 ): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
 
@@ -1834,48 +1659,43 @@ export const convertCustomerToConsultant = async (
   const firstName = nameParts[0] || "";
   const lastName = nameParts.slice(1).join(" ") || "";
 
-  const { data: consultant, error: cErr } = await supabase
-    .from("team_consultants")
-    .insert({
-      name: customer.full_name,
-      first_name: firstName,
-      last_name: lastName,
-      phone: customer.phone,
-      email: customer.email,
-      birthday: (customer as any).birthday || null,
-      address_line_1: customer.address_line_1,
-      city: customer.city,
-      state_territory: customer.state_territory,
-      postal_code: customer.postal_code,
-      join_date: new Date().toISOString().split("T")[0],
-      status: "Active",
-      focus_group: "New Consultant",
-      onboarding_stage: "New",
-      coaching_focus: extras?.coaching_focus || null,
-      next_coaching_date: extras?.next_coaching_date || null,
-      notes: customer.notes ? `Converted from customer. ${customer.notes}` : "Converted from customer.",
-      owner_user_id: userId,
-    } as any)
-    .select()
-    .single();
+  const { data: consultant, error: cErr } = await supabase.from("team_consultants").insert({
+    name: customer.full_name,
+    first_name: firstName,
+    last_name: lastName,
+    phone: customer.phone,
+    email: customer.email,
+    birthday: (customer as any).birthday || null,
+    address_line_1: customer.address_line_1,
+    city: customer.city,
+    state_territory: customer.state_territory,
+    postal_code: customer.postal_code,
+    join_date: new Date().toISOString().split("T")[0],
+    status: "Active",
+    focus_group: "New Consultant",
+    onboarding_stage: "New",
+    coaching_focus: extras?.coaching_focus || null,
+    next_coaching_date: extras?.next_coaching_date || null,
+    notes: customer.notes ? `Converted from customer. ${customer.notes}` : "Converted from customer.",
+    owner_user_id: userId,
+  } as any).select().single();
   if (cErr) throw cErr;
 
   // Update customer record to mark as Consultant
-  await supabase
-    .from("customers")
-    .update({
-      relationship_status: "Consultant",
-      next_follow_up_date: null,
-      follow_up_reason: null,
-      new_follow_up_stage: null,
-    } as any)
-    .eq("id", customer.id);
+  await supabase.from("customers").update({
+    relationship_status: "Consultant",
+    next_follow_up_date: null,
+    follow_up_reason: null,
+    new_follow_up_stage: null,
+  } as any).eq("id", customer.id);
 
   return consultant as unknown as TeamConsultant;
 };
 
 // Convert a consultant back to a customer (updates customer record, removes from team_consultants)
-export const convertConsultantToCustomer = async (consultant: TeamConsultant): Promise<void> => {
+export const convertConsultantToCustomer = async (
+  consultant: TeamConsultant
+): Promise<void> => {
   // Find matching customer record by name/phone/email
   let customerId: string | null = null;
 
@@ -1893,16 +1713,13 @@ export const convertConsultantToCustomer = async (consultant: TeamConsultant): P
 
   if (customerId) {
     // Update existing customer record back to Former Consultant, carry latest address
-    await supabase
-      .from("customers")
-      .update({
-        relationship_status: "Former Consultant",
-        address_line_1: consultant.address_line_1 || undefined,
-        city: consultant.city || undefined,
-        state_territory: consultant.state_territory || undefined,
-        postal_code: consultant.postal_code || undefined,
-      } as any)
-      .eq("id", customerId);
+    await supabase.from("customers").update({
+      relationship_status: "Former Consultant",
+      address_line_1: consultant.address_line_1 || undefined,
+      city: consultant.city || undefined,
+      state_territory: consultant.state_territory || undefined,
+      postal_code: consultant.postal_code || undefined,
+    } as any).eq("id", customerId);
   } else {
     // Create a customer record if none exists
     const userId = await getCurrentUserId();
@@ -1938,12 +1755,7 @@ export const fetchZoomDefaults = async () => {
   return data as any;
 };
 
-export const upsertZoomDefaults = async (defaults: {
-  zoom_id?: string | null;
-  zoom_password?: string | null;
-  zoom_link?: string | null;
-  home_office_address?: string | null;
-}) => {
+export const upsertZoomDefaults = async (defaults: { zoom_id?: string | null; zoom_password?: string | null; zoom_link?: string | null; home_office_address?: string | null }) => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("Not authenticated");
   const { data, error } = await supabase
