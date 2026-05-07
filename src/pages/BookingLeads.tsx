@@ -730,20 +730,15 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={async () => {
-                  if (!deleteLead) return;
-                  const idToDelete = deleteLead.id;
+                  const id = deleteLead?.id;
+                  if (!id) return;
                   setDeleteLead(null);
                   setActionPanelOpen(false);
                   setActionPanelItem(null);
                   setEditLead(null);
-                  try {
-                    const { deleteBookingLead } = await import("@/lib/queries");
-                    await deleteBookingLead(idToDelete);
-                    queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-                    toast.success("Lead deleted");
-                  } catch (e: any) {
-                    toast.error(e?.message || "Failed to delete lead");
-                  }
+                  await deleteBookingLead(id);
+                  queryClient.invalidateQueries({ queryKey: ['booking-leads'] });
+                  toast.success('Lead deleted');
                 }}
               >
                 Delete
