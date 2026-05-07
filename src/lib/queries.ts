@@ -1427,7 +1427,7 @@ export const generateGuestEventWorkflowTasks = async (eventId: string, eventDate
 export const createTodoForToday = async (text: string) => {
   const userId = await getCurrentUserId();
   if (!userId) return;
-  const today = toLocalDateKey();
+  const today = toLocalDateKeyImport(new Date());
   const { error } = await supabase
     .from("todos" as any)
     .insert({ user_id: userId, text, done: false, todo_date: today } as any);
