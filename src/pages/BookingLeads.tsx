@@ -655,6 +655,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
         </Dialog>
 
         {/* ═══ Universal Action Panel ═══ */}
+        {actionPanelItem && (
         <UniversalActionPanel
           item={actionPanelItem}
           open={actionPanelOpen}
@@ -668,6 +669,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           }}
           isPending={actionMutation.isPending}
         />
+        )}
 
         {/* ═══ Delete Confirmation ═══ */}
         <AlertDialog open={!!deleteLead} onOpenChange={(open) => !open && setDeleteLead(null)}>
@@ -680,7 +682,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => { setActionPanelOpen(false); setActionPanelItem(null); deleteMut.mutate(); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
