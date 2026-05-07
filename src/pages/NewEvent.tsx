@@ -40,6 +40,7 @@ export default function NewEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const fromPath = searchParams.get("from") || "/events";
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
 
@@ -139,7 +140,7 @@ export default function NewEvent() {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       toast.success("Event created");
-      navigate(`/events/${eventId}`);
+      navigate(fromPath, { state: { eventCreated: true } });
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to create event");
@@ -152,7 +153,7 @@ export default function NewEvent() {
     <Layout>
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/events")}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(fromPath)}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
@@ -365,7 +366,7 @@ export default function NewEvent() {
             {/* Hostess Name */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                {eventType === "Sharing Appointment" ? "Contact Name" : "Hostess Name"}
+                {eventType === "Sharing Appointment" ? "Contact Name" : eventType === "Guest Event" ? "Event Title" : "Hostess Name"}
               </label>
               <Input
                 placeholder="Optional — can add later"
@@ -400,7 +401,7 @@ export default function NewEvent() {
               <Button className="h-11 px-8" disabled={!canSubmit} onClick={() => mutation.mutate()}>
                 {mutation.isPending ? "Creating..." : "Create Event"}
               </Button>
-              <Button variant="outline" className="h-11" onClick={() => navigate("/events")}>
+              <Button variant="outline" className="h-11" onClick={() => navigate(fromPath)}>
                 Cancel
               </Button>
             </div>
