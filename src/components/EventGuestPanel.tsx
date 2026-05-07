@@ -238,8 +238,8 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                     </Button>
                   </div>
                 ) : g.attending ? (
-                  <span className="text-xs text-green-600 font-medium">Attended ✅</span>
-                  {g.attending === true && (
+                  <>
+                    <span className="text-xs text-green-600 font-medium">Attended ✅</span>
                     <label className="flex items-center gap-1 cursor-pointer ml-1">
                       <Checkbox
                         checked={g.thank_you_sent || false}
@@ -247,7 +247,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                       />
                       <span className="text-[11px] text-muted-foreground">✉️ TY sent</span>
                     </label>
-                  )}
+                  </>
                 ) : (
                   <span className="text-xs text-muted-foreground">Did not attend</span>
                 )}
