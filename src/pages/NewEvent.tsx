@@ -157,18 +157,14 @@ export default function NewEvent() {
         try {
           const { supabase } = await import("@/integrations/supabase/client");
           const userId = (await supabase.auth.getUser()).data.user?.id;
-          const { data: newEvent } = await supabase
-            .from("events" as any).select("event_id").eq("id", eventId).single();
-          if (newEvent) {
-            await supabase.from("event_guests" as any).insert({
-              event_id: (newEvent as any).event_id,
-              name: pendingGuestName,
-              phone: pendingGuestPhone || null,
-              owner_user_id: userId,
-              attending: false,
-            } as any);
-            toast.success(`${pendingGuestName} added as guest to your new event! 🎉`);
-          }
+          await supabase.from("event_guests" as any).insert({
+            event_id: eventId,
+            name: pendingGuestName,
+            phone: pendingGuestPhone || null,
+            owner_user_id: userId,
+            attending: false,
+          } as any);
+          toast.success(`${pendingGuestName} added as guest! 🎉`);
         } catch (e) {
           console.error("Failed to add pending guest", e);
         }
