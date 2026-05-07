@@ -29,6 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
   Working: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   Booked: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   "Not Interested": "bg-muted text-muted-foreground",
+  "Dormant": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
 };
 
 const OUTREACH_NOTE_TYPES = new Set(["Call", "Text", "Email", "In Person"]);
@@ -56,6 +57,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const [deleteLead, setDeleteLead] = useState<BookingLead | null>(null);
   const [convertLead, setConvertLead] = useState<BookingLead | null>(null);
   const [convertType, setConvertType] = useState<"customer" | "consultant">("customer");
+  const [showBulkActivate, setShowBulkActivate] = useState(false);
+  const [selectedDormantIds, setSelectedDormantIds] = useState<Set<string>>(new Set());
 
   // Universal Action Panel state
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
@@ -256,6 +259,25 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     setActionPanelOpen(true);
   }, [unifiedNotes]);
 
+  const bulkActivateMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const followUpDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
+      for (const id of ids) {
+        await updateBookingLead(id, {
+          status: "Working",
+          next_follow_up_date: followUpDate,
+        } as any);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      setShowBulkActivate(false);
+      setSelectedDormantIds(new Set());
+      toast.success(`${selectedDormantIds.size} leads moved to Working`);
+    },
+    onError: () => toast.error("Failed to activate leads"),
+  });
+
   const actionMutation = useMutation({
     mutationFn: async ({ item, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
       item: UniversalActionItem;
@@ -316,7 +338,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
 
   const activeLeads = useMemo(() => leads.filter((l) => !l.converted_customer_id), [leads]);
   const counts = useMemo(() => {
-    const c: Record<string, number> = { New: 0, Working: 0, Booked: 0, "Not Interested": 0 };
+    const c: Record<string, number> = { New: 0, Working: 0, Booked: 0, Dormant: 0, "Not Interested": 0 };
     activeLeads.forEach((l) => { c[l.status] = (c[l.status] || 0) + 1; });
     return c;
   }, [activeLeads]);
@@ -340,12 +362,21 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Leads</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">
-              {activeLeads.length} active · {counts.New} new · {counts.Working} working · {counts.Booked} booked
+              {activeLeads.length} active · {counts.New} new · {counts.Working} working · {counts.Booked} booked{counts.Dormant > 0 ? ` · ${counts.Dormant} dormant` : ""}
             </p>
           </div>
-          <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
-            <Plus className="w-4 h-4 mr-1" />Quick Add
-          </Button>
+          <div className="flex items-center gap-2">
+            {counts.Dormant > 0 && (
+              <Button size="sm" variant="outline" className="h-9 text-xs gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50"
+                onClick={() => { setStatusFilter("Dormant"); setShowBulkActivate(true); }}>
+                <Users className="w-3.5 h-3.5" />
+                Activate Dormant ({counts.Dormant})
+              </Button>
+            )}
+            <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
+              <Plus className="w-4 h-4 mr-1" />Quick Add
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -655,6 +686,53 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* ═══ Bulk Activate Dormant Dialog ═══ */}
+        <Dialog open={showBulkActivate} onOpenChange={(open) => { setShowBulkActivate(open); if (!open) setSelectedDormantIds(new Set()); }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Activate Dormant Leads</DialogTitle>
+              <DialogDescription>
+                Select the leads you want to move to Working. They'll get a follow-up set for 2 days from now.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-72 overflow-y-auto py-1">
+              {activeLeads.filter(l => l.status === "Dormant").map(l => (
+                <div key={l.id}
+                  className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${selectedDormantIds.has(l.id) ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40"}`}
+                  onClick={() => {
+                    const next = new Set(selectedDormantIds);
+                    next.has(l.id) ? next.delete(l.id) : next.add(l.id);
+                    setSelectedDormantIds(next);
+                  }}>
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${selectedDormantIds.has(l.id) ? "border-primary bg-primary" : "border-border"}`}>
+                    {selectedDormantIds.has(l.id) && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{l.name}</p>
+                    <p className="text-xs text-muted-foreground">{l.lead_source || "No source"}{l.next_follow_up_date ? ` · Last: ${formatDateOnly(l.next_follow_up_date, "MMM d")}` : ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <Button variant="ghost" size="sm" className="text-xs"
+                onClick={() => {
+                  const dormant = activeLeads.filter(l => l.status === "Dormant");
+                  setSelectedDormantIds(selectedDormantIds.size === dormant.length ? new Set() : new Set(dormant.map(l => l.id)));
+                }}>
+                {selectedDormantIds.size === activeLeads.filter(l => l.status === "Dormant").length ? "Deselect all" : "Select all"}
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowBulkActivate(false)}>Cancel</Button>
+                <Button size="sm" disabled={selectedDormantIds.size === 0 || bulkActivateMut.isPending}
+                  onClick={() => bulkActivateMut.mutate(Array.from(selectedDormantIds))}>
+                  {bulkActivateMut.isPending ? "Activating..." : `Activate ${selectedDormantIds.size} Lead${selectedDormantIds.size !== 1 ? "s" : ""}`}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* ═══ Convert Dialog ═══ */}
         <Dialog open={!!convertLead} onOpenChange={(open) => !open && setConvertLead(null)}>
