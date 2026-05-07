@@ -682,7 +682,20 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => { setActionPanelOpen(false); setActionPanelItem(null); setTimeout(() => deleteMut.mutate(), 100); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  if (!deleteLead) return;
+                  const idToDelete = deleteLead.id;
+                  setDeleteLead(null);
+                  setActionPanelOpen(false);
+                  setActionPanelItem(null);
+                  setEditLead(null);
+                  await deleteBookingLead(idToDelete);
+                  queryClient.invalidateQueries({ queryKey: ['booking-leads'] });
+                  toast.success('Lead deleted');
+                }}
+              >
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
