@@ -163,6 +163,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       setDeleteLead(null);
+      setActionPanelOpen(false);
+      setActionPanelItem(null);
       toast.success("Lead deleted");
     },
     onError: (e: Error) => toast.error(e.message),
