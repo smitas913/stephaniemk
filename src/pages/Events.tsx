@@ -277,7 +277,13 @@ export default function Events() {
             {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
           </TableCell>
           <TableCell className="text-xs">
-            {taskInfo ? (
+            {e.event_status === "Held" ? (
+              <span className="italic text-muted-foreground">Thank you notes sent</span>
+            ) : e.reschedule_status === "In Process of Rescheduling" ? (
+              <span className="text-amber-600">Reschedule follow-up</span>
+            ) : e.event_status === "Cancelled" ? (
+              <span className="text-muted-foreground">Cancelled</span>
+            ) : taskInfo ? (
               <button
                 type="button"
                 onClick={(ev) => { ev.stopPropagation(); setExpandedTasksFor(isExpanded ? null : e.event_id); }}
@@ -299,6 +305,7 @@ export default function Events() {
               <span className="text-muted-foreground">—</span>
             )}
           </TableCell>
+
 
           {/* ── Simplified Actions ── */}
           <TableCell className="text-right">
