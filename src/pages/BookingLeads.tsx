@@ -70,6 +70,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     phone: "",
     email: "",
     lead_source: "",
+    source_detail: "",
+    met_date: "",
     next_step: "",
     next_follow_up_date: getDefaultFollowUp(),
   });
@@ -79,6 +81,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
     phone: "",
     email: "",
     lead_source: "",
+    source_detail: "",
+    met_date: "",
     next_step: "",
     next_follow_up_date: getDefaultFollowUp(),
   });
@@ -138,10 +142,12 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       lead_source: form.lead_source || null,
+      source_detail: form.source_detail.trim() || null,
+      met_date: form.met_date || null,
       lead_activity: "No Activity Yet",
       notes: form.next_step.trim() ? `Next Step: ${form.next_step.trim()}` : null,
       next_follow_up_date: form.next_follow_up_date || null,
-    }),
+    } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       setShowAdd(false);
@@ -164,10 +170,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const deleteMut = useMutation({
     mutationFn: () => deleteBookingLead(deleteLead!.id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+      setDeleteLead(null);
       setActionPanelOpen(false);
       setActionPanelItem(null);
-      setDeleteLead(null);
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       toast.success("Lead deleted");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -474,6 +480,12 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                          {lead.lead_source && (
                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-medium">{lead.lead_source}</span>
                          )}
+                         {(lead as any).source_detail && (
+                           <span className="text-[10px] text-muted-foreground">· {(lead as any).source_detail}</span>
+                         )}
+                         {(lead as any).met_date && (
+                           <span className="text-[10px] text-muted-foreground">· Met {formatDateOnly((lead as any).met_date, "MMM d")}</span>
+                         )}
                          {lead.lead_activity && lead.lead_activity !== "No Activity Yet" && (
                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">{lead.lead_activity}</span>
                          )}
@@ -548,6 +560,37 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                   {BOOKING_LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+
+              {/* Source detail — shown when a source is selected */}
+              {form.lead_source && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                      {form.lead_source === "Networking" ? "Event name" :
+                       form.lead_source === "Vendor Table" ? "Event/vendor name" :
+                       form.lead_source === "Facial Box" ? "Box location" :
+                       form.lead_source === "Party Guest" ? "Whose party" :
+                       form.lead_source === "Referral" ? "Referred by" :
+                       "Where you met"}
+                    </label>
+                    <Input
+                      placeholder="Optional details..."
+                      value={form.source_detail}
+                      onChange={e => setForm({ ...form, source_detail: e.target.value })}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Date met</label>
+                    <Input
+                      type="date"
+                      value={form.met_date}
+                      onChange={e => setForm({ ...form, met_date: e.target.value })}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="border-t border-border pt-3 space-y-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Follow-Up Plan</p>
@@ -682,20 +725,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={async () => {
-                  if (!deleteLead) return;
-                  const idToDelete = deleteLead.id;
-                  setDeleteLead(null);
-                  setActionPanelOpen(false);
-                  setActionPanelItem(null);
-                  setEditLead(null);
-                  await deleteBookingLead(idToDelete);
-                  queryClient.invalidateQueries({ queryKey: ['booking-leads'] });
-                  toast.success('Lead deleted');
-                }}
-              >
+              <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
