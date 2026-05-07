@@ -363,20 +363,21 @@ export default function NewEvent() {
               </div>
             )}
 
-            {/* Hostess Name */}
+            {/* Hostess Name / Event Title */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
                 {eventType === "Sharing Appointment" ? "Contact Name" : eventType === "Guest Event" ? "Event Title" : "Hostess Name"}
               </label>
               <Input
-                placeholder="Optional — can add later"
+                placeholder={eventType === "Guest Event" ? "e.g. Foundation Matching Launch Party" : "Optional — can add later"}
                 value={hostessName}
                 onChange={(e) => setHostessName(e.target.value)}
                 className="h-10 max-w-sm"
               />
             </div>
 
-            {/* Hostess Phone */}
+            {/* Hostess Phone — hide for Guest Events */}
+            {eventType !== "Guest Event" && (
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
                 {eventType === "Sharing Appointment" ? "Contact Phone" : "Hostess Phone"}
@@ -389,6 +390,7 @@ export default function NewEvent() {
                 className="h-10 max-w-sm"
               />
             </div>
+            )}
 
             {/* Notes */}
             <div>
