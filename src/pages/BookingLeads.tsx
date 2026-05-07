@@ -554,7 +554,9 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
               {form.name.trim() && !hasContact && (
                 <p className="text-xs text-destructive">Phone or email is required.</p>
               )}
-              <Select value={form.lead_source} onValueChange={(v) => setForm({ ...form, lead_source: v })}>
+              <Select value={form.lead_source} onValueChange={(v) => {
+                setForm({ ...form, lead_source: v, next_step: "Initial Contact" });
+              }}>
                 <SelectTrigger className="h-10"><SelectValue placeholder="Lead Source (optional)" /></SelectTrigger>
                 <SelectContent>
                   {BOOKING_LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -569,8 +571,8 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
                       {form.lead_source === "Networking" ? "Event name" :
                        form.lead_source === "Vendor Table" ? "Event/vendor name" :
                        form.lead_source === "Facial Box" ? "Box location" :
-                       form.lead_source === "Party Guest" ? "Whose party" :
                        form.lead_source === "Referral" ? "Referred by" :
+                       form.lead_source === "Bridal" ? "Bridal event/venue" :
                        "Where you met"}
                     </label>
                     <Input
@@ -593,7 +595,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
               )}
 
               <div className="border-t border-border pt-3 space-y-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Follow-Up Plan</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Next Action Plan</p>
                 <div>
                   <label className="text-xs font-medium text-foreground mb-1 block">Next Step *</label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
@@ -725,7 +727,25 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  if (!deleteLead) return;
+                  const idToDelete = deleteLead.id;
+                  setDeleteLead(null);
+                  setActionPanelOpen(false);
+                  setActionPanelItem(null);
+                  setEditLead(null);
+                  try {
+                    const { deleteBookingLead } = await import("@/lib/queries");
+                    await deleteBookingLead(idToDelete);
+                    queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
+                    toast.success("Lead deleted");
+                  } catch (e: any) {
+                    toast.error(e?.message || "Failed to delete lead");
+                  }
+                }}
+              >
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
