@@ -1,0 +1,1 @@
+ALTER TABLE public.booking_leads ADD COLUMN IF NOT EXISTS source_detail text, ADD COLUMN IF NOT EXISTS met_date date;

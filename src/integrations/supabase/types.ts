@@ -26,12 +26,14 @@ export type Database = {
           last_contact_date: string | null
           lead_activity: string | null
           lead_source: string | null
+          met_date: string | null
           name: string
           next_follow_up_date: string | null
           notes: string | null
           owner_user_id: string | null
           phone: string | null
           postal_code: string | null
+          source_detail: string | null
           state_territory: string | null
           status: Database["public"]["Enums"]["booking_lead_status"]
           updated_at: string | null
@@ -47,12 +49,14 @@ export type Database = {
           last_contact_date?: string | null
           lead_activity?: string | null
           lead_source?: string | null
+          met_date?: string | null
           name: string
           next_follow_up_date?: string | null
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
           postal_code?: string | null
+          source_detail?: string | null
           state_territory?: string | null
           status?: Database["public"]["Enums"]["booking_lead_status"]
           updated_at?: string | null
@@ -68,12 +72,14 @@ export type Database = {
           last_contact_date?: string | null
           lead_activity?: string | null
           lead_source?: string | null
+          met_date?: string | null
           name?: string
           next_follow_up_date?: string | null
           notes?: string | null
           owner_user_id?: string | null
           phone?: string | null
           postal_code?: string | null
+          source_detail?: string | null
           state_territory?: string | null
           status?: Database["public"]["Enums"]["booking_lead_status"]
           updated_at?: string | null
