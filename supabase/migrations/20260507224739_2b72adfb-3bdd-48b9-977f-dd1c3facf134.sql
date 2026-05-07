@@ -1,0 +1,1 @@
+DELETE FROM event_tasks WHERE event_id IN (SELECT event_id FROM events WHERE event_type = 'Guest Event');
