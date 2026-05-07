@@ -1450,6 +1450,7 @@ function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToPro
         </Button>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 
