@@ -1376,50 +1376,19 @@ export const generateGuestEventWorkflowTasks = async (eventId: string, eventDate
   const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
   const today = toLocalDateKeyImport(todayAdjusted);
   const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
-
   const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
     { event_id: eventId, task_name: "Send invite / event info to guests", task_type: "guest_invite_send", due_date: today, owner_user_id: userId },
   ];
-
   if (eventDate) {
     const ed = new Date(eventDate + "T12:00:00");
     const daysUntil = Math.round((ed.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
     const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
     const threeBefore = new Date(ed); threeBefore.setDate(ed.getDate() - 3);
     const sevenBefore = new Date(ed); sevenBefore.setDate(ed.getDate() - 7);
-
-    // Always add day-before reminder
-    tasks.push({
-      event_id: eventId,
-      task_name: "Day-before excitement text to guests 🎉",
-      task_type: "guest_reminder_1day",
-      due_date: fmt(oneBefore),
-      owner_user_id: userId,
-    });
-
-    // Add 3-day reminder if event is 4+ days away
-    if (daysUntil >= 4) {
-      tasks.push({
-        event_id: eventId,
-        task_name: "3-day reminder to guests",
-        task_type: "guest_reminder_3day",
-        due_date: fmt(threeBefore),
-        owner_user_id: userId,
-      });
-    }
-
-    // Add 1-week reminder if event is 7+ days away
-    if (daysUntil >= 7) {
-      tasks.push({
-        event_id: eventId,
-        task_name: "1-week reminder to guests",
-        task_type: "guest_reminder_1week",
-        due_date: fmt(sevenBefore),
-        owner_user_id: userId,
-      });
-    }
+    tasks.push({ event_id: eventId, task_name: "Day-before excitement text to guests 🎉", task_type: "guest_reminder_1day", due_date: fmt(oneBefore), owner_user_id: userId });
+    if (daysUntil >= 4) tasks.push({ event_id: eventId, task_name: "3-day reminder to guests", task_type: "guest_reminder_3day", due_date: fmt(threeBefore), owner_user_id: userId });
+    if (daysUntil >= 7) tasks.push({ event_id: eventId, task_name: "1-week reminder to guests", task_type: "guest_reminder_1week", due_date: fmt(sevenBefore), owner_user_id: userId });
   }
-
   const { error } = await supabase.from("event_tasks" as any).insert(tasks as any);
   if (error) throw error;
 };
