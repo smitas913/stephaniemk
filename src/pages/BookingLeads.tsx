@@ -164,10 +164,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const deleteMut = useMutation({
     mutationFn: () => deleteBookingLead(deleteLead!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      setDeleteLead(null);
       setActionPanelOpen(false);
       setActionPanelItem(null);
+      setDeleteLead(null);
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       toast.success("Lead deleted");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -682,7 +682,7 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction onClick={() => { setActionPanelOpen(false); setActionPanelItem(null); setTimeout(() => deleteMut.mutate(), 100); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
