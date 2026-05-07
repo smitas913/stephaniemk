@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, createTodoForToday } from "@/lib/queries";
 import type { EventTask } from "@/lib/queries";
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { addDays, format } from "date-fns";
@@ -167,6 +167,7 @@ export default function EventDetail() {
       setPendingStatus(val);
       setCompletionData({ guest_count: "", bookings: "", sharings: "" });
       setShowCompletionDialog(true);
+      // Thank you note will be created in submitCompletion
     } else if (val === "Cancelled") {
       // Clear rescheduling status when cancelling — they're mutually exclusive
       eventMutation.mutate({
@@ -180,7 +181,7 @@ export default function EventDetail() {
     }
   };
 
-  const submitCompletion = () => {
+  const submitCompletion = async () => {
     if (!event || !pendingStatus) return;
     eventMutation.mutate({
       event_id: event.event_id,
@@ -189,6 +190,11 @@ export default function EventDetail() {
       future_bookings_count: parseInt(completionData.bookings) || 0,
       sharing_appointments_count: parseInt(completionData.sharings) || 0,
     } as any);
+    // Auto-add thank you notes to MIT list
+    if (pendingStatus === "Held" && event.hostess_name) {
+      const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"}`;
+      await createTodoForToday(todoText);
+    }
     setShowCompletionDialog(false);
     setPendingStatus(null);
   };
