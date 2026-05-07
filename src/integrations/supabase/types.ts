@@ -597,6 +597,7 @@ export type Database = {
           owner_user_id: string | null
           phone: string | null
           rsvp: string | null
+          thank_you_sent: boolean | null
         }
         Insert: {
           attending?: boolean | null
@@ -612,6 +613,7 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           rsvp?: string | null
+          thank_you_sent?: boolean | null
         }
         Update: {
           attending?: boolean | null
@@ -627,6 +629,7 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           rsvp?: string | null
+          thank_you_sent?: boolean | null
         }
         Relationships: []
       }

@@ -1,0 +1,1 @@
+ALTER TABLE public.event_guests ADD COLUMN IF NOT EXISTS thank_you_sent boolean DEFAULT false;
