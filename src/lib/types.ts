@@ -211,10 +211,12 @@ export interface Note {
 export const OPPORTUNITY_STATUSES = ["Booked", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined", "Converted", "Closed"] as const;
 
 export const NEXT_STEP_TYPES = [
-  "Follow-Up Call",
-  "Invited to Event",
+  "Initial Contact",
+  "Follow Up",
+  "Invite to Event",
   "Attend Event",
   "Booked Event",
+  "Coffee / 1:1 Chat",
   "Send Information",
   "Other",
 ] as const;
@@ -284,7 +286,7 @@ export interface Income {
 }
 
 export const BOOKING_LEAD_STATUSES = ["New", "Working", "Booked", "Dormant", "Not Interested"] as const;
-export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Party Guest", "Facial Box", "Bridal", "Vendor Table", "Honoring Working Women", "Social Media", "Other"] as const;
+export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Facial Box", "Bridal", "Vendor Table", "Honoring Working Women", "Social Media", "Other"] as const;
 export const LEAD_ACTIVITIES = ["No Activity Yet", "1:1 Appointment Booked", "Event Booked", "Samples Given", "Follow-Up Needed"] as const;
 export const DEFAULT_LEAD_SOURCE = "Networking";
 
