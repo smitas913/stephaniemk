@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
@@ -912,11 +912,7 @@ export default function EventDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <EventGuestPanel 
-                  eventId={eventId} 
-                  eventType={event?.event_type}
-                  isHeld={event?.event_status === "Held"}
-                />
+                <EventGuestPanel eventId={eventId} />
               </CardContent>
             </Card>
 
