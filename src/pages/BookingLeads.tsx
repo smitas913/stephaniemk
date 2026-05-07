@@ -164,10 +164,10 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
   const deleteMut = useMutation({
     mutationFn: () => deleteBookingLead(deleteLead!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      setDeleteLead(null);
       setActionPanelOpen(false);
       setActionPanelItem(null);
+      setDeleteLead(null);
+      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       toast.success("Lead deleted");
     },
     onError: (e: Error) => toast.error(e.message),
