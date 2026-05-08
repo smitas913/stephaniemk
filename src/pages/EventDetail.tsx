@@ -939,7 +939,7 @@ export default function EventDetail() {
                       )}>
                         <Checkbox
                           checked={task.is_completed}
-                          onCheckedChange={() => completeTaskMut.mutate(task.id)}
+                          onCheckedChange={() => handleCompleteTask(task.id)}
                         />
                         <div className="flex-1 min-w-0">
                           <p className={cn("text-sm", task.is_completed && "line-through text-muted-foreground")}>
