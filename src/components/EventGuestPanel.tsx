@@ -182,12 +182,15 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
             Guests ({guests.length})
           </p>
           {guests.length > 0 && (
-            <div className="flex gap-2 text-[10px] text-muted-foreground">
+            <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground items-center">
               <span>RSVP: {rsvpYes}</span>
               <span>·</span>
               <span>Attended: {attendingCount}</span>
               <span>·</span>
               <span>Ordered: {orderedCount}</span>
+              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                Tasks: {contactedCount}/{guests.length} contacted
+              </span>
             </div>
           )}
         </div>
