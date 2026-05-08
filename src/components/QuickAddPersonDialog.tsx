@@ -563,7 +563,7 @@ export default function QuickAddPersonDialog({
                               name: query.trim(),
                               phone: note.trim() || null,
                               owner_user_id: userId,
-                              attending: true,
+                              attending: false,
                             } as any);
                             // Update guest count
                             const newCount = (evt.guest_count || 0) + 1;
