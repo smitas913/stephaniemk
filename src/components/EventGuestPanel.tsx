@@ -172,6 +172,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
   const rsvpYes = guests.filter((g) => g.rsvp === "Yes").length;
   const attendingCount = guests.filter((g) => g.attending).length;
   const orderedCount = guests.filter((g) => g.ordered).length;
+  const contactedCount = guests.filter((g: any) => g.task_invite_sent && g.task_day_before_sent).length;
 
   return (
     <div className="space-y-3">
