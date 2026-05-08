@@ -959,7 +959,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                       name: item.name,
                       phone: item.phone || null,
                       owner_user_id: userId,
-                      attending: true,
+                      attending: false,
                     } as any);
                     const newCount = (e.guest_count || 0) + 1;
                     await supabase.from("events" as any).update({ guest_count: newCount } as any).eq("event_id", e.event_id);
