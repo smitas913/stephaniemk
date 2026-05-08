@@ -603,6 +603,8 @@ export type Database = {
           owner_user_id: string | null
           phone: string | null
           rsvp: string | null
+          task_day_before_sent: boolean
+          task_invite_sent: boolean
           thank_you_sent: boolean | null
         }
         Insert: {
@@ -619,6 +621,8 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           rsvp?: string | null
+          task_day_before_sent?: boolean
+          task_invite_sent?: boolean
           thank_you_sent?: boolean | null
         }
         Update: {
@@ -635,6 +639,8 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           rsvp?: string | null
+          task_day_before_sent?: boolean
+          task_invite_sent?: boolean
           thank_you_sent?: boolean | null
         }
         Relationships: []

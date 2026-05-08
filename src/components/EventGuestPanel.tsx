@@ -172,6 +172,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
   const rsvpYes = guests.filter((g) => g.rsvp === "Yes").length;
   const attendingCount = guests.filter((g) => g.attending).length;
   const orderedCount = guests.filter((g) => g.ordered).length;
+  const contactedCount = guests.filter((g: any) => g.task_invite_sent && g.task_day_before_sent).length;
 
   return (
     <div className="space-y-3">
@@ -181,12 +182,15 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
             Guests ({guests.length})
           </p>
           {guests.length > 0 && (
-            <div className="flex gap-2 text-[10px] text-muted-foreground">
+            <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground items-center">
               <span>RSVP: {rsvpYes}</span>
               <span>·</span>
               <span>Attended: {attendingCount}</span>
               <span>·</span>
               <span>Ordered: {orderedCount}</span>
+              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                Tasks: {contactedCount}/{guests.length} contacted
+              </span>
             </div>
           )}
         </div>
@@ -272,6 +276,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                   <TableHead className="text-[10px] text-center w-16">Booked</TableHead>
                   <TableHead className="text-[10px] text-center w-16">Interested</TableHead>
                   {isHeld && <TableHead className="text-[10px] text-center w-16">✉️ TY</TableHead>}
+                  <TableHead className="text-[10px] text-center w-24" title="Invite sent / Day-before text sent">Tasks</TableHead>
                   <TableHead className="text-[10px] w-16"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -314,6 +319,24 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                         />
                       </TableCell>
                     )}
+                    <TableCell className="py-1.5">
+                      <div className="flex items-center justify-center gap-2">
+                        <label className="flex items-center gap-1 cursor-pointer" title="Invite sent">
+                          <Checkbox
+                            checked={(g as any).task_invite_sent || false}
+                            onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { task_invite_sent: !!v } as any })}
+                          />
+                          <span className="text-[10px]">📨</span>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer" title="Day-before text sent">
+                          <Checkbox
+                            checked={(g as any).task_day_before_sent || false}
+                            onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { task_day_before_sent: !!v } as any })}
+                          />
+                          <span className="text-[10px]">🎉</span>
+                        </label>
+                      </div>
+                    </TableCell>
                     <TableCell className="py-1.5">
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         {!g.converted_customer_id && (
