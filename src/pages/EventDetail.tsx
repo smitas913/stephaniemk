@@ -661,7 +661,8 @@ export default function EventDetail() {
                   </CardContent>
                 </Card>
 
-                {/* Hostess Info */}
+                {/* Hostess Info — hide for Guest Events */}
+                {event?.event_type !== "Guest Event" && (
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Hostess</CardTitle>
@@ -756,6 +757,7 @@ export default function EventDetail() {
                     })()}
                   </CardContent>
                 </Card>
+                )} {/* end non-Guest Event hostess */}
               </div>
             ) : (
               <p className="text-muted-foreground text-sm py-8 text-center">Loading event...</p>
@@ -840,7 +842,16 @@ export default function EventDetail() {
                   </Card>
                 ) : (
                   <>
-                {/* ── NORMAL COACHING CHECKLIST ── */}
+                {/* ── NORMAL COACHING CHECKLIST — hide for Guest Events ── */}
+                {event?.event_type === "Guest Event" ? (
+                  <Card className="border-border/50">
+                    <CardContent className="p-4 text-center space-y-1">
+                      <p className="text-sm font-medium text-foreground">Guest Event Prep</p>
+                      <p className="text-xs text-muted-foreground">Tasks are managed in your event task list above — send invites, reminders, and day-before messages.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
                 {/* Progress bar */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
@@ -894,6 +905,8 @@ export default function EventDetail() {
                     )}
                   </div>
                 </div>
+                </> 
+                )} {/* end non-Guest Event checklist */}
                 </>
                 )}
               </>
@@ -912,7 +925,11 @@ export default function EventDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <EventGuestPanel eventId={eventId} />
+                <EventGuestPanel 
+                  eventId={eventId} 
+                  eventType={event?.event_type}
+                  isHeld={event?.event_status === "Held"}
+                />
               </CardContent>
             </Card>
 
