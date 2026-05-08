@@ -916,6 +916,50 @@ export default function EventDetail() {
           {/* ── Tab 4: Guests & Orders ── */}
           <TabsContent value="guests" className="mt-4 space-y-4">
 
+            {/* Event Tasks — shown in Guests tab for Guest Events */}
+            {event?.event_type === "Guest Event" && eventTasks.length > 0 && (
+              <Card className="border-border/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ClipboardCheck className="w-4 h-4 text-primary" />
+                      Event Tasks
+                    </CardTitle>
+                    <span className="text-xs text-muted-foreground">
+                      {eventTasks.filter(t => t.is_completed).length}/{eventTasks.length} done
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="divide-y divide-border">
+                    {eventTasks.map((task) => (
+                      <label key={task.id} className={cn(
+                        "flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors",
+                        task.is_completed && "opacity-50"
+                      )}>
+                        <Checkbox
+                          checked={task.is_completed}
+                          onCheckedChange={() => handleCompleteTask(task.id)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("text-sm", task.is_completed && "line-through text-muted-foreground")}>
+                            {task.task_name}
+                          </p>
+                          {task.due_date && (
+                            <p className={cn("text-[10px]",
+                              task.due_date < toLocalDateKey() && !task.is_completed ? "text-destructive" : "text-muted-foreground"
+                            )}>
+                              Due {formatDateOnly(task.due_date, "MMM d")}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Guest Panel */}
             <Card className="border-border/50">
               <CardHeader className="pb-2">
