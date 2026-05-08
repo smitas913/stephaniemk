@@ -1405,52 +1405,6 @@ function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToPro
         </ScrollArea>
       </SheetContent>
     </Sheet>
-
-    {/* Guest Event Picker Dialog */}
-    <Dialog open={showEventPicker} onOpenChange={(o) => { if (!o) { setShowEventPicker(false); handleClose(); }}}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-base">Which event is {item.name} coming to?</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 max-h-72 overflow-y-auto">
-          {upcomingEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No upcoming Guest Events found. Create one first from the Events page.</p>
-          ) : (
-            upcomingEvents.map((e: any) => (
-              <button key={e.id}
-                className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                onClick={async () => {
-                  try {
-                    const userId = (await supabase.auth.getUser()).data.user?.id;
-                    await supabase.from("event_guests" as any).insert({
-                      event_id: e.event_id,
-                      name: item.name,
-                      phone: item.phone || null,
-                      owner_user_id: userId,
-                      attending: false,
-                    } as any);
-                    const newCount = (e.guest_count || 0) + 1;
-                    await supabase.from("events" as any).update({ guest_count: newCount } as any).eq("event_id", e.event_id);
-                  } catch {}
-                  setShowEventPicker(false);
-                  handleClose();
-                }}>
-                <p className="text-sm font-medium text-foreground">{e.hostess_name || e.event_id}</p>
-                <p className="text-xs text-muted-foreground">{e.event_type} · {formatDateOnly(e.event_date, "MMM d, yyyy")}</p>
-              </button>
-            ))
-          )}
-        </div>
-        <Button variant="outline" size="sm" className="w-full" onClick={() => {
-          setShowEventPicker(false);
-          handleClose();
-          navigate(`/events/new?type=Guest Event&hostess=${encodeURIComponent(item.name || "")}&from=${encodeURIComponent(window.location.pathname)}`);
-        }}>
-          + Create a new Guest Event instead
-        </Button>
-      </DialogContent>
-    </Dialog>
-    </>
   );
 }
 
