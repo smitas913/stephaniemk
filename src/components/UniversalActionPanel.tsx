@@ -976,7 +976,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
         <Button variant="outline" size="sm" className="w-full" onClick={() => {
           setShowEventPicker(false);
           handleClose();
-          navigate(`/events/new?type=Guest Event&hostess=${encodeURIComponent(item.name || "")}&from=${encodeURIComponent(window.location.pathname)}`);
+          navigate(`/events/new?type=Guest Event&hostess=${encodeURIComponent(item.name || '')}&phone=${encodeURIComponent(item.phone || '')}&from=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         }}>
           + Create a new Guest Event instead
         </Button>
