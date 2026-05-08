@@ -1120,7 +1120,6 @@ function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToPro
   const resolvedCategory = resolveIntentCategory(selectedReason);
 
   return (
-    <>
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] flex flex-col pb-safe p-0">
         <SheetHeader className="px-5 pt-5 pb-3">
