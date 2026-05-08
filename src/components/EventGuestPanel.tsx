@@ -320,6 +320,24 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                       </TableCell>
                     )}
                     <TableCell className="py-1.5">
+                      <div className="flex items-center justify-center gap-2">
+                        <label className="flex items-center gap-1 cursor-pointer" title="Invite sent">
+                          <Checkbox
+                            checked={(g as any).task_invite_sent || false}
+                            onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { task_invite_sent: !!v } as any })}
+                          />
+                          <span className="text-[10px]">📨</span>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer" title="Day-before text sent">
+                          <Checkbox
+                            checked={(g as any).task_day_before_sent || false}
+                            onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { task_day_before_sent: !!v } as any })}
+                          />
+                          <span className="text-[10px]">🎉</span>
+                        </label>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-1.5">
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         {!g.converted_customer_id && (
                           <Button variant="ghost" size="icon" className="h-6 w-6" title="Convert to customer"
