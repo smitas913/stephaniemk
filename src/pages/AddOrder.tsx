@@ -1274,7 +1274,18 @@ export default function AddOrder() {
             <input
               type="checkbox"
               checked={isSkincareCustomer}
-              onChange={e => setIsSkincareCustomer(e.target.checked)}
+              onChange={e => {
+                if (e.target.checked) {
+                  if (!originalSkincare) {
+                    setSkincarePromptOpen(true);
+                    return;
+                  }
+                  setIsSkincareCustomer(true);
+                } else {
+                  setIsSkincareCustomer(false);
+                  setSkincareIsNewConversion(null);
+                }
+              }}
               className="mt-0.5 rounded border-border"
             />
             <span className="text-sm">
