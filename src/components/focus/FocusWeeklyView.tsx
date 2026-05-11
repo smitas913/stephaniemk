@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { format, startOfWeek, addDays } from "date-fns";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { Progress } from "@/components/ui/progress";
+import SalesRevenueTile from "@/components/focus/SalesRevenueTile";
 import type { FocusItemConfig, DayType } from "@/hooks/useFocusItems";
 import { DEFAULT_DAY_TYPE_TARGETS } from "@/hooks/useFocusItems";
 
@@ -104,6 +105,7 @@ export default function FocusWeeklyView({ configs, weekData, onDayClick, weekSta
             </div>
           );
         })}
+        <SalesRevenueTile selectedDate={weekStartKey} compact />
       </div>
     </div>
   );
