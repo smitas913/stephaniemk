@@ -950,6 +950,19 @@ export default function CustomerDetail() {
           onChoose={applySkipChoice}
         />
 
+        <SkincareConversionDialog
+          open={skincarePromptOpen}
+          onOpenChange={setSkincarePromptOpen}
+          onChoose={(isNew) => {
+            setSkincareIsNewConversion(isNew);
+            setForm((f) => ({ ...f, is_skincare_customer: "true" } as any));
+          }}
+          onCancel={() => {
+            setSkincareIsNewConversion(null);
+            setForm((f) => ({ ...f, is_skincare_customer: "false" } as any));
+          }}
+        />
+
         {/* Edit Note Dialog */}
         <Dialog open={!!editNote} onOpenChange={(o) => { if (!o) setEditNote(null); }}>
           <DialogContent className="max-w-md">
