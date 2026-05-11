@@ -105,7 +105,7 @@ export default function FocusWeeklyView({ configs, weekData, onDayClick, weekSta
             </div>
           );
         })}
-        <SalesRevenueTile selectedDate={weekStartKey} compact />
+        <SalesRevenueTile selectedDate={weekStartKey} compact showWeekly />
       </div>
     </div>
   );
