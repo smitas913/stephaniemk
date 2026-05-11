@@ -24,6 +24,7 @@ import { toast } from "sonner";
 interface SalesRevenueTileProps {
   selectedDate: string;
   compact?: boolean;
+  showWeekly?: boolean;
 }
 
 const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
@@ -38,7 +39,7 @@ const fmt = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
  *
  * Daily target = Baseline ÷ 28; Weekly = Baseline ÷ 4.
  */
-export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenueTileProps) {
+export default function SalesRevenueTile({ selectedDate, compact, showWeekly }: SalesRevenueTileProps) {
   const qc = useQueryClient();
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: businessGoals = [] } = useQuery({ queryKey: ["business-goals"], queryFn: fetchBusinessGoals });
@@ -162,8 +163,8 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
   }, 0);
 
   const hasGoal = baseline > 0;
-  const displaySales = compact ? weeklySales : todaySales;
-  const displayTarget = compact ? weeklyTarget : dailyTarget;
+  const displaySales = showWeekly ? weeklySales : todaySales;
+  const displayTarget = showWeekly ? weeklyTarget : dailyTarget;
   const pct = hasGoal ? Math.round((displaySales / displayTarget) * 100) : 0;
   const onTrack = hasGoal && displaySales >= displayTarget;
   const numberColor = onTrack ? "text-green-600" : "text-foreground";
