@@ -39,6 +39,7 @@ import { BookOpen } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import BeautyNotesCard from "@/components/BeautyNotesCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
+import SkincareConversionDialog from "@/components/SkincareConversionDialog";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -118,6 +119,9 @@ export default function CustomerDetail() {
     onError: (err: any) => toast.error(err?.message || "Failed to delete note"),
   });
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
+  const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
+  // null = unchanged from saved record; true/false = user just toggled and chose conversion type
+  const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
   useEffect(() => {
     if (customer) {
       setForm({
@@ -357,6 +361,15 @@ export default function CustomerDetail() {
         } else {
           cleaned[k] = v === "" ? null : v;
         }
+      }
+      // Skincare conversion handling: only stamp skincare_started_at when user
+      // explicitly confirmed this is a new conversion. "Already a customer" leaves it null.
+      const wasSkincare = !!(customer as any)?.is_skincare_customer;
+      const willBeSkincare = cleaned.is_skincare_customer === true;
+      if (willBeSkincare && !wasSkincare) {
+        cleaned.skincare_started_at = skincareIsNewConversion === true ? toLocalDateKey() : null;
+      } else if (!willBeSkincare && wasSkincare) {
+        cleaned.skincare_started_at = null;
       }
       // Birthday: accept MM/DD, MM/DD/YYYY, M/D, M/D/YYYY, or YYYY-MM-DD.
       const raw = (data.birthday_input || "").trim();
@@ -659,7 +672,20 @@ export default function CustomerDetail() {
                     <div className="flex items-center gap-2 h-9">
                       <Checkbox
                         checked={(form as any).is_skincare_customer === "true"}
-                        onCheckedChange={(checked) => setForm({ ...form, is_skincare_customer: checked ? "true" : "false" } as any)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const wasSkincare = !!(customer as any)?.is_skincare_customer;
+                            if (!wasSkincare) {
+                              // First-time check on this record — ask about conversion intent
+                              setSkincarePromptOpen(true);
+                              return;
+                            }
+                            setForm({ ...form, is_skincare_customer: "true" } as any);
+                          } else {
+                            setSkincareIsNewConversion(null);
+                            setForm({ ...form, is_skincare_customer: "false" } as any);
+                          }
+                        }}
                       />
                       <span className="text-sm text-muted-foreground">On skincare regimen</span>
                     </div>
@@ -922,6 +948,19 @@ export default function CustomerDetail() {
           personName={customer?.full_name}
           allowPcp
           onChoose={applySkipChoice}
+        />
+
+        <SkincareConversionDialog
+          open={skincarePromptOpen}
+          onOpenChange={setSkincarePromptOpen}
+          onChoose={(isNew) => {
+            setSkincareIsNewConversion(isNew);
+            setForm((f) => ({ ...f, is_skincare_customer: "true" } as any));
+          }}
+          onCancel={() => {
+            setSkincareIsNewConversion(null);
+            setForm((f) => ({ ...f, is_skincare_customer: "false" } as any));
+          }}
         />
 
         {/* Edit Note Dialog */}

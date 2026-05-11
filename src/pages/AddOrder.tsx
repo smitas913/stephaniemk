@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import AddEventDialog from "@/components/AddEventDialog";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
+import SkincareConversionDialog from "@/components/SkincareConversionDialog";
 import { useQuery as useRQ } from "@tanstack/react-query";
 import { fetchFinancialSettings, computeOrderFinancials, getProcessorFee, type CcTransactionType } from "@/lib/financialSettings";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -88,6 +89,9 @@ export default function AddOrder() {
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string; pendingNav: boolean } | null>(null);
   
   const [isSkincareCustomer, setIsSkincareCustomer] = useState(false);
+  const [originalSkincare, setOriginalSkincare] = useState(false);
+  const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
+  const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
   const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
   const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
@@ -163,10 +167,15 @@ export default function AddOrder() {
       const c = customers.find(c => c.id === customerId);
       if (c) {
         setCustomerName(c.full_name);
-        setIsSkincareCustomer(!!(c as any).is_skincare_customer);
+        const sc = !!(c as any).is_skincare_customer;
+        setIsSkincareCustomer(sc);
+        setOriginalSkincare(sc);
+        setSkincareIsNewConversion(null);
       }
     } else {
       setIsSkincareCustomer(false);
+      setOriginalSkincare(false);
+      setSkincareIsNewConversion(null);
     }
   }, [customerId, customers]);
 
@@ -514,7 +523,11 @@ export default function AddOrder() {
 
       if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
         try {
-          await supabase.from("customers").update({ is_skincare_customer: true }).eq("id", resolvedCustomerId);
+          const update: any = { is_skincare_customer: true };
+          if (!originalSkincare) {
+            update.skincare_started_at = skincareIsNewConversion === true ? toLocalDateKey() : null;
+          }
+          await supabase.from("customers").update(update).eq("id", resolvedCustomerId);
         } catch (e) { console.error("Failed to update skincare flag", e); }
       }
 
@@ -1265,7 +1278,18 @@ export default function AddOrder() {
             <input
               type="checkbox"
               checked={isSkincareCustomer}
-              onChange={e => setIsSkincareCustomer(e.target.checked)}
+              onChange={e => {
+                if (e.target.checked) {
+                  if (!originalSkincare) {
+                    setSkincarePromptOpen(true);
+                    return;
+                  }
+                  setIsSkincareCustomer(true);
+                } else {
+                  setIsSkincareCustomer(false);
+                  setSkincareIsNewConversion(null);
+                }
+              }}
               className="mt-0.5 rounded border-border"
             />
             <span className="text-sm">
@@ -1487,6 +1511,19 @@ export default function AddOrder() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SkincareConversionDialog
+        open={skincarePromptOpen}
+        onOpenChange={setSkincarePromptOpen}
+        onChoose={(isNew) => {
+          setSkincareIsNewConversion(isNew);
+          setIsSkincareCustomer(true);
+        }}
+        onCancel={() => {
+          setSkincareIsNewConversion(null);
+          setIsSkincareCustomer(false);
+        }}
+      />
     </Layout>
   );
 }

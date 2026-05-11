@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_stamp_skincare_started_at ON public.customers;
