@@ -77,13 +77,27 @@ export default function TodoListCard() {
     const target = todos.find((t) => t.id === id);
     if (!target || id.startsWith("temp-") || !user) return;
     const nextDone = !target.done;
+    console.log("[TodoListCard] Attempting to update task with ID:", id);
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    console.log("[TodoListCard] Current user session/auth state:", {
+      hookUserId: user.id,
+      hookUserEmail: user.email,
+      sessionUserId: sessionData.session?.user?.id ?? null,
+      sessionUserEmail: sessionData.session?.user?.email ?? null,
+      hasSession: Boolean(sessionData.session),
+      hasAccessToken: Boolean(sessionData.session?.access_token),
+      expiresAt: sessionData.session?.expires_at ?? null,
+      sessionError,
+    });
     setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: nextDone } : t)));
-    const { data, error } = await supabase
+    const response = await supabase
       .from("todos")
       .update({ done: nextDone, updated_at: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", user.id)
       .select("id, done");
+    console.log("[TodoListCard] Supabase update response:", response);
+    const { data, error } = response;
     if (error || !data || data.length === 0) {
       console.error("Failed to toggle todo:", { id, error, data });
       setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: !nextDone } : t)));
