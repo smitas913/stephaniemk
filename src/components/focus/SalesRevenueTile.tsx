@@ -162,8 +162,10 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
   }, 0);
 
   const hasGoal = baseline > 0;
-  const pct = hasGoal ? Math.round((todaySales / dailyTarget) * 100) : 0;
-  const onTrack = hasGoal && todaySales >= dailyTarget;
+  const displaySales = compact ? weeklySales : todaySales;
+  const displayTarget = compact ? weeklyTarget : dailyTarget;
+  const pct = hasGoal ? Math.round((displaySales / displayTarget) * 100) : 0;
+  const onTrack = hasGoal && displaySales >= displayTarget;
   const numberColor = onTrack ? "text-green-600" : "text-foreground";
   const barColor = onTrack ? "[&>div]:bg-green-500" : "[&>div]:bg-primary";
 
@@ -277,9 +279,9 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className={cn("text-base font-bold tabular-nums", numberColor)}>
-                {fmt(todaySales)}{" "}
+                {fmt(displaySales)}{" "}
                 <span className="text-muted-foreground font-normal text-xs">
-                  / {hasGoal ? fmt(dailyTarget) : "—"}
+                  / {hasGoal ? fmt(displayTarget) : "—"}
                 </span>
               </span>
               <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
