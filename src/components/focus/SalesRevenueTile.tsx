@@ -162,8 +162,10 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
   }, 0);
 
   const hasGoal = baseline > 0;
-  const pct = hasGoal ? Math.round((todaySales / dailyTarget) * 100) : 0;
-  const onTrack = hasGoal && todaySales >= dailyTarget;
+  const displaySales = compact ? weeklySales : todaySales;
+  const displayTarget = compact ? weeklyTarget : dailyTarget;
+  const pct = hasGoal ? Math.round((displaySales / displayTarget) * 100) : 0;
+  const onTrack = hasGoal && displaySales >= displayTarget;
   const numberColor = onTrack ? "text-green-600" : "text-foreground";
   const barColor = onTrack ? "[&>div]:bg-green-500" : "[&>div]:bg-primary";
 
