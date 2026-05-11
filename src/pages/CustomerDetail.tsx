@@ -39,6 +39,7 @@ import { BookOpen } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import BeautyNotesCard from "@/components/BeautyNotesCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
+import SkincareConversionDialog from "@/components/SkincareConversionDialog";
 
 function FormField({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
