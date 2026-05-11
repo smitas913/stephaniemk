@@ -167,10 +167,15 @@ export default function AddOrder() {
       const c = customers.find(c => c.id === customerId);
       if (c) {
         setCustomerName(c.full_name);
-        setIsSkincareCustomer(!!(c as any).is_skincare_customer);
+        const sc = !!(c as any).is_skincare_customer;
+        setIsSkincareCustomer(sc);
+        setOriginalSkincare(sc);
+        setSkincareIsNewConversion(null);
       }
     } else {
       setIsSkincareCustomer(false);
+      setOriginalSkincare(false);
+      setSkincareIsNewConversion(null);
     }
   }, [customerId, customers]);
 
