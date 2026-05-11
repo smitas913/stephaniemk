@@ -1511,6 +1511,19 @@ export default function AddOrder() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SkincareConversionDialog
+        open={skincarePromptOpen}
+        onOpenChange={setSkincarePromptOpen}
+        onChoose={(isNew) => {
+          setSkincareIsNewConversion(isNew);
+          setIsSkincareCustomer(true);
+        }}
+        onCancel={() => {
+          setSkincareIsNewConversion(null);
+          setIsSkincareCustomer(false);
+        }}
+      />
     </Layout>
   );
 }
