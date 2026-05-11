@@ -362,6 +362,15 @@ export default function CustomerDetail() {
           cleaned[k] = v === "" ? null : v;
         }
       }
+      // Skincare conversion handling: only stamp skincare_started_at when user
+      // explicitly confirmed this is a new conversion. "Already a customer" leaves it null.
+      const wasSkincare = !!(customer as any)?.is_skincare_customer;
+      const willBeSkincare = cleaned.is_skincare_customer === true;
+      if (willBeSkincare && !wasSkincare) {
+        cleaned.skincare_started_at = skincareIsNewConversion === true ? toLocalDateKey() : null;
+      } else if (!willBeSkincare && wasSkincare) {
+        cleaned.skincare_started_at = null;
+      }
       // Birthday: accept MM/DD, MM/DD/YYYY, M/D, M/D/YYYY, or YYYY-MM-DD.
       const raw = (data.birthday_input || "").trim();
       if (!raw) {
