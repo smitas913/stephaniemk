@@ -663,7 +663,20 @@ export default function CustomerDetail() {
                     <div className="flex items-center gap-2 h-9">
                       <Checkbox
                         checked={(form as any).is_skincare_customer === "true"}
-                        onCheckedChange={(checked) => setForm({ ...form, is_skincare_customer: checked ? "true" : "false" } as any)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const wasSkincare = !!(customer as any)?.is_skincare_customer;
+                            if (!wasSkincare) {
+                              // First-time check on this record — ask about conversion intent
+                              setSkincarePromptOpen(true);
+                              return;
+                            }
+                            setForm({ ...form, is_skincare_customer: "true" } as any);
+                          } else {
+                            setSkincareIsNewConversion(null);
+                            setForm({ ...form, is_skincare_customer: "false" } as any);
+                          }
+                        }}
                       />
                       <span className="text-sm text-muted-foreground">On skincare regimen</span>
                     </div>
