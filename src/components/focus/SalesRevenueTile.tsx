@@ -279,9 +279,9 @@ export default function SalesRevenueTile({ selectedDate, compact }: SalesRevenue
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className={cn("text-base font-bold tabular-nums", numberColor)}>
-                {fmt(todaySales)}{" "}
+                {fmt(displaySales)}{" "}
                 <span className="text-muted-foreground font-normal text-xs">
-                  / {hasGoal ? fmt(dailyTarget) : "—"}
+                  / {hasGoal ? fmt(displayTarget) : "—"}
                 </span>
               </span>
               <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
