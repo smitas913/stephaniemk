@@ -192,6 +192,7 @@ function TodoRow({
         aria-label={todo.done ? "Mark incomplete" : "Mark complete"}
       />
       <p
+        title={todo.text}
         className={cn(
           "flex-1 text-xs text-foreground leading-tight line-clamp-2",
           todo.done && "line-through text-muted-foreground",
