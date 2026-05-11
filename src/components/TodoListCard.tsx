@@ -75,13 +75,23 @@ export default function TodoListCard() {
 
   const toggleTodo = async (id: string) => {
     const target = todos.find((t) => t.id === id);
-    if (!target || id.startsWith("temp-")) return;
+    if (!target || id.startsWith("temp-") || !user) return;
     const nextDone = !target.done;
     setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: nextDone } : t)));
-    const { error } = await supabase.from("todos").update({ done: nextDone }).eq("id", id);
-    if (error) {
+    const { data, error } = await supabase
+      .from("todos")
+      .update({ done: nextDone, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("id, done");
+    if (error || !data || data.length === 0) {
+      console.error("Failed to toggle todo:", { id, error, data });
       setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: !nextDone } : t)));
-      toast({ title: "Couldn't update task", variant: "destructive" });
+      toast({
+        title: "Couldn't update task",
+        description: error?.message || "Task not found or no permission to update.",
+        variant: "destructive",
+      });
     }
   };
 
