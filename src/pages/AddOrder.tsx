@@ -523,7 +523,11 @@ export default function AddOrder() {
 
       if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
         try {
-          await supabase.from("customers").update({ is_skincare_customer: true }).eq("id", resolvedCustomerId);
+          const update: any = { is_skincare_customer: true };
+          if (!originalSkincare) {
+            update.skincare_started_at = skincareIsNewConversion === true ? toLocalDateKey() : null;
+          }
+          await supabase.from("customers").update(update).eq("id", resolvedCustomerId);
         } catch (e) { console.error("Failed to update skincare flag", e); }
       }
 
