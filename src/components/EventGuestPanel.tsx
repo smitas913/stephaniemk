@@ -387,13 +387,16 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1.5">{formatPhone(g.phone)}</TableCell>
                     <TableCell className="py-1.5">
-                      <Select value={g.rsvp || "Maybe"} onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}>
-                        <SelectTrigger className="h-6 text-[10px] w-16"><SelectValue /></SelectTrigger>
+                      <Select value={g.rsvp || "Invited"} onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}>
+                        <SelectTrigger className={cn(
+                          "h-6 text-[10px] w-20",
+                          (g.rsvp || "Invited") === "Invited" && "bg-muted text-muted-foreground border-muted"
+                        )}><SelectValue /></SelectTrigger>
                         <SelectContent>{RSVP_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="text-center py-1.5">
-                      <Checkbox checked={g.attending} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { attending: !!v } })} />
+                      <Checkbox checked={g.attending} onCheckedChange={(v) => handleAttendedToggle(g, !!v)} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <Checkbox checked={g.ordered} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { ordered: !!v } })} />
