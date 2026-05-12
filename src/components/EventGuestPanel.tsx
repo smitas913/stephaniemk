@@ -119,7 +119,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -144,14 +144,35 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success(`${customer.full_name} added as customer`);
-      navigate(`/orders/new?customer=${customer.id}`);
     },
     onError: (err: any) => toast.error(err.message || "Failed to convert"),
   });
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addMutation.mutate({ event_id: eventId, name: name.trim(), phone: phone.trim() || null });
+    addMutation.mutate({
+      event_id: eventId,
+      name: name.trim(),
+      phone: phone.trim() || null,
+      rsvp: "Invited",
+      converted_customer_id: linkedCustomerId,
+    });
+  };
+
+  const handleSelectSuggestion = (s: GuestSuggestion) => {
+    setName(s.name);
+    if (s.phone) setPhone(s.phone);
+    setLinkedCustomerId(s.kind === "customer" ? s.id : null);
+    setSuggestions([]);
+    setComboOpen(false);
+  };
+
+  const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
+    const updates: Partial<EventGuest> = { attending: checked };
+    if (checked && (g.rsvp === "Invited" || !g.rsvp)) {
+      (updates as any).rsvp = "Yes";
+    }
+    updateMutation.mutate({ id: g.id, updates });
   };
 
   const handleOutcomeConfirm = async () => {
