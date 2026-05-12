@@ -260,8 +260,43 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
 
       {showForm && (
         <div className="flex gap-2">
-          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)}
-            className="h-7 text-xs flex-1" autoFocus onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Popover open={comboOpen && suggestions.length > 0} onOpenChange={setComboOpen}>
+            <PopoverTrigger asChild>
+              <Input
+                placeholder="Name (type to search)"
+                value={name}
+                onChange={(e) => { setName(e.target.value); setLinkedCustomerId(null); setComboOpen(true); }}
+                onFocus={() => setComboOpen(true)}
+                className="h-7 text-xs flex-1"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") { handleAdd(); } }}
+              />
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[280px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <Command shouldFilter={false}>
+                <CommandList>
+                  <CommandEmpty>No matches — will be added as new guest.</CommandEmpty>
+                  {suggestions.length > 0 && (
+                    <CommandGroup heading="Matches">
+                      {suggestions.map((s) => (
+                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => handleSelectSuggestion(s)}>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium">
+                              {s.name}
+                              <span className="ml-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">{s.kind}</span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {s.phone ? formatPhone(s.phone) : s.email || "—"}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-7 text-xs w-32" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
