@@ -291,6 +291,11 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
               <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                 Tasks: {contactedCount}/{guests.length} contacted
               </span>
+              {isHeld && (
+                <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                  Thank you: {thankYouCount}/{guests.length} sent
+                </span>
+              )}
             </div>
           )}
         </div>
