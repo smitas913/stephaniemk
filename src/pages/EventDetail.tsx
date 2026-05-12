@@ -190,10 +190,22 @@ export default function EventDetail() {
       future_bookings_count: parseInt(completionData.bookings) || 0,
       sharing_appointments_count: parseInt(completionData.sharings) || 0,
     } as any);
-    // Auto-add thank you notes to MIT list
+    // Auto-add thank you notes to MIT list (skip if one already exists for this event)
     if (pendingStatus === "Held" && event.hostess_name) {
-      const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"}`;
-      await createTodoForToday(todoText);
+      const token = `[${event.event_id}]`;
+      const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (userId) {
+        const { data: existing } = await supabase
+          .from("todos" as any)
+          .select("id")
+          .eq("user_id", userId)
+          .ilike("text", `%${token}%`)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await createTodoForToday(todoText);
+        }
+      }
     }
     setShowCompletionDialog(false);
     setPendingStatus(null);
