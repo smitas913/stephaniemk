@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, convertGuestToCustomer, updateEventGuest, createBookingLead } from "@/lib/queries";
 import { RSVP_OPTIONS } from "@/lib/types";
@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash2, ArrowRightLeft, Plus, Mail } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Trash2, ArrowRightLeft, Plus, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +24,7 @@ interface Props {
   eventId: string;
   eventType?: string;
   isHeld?: boolean;
+  eventDate?: string | null;
 }
 
 const GUEST_OUTCOMES = [
@@ -36,18 +39,53 @@ const NO_SHOW_OPTIONS = [
   { value: "no_action", label: "No action needed" },
 ];
 
-export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
+type GuestSuggestion = {
+  kind: "customer" | "consultant";
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+};
+
+export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
+  const [comboOpen, setComboOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
   const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
   const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
   const [noShowAction, setNoShowAction] = useState("");
 
   const isGuestEvent = eventType === "Guest Event";
+  const isPostEvent = useMemo(() => {
+    if (!eventDate) return false;
+    return eventDate < toLocalDateKey(new Date());
+  }, [eventDate]);
+
+  // Autocomplete: search customers + consultants by name
+  useEffect(() => {
+    const q = name.trim();
+    if (!showForm || q.length < 2) { setSuggestions([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const [{ data: cust }, { data: cons }] = await Promise.all([
+        supabase.from("customers").select("id, full_name, phone, email").ilike("full_name", `%${q}%`).limit(6),
+        supabase.from("team_consultants").select("id, name, phone, email").ilike("name", `%${q}%`).limit(4),
+      ]);
+      if (cancelled) return;
+      const items: GuestSuggestion[] = [
+        ...(cust || []).map((c: any) => ({ kind: "customer" as const, id: c.id, name: c.full_name, phone: c.phone, email: c.email })),
+        ...(cons || []).map((c: any) => ({ kind: "consultant" as const, id: c.id, name: c.name, phone: c.phone, email: c.email })),
+      ];
+      setSuggestions(items);
+    }, 200);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [name, showForm]);
 
   const { data: guests = [] } = useQuery({
     queryKey: ["event-guests", eventId],
