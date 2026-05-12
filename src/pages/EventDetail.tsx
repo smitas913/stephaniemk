@@ -929,6 +929,7 @@ export default function EventDetail() {
                   eventId={eventId} 
                   eventType={event?.event_type}
                   isHeld={event?.event_status === "Held"}
+                  eventDate={event?.event_date}
                 />
               </CardContent>
             </Card>

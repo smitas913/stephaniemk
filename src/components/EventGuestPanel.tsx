@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, convertGuestToCustomer, updateEventGuest, createBookingLead } from "@/lib/queries";
 import { RSVP_OPTIONS } from "@/lib/types";
@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash2, ArrowRightLeft, Plus, Mail } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Trash2, ArrowRightLeft, Plus, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +24,7 @@ interface Props {
   eventId: string;
   eventType?: string;
   isHeld?: boolean;
+  eventDate?: string | null;
 }
 
 const GUEST_OUTCOMES = [
@@ -36,18 +39,53 @@ const NO_SHOW_OPTIONS = [
   { value: "no_action", label: "No action needed" },
 ];
 
-export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
+type GuestSuggestion = {
+  kind: "customer" | "consultant";
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+};
+
+export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
+  const [comboOpen, setComboOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
   const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
   const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
   const [noShowAction, setNoShowAction] = useState("");
 
   const isGuestEvent = eventType === "Guest Event";
+  const isPostEvent = useMemo(() => {
+    if (!eventDate) return false;
+    return eventDate < toLocalDateKey(new Date());
+  }, [eventDate]);
+
+  // Autocomplete: search customers + consultants by name
+  useEffect(() => {
+    const q = name.trim();
+    if (!showForm || q.length < 2) { setSuggestions([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const [{ data: cust }, { data: cons }] = await Promise.all([
+        supabase.from("customers").select("id, full_name, phone, email").ilike("full_name", `%${q}%`).limit(6),
+        supabase.from("team_consultants").select("id, name, phone, email").ilike("name", `%${q}%`).limit(4),
+      ]);
+      if (cancelled) return;
+      const items: GuestSuggestion[] = [
+        ...(cust || []).map((c: any) => ({ kind: "customer" as const, id: c.id, name: c.full_name, phone: c.phone, email: c.email })),
+        ...(cons || []).map((c: any) => ({ kind: "consultant" as const, id: c.id, name: c.name, phone: c.phone, email: c.email })),
+      ];
+      setSuggestions(items);
+    }, 200);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [name, showForm]);
 
   const { data: guests = [] } = useQuery({
     queryKey: ["event-guests", eventId],
@@ -81,7 +119,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -106,14 +144,35 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success(`${customer.full_name} added as customer`);
-      navigate(`/orders/new?customer=${customer.id}`);
     },
     onError: (err: any) => toast.error(err.message || "Failed to convert"),
   });
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addMutation.mutate({ event_id: eventId, name: name.trim(), phone: phone.trim() || null });
+    addMutation.mutate({
+      event_id: eventId,
+      name: name.trim(),
+      phone: phone.trim() || null,
+      rsvp: "Invited",
+      converted_customer_id: linkedCustomerId,
+    });
+  };
+
+  const handleSelectSuggestion = (s: GuestSuggestion) => {
+    setName(s.name);
+    if (s.phone) setPhone(s.phone);
+    setLinkedCustomerId(s.kind === "customer" ? s.id : null);
+    setSuggestions([]);
+    setComboOpen(false);
+  };
+
+  const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
+    const updates: Partial<EventGuest> = { attending: checked };
+    if (checked && (g.rsvp === "Invited" || !g.rsvp)) {
+      (updates as any).rsvp = "Yes";
+    }
+    updateMutation.mutate({ id: g.id, updates });
   };
 
   const handleOutcomeConfirm = async () => {
@@ -201,8 +260,43 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
 
       {showForm && (
         <div className="flex gap-2">
-          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)}
-            className="h-7 text-xs flex-1" autoFocus onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Popover open={comboOpen && suggestions.length > 0} onOpenChange={setComboOpen}>
+            <PopoverTrigger asChild>
+              <Input
+                placeholder="Name (type to search)"
+                value={name}
+                onChange={(e) => { setName(e.target.value); setLinkedCustomerId(null); setComboOpen(true); }}
+                onFocus={() => setComboOpen(true)}
+                className="h-7 text-xs flex-1"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") { handleAdd(); } }}
+              />
+            </PopoverTrigger>
+            <PopoverContent className="p-0 w-[280px]" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <Command shouldFilter={false}>
+                <CommandList>
+                  <CommandEmpty>No matches — will be added as new guest.</CommandEmpty>
+                  {suggestions.length > 0 && (
+                    <CommandGroup heading="Matches">
+                      {suggestions.map((s) => (
+                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => handleSelectSuggestion(s)}>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium">
+                              {s.name}
+                              <span className="ml-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">{s.kind}</span>
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {s.phone ? formatPhone(s.phone) : s.email || "—"}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-7 text-xs w-32" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
@@ -287,19 +381,28 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                       <div className="flex items-center gap-1.5">
                         {g.name}
                         {g.converted_customer_id && (
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-accent text-accent-foreground font-medium">Customer</span>
+                          <Link
+                            to={`/customers/${g.converted_customer_id}`}
+                            className="text-[9px] px-1 py-0.5 rounded bg-primary/10 text-primary font-medium hover:bg-primary/20"
+                            title="View customer profile"
+                          >
+                            Customer ✓
+                          </Link>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1.5">{formatPhone(g.phone)}</TableCell>
                     <TableCell className="py-1.5">
-                      <Select value={g.rsvp || "Maybe"} onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}>
-                        <SelectTrigger className="h-6 text-[10px] w-16"><SelectValue /></SelectTrigger>
+                      <Select value={g.rsvp || "Invited"} onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}>
+                        <SelectTrigger className={cn(
+                          "h-6 text-[10px] w-20",
+                          (g.rsvp || "Invited") === "Invited" && "bg-muted text-muted-foreground border-muted"
+                        )}><SelectValue /></SelectTrigger>
                         <SelectContent>{RSVP_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="text-center py-1.5">
-                      <Checkbox checked={g.attending} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { attending: !!v } })} />
+                      <Checkbox checked={g.attending} onCheckedChange={(v) => handleAttendedToggle(g, !!v)} />
                     </TableCell>
                     <TableCell className="text-center py-1.5">
                       <Checkbox checked={g.ordered} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { ordered: !!v } })} />
@@ -338,11 +441,24 @@ export default function EventGuestPanel({ eventId, eventType, isHeld }: Props) {
                       </div>
                     </TableCell>
                     <TableCell className="py-1.5">
-                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className={cn(
+                        "flex gap-0.5 transition-opacity",
+                        isPostEvent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}>
                         {!g.converted_customer_id && (
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Convert to customer"
-                            onClick={() => convertMutation.mutate(g)} disabled={convertMutation.isPending}>
-                            <ArrowRightLeft className="w-3 h-3 text-primary" />
+                          <Button
+                            variant={isPostEvent ? "outline" : "ghost"}
+                            size={isPostEvent ? "sm" : "icon"}
+                            className={isPostEvent ? "h-6 px-2 text-[10px]" : "h-6 w-6"}
+                            title="Convert to customer"
+                            onClick={() => convertMutation.mutate(g)}
+                            disabled={convertMutation.isPending}
+                          >
+                            {isPostEvent ? (
+                              <><UserPlus className="w-3 h-3 mr-1 text-primary" />Convert</>
+                            ) : (
+                              <ArrowRightLeft className="w-3 h-3 text-primary" />
+                            )}
                           </Button>
                         )}
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Remove"
