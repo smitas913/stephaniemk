@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, convertGuestToCustomer, updateEventGuest, createBookingLead } from "@/lib/queries";
 import { RSVP_OPTIONS } from "@/lib/types";
@@ -92,28 +92,68 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     queryFn: () => fetchEventGuests(eventId),
   });
 
-  // Auto-complete MIT thank you task when all guests checked off
+  // Master "Thank you notes" todo for this event — bidirectional sync with guest checkboxes
+  const [masterTodo, setMasterTodo] = useState<{ id: string; done: boolean } | null>(null);
+  const lastMasterDone = useRef<boolean | null>(null);
+  const tokenStr = `[${eventId}]`;
+
+  const reloadMasterTodo = async () => {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) return;
+    const { data } = await supabase
+      .from("todos" as any)
+      .select("id, done, created_at")
+      .eq("user_id", userId)
+      .ilike("text", `%${tokenStr}%`)
+      .order("created_at", { ascending: true });
+    const rows = (data as any[]) || [];
+    if (rows.length > 1) {
+      // De-dupe: keep oldest, delete the rest
+      const dupeIds = rows.slice(1).map((r) => r.id);
+      await supabase.from("todos" as any).delete().in("id", dupeIds);
+    }
+    setMasterTodo(rows[0] ? { id: rows[0].id, done: !!rows[0].done } : null);
+  };
+
   useEffect(() => {
-    if (!isHeld || guests.length === 0) return;
-    const allSent = guests.every(g => g.thank_you_sent);
-    if (!allSent) return;
-    // Find and complete the thank you MIT todo
-    const completeThankyouTodo = async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) return;
-      const { data: todos } = await supabase
-        .from("todos" as any)
-        .select("id, text, done")
-        .eq("user_id", userId)
-        .eq("done", false)
-        .ilike("text", "Thank you notes%");
-      if (todos && todos.length > 0) {
-        await supabase.from("todos" as any).update({ done: true } as any).eq("id", (todos[0] as any).id);
-        toast.success("All thank you notes sent! MIT task completed ✅");
+    reloadMasterTodo();
+    const i = setInterval(reloadMasterTodo, 6000);
+    return () => clearInterval(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
+
+  // Master → guests: when master `done` changes externally, mirror to all guests
+  useEffect(() => {
+    if (!masterTodo) return;
+    if (lastMasterDone.current === null) {
+      lastMasterDone.current = masterTodo.done;
+      return;
+    }
+    if (lastMasterDone.current === masterTodo.done) return;
+    lastMasterDone.current = masterTodo.done;
+    guests.forEach((g) => {
+      if ((g.thank_you_sent || false) !== masterTodo.done) {
+        updateMutation.mutate({ id: g.id, updates: { thank_you_sent: masterTodo.done } as any });
       }
-    };
-    completeThankyouTodo();
-  }, [guests, isHeld]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masterTodo?.done]);
+
+  // Guests → master: when all guests have TY sent, auto-complete master
+  useEffect(() => {
+    if (!isHeld || !masterTodo || guests.length === 0) return;
+    const allSent = guests.every((g) => g.thank_you_sent);
+    if (allSent && !masterTodo.done) {
+      (async () => {
+        await supabase.from("todos" as any).update({ done: true } as any).eq("id", masterTodo.id);
+        lastMasterDone.current = true;
+        setMasterTodo({ ...masterTodo, done: true });
+        toast.success("All thank you notes sent! MIT task completed ✅");
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guests, masterTodo, isHeld]);
+
 
   const addMutation = useMutation({
     mutationFn: createEventGuest,
@@ -232,6 +272,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const attendingCount = guests.filter((g) => g.attending).length;
   const orderedCount = guests.filter((g) => g.ordered).length;
   const contactedCount = guests.filter((g: any) => g.task_invite_sent && g.task_day_before_sent).length;
+  const thankYouCount = guests.filter((g) => g.thank_you_sent).length;
 
   return (
     <div className="space-y-3">
@@ -250,6 +291,11 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
               <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                 Tasks: {contactedCount}/{guests.length} contacted
               </span>
+              {isHeld && (
+                <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                  Thank you: {thankYouCount}/{guests.length} sent
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -369,8 +415,12 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                   <TableHead className="text-[10px] text-center w-16">Ordered</TableHead>
                   <TableHead className="text-[10px] text-center w-16">Booked</TableHead>
                   <TableHead className="text-[10px] text-center w-16">Interested</TableHead>
-                  {isHeld && <TableHead className="text-[10px] text-center w-16">✉️ TY</TableHead>}
-                  <TableHead className="text-[10px] text-center w-24" title="Invite sent / Day-before text sent">Tasks</TableHead>
+                  <TableHead
+                    className="text-[10px] text-center w-32"
+                    title={isHeld ? "Invite sent / Day-before text sent / Thank you sent" : "Invite sent / Day-before text sent"}
+                  >
+                    Tasks
+                  </TableHead>
                   <TableHead className="text-[10px] w-16"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -413,15 +463,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                     <TableCell className="text-center py-1.5">
                       <Checkbox checked={g.interested} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { interested: !!v } })} />
                     </TableCell>
-                    {isHeld && (
-                      <TableCell className="text-center py-1.5">
-                        <Checkbox
-                          checked={g.thank_you_sent || false}
-                          onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !!v } as any })}
-                          className={g.thank_you_sent ? "text-green-600" : ""}
-                        />
-                      </TableCell>
-                    )}
                     <TableCell className="py-1.5">
                       <div className="flex items-center justify-center gap-2">
                         <label className="flex items-center gap-1 cursor-pointer" title="Invite sent">
@@ -438,6 +479,15 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                           />
                           <span className="text-[10px]">🎉</span>
                         </label>
+                        {isHeld && (
+                          <label className="flex items-center gap-1 cursor-pointer" title="Thank you sent">
+                            <Checkbox
+                              checked={g.thank_you_sent || false}
+                              onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !!v } as any })}
+                            />
+                            <span className="text-[10px]">✉️</span>
+                          </label>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="py-1.5">
