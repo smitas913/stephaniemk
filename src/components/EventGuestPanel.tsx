@@ -381,7 +381,13 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                       <div className="flex items-center gap-1.5">
                         {g.name}
                         {g.converted_customer_id && (
-                          <span className="text-[9px] px-1 py-0.5 rounded bg-accent text-accent-foreground font-medium">Customer</span>
+                          <Link
+                            to={`/customers/${g.converted_customer_id}`}
+                            className="text-[9px] px-1 py-0.5 rounded bg-primary/10 text-primary font-medium hover:bg-primary/20"
+                            title="View customer profile"
+                          >
+                            Customer ✓
+                          </Link>
                         )}
                       </div>
                     </TableCell>
