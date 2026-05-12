@@ -92,28 +92,68 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     queryFn: () => fetchEventGuests(eventId),
   });
 
-  // Auto-complete MIT thank you task when all guests checked off
+  // Master "Thank you notes" todo for this event — bidirectional sync with guest checkboxes
+  const [masterTodo, setMasterTodo] = useState<{ id: string; done: boolean } | null>(null);
+  const lastMasterDone = useRef<boolean | null>(null);
+  const tokenStr = `[${eventId}]`;
+
+  const reloadMasterTodo = async () => {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) return;
+    const { data } = await supabase
+      .from("todos" as any)
+      .select("id, done, created_at")
+      .eq("user_id", userId)
+      .ilike("text", `%${tokenStr}%`)
+      .order("created_at", { ascending: true });
+    const rows = (data as any[]) || [];
+    if (rows.length > 1) {
+      // De-dupe: keep oldest, delete the rest
+      const dupeIds = rows.slice(1).map((r) => r.id);
+      await supabase.from("todos" as any).delete().in("id", dupeIds);
+    }
+    setMasterTodo(rows[0] ? { id: rows[0].id, done: !!rows[0].done } : null);
+  };
+
   useEffect(() => {
-    if (!isHeld || guests.length === 0) return;
-    const allSent = guests.every(g => g.thank_you_sent);
-    if (!allSent) return;
-    // Find and complete the thank you MIT todo
-    const completeThankyouTodo = async () => {
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) return;
-      const { data: todos } = await supabase
-        .from("todos" as any)
-        .select("id, text, done")
-        .eq("user_id", userId)
-        .eq("done", false)
-        .ilike("text", "Thank you notes%");
-      if (todos && todos.length > 0) {
-        await supabase.from("todos" as any).update({ done: true } as any).eq("id", (todos[0] as any).id);
-        toast.success("All thank you notes sent! MIT task completed ✅");
+    reloadMasterTodo();
+    const i = setInterval(reloadMasterTodo, 6000);
+    return () => clearInterval(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
+
+  // Master → guests: when master `done` changes externally, mirror to all guests
+  useEffect(() => {
+    if (!masterTodo) return;
+    if (lastMasterDone.current === null) {
+      lastMasterDone.current = masterTodo.done;
+      return;
+    }
+    if (lastMasterDone.current === masterTodo.done) return;
+    lastMasterDone.current = masterTodo.done;
+    guests.forEach((g) => {
+      if ((g.thank_you_sent || false) !== masterTodo.done) {
+        updateMutation.mutate({ id: g.id, updates: { thank_you_sent: masterTodo.done } as any });
       }
-    };
-    completeThankyouTodo();
-  }, [guests, isHeld]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masterTodo?.done]);
+
+  // Guests → master: when all guests have TY sent, auto-complete master
+  useEffect(() => {
+    if (!isHeld || !masterTodo || guests.length === 0) return;
+    const allSent = guests.every((g) => g.thank_you_sent);
+    if (allSent && !masterTodo.done) {
+      (async () => {
+        await supabase.from("todos" as any).update({ done: true } as any).eq("id", masterTodo.id);
+        lastMasterDone.current = true;
+        setMasterTodo({ ...masterTodo, done: true });
+        toast.success("All thank you notes sent! MIT task completed ✅");
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guests, masterTodo, isHeld]);
+
 
   const addMutation = useMutation({
     mutationFn: createEventGuest,
