@@ -369,11 +369,11 @@ export const fetchAllEventGuests = async (): Promise<EventGuest[]> => {
   return data as unknown as EventGuest[];
 };
 
-export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; notes?: string | null }) => {
+export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; notes?: string | null; rsvp?: string | null; converted_customer_id?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("event_guests")
-    .insert({ ...guest, owner_user_id: userId } as any)
+    .insert({ rsvp: "Invited", ...guest, owner_user_id: userId } as any)
     .select()
     .single();
   if (error) throw error;
