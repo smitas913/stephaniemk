@@ -465,11 +465,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                     </TableCell>
                     {isHeld && (
                       <TableCell className="text-center py-1.5">
-                        <Checkbox
-                          checked={g.thank_you_sent || false}
-                          onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !!v } as any })}
-                          className={g.thank_you_sent ? "text-green-600" : ""}
-                        />
+                        {/* spacer removed — TY moved into Tasks */}
                       </TableCell>
                     )}
                     <TableCell className="py-1.5">
@@ -488,6 +484,15 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                           />
                           <span className="text-[10px]">🎉</span>
                         </label>
+                        {isHeld && (
+                          <label className="flex items-center gap-1 cursor-pointer" title="Thank you sent">
+                            <Checkbox
+                              checked={g.thank_you_sent || false}
+                              onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !!v } as any })}
+                            />
+                            <span className="text-[10px]">✉️</span>
+                          </label>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="py-1.5">
