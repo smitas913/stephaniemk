@@ -441,11 +441,24 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                       </div>
                     </TableCell>
                     <TableCell className="py-1.5">
-                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className={cn(
+                        "flex gap-0.5 transition-opacity",
+                        isPostEvent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}>
                         {!g.converted_customer_id && (
-                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Convert to customer"
-                            onClick={() => convertMutation.mutate(g)} disabled={convertMutation.isPending}>
-                            <ArrowRightLeft className="w-3 h-3 text-primary" />
+                          <Button
+                            variant={isPostEvent ? "outline" : "ghost"}
+                            size={isPostEvent ? "sm" : "icon"}
+                            className={isPostEvent ? "h-6 px-2 text-[10px]" : "h-6 w-6"}
+                            title="Convert to customer"
+                            onClick={() => convertMutation.mutate(g)}
+                            disabled={convertMutation.isPending}
+                          >
+                            {isPostEvent ? (
+                              <><UserPlus className="w-3 h-3 mr-1 text-primary" />Convert</>
+                            ) : (
+                              <ArrowRightLeft className="w-3 h-3 text-primary" />
+                            )}
                           </Button>
                         )}
                         <Button variant="ghost" size="icon" className="h-6 w-6" title="Remove"
