@@ -463,11 +463,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                     <TableCell className="text-center py-1.5">
                       <Checkbox checked={g.interested} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { interested: !!v } })} />
                     </TableCell>
-                    {isHeld && (
-                      <TableCell className="text-center py-1.5">
-                        {/* spacer removed — TY moved into Tasks */}
-                      </TableCell>
-                    )}
                     <TableCell className="py-1.5">
                       <div className="flex items-center justify-center gap-2">
                         <label className="flex items-center gap-1 cursor-pointer" title="Invite sent">
