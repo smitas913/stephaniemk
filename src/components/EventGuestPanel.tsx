@@ -415,8 +415,12 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                   <TableHead className="text-[10px] text-center w-16">Ordered</TableHead>
                   <TableHead className="text-[10px] text-center w-16">Booked</TableHead>
                   <TableHead className="text-[10px] text-center w-16">Interested</TableHead>
-                  {isHeld && <TableHead className="text-[10px] text-center w-16">✉️ TY</TableHead>}
-                  <TableHead className="text-[10px] text-center w-24" title="Invite sent / Day-before text sent">Tasks</TableHead>
+                  <TableHead
+                    className="text-[10px] text-center w-32"
+                    title={isHeld ? "Invite sent / Day-before text sent / Thank you sent" : "Invite sent / Day-before text sent"}
+                  >
+                    Tasks
+                  </TableHead>
                   <TableHead className="text-[10px] w-16"></TableHead>
                 </TableRow>
               </TableHeader>
