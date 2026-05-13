@@ -1362,7 +1362,7 @@ export default function FollowUps() {
   // ─── Mutations ───
   const bookingLeadContactMut = useMutation({
     mutationFn: async (lead: BookingLead) => {
-      await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New" ? "Working" : lead.status });
+      await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New Contact" ? "Working" : lead.status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
