@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -193,9 +193,11 @@ interface Props {
   onSkip?: (item: UniversalActionItem) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
+  /** Optional pre-fill text for the "What Happened" notes field. */
+  initialNote?: string;
 }
 
-export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
+export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props) {
   // Strict 5-step flow is used for Customer + Lead per product spec; legacy flow remains for the rest.
   const useStrictFlow = item?.personType === "customer" || item?.personType === "lead";
 
@@ -209,6 +211,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
         onSkip={onSkip}
         onNavigateToProfile={onNavigateToProfile}
         isPending={isPending}
+        initialNote={initialNote}
       />
     );
   }
@@ -231,13 +234,15 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 // Step 1: Action → 2: Activity Type → 3: Outcome (optional) → 4: Notes → 5: Next Step
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props & { item: UniversalActionItem }) {
+function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props & { item: UniversalActionItem }) {
   const navigate = useNavigate();
   const [step, setStep] = useState<StrictStep>("action");
   const [action, setAction] = useState<string | null>(null);
+  const [intentMode, setIntentMode] = useState<"Follow-Up" | "Booking Attempt">("Follow-Up");
   const [activity, setActivity] = useState<ActivityType | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
-  const [noteText, setNoteText] = useState("");
+  const [noteText, setNoteText] = useState(initialNote || "");
+  const [nextStepText, setNextStepText] = useState("");
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [source, setSource] = useState<string | null>(null);
@@ -246,12 +251,20 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [mailedSample, setMailedSample] = useState(false);
 
+  // Re-sync the pre-fill when the panel re-opens with a new initialNote.
+  React.useEffect(() => {
+    if (open) setNoteText(initialNote || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialNote]);
+
   const reset = useCallback(() => {
     setStep("action");
     setAction(null);
+    setIntentMode("Follow-Up");
     setActivity(null);
     setOutcome(null);
     setNoteText("");
+    setNextStepText("");
     setNextOpt(null);
     setCustomDate("");
     setSource(null);
@@ -283,12 +296,13 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
     if (noteText.trim()) parts.push(noteText.trim());
+    if (nextStepText.trim()) parts.push(`Next Step: ${nextStepText.trim()}`);
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, isSampleActivity, mailedSample, outcome, noteText, action, source, bookedEventType]);
+  }, [activity, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action, source, bookedEventType]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
-    const isBooking = activity === "Booking Ask" || outcome === "Booked";
+    const isBooking = intentMode === "Booking Attempt" || activity === "Booking Ask" || outcome === "Booked";
     const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
     onLogAction({
       item,
@@ -303,7 +317,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
       dnc: outcome === "Not Interested",
     });
     handleClose();
-  }, [action, activity, outcome, buildNote, item, onLogAction, handleClose]);
+  }, [action, intentMode, activity, outcome, buildNote, item, onLogAction, handleClose]);
 
   const handleNextStepClick = useCallback((key: string) => {
     setNextOpt(key);
@@ -345,7 +359,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (o === "Not Interested") {
       // Save immediately — DNC clears follow-ups (customer trigger) or sets Not Interested status (lead).
       setTimeout(() => {
-        const isBooking = activity === "Booking Ask";
+        const isBooking = intentMode === "Booking Attempt" || activity === "Booking Ask";
         const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
         onLogAction({
           item,
@@ -371,7 +385,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     }
     // Booked → choose event type, then create event
     setStep("booked-type");
-  }, [activity, action, noteText, source, item, onLogAction, handleClose]);
+  }, [activity, action, intentMode, noteText, source, item, onLogAction, handleClose]);
 
   // Booked + event type chosen → log activity, then navigate to Create Event
   // (Career Chat is a conversation, not an event — log only).
@@ -607,6 +621,32 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                   ))}
                 </div>
 
+                {/* Intent toggle — Follow-Up vs Booking Attempt */}
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Intent</p>
+                  <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Outreach intent">
+                    {(["Follow-Up", "Booking Attempt"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        role="radio"
+                        aria-checked={intentMode === opt}
+                        disabled={isPending}
+                        onClick={() => setIntentMode(opt)}
+                        className={cn(
+                          "px-3 py-2 rounded-lg border-2 text-xs font-semibold transition-all",
+                          intentMode === opt
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/40",
+                          isPending && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Skip — defers without counting as activity */}
                 {onSkip && (
                   <button
@@ -791,16 +831,26 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </p>
                   </div>
                 )}
-                <p className="text-sm font-semibold text-foreground">Notes</p>
+                <p className="text-sm font-semibold text-foreground">What Happened</p>
                 <Textarea
-                  placeholder={action === "In Person"
-                    ? "Where did you meet? What did you talk about?"
-                    : "Capture the conversation details…"}
+                  placeholder="Brief conversation summary — what was discussed?"
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   className="min-h-[120px]"
                   autoFocus
                 />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-semibold text-foreground">Next Step</p>
+                  <Input
+                    type="text"
+                    placeholder="e.g., Send samples, Follow up on reorder, Schedule facial..."
+                    value={nextStepText}
+                    onChange={(e) => setNextStepText(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Free-text description of the intended next action. Schedule the follow-up date in the next step.
+                  </p>
+                </div>
                 <Button className="w-full" onClick={() => setStep("next-step")} disabled={isPending}>
                   Continue to Next Step <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>

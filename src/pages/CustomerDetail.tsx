@@ -119,6 +119,7 @@ export default function CustomerDetail() {
     onError: (err: any) => toast.error(err?.message || "Failed to delete note"),
   });
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
+  const [actionPanelInitialNote, setActionPanelInitialNote] = useState<string>("");
   const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
   // null = unchanged from saved record; true/false = user just toggled and chose conversion type
   const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
@@ -865,7 +866,16 @@ export default function CustomerDetail() {
               }}>
                 <BookOpen className="w-3 h-3" />Sent Catalog
               </Button>
-              <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
+                setActionPanelInitialNote("[Event Invite] ");
+                setActionPanelOpen(true);
+              }}>
+                <Plus className="w-3 h-3" />Invited to Event
+              </Button>
+              <Button size="sm" className="text-xs gap-1" onClick={() => {
+                setActionPanelInitialNote("");
+                setActionPanelOpen(true);
+              }}>
                 <Plus className="w-3 h-3" />Log Activity
               </Button>
             </div>
@@ -936,10 +946,11 @@ export default function CustomerDetail() {
         <UniversalActionPanel
           item={actionPanelItem}
           open={actionPanelOpen}
-          onClose={() => setActionPanelOpen(false)}
+          onClose={() => { setActionPanelOpen(false); setActionPanelInitialNote(""); }}
           onLogAction={handleLogAction}
           onSkip={handleSkip}
           isPending={actionMutation.isPending || skipMutation.isPending}
+          initialNote={actionPanelInitialNote}
         />
 
         <SkipFollowUpDialog
