@@ -316,25 +316,36 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
 
       {showForm && (
         <div className="flex gap-2">
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <input
-              list={suggestionListId}
               placeholder="Name (type to search)"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               className="h-7 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+              onBlur={() => setTimeout(() => setSuggestions([]), 150)}
             />
-            <datalist id={suggestionListId}>
-              {suggestions.map((s) => (
-                <option
-                  key={`${s.kind}-${s.id}`}
-                  value={s.name}
-                  label={`${s.kind} · ${s.phone ? formatPhone(s.phone) : s.email || "No contact"}`}
-                />
-              ))}
-            </datalist>
+            {suggestions.length > 0 && (
+              <ul
+                className="absolute z-50 mt-1 left-0 right-0 max-h-56 overflow-auto rounded-md border border-border bg-popover shadow-md"
+              >
+                {suggestions.map((s) => (
+                  <li key={`${s.kind}-${s.id}`}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); handleSelectSuggestion(s); }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <span className="font-medium">{s.name}</span>
+                      <span className="text-muted-foreground ml-2">
+                        {s.kind} · {s.phone ? formatPhone(s.phone) : s.email || "No contact"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-7 text-xs w-32" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
