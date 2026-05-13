@@ -193,9 +193,11 @@ interface Props {
   onSkip?: (item: UniversalActionItem) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
+  /** Optional pre-fill text for the "What Happened" notes field. */
+  initialNote?: string;
 }
 
-export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
+export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props) {
   // Strict 5-step flow is used for Customer + Lead per product spec; legacy flow remains for the rest.
   const useStrictFlow = item?.personType === "customer" || item?.personType === "lead";
 
@@ -209,6 +211,7 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
         onSkip={onSkip}
         onNavigateToProfile={onNavigateToProfile}
         isPending={isPending}
+        initialNote={initialNote}
       />
     );
   }
