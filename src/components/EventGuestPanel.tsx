@@ -177,7 +177,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setLinkedConsultantId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
