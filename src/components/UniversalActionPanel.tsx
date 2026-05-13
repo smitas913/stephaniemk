@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
-import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
 import { supabase } from "@/integrations/supabase/client";
 import TextActionButton from "@/components/TextActionButton";
@@ -127,6 +127,45 @@ const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
   // Lead Follow-Up: Quick Touch + Check-In + Pause + custom date (no Reorder Cycle, no Booking).
   "Follow-Up": ["quick_touch", "check_in", "custom", "pause"],
 };
+
+type EventInviteSuggestion = { key: string; label: string; sublabel: string; date: string; reason: string };
+
+/**
+ * Compute suggested follow-up dates after inviting someone to an event.
+ * Logic depends on how many days away the event is from today.
+ */
+function buildEventInviteFollowUps(eventDateStr: string): EventInviteSuggestion[] {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const eventDate = parseLocalDate(eventDateStr);
+  const dayMs = 86400000;
+  const daysAway = Math.round((eventDate.getTime() - today.getTime()) / dayMs);
+  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+
+  if (daysAway >= 10) {
+    const midDays = Math.floor(daysAway / 2);
+    return [
+      { key: "mid", label: "Mid-point Check-In", sublabel: `+${midDays}d — "Still planning to come?"`, date: fmt(addDays(today, midDays)), reason: "Event Mid-point Check-In" },
+      { key: "day-before", label: "Day-Before Reminder", sublabel: "1 day before event", date: fmt(addDays(eventDate, -1)), reason: "Event Reminder" },
+      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event (auto)", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
+    ];
+  }
+  if (daysAway >= 2) {
+    return [
+      { key: "day-before", label: "Day-Before Reminder", sublabel: "1 day before event", date: fmt(addDays(eventDate, -1)), reason: "Event Reminder" },
+      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event (auto)", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
+    ];
+  }
+  if (daysAway >= 0) {
+    return [
+      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
+    ];
+  }
+  // Past event
+  return [
+    { key: "today", label: "Post-Event Follow-Up — Today", sublabel: "Event has passed", date: fmt(today), reason: "Post-Event Follow-Up" },
+    { key: "tomorrow", label: "Post-Event Follow-Up — Tomorrow", sublabel: "Event has passed", date: fmt(addDays(today, 1)), reason: "Post-Event Follow-Up" },
+  ];
+}
 
 const WHATS_NEXT_OPTIONS = [
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
@@ -252,6 +291,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [inviteEvents, setInviteEvents] = useState<any[]>([]);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [mailedSample, setMailedSample] = useState(false);
+  const [invitedEvent, setInvitedEvent] = useState<{ event_id: string; name: string; event_date: string } | null>(null);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
   React.useEffect(() => {
@@ -274,6 +314,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setMailedSample(false);
     setInviteEvents([]);
     setInviteLoading(false);
+    setInvitedEvent(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -773,6 +814,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                                 .eq("event_id", e.event_id);
                             } catch {}
                             setNoteText(`[Event Invite] — ${eventName}`);
+                            setInvitedEvent({ event_id: e.event_id, name: eventName, event_date: e.event_date });
                             setStep("notes");
                           }}
                           className={cn(
@@ -955,7 +997,72 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
             )}
 
             {/* ── Step 5: Next Step ── */}
-            {step === "next-step" && (
+            {step === "next-step" && invitedEvent && (() => {
+              const suggestions = buildEventInviteFollowUps(invitedEvent.event_date);
+              return (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <p className="text-xs font-semibold text-foreground">
+                      Event: <span className="text-primary">{invitedEvent.name}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatDateOnly(invitedEvent.event_date, "EEE, MMM d, yyyy")}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Suggested follow-ups</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pick the date you want scheduled now. All dates are editable below.
+                  </p>
+                  <div className="space-y-1.5">
+                    {suggestions.map((s) => {
+                      const isSelected = nextOpt === `evt:${s.key}`;
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => {
+                            setNextOpt(`evt:${s.key}`);
+                            submit(s.date, s.reason);
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all text-left",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                              : "border-border bg-card hover:border-primary/50 hover:bg-muted/50",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">{s.label}</span>
+                            <span className="text-[11px] text-muted-foreground">{s.sublabel}</span>
+                          </div>
+                          <span className="text-[11px] font-medium text-primary whitespace-nowrap">
+                            {formatDateOnly(s.date, "MMM d")}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-border">
+                    <p className="text-xs font-medium text-foreground">Or pick a custom date</p>
+                    <Input
+                      type="date"
+                      value={customDate}
+                      min={format(new Date(), "yyyy-MM-dd")}
+                      onChange={(e) => setCustomDate(e.target.value)}
+                      className="h-9"
+                    />
+                    <Button className="w-full" onClick={handleCustomDateConfirm} disabled={!customDate || isPending}>
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                      {isPending ? "Saving..." : `Set for ${customDate ? formatDateOnly(customDate) : "..."}`}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {step === "next-step" && !invitedEvent && (
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">When should you follow up?</p>
                 {suggestedKey && (
