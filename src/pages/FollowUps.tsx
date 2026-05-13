@@ -4433,14 +4433,14 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   onClose: () => void;
 }) {
   const lead = bookingLeads.find((l) => l.id === item.id);
-  const isFirstContact = lead?.status === "New";
-  const [status, setStatus] = useState(lead?.status || "New");
+  const isFirstContact = lead?.status === "New Contact" || lead?.status === "New";
+  const [status, setStatus] = useState(lead?.status || "New Contact");
   const [activityType, setActivityType] = useState<string>("Call");
   const [newNote, setNewNote] = useState("");
   const [nextStepText, setNextStepText] = useState("");
   const [nextFollowUp, setNextFollowUp] = useState(() => {
     if (lead?.next_follow_up_date) return lead.next_follow_up_date;
-    const days = getAutoFollowUpDays(lead?.status || "New");
+    const days = getAutoFollowUpDays(lead?.status || "New Contact");
     return format(addDays(new Date(), days), "yyyy-MM-dd");
   });
   const [saving, setSaving] = useState(false);
