@@ -4872,6 +4872,13 @@ function ActionRow({
             >
               Booking Attempt
             </button>
+            {item.itemType === "customer" && (
+              <InviteToEventButton
+                customerId={item.id}
+                customerName={item.name}
+                customerPhone={item.phone || null}
+              />
+            )}
             {(item.itemType === "hostess" || item.itemType === "event_task") && (
               <button
                 type="button"
