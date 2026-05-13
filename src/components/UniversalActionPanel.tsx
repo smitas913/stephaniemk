@@ -683,7 +683,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                       key={a.key}
                       type="button"
                       disabled={isPending}
-                      onClick={() => { setActivity(a.key); setStep("outcome"); }}
+                      onClick={() => {
+                        setActivity(a.key);
+                        if (a.key === "Booking Ask") setStep("booking-subcategory");
+                        else setStep("outcome");
+                      }}
                       className={cn(
                         "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
                         activity === a.key
