@@ -119,6 +119,7 @@ type ActionItem = {
   _leadStatus?: string;
   _anniversaryYears?: number;
   _anniversaryDate?: string | null; // YYYY-MM-DD anchor (join_date)
+  _createdAt?: string | null;
 };
 
 type FollowUpSnapshot = {
