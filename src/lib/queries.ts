@@ -1041,7 +1041,7 @@ async function rollbackLeadStatusFromNotes(leadId: string) {
 
   const updates: Record<string, any> = {};
   if (current === "Working" && !hasOutreach) {
-    updates.status = "New";
+    updates.status = "New Contact";
   }
 
   // Recompute last_contact_date and next_follow_up_date.

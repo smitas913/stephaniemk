@@ -2062,7 +2062,13 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
-      booking_lead_status: "New" | "Working" | "Booked" | "Not Interested"
+      booking_lead_status:
+        | "New Contact"
+        | "Working"
+        | "Booked"
+        | "Not Interested"
+        | "Warm"
+        | "Converted"
       consultant_status: "none" | "pending" | "approved" | "rejected"
       expense_category:
         | "Inventory"
@@ -2082,7 +2088,7 @@ export type Database = {
         | "Shipping / Postage"
       income_category: "Commission" | "Bonus" | "Referral" | "Other"
       opportunity_status:
-        | "New"
+        | "New Contact"
         | "Shared"
         | "Follow-Up"
         | "Interested"
@@ -2091,6 +2097,8 @@ export type Database = {
         | "Booked"
         | "Converted"
         | "Closed"
+        | "Warm"
+        | "Working"
       order_source: "Online" | "Phone" | "Text" | "Event" | "Other"
       payment_method: "Cash" | "Check" | "Venmo" | "Zelle" | "Card" | "Other"
       payment_status: "Paid" | "Unpaid" | "Partial"
@@ -2222,7 +2230,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
-      booking_lead_status: ["New", "Working", "Booked", "Not Interested"],
+      booking_lead_status: [
+        "New Contact",
+        "Working",
+        "Booked",
+        "Not Interested",
+        "Warm",
+        "Converted",
+      ],
       consultant_status: ["none", "pending", "approved", "rejected"],
       expense_category: [
         "Inventory",
@@ -2243,7 +2258,7 @@ export const Constants = {
       ],
       income_category: ["Commission", "Bonus", "Referral", "Other"],
       opportunity_status: [
-        "New",
+        "New Contact",
         "Shared",
         "Follow-Up",
         "Interested",
@@ -2252,6 +2267,8 @@ export const Constants = {
         "Booked",
         "Converted",
         "Closed",
+        "Warm",
+        "Working",
       ],
       order_source: ["Online", "Phone", "Text", "Event", "Other"],
       payment_method: ["Cash", "Check", "Venmo", "Zelle", "Card", "Other"],

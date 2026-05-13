@@ -19,13 +19,18 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 const STATUS_COLORS: Record<string, string> = {
+  "New Contact": "bg-muted text-muted-foreground",
+  "Warm": "bg-amber-100 text-amber-700",
   "Booked": "bg-blue-100 text-blue-700",
-  "Shared": "bg-yellow-100 text-yellow-700",
-  "Follow-Up": "bg-orange-100 text-orange-700",
-  "Interested": "bg-green-100 text-green-700",
-  "Not Interested": "bg-muted text-muted-foreground",
-  "Joined": "bg-purple-100 text-purple-700",
+  "Working": "bg-purple-100 text-purple-700",
   "Converted": "bg-emerald-100 text-emerald-700",
+  // Legacy
+  "New": "bg-muted text-muted-foreground",
+  "Shared": "bg-muted text-muted-foreground",
+  "Follow-Up": "bg-muted text-muted-foreground",
+  "Interested": "bg-muted text-muted-foreground",
+  "Not Interested": "bg-muted text-muted-foreground",
+  "Joined": "bg-emerald-100 text-emerald-700",
   "Closed": "bg-muted text-muted-foreground",
 };
 
