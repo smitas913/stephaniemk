@@ -209,7 +209,7 @@ export interface Note {
   created_at: string;
 }
 
-export const OPPORTUNITY_STATUSES = ["Booked", "Shared", "Follow-Up", "Interested", "Not Interested", "Joined", "Converted", "Closed"] as const;
+export const OPPORTUNITY_STATUSES = ["New Contact", "Warm", "Booked", "Working", "Converted"] as const;
 
 export const NEXT_STEP_TYPES = [
   "Initial Contact",
