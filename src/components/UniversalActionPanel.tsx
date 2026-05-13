@@ -55,7 +55,7 @@ export interface UniversalActionItem {
 
 // Legacy flow uses two steps; the new strict flow uses 5.
 type ActionStep = "action" | "whats-next";
-type StrictStep = "action" | "activity" | "outcome" | "booked-type" | "notes" | "next-step";
+type StrictStep = "action" | "activity" | "booking-subcategory" | "event-invite-picker" | "outcome" | "booked-type" | "notes" | "next-step";
 
 const QUICK_ACTIONS_LEGACY = [
   { key: "Text", label: "Texted", icon: MessageSquare, emoji: "💬" },
