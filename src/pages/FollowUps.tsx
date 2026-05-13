@@ -2680,6 +2680,16 @@ export default function FollowUps() {
                             onMove={(d) => moveSection("customer_followup", d)}
                             className="md:col-span-2"
                           >
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <Button
+                                variant={newOnlyFilter ? "default" : "outline"}
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => setNewOnlyFilter((v) => !v)}
+                              >
+                                New (30 days)
+                              </Button>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 {renderCategoryCard(
