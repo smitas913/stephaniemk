@@ -296,12 +296,13 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
     if (noteText.trim()) parts.push(noteText.trim());
+    if (nextStepText.trim()) parts.push(`Next Step: ${nextStepText.trim()}`);
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, isSampleActivity, mailedSample, outcome, noteText, action, source, bookedEventType]);
+  }, [activity, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action, source, bookedEventType]);
 
   const submit = useCallback((nextDate: string | null, reason: string) => {
-    const isBooking = activity === "Booking Ask" || outcome === "Booked";
+    const isBooking = intentMode === "Booking Attempt" || activity === "Booking Ask" || outcome === "Booked";
     const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
     onLogAction({
       item,
@@ -316,7 +317,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
       dnc: outcome === "Not Interested",
     });
     handleClose();
-  }, [action, activity, outcome, buildNote, item, onLogAction, handleClose]);
+  }, [action, intentMode, activity, outcome, buildNote, item, onLogAction, handleClose]);
 
   const handleNextStepClick = useCallback((key: string) => {
     setNextOpt(key);
