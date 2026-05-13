@@ -128,6 +128,45 @@ const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
   "Follow-Up": ["quick_touch", "check_in", "custom", "pause"],
 };
 
+type EventInviteSuggestion = { key: string; label: string; sublabel: string; date: string; reason: string };
+
+/**
+ * Compute suggested follow-up dates after inviting someone to an event.
+ * Logic depends on how many days away the event is from today.
+ */
+function buildEventInviteFollowUps(eventDateStr: string): EventInviteSuggestion[] {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const eventDate = parseLocalDate(eventDateStr);
+  const dayMs = 86400000;
+  const daysAway = Math.round((eventDate.getTime() - today.getTime()) / dayMs);
+  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+
+  if (daysAway >= 10) {
+    const midDays = Math.floor(daysAway / 2);
+    return [
+      { key: "mid", label: "Mid-point Check-In", sublabel: `+${midDays}d — "Still planning to come?"`, date: fmt(addDays(today, midDays)), reason: "Event Mid-point Check-In" },
+      { key: "day-before", label: "Day-Before Reminder", sublabel: "1 day before event", date: fmt(addDays(eventDate, -1)), reason: "Event Reminder" },
+      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event (auto)", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
+    ];
+  }
+  if (daysAway >= 2) {
+    return [
+      { key: "day-before", label: "Day-Before Reminder", sublabel: "1 day before event", date: fmt(addDays(eventDate, -1)), reason: "Event Reminder" },
+      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event (auto)", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
+    ];
+  }
+  if (daysAway >= 0) {
+    return [
+      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
+    ];
+  }
+  // Past event
+  return [
+    { key: "today", label: "Post-Event Follow-Up — Today", sublabel: "Event has passed", date: fmt(today), reason: "Post-Event Follow-Up" },
+    { key: "tomorrow", label: "Post-Event Follow-Up — Tomorrow", sublabel: "Event has passed", date: fmt(addDays(today, 1)), reason: "Post-Event Follow-Up" },
+  ];
+}
+
 const WHATS_NEXT_OPTIONS = [
   { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
   { key: "next-week", label: "Move to next week", icon: CalendarCheck },
