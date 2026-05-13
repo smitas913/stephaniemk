@@ -272,6 +272,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setSource(null);
     setBookedEventType(null);
     setMailedSample(false);
+    setInviteEvents([]);
+    setInviteLoading(false);
   }, []);
 
   const handleClose = useCallback(() => {
