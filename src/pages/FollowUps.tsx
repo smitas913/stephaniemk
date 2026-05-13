@@ -45,6 +45,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -4689,6 +4690,111 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
 // ─── Quick Activity Types ───
 const QUICK_ACTIVITY_TYPES = ["Call", "Text", "Email", "In Person"] as const;
 
+// ─── Invite to Event Button ───
+function InviteToEventButton({ customerId, customerName, customerPhone }: {
+  customerId: string;
+  customerName: string;
+  customerPhone: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const todayKey = toLocalDateKey();
+
+  const { data: events = [] } = useQuery({
+    queryKey: ["upcoming-events-for-invite", todayKey],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, event_id, hostess_name, event_date, event_type")
+        .gte("event_date", todayKey)
+        .eq("is_archived", false)
+        .order("event_date", { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  const eventLabel = (ev: any) => ev.hostess_name
+    ? `${ev.hostess_name}'s ${ev.event_type || "Event"}`
+    : (ev.event_id || "Event");
+
+  const handleInvite = async (ev: any) => {
+    if (busy) return;
+    setBusy(true);
+    const name = eventLabel(ev);
+    try {
+      const { error: gErr } = await supabase.from("event_guests").insert({
+        event_id: ev.event_id,
+        name: customerName,
+        phone: customerPhone,
+        rsvp: "Invited",
+        converted_customer_id: customerId,
+      } as any);
+      if (gErr) throw gErr;
+
+      await createNote({
+        entity_type: "Customer",
+        customer_id: customerId,
+        person_type: "customer",
+        person_id: customerId,
+        note_body: `Invited to ${name}`,
+        note_type: "Text",
+        is_booking_attempt: true,
+        is_follow_up: false,
+        tags: [categoryTag("Booking")],
+      });
+
+      toast.success(`${customerName} added to ${name} as Invited.`);
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+      queryClient.invalidateQueries({ queryKey: ["event-guests"] });
+      setOpen(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add guest");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors",
+            "border-border text-muted-foreground hover:bg-muted"
+          )}
+        >
+          Invite to Event
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64 max-h-[260px] overflow-y-auto">
+        {events.length === 0 ? (
+          <div className="px-2 py-3 text-xs text-muted-foreground">No upcoming events</div>
+        ) : (
+          events.map((ev: any) => (
+            <DropdownMenuItem
+              key={ev.id}
+              disabled={busy}
+              onSelect={(e) => { e.preventDefault(); handleInvite(ev); }}
+              className="flex flex-col items-start gap-0.5"
+            >
+              <span className="text-xs font-medium">{eventLabel(ev)}</span>
+              <span className="text-[10px] text-muted-foreground">{formatDateOnly(ev.event_date)}</span>
+            </DropdownMenuItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 // ─── Action Row Component ───
 
 function ActionRow({
@@ -4871,6 +4977,13 @@ function ActionRow({
             >
               Booking Attempt
             </button>
+            {item.itemType === "customer" && (
+              <InviteToEventButton
+                customerId={item.id}
+                customerName={item.name}
+                customerPhone={item.phone || null}
+              />
+            )}
             {(item.itemType === "hostess" || item.itemType === "event_task") && (
               <button
                 type="button"
