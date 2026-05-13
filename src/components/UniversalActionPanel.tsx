@@ -621,6 +621,32 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                   ))}
                 </div>
 
+                {/* Intent toggle — Follow-Up vs Booking Attempt */}
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Intent</p>
+                  <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Outreach intent">
+                    {(["Follow-Up", "Booking Attempt"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        role="radio"
+                        aria-checked={intentMode === opt}
+                        disabled={isPending}
+                        onClick={() => setIntentMode(opt)}
+                        className={cn(
+                          "px-3 py-2 rounded-lg border-2 text-xs font-semibold transition-all",
+                          intentMode === opt
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/40",
+                          isPending && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Skip — defers without counting as activity */}
                 {onSkip && (
                   <button
