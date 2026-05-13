@@ -87,7 +87,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
 
   useEffect(() => {
     if (!showForm) {
-      closeGuestAutocomplete();
       setSuggestions([]);
     }
   }, [showForm]);
@@ -164,7 +163,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); closeGuestAutocomplete(); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -209,7 +208,13 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     if (s.phone) setPhone(s.phone);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
     setSuggestions([]);
-    closeGuestAutocomplete();
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setLinkedCustomerId(null);
+    const match = suggestions.find((s) => s.name.toLowerCase() === value.trim().toLowerCase());
+    if (match) handleSelectSuggestion(match);
   };
 
   const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
