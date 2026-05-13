@@ -812,6 +812,7 @@ export default function FollowUps() {
         allow_non_working_day: !!(c as any).allow_non_working_day,
         _address: fullAddress || null,
         _relationship_status: c.relationship_status,
+        _createdAt: (c as any).created_at || null,
       };
     });
 
