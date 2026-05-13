@@ -359,7 +359,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     if (o === "Not Interested") {
       // Save immediately — DNC clears follow-ups (customer trigger) or sets Not Interested status (lead).
       setTimeout(() => {
-        const isBooking = activity === "Booking Ask";
+        const isBooking = intentMode === "Booking Attempt" || activity === "Booking Ask";
         const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
         onLogAction({
           item,
