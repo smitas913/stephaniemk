@@ -136,6 +136,41 @@ export default function LeadDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("contact-cards").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("contact-cards").getPublicUrl(path);
+      await updateBookingLead(id, { contact_card_photo_url: publicUrl } as any);
+      queryClient.invalidateQueries({ queryKey: ["booking-lead", id] });
+      toast.success("Contact card photo saved");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    if (!id) return;
+    try {
+      await updateBookingLead(id, { contact_card_photo_url: null } as any);
+      queryClient.invalidateQueries({ queryKey: ["booking-lead", id] });
+      toast.success("Photo removed");
+    } catch (err: any) {
+      toast.error(err.message || "Remove failed");
+    }
+  };
+
   const handleSave = () => {
     updateMut.mutate({
       name: form.name.trim(),
