@@ -55,7 +55,7 @@ export interface UniversalActionItem {
 
 // Legacy flow uses two steps; the new strict flow uses 5.
 type ActionStep = "action" | "whats-next";
-type StrictStep = "action" | "activity" | "outcome" | "booked-type" | "notes" | "next-step";
+type StrictStep = "action" | "activity" | "booking-subcategory" | "event-invite-picker" | "outcome" | "booked-type" | "notes" | "next-step";
 
 const QUICK_ACTIONS_LEGACY = [
   { key: "Text", label: "Texted", icon: MessageSquare, emoji: "💬" },
@@ -249,6 +249,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Guest Event" | "Career Chat" | null>(null);
   const [showEventPicker, setShowEventPicker] = useState(false);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [inviteEvents, setInviteEvents] = useState<any[]>([]);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [mailedSample, setMailedSample] = useState(false);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
@@ -270,6 +272,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     setSource(null);
     setBookedEventType(null);
     setMailedSample(false);
+    setInviteEvents([]);
+    setInviteLoading(false);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -453,6 +457,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const stepLabels: Record<StrictStep, string> = {
     action: "1. Action",
     activity: "2. Activity Type",
+    "booking-subcategory": "2. Booking Type",
+    "event-invite-picker": "Pick an Event",
     outcome: "3. Outcome (optional)",
     "booked-type": "Create Event",
     notes: "4. Notes",
@@ -461,6 +467,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
 
   const goBack = () => {
     if (step === "activity") setStep("action");
+    else if (step === "booking-subcategory") setStep("activity");
+    else if (step === "event-invite-picker") setStep("booking-subcategory");
     else if (step === "outcome") setStep("activity");
     else if (step === "booked-type") setStep("outcome");
     else if (step === "notes") setStep("outcome");
@@ -677,7 +685,11 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                       key={a.key}
                       type="button"
                       disabled={isPending}
-                      onClick={() => { setActivity(a.key); setStep("outcome"); }}
+                      onClick={() => {
+                        setActivity(a.key);
+                        if (a.key === "Booking Ask") setStep("booking-subcategory");
+                        else setStep("outcome");
+                      }}
                       className={cn(
                         "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
                         activity === a.key
@@ -692,6 +704,115 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ── Step 2b: Booking Subcategory ── */}
+            {step === "booking-subcategory" && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">What kind of booking ask?</p>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => setStep("outcome")}
+                    className={cn(
+                      "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
+                      "border-border bg-card hover:border-primary/50 hover:bg-muted/40",
+                      "active:scale-[0.99]",
+                      isPending && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <span className="text-sm font-semibold text-foreground">Asked for Appointment</span>
+                    <span className="text-xs text-muted-foreground">Direct booking request (facial, party, etc.)</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={async () => {
+                      setStep("event-invite-picker");
+                      setInviteLoading(true);
+                      try {
+                        const today = toLocalDateKey();
+                        const { data } = await supabase
+                          .from("events" as any)
+                          .select("id, event_id, hostess_name, event_type, event_date, event_status, guest_count")
+                          .gte("event_date", today)
+                          .order("event_date", { ascending: true })
+                          .limit(25);
+                        setInviteEvents(data || []);
+                      } catch {
+                        setInviteEvents([]);
+                      }
+                      setInviteLoading(false);
+                    }}
+                    className={cn(
+                      "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
+                      "border-border bg-card hover:border-primary/50 hover:bg-muted/40",
+                      "active:scale-[0.99]",
+                      isPending && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <span className="text-sm font-semibold text-foreground">Invited to Event</span>
+                    <span className="text-xs text-muted-foreground">Add this person to an upcoming event as Invited</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Step 2c: Event Invite Picker ── */}
+            {step === "event-invite-picker" && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Pick an upcoming event</p>
+                {inviteLoading ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Loading…</p>
+                ) : inviteEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No upcoming events found. Create one from the Events page first.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {inviteEvents.map((e: any) => {
+                      const eventName = e.hostess_name || e.event_type || e.event_id;
+                      return (
+                        <button
+                          key={e.id}
+                          type="button"
+                          disabled={isPending}
+                          onClick={async () => {
+                            try {
+                              const userId = (await supabase.auth.getUser()).data.user?.id;
+                              await supabase.from("event_guests" as any).insert({
+                                event_id: e.event_id,
+                                name: item.name,
+                                phone: item.phone || null,
+                                owner_user_id: userId,
+                                rsvp: "Invited",
+                                attending: false,
+                              } as any);
+                              const newCount = (e.guest_count || 0) + 1;
+                              await supabase
+                                .from("events" as any)
+                                .update({ guest_count: newCount } as any)
+                                .eq("event_id", e.event_id);
+                            } catch {}
+                            setNoteText(`[Event Invite] — ${eventName}`);
+                            setStep("notes");
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2.5 rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-all",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <p className="text-sm font-medium text-foreground">{eventName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {e.event_type ? `${e.event_type} · ` : ""}{formatDateOnly(e.event_date, "MMM d, yyyy")}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
