@@ -322,26 +322,26 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                 value={name}
                 onChange={(e) => { setName(e.target.value); setLinkedCustomerId(null); setComboOpen(true); }}
                 onFocus={() => setComboOpen(true)}
-                onBlur={() => setTimeout(() => setComboOpen(false), 150)}
+                onBlur={() => setTimeout(closeGuestAutocomplete, 150)}
                 className="h-7 text-xs flex-1"
                 autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") { setComboOpen(false); handleAdd(); } }}
+                onKeyDown={(e) => { if (e.key === "Enter") { closeGuestAutocomplete(); handleAdd(); } }}
               />
             </PopoverTrigger>
             <PopoverContent
-              className="p-0 w-[280px]"
+              className="p-0 w-[280px] pointer-events-auto"
               align="start"
               onOpenAutoFocus={(e) => e.preventDefault()}
-              onPointerDownOutside={() => setComboOpen(false)}
-              onInteractOutside={() => setComboOpen(false)}
+              onPointerDownOutside={closeGuestAutocomplete}
+              onInteractOutside={closeGuestAutocomplete}
             >
               <Command shouldFilter={false}>
-                <CommandList>
+                <CommandList className="pointer-events-auto">
                   <CommandEmpty>No matches — will be added as new guest.</CommandEmpty>
                   {suggestions.length > 0 && (
                     <CommandGroup heading="Matches">
                       {suggestions.map((s) => (
-                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => { handleSelectSuggestion(s); setComboOpen(false); }}>
+                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => { handleSelectSuggestion(s); closeGuestAutocomplete(); }}>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium">
                               {s.name}
