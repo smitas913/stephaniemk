@@ -73,7 +73,7 @@ export default function NewEvent() {
     const t = searchParams.get("type");
     const h = searchParams.get("hostess");
     const p = searchParams.get("phone");
-    if (t && ["Party", "Facial", "Guest Event", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
+    if (t && ["Party", "Facial", "customer_appt", "Guest Event", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
       setEventType(t);
     }
     if (t === "Guest Event") {
