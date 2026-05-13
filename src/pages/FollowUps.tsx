@@ -4420,7 +4420,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 const LEAD_ACTIVITY_TYPES = ["Call", "Text", "Email", "Booking", "Sharing"] as const;
 
 function getAutoFollowUpDays(status: string): number {
-  if (status === "New") return 1;
+  if (status === "New Contact" || status === "New") return 1;
+  if (status === "Warm") return 2;
   if (status === "Working") return 2;
   return 2;
 }
