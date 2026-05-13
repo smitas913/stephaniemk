@@ -949,7 +949,11 @@ export default function FollowUps() {
     const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
     // Note: event_tasks are shown in Event Coaching section, not the main follow-up list
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
-      // Overdue first, then today
+      // Default: newest customers (by created_at) first
+      const aT = a._createdAt ? new Date(a._createdAt).getTime() : 0;
+      const bT = b._createdAt ? new Date(b._createdAt).getTime() : 0;
+      if (aT !== bT) return bT - aT;
+      // Tiebreakers: overdue first, then earliest follow-up date, then name
       const aOverdue = a.follow_up_status === "OVERDUE" ? 0 : 1;
       const bOverdue = b.follow_up_status === "OVERDUE" ? 0 : 1;
       if (aOverdue !== bOverdue) return aOverdue - bOverdue;
