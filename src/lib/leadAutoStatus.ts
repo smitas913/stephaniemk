@@ -11,12 +11,14 @@ import { supabase } from "@/integrations/supabase/client";
  * lead forward in the pipeline; it never downgrades. Manual user changes via
  * the status dropdown remain authoritative and can override anything.
  */
-export type LeadStatus = "New" | "Working" | "Booked" | "Not Interested";
+export type LeadStatus = "New Contact" | "Warm" | "Working" | "Booked" | "Converted" | "Not Interested";
 
 const RANK: Record<string, number> = {
-  New: 0,
-  Working: 1,
-  Booked: 2,
+  "New Contact": 0,
+  Warm: 1,
+  Working: 2,
+  Booked: 3,
+  Converted: 4,
 };
 
 /** Returns true if `next` represents forward movement vs `current`. */
