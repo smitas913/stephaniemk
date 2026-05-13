@@ -385,7 +385,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
     }
     // Booked → choose event type, then create event
     setStep("booked-type");
-  }, [activity, action, noteText, source, item, onLogAction, handleClose]);
+  }, [activity, action, intentMode, noteText, source, item, onLogAction, handleClose]);
 
   // Booked + event type chosen → log activity, then navigate to Create Event
   // (Career Chat is a conversation, not an event — log only).
