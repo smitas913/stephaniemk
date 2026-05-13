@@ -831,16 +831,26 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </p>
                   </div>
                 )}
-                <p className="text-sm font-semibold text-foreground">Notes</p>
+                <p className="text-sm font-semibold text-foreground">What Happened</p>
                 <Textarea
-                  placeholder={action === "In Person"
-                    ? "Where did you meet? What did you talk about?"
-                    : "Capture the conversation details…"}
+                  placeholder="Brief conversation summary — what was discussed?"
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   className="min-h-[120px]"
                   autoFocus
                 />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-semibold text-foreground">Next Step</p>
+                  <Input
+                    type="text"
+                    placeholder="e.g., Send samples, Follow up on reorder, Schedule facial..."
+                    value={nextStepText}
+                    onChange={(e) => setNextStepText(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Free-text description of the intended next action. Schedule the follow-up date in the next step.
+                  </p>
+                </div>
                 <Button className="w-full" onClick={() => setStep("next-step")} disabled={isPending}>
                   Continue to Next Step <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
