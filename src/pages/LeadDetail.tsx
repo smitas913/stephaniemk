@@ -1,6 +1,8 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Camera, X as XIcon, Loader2 } from "lucide-react";
 import {
   fetchBookingLead,
   updateBookingLead,
@@ -134,6 +136,41 @@ export default function LeadDetail() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("contact-cards").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("contact-cards").getPublicUrl(path);
+      await updateBookingLead(id, { contact_card_photo_url: publicUrl } as any);
+      queryClient.invalidateQueries({ queryKey: ["booking-lead", id] });
+      toast.success("Contact card photo saved");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handlePhotoRemove = async () => {
+    if (!id) return;
+    try {
+      await updateBookingLead(id, { contact_card_photo_url: null } as any);
+      queryClient.invalidateQueries({ queryKey: ["booking-lead", id] });
+      toast.success("Photo removed");
+    } catch (err: any) {
+      toast.error(err.message || "Remove failed");
+    }
+  };
+
   const handleSave = () => {
     updateMut.mutate({
       name: form.name.trim(),
@@ -233,6 +270,68 @@ export default function LeadDetail() {
             )}
           </div>
         )}
+
+        {/* Contact Card photo */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Contact Card</CardTitle></CardHeader>
+          <CardContent>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            {(lead as any).contact_card_photo_url ? (
+              <div className="relative w-full max-w-md mx-auto">
+                <img
+                  src={(lead as any).contact_card_photo_url}
+                  alt={`${lead.name} contact card`}
+                  className="w-full aspect-[1.586/1] object-cover rounded-lg border border-border shadow-sm"
+                />
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 rounded-full shadow"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    title="Replace photo"
+                  >
+                    {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 rounded-full shadow"
+                    onClick={handlePhotoRemove}
+                    disabled={uploading}
+                    title="Remove photo"
+                  >
+                    <XIcon className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full max-w-md mx-auto flex flex-col items-center justify-center gap-2 aspect-[1.586/1] rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-accent/30 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-6 h-6" />
+                    <span className="text-sm font-medium">Add Contact Card Photo</span>
+                  </>
+                )}
+              </button>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Contact info card */}
         <Card>
