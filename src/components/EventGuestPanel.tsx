@@ -389,6 +389,9 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                   {g.converted_customer_id && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">Customer ✓</span>
                   )}
+                  {g.consultant_id && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-medium ml-1">Consultant ✓</span>
+                  )}
                 </div>
                 {g.attending === null || g.attending === undefined ? (
                   // Not yet marked
