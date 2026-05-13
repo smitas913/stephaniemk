@@ -453,6 +453,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const stepLabels: Record<StrictStep, string> = {
     action: "1. Action",
     activity: "2. Activity Type",
+    "booking-subcategory": "2. Booking Type",
+    "event-invite-picker": "Pick an Event",
     outcome: "3. Outcome (optional)",
     "booked-type": "Create Event",
     notes: "4. Notes",
@@ -461,6 +463,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
 
   const goBack = () => {
     if (step === "activity") setStep("action");
+    else if (step === "booking-subcategory") setStep("activity");
+    else if (step === "event-invite-picker") setStep("booking-subcategory");
     else if (step === "outcome") setStep("activity");
     else if (step === "booked-type") setStep("outcome");
     else if (step === "notes") setStep("outcome");
