@@ -316,50 +316,26 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
 
       {showForm && (
         <div className="flex gap-2">
-          <Popover open={comboOpen && suggestions.length > 0} onOpenChange={setComboOpen} modal={false}>
-            <PopoverTrigger asChild>
-              <Input
-                placeholder="Name (type to search)"
-                value={name}
-                onChange={(e) => { setName(e.target.value); setLinkedCustomerId(null); setComboOpen(true); }}
-                onFocus={() => setComboOpen(true)}
-                onBlur={() => setTimeout(closeGuestAutocomplete, 150)}
-                className="h-7 text-xs flex-1"
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") { closeGuestAutocomplete(); handleAdd(); } }}
-              />
-            </PopoverTrigger>
-            <PopoverContent
-              className="p-0 w-[280px] pointer-events-auto"
-              align="start"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              onPointerDownOutside={closeGuestAutocomplete}
-              onInteractOutside={closeGuestAutocomplete}
-            >
-              <Command shouldFilter={false}>
-                <CommandList className="pointer-events-auto">
-                  <CommandEmpty>No matches — will be added as new guest.</CommandEmpty>
-                  {suggestions.length > 0 && (
-                    <CommandGroup heading="Matches">
-                      {suggestions.map((s) => (
-                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => { handleSelectSuggestion(s); closeGuestAutocomplete(); }}>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium">
-                              {s.name}
-                              <span className="ml-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">{s.kind}</span>
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {s.phone ? formatPhone(s.phone) : s.email || "—"}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <div className="flex-1">
+            <input
+              list={suggestionListId}
+              placeholder="Name (type to search)"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              className="h-7 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+            />
+            <datalist id={suggestionListId}>
+              {suggestions.map((s) => (
+                <option
+                  key={`${s.kind}-${s.id}`}
+                  value={s.name}
+                  label={`${s.kind} · ${s.phone ? formatPhone(s.phone) : s.email || "No contact"}`}
+                />
+              ))}
+            </datalist>
+          </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-7 text-xs w-32" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
