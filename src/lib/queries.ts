@@ -369,7 +369,7 @@ export const fetchAllEventGuests = async (): Promise<EventGuest[]> => {
   return data as unknown as EventGuest[];
 };
 
-export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; notes?: string | null; rsvp?: string | null; converted_customer_id?: string | null }) => {
+export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; notes?: string | null; rsvp?: string | null; converted_customer_id?: string | null; consultant_id?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("event_guests")

@@ -52,6 +52,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
+  const [linkedConsultantId, setLinkedConsultantId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
   const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
@@ -176,7 +177,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setLinkedConsultantId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -213,6 +214,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
       phone: phone.trim() || null,
       rsvp: "Invited",
       converted_customer_id: linkedCustomerId,
+      consultant_id: linkedConsultantId,
     });
   };
 
@@ -220,12 +222,14 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     setName(s.name);
     if (s.phone) setPhone(s.phone);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
+    setLinkedConsultantId(s.kind === "consultant" ? s.id : null);
     setSuggestions([]);
   };
 
   const handleNameChange = (value: string) => {
     setName(value);
     setLinkedCustomerId(null);
+    setLinkedConsultantId(null);
     const match = suggestions.find((s) => s.name.toLowerCase() === value.trim().toLowerCase());
     if (match) handleSelectSuggestion(match);
   };
@@ -385,6 +389,9 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                   {g.converted_customer_id && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">Customer ✓</span>
                   )}
+                  {g.consultant_id && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-medium ml-1">Consultant ✓</span>
+                  )}
                 </div>
                 {g.attending === null || g.attending === undefined ? (
                   // Not yet marked
@@ -455,6 +462,14 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                           >
                             Customer ✓
                           </Link>
+                        )}
+                        {g.consultant_id && (
+                          <span
+                            className="text-[9px] px-1 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-medium"
+                            title="Linked consultant"
+                          >
+                            Consultant ✓
+                          </span>
                         )}
                       </div>
                     </TableCell>
