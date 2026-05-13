@@ -234,13 +234,15 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 // Step 1: Action → 2: Activity Type → 3: Outcome (optional) → 4: Notes → 5: Next Step
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props & { item: UniversalActionItem }) {
+function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props & { item: UniversalActionItem }) {
   const navigate = useNavigate();
   const [step, setStep] = useState<StrictStep>("action");
   const [action, setAction] = useState<string | null>(null);
+  const [intentMode, setIntentMode] = useState<"Follow-Up" | "Booking Attempt">("Follow-Up");
   const [activity, setActivity] = useState<ActivityType | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
-  const [noteText, setNoteText] = useState("");
+  const [noteText, setNoteText] = useState(initialNote || "");
+  const [nextStepText, setNextStepText] = useState("");
   const [nextOpt, setNextOpt] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [source, setSource] = useState<string | null>(null);
@@ -249,12 +251,20 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [mailedSample, setMailedSample] = useState(false);
 
+  // Re-sync the pre-fill when the panel re-opens with a new initialNote.
+  React.useEffect(() => {
+    if (open) setNoteText(initialNote || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialNote]);
+
   const reset = useCallback(() => {
     setStep("action");
     setAction(null);
+    setIntentMode("Follow-Up");
     setActivity(null);
     setOutcome(null);
     setNoteText("");
+    setNextStepText("");
     setNextOpt(null);
     setCustomDate("");
     setSource(null);
