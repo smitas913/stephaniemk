@@ -291,6 +291,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
   const [inviteEvents, setInviteEvents] = useState<any[]>([]);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [mailedSample, setMailedSample] = useState(false);
+  const [invitedEvent, setInvitedEvent] = useState<{ event_id: string; name: string; event_date: string } | null>(null);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
   React.useEffect(() => {
