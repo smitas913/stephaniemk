@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, MessageSquare, Users } from "lucide-react";
+import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, MessageSquare, Users, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
   { value: "Party", label: "Party", icon: PartyPopper },
   { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "customer_appt", label: "Customer Appt", icon: UserCheck },
   { value: "Guest Event", label: "Guest Event", icon: Users },
   { value: "Career Chat", label: "Career Chat", icon: MessageSquare },
   { value: "Sharing Appointment", label: "Sharing Appt", icon: Share2 },
@@ -72,7 +73,7 @@ export default function NewEvent() {
     const t = searchParams.get("type");
     const h = searchParams.get("hostess");
     const p = searchParams.get("phone");
-    if (t && ["Party", "Facial", "Guest Event", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
+    if (t && ["Party", "Facial", "customer_appt", "Guest Event", "Career Chat", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
       setEventType(t);
     }
     if (t === "Guest Event") {
