@@ -32,7 +32,7 @@ export default function AddCustomer() {
   const [relationship, setRelationship] = useState("Customer");
   const [firstOrderDate, setFirstOrderDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [nextFollowUp, setNextFollowUp] = useState("");
+  const [nextFollowUp, setNextFollowUp] = useState(toLocalDateKey());
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
