@@ -4478,7 +4478,7 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const currentNotes = lead?.notes || "";
       const updatedNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
 
-      const newStatus = status === "New" ? "Working" : status;
+      const newStatus = (status === "New Contact" || status === "New") ? "Working" : status;
       const autoFollowUpDays = getAutoFollowUpDays(newStatus);
       const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
 
