@@ -161,6 +161,7 @@ export interface EventGuest {
   phone: string | null;
   notes: string | null;
   converted_customer_id: string | null;
+  consultant_id: string | null;
   owner_user_id: string | null;
   created_at: string;
   rsvp: string | null;
