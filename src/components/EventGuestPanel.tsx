@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Trash2, ArrowRightLeft, Plus, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -54,14 +52,12 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
-  const [comboOpen, setComboOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
   const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
   const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
   const [noShowAction, setNoShowAction] = useState("");
-
-  const closeGuestAutocomplete = () => setComboOpen(false);
+  const suggestionListId = useMemo(() => `guest-suggestions-${eventId.replace(/[^a-zA-Z0-9_-]/g, "-")}`, [eventId]);
 
   const isGuestEvent = eventType === "Guest Event";
   const isPostEvent = useMemo(() => {
