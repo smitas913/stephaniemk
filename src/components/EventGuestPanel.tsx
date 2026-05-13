@@ -214,6 +214,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
       phone: phone.trim() || null,
       rsvp: "Invited",
       converted_customer_id: linkedCustomerId,
+      consultant_id: linkedConsultantId,
     });
   };
 
@@ -221,12 +222,14 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     setName(s.name);
     if (s.phone) setPhone(s.phone);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
+    setLinkedConsultantId(s.kind === "consultant" ? s.id : null);
     setSuggestions([]);
   };
 
   const handleNameChange = (value: string) => {
     setName(value);
     setLinkedCustomerId(null);
+    setLinkedConsultantId(null);
     const match = suggestions.find((s) => s.name.toLowerCase() === value.trim().toLowerCase());
     if (match) handleSelectSuggestion(match);
   };
