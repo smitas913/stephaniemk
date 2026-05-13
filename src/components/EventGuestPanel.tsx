@@ -61,6 +61,8 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
   const [noShowAction, setNoShowAction] = useState("");
 
+  const closeGuestAutocomplete = () => setComboOpen(false);
+
   const isGuestEvent = eventType === "Guest Event";
   const isPostEvent = useMemo(() => {
     if (!eventDate) return false;
@@ -86,6 +88,13 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     }, 200);
     return () => { cancelled = true; clearTimeout(t); };
   }, [name, showForm]);
+
+  useEffect(() => {
+    if (!showForm) {
+      closeGuestAutocomplete();
+      setSuggestions([]);
+    }
+  }, [showForm]);
 
   const { data: guests = [] } = useQuery({
     queryKey: ["event-guests", eventId],
@@ -159,7 +168,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); closeGuestAutocomplete(); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -204,7 +213,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     if (s.phone) setPhone(s.phone);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
     setSuggestions([]);
-    setComboOpen(false);
+    closeGuestAutocomplete();
   };
 
   const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
@@ -313,26 +322,26 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                 value={name}
                 onChange={(e) => { setName(e.target.value); setLinkedCustomerId(null); setComboOpen(true); }}
                 onFocus={() => setComboOpen(true)}
-                onBlur={() => setTimeout(() => setComboOpen(false), 150)}
+                onBlur={() => setTimeout(closeGuestAutocomplete, 150)}
                 className="h-7 text-xs flex-1"
                 autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") { setComboOpen(false); handleAdd(); } }}
+                onKeyDown={(e) => { if (e.key === "Enter") { closeGuestAutocomplete(); handleAdd(); } }}
               />
             </PopoverTrigger>
             <PopoverContent
-              className="p-0 w-[280px]"
+              className="p-0 w-[280px] pointer-events-auto"
               align="start"
               onOpenAutoFocus={(e) => e.preventDefault()}
-              onPointerDownOutside={() => setComboOpen(false)}
-              onInteractOutside={() => setComboOpen(false)}
+              onPointerDownOutside={closeGuestAutocomplete}
+              onInteractOutside={closeGuestAutocomplete}
             >
               <Command shouldFilter={false}>
-                <CommandList>
+                <CommandList className="pointer-events-auto">
                   <CommandEmpty>No matches — will be added as new guest.</CommandEmpty>
                   {suggestions.length > 0 && (
                     <CommandGroup heading="Matches">
                       {suggestions.map((s) => (
-                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => { handleSelectSuggestion(s); setComboOpen(false); }}>
+                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => { handleSelectSuggestion(s); closeGuestAutocomplete(); }}>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium">
                               {s.name}
