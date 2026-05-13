@@ -4538,10 +4538,11 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
   const todayFormatted = format(new Date(), "MMMM d, yyyy");
   const autoFollowUpLabel = useMemo(() => {
     if (!nextFollowUp) return null;
-    const days = getAutoFollowUpDays(status === "New" ? "Working" : status);
+    const effective = (status === "New Contact" || status === "New") ? "Working" : status;
+    const days = getAutoFollowUpDays(effective);
     const autoDate = format(addDays(new Date(), days), "yyyy-MM-dd");
     if (nextFollowUp === autoDate) {
-      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${status === "New" ? "Working" : status} lead cadence`;
+      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${effective} lead cadence`;
     }
     return `Manually set to ${formatDateOnly(nextFollowUp)}`;
   }, [nextFollowUp, status]);
