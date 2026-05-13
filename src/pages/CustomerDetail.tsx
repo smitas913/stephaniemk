@@ -946,10 +946,11 @@ export default function CustomerDetail() {
         <UniversalActionPanel
           item={actionPanelItem}
           open={actionPanelOpen}
-          onClose={() => setActionPanelOpen(false)}
+          onClose={() => { setActionPanelOpen(false); setActionPanelInitialNote(""); }}
           onLogAction={handleLogAction}
           onSkip={handleSkip}
           isPending={actionMutation.isPending || skipMutation.isPending}
+          initialNote={actionPanelInitialNote}
         />
 
         <SkipFollowUpDialog
