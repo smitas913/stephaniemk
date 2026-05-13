@@ -271,6 +271,68 @@ export default function LeadDetail() {
           </div>
         )}
 
+        {/* Contact Card photo */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Contact Card</CardTitle></CardHeader>
+          <CardContent>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            {(lead as any).contact_card_photo_url ? (
+              <div className="relative w-full max-w-md mx-auto">
+                <img
+                  src={(lead as any).contact_card_photo_url}
+                  alt={`${lead.name} contact card`}
+                  className="w-full aspect-[1.586/1] object-cover rounded-lg border border-border shadow-sm"
+                />
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 rounded-full shadow"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    title="Replace photo"
+                  >
+                    {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8 rounded-full shadow"
+                    onClick={handlePhotoRemove}
+                    disabled={uploading}
+                    title="Remove photo"
+                  >
+                    <XIcon className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full max-w-md mx-auto flex flex-col items-center justify-center gap-2 aspect-[1.586/1] rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-accent/30 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-6 h-6" />
+                    <span className="text-sm font-medium">Add Contact Card Photo</span>
+                  </>
+                )}
+              </button>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Contact info card */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Contact Info</CardTitle></CardHeader>
