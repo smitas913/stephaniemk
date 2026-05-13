@@ -207,10 +207,21 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   });
 
   const handleAdd = () => {
-    if (!name.trim()) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    const duplicate = guests.find((g) => {
+      if (linkedCustomerId && g.converted_customer_id === linkedCustomerId) return true;
+      if (linkedConsultantId && (g as any).consultant_id === linkedConsultantId) return true;
+      if (!linkedCustomerId && !linkedConsultantId && g.name?.trim().toLowerCase() === trimmedName.toLowerCase()) return true;
+      return false;
+    });
+    if (duplicate) {
+      toast.warning(`${duplicate.name} is already on the guest list.`);
+      return;
+    }
     addMutation.mutate({
       event_id: eventId,
-      name: name.trim(),
+      name: trimmedName,
       phone: phone.trim() || null,
       rsvp: "Invited",
       converted_customer_id: linkedCustomerId,
