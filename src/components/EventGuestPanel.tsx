@@ -61,6 +61,8 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
   const [noShowAction, setNoShowAction] = useState("");
 
+  const closeGuestAutocomplete = () => setComboOpen(false);
+
   const isGuestEvent = eventType === "Guest Event";
   const isPostEvent = useMemo(() => {
     if (!eventDate) return false;
@@ -86,6 +88,13 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     }, 200);
     return () => { cancelled = true; clearTimeout(t); };
   }, [name, showForm]);
+
+  useEffect(() => {
+    if (!showForm) {
+      closeGuestAutocomplete();
+      setSuggestions([]);
+    }
+  }, [showForm]);
 
   const { data: guests = [] } = useQuery({
     queryKey: ["event-guests", eventId],
@@ -159,7 +168,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); closeGuestAutocomplete(); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -204,7 +213,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     if (s.phone) setPhone(s.phone);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
     setSuggestions([]);
-    setComboOpen(false);
+    closeGuestAutocomplete();
   };
 
   const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
