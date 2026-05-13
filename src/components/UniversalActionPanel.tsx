@@ -814,6 +814,7 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                                 .eq("event_id", e.event_id);
                             } catch {}
                             setNoteText(`[Event Invite] — ${eventName}`);
+                            setInvitedEvent({ event_id: e.event_id, name: eventName, event_date: e.event_date });
                             setStep("notes");
                           }}
                           className={cn(
