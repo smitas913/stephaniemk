@@ -866,7 +866,16 @@ export default function CustomerDetail() {
               }}>
                 <BookOpen className="w-3 h-3" />Sent Catalog
               </Button>
-              <Button size="sm" className="text-xs gap-1" onClick={() => setActionPanelOpen(true)}>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
+                setActionPanelInitialNote("[Event Invite] ");
+                setActionPanelOpen(true);
+              }}>
+                <Plus className="w-3 h-3" />Invited to Event
+              </Button>
+              <Button size="sm" className="text-xs gap-1" onClick={() => {
+                setActionPanelInitialNote("");
+                setActionPanelOpen(true);
+              }}>
                 <Plus className="w-3 h-3" />Log Activity
               </Button>
             </div>
