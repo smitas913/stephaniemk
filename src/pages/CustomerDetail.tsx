@@ -119,6 +119,7 @@ export default function CustomerDetail() {
     onError: (err: any) => toast.error(err?.message || "Failed to delete note"),
   });
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
+  const [actionPanelInitialNote, setActionPanelInitialNote] = useState<string>("");
   const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
   // null = unchanged from saved record; true/false = user just toggled and chose conversion type
   const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
