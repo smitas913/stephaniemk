@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Trash2, ArrowRightLeft, Plus, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -54,14 +52,12 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
-  const [comboOpen, setComboOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
   const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
   const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
   const [noShowAction, setNoShowAction] = useState("");
-
-  const closeGuestAutocomplete = () => setComboOpen(false);
+  const suggestionListId = useMemo(() => `guest-suggestions-${eventId.replace(/[^a-zA-Z0-9_-]/g, "-")}`, [eventId]);
 
   const isGuestEvent = eventType === "Guest Event";
   const isPostEvent = useMemo(() => {
@@ -91,7 +87,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
 
   useEffect(() => {
     if (!showForm) {
-      closeGuestAutocomplete();
       setSuggestions([]);
     }
   }, [showForm]);
@@ -168,7 +163,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); closeGuestAutocomplete(); setShowForm(false);
+      setName(""); setPhone(""); setLinkedCustomerId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -213,7 +208,13 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     if (s.phone) setPhone(s.phone);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
     setSuggestions([]);
-    closeGuestAutocomplete();
+  };
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    setLinkedCustomerId(null);
+    const match = suggestions.find((s) => s.name.toLowerCase() === value.trim().toLowerCase());
+    if (match) handleSelectSuggestion(match);
   };
 
   const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
@@ -315,50 +316,26 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
 
       {showForm && (
         <div className="flex gap-2">
-          <Popover open={comboOpen && suggestions.length > 0} onOpenChange={setComboOpen} modal={false}>
-            <PopoverTrigger asChild>
-              <Input
-                placeholder="Name (type to search)"
-                value={name}
-                onChange={(e) => { setName(e.target.value); setLinkedCustomerId(null); setComboOpen(true); }}
-                onFocus={() => setComboOpen(true)}
-                onBlur={() => setTimeout(closeGuestAutocomplete, 150)}
-                className="h-7 text-xs flex-1"
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") { closeGuestAutocomplete(); handleAdd(); } }}
-              />
-            </PopoverTrigger>
-            <PopoverContent
-              className="p-0 w-[280px] pointer-events-auto"
-              align="start"
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              onPointerDownOutside={closeGuestAutocomplete}
-              onInteractOutside={closeGuestAutocomplete}
-            >
-              <Command shouldFilter={false}>
-                <CommandList className="pointer-events-auto">
-                  <CommandEmpty>No matches — will be added as new guest.</CommandEmpty>
-                  {suggestions.length > 0 && (
-                    <CommandGroup heading="Matches">
-                      {suggestions.map((s) => (
-                        <CommandItem key={`${s.kind}-${s.id}`} value={`${s.kind}-${s.id}`} onSelect={() => { handleSelectSuggestion(s); closeGuestAutocomplete(); }}>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium">
-                              {s.name}
-                              <span className="ml-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">{s.kind}</span>
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {s.phone ? formatPhone(s.phone) : s.email || "—"}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <div className="flex-1">
+            <input
+              list={suggestionListId}
+              placeholder="Name (type to search)"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              className="h-7 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
+            />
+            <datalist id={suggestionListId}>
+              {suggestions.map((s) => (
+                <option
+                  key={`${s.kind}-${s.id}`}
+                  value={s.name}
+                  label={`${s.kind} · ${s.phone ? formatPhone(s.phone) : s.email || "No contact"}`}
+                />
+              ))}
+            </datalist>
+          </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-7 text-xs w-32" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
