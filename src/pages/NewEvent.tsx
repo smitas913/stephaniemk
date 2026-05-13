@@ -18,6 +18,7 @@ import { toast } from "sonner";
 const EVENT_TYPES = [
   { value: "Party", label: "Party", icon: PartyPopper },
   { value: "Facial", label: "Facial", icon: Sparkles },
+  { value: "customer_appt", label: "Customer Appt", icon: UserCheck },
   { value: "Guest Event", label: "Guest Event", icon: Users },
   { value: "Career Chat", label: "Career Chat", icon: MessageSquare },
   { value: "Sharing Appointment", label: "Sharing Appt", icon: Share2 },
