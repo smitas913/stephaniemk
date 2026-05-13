@@ -592,6 +592,7 @@ export type Database = {
         Row: {
           attending: boolean | null
           booked: boolean | null
+          consultant_id: string | null
           converted_customer_id: string | null
           created_at: string
           event_id: string
@@ -610,6 +611,7 @@ export type Database = {
         Insert: {
           attending?: boolean | null
           booked?: boolean | null
+          consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
           event_id: string
@@ -628,6 +630,7 @@ export type Database = {
         Update: {
           attending?: boolean | null
           booked?: boolean | null
+          consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
           event_id?: string
