@@ -463,6 +463,14 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
                             Customer ✓
                           </Link>
                         )}
+                        {g.consultant_id && (
+                          <span
+                            className="text-[9px] px-1 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-medium"
+                            title="Linked consultant"
+                          >
+                            Consultant ✓
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1.5">{formatPhone(g.phone)}</TableCell>
