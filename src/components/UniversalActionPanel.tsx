@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
-import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
 import { supabase } from "@/integrations/supabase/client";
 import TextActionButton from "@/components/TextActionButton";
