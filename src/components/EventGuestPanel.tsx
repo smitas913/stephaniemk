@@ -52,6 +52,7 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
+  const [linkedConsultantId, setLinkedConsultantId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
   const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
   const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
