@@ -997,7 +997,72 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
             )}
 
             {/* ── Step 5: Next Step ── */}
-            {step === "next-step" && (
+            {step === "next-step" && invitedEvent && (() => {
+              const suggestions = buildEventInviteFollowUps(invitedEvent.event_date);
+              return (
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <p className="text-xs font-semibold text-foreground">
+                      Event: <span className="text-primary">{invitedEvent.name}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatDateOnly(invitedEvent.event_date, "EEE, MMM d, yyyy")}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Suggested follow-ups</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pick the date you want scheduled now. All dates are editable below.
+                  </p>
+                  <div className="space-y-1.5">
+                    {suggestions.map((s) => {
+                      const isSelected = nextOpt === `evt:${s.key}`;
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => {
+                            setNextOpt(`evt:${s.key}`);
+                            submit(s.date, s.reason);
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all text-left",
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                              : "border-border bg-card hover:border-primary/50 hover:bg-muted/50",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">{s.label}</span>
+                            <span className="text-[11px] text-muted-foreground">{s.sublabel}</span>
+                          </div>
+                          <span className="text-[11px] font-medium text-primary whitespace-nowrap">
+                            {formatDateOnly(s.date, "MMM d")}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-border">
+                    <p className="text-xs font-medium text-foreground">Or pick a custom date</p>
+                    <Input
+                      type="date"
+                      value={customDate}
+                      min={format(new Date(), "yyyy-MM-dd")}
+                      onChange={(e) => setCustomDate(e.target.value)}
+                      className="h-9"
+                    />
+                    <Button className="w-full" onClick={handleCustomDateConfirm} disabled={!customDate || isPending}>
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                      {isPending ? "Saving..." : `Set for ${customDate ? formatDateOnly(customDate) : "..."}`}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {step === "next-step" && !invitedEvent && (
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">When should you follow up?</p>
                 {suggestedKey && (
