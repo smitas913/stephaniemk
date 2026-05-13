@@ -663,6 +663,7 @@ export default function FollowUps() {
   const [distributeFilter, setDistributeFilter] = useState<"overdue-today" | "no-date" | "dormant-warm">("overdue-today");
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
+  const [newOnlyFilter, setNewOnlyFilter] = useState(false);
 
   // ─── Fresh Start (manual backlog reset) ───
   // Reschedules ALL current Today/Overdue follow-ups forward and staggers them across
@@ -2340,7 +2341,11 @@ export default function FollowUps() {
 
                      // Split into the three categories. Customers and leads are capped
                      // independently; prospects (recruiting) are unlimited per spec.
-                     const allCustomerItems = followUpItems.filter(i => i.itemType === "customer");
+                      const allCustomerItemsRaw = followUpItems.filter(i => i.itemType === "customer");
+                      const newCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                      const allCustomerItems = newOnlyFilter
+                        ? allCustomerItemsRaw.filter(i => i._createdAt && new Date(i._createdAt).getTime() >= newCutoffMs)
+                        : allCustomerItemsRaw;
                       const rescheduleLeadItems: ActionItem[] = events
                         .filter((e) => (e.reschedule_status || "None") === "In Process of Rescheduling")
                         .map((e) => ({
@@ -2675,6 +2680,16 @@ export default function FollowUps() {
                             onMove={(d) => moveSection("customer_followup", d)}
                             className="md:col-span-2"
                           >
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <Button
+                                variant={newOnlyFilter ? "default" : "outline"}
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => setNewOnlyFilter((v) => !v)}
+                              >
+                                New (30 days)
+                              </Button>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 {renderCategoryCard(
