@@ -19,6 +19,7 @@ export type Database = {
           address_line_1: string | null
           allow_non_working_day: boolean
           city: string | null
+          contact_card_photo_url: string | null
           converted_customer_id: string | null
           created_at: string
           email: string | null
@@ -42,6 +43,7 @@ export type Database = {
           address_line_1?: string | null
           allow_non_working_day?: boolean
           city?: string | null
+          contact_card_photo_url?: string | null
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -65,6 +67,7 @@ export type Database = {
           address_line_1?: string | null
           allow_non_working_day?: boolean
           city?: string | null
+          contact_card_photo_url?: string | null
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
