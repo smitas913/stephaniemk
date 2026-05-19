@@ -65,7 +65,9 @@ function ReschedulingActions({ eventRowId, onResolved }: { eventRowId: string; o
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["events"] });
+    qc.invalidateQueries({ queryKey: ["customers"] });
     qc.invalidateQueries({ queryKey: ["focus-daily-progress"] });
+    qc.invalidateQueries({ queryKey: ["incomplete-items"] });
     onResolved();
   };
 
