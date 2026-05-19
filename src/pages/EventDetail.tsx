@@ -484,18 +484,32 @@ export default function EventDetail() {
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      <Button size="sm" className="w-full gap-1.5 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => setShowReactivate(true)}>
+                      <Button size="sm"
+                        className={`w-full gap-1.5 ${resolveAction === "booked"
+                          ? "bg-green-600 hover:bg-green-700 text-white ring-2 ring-green-300"
+                          : "bg-green-600 hover:bg-green-700 text-white"}`}
+                        onClick={() => { setResolveAction("booked"); setShowReactivate(true); }}>
                         ✅ She Booked — set new date
                       </Button>
-                      <Button size="sm" variant="outline" className="w-full gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10"
-                        onClick={() => markRebookNotInterestedMut.mutate()}
+                      <Button size="sm"
+                        variant={resolveAction === "no_longer" ? "default" : "outline"}
+                        className={`w-full gap-1.5 ${resolveAction === "no_longer"
+                          ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground ring-2 ring-destructive/40"
+                          : "border-destructive/30 text-destructive hover:bg-destructive/10"}`}
+                        onClick={() => { setResolveAction("no_longer"); markRebookNotInterestedMut.mutate(); }}
                         disabled={markRebookNotInterestedMut.isPending}>
                         ❌ No Longer Pursuing
                       </Button>
-                      <Popover>
+                      <Popover open={stillWorkingOpen} onOpenChange={(o) => {
+                        setStillWorkingOpen(o);
+                        if (o) setResolveAction("still_working");
+                      }}>
                         <PopoverTrigger asChild>
-                          <Button size="sm" variant="outline" className="w-full gap-1.5">
+                          <Button size="sm"
+                            variant={resolveAction === "still_working" ? "default" : "outline"}
+                            className={`w-full gap-1.5 ${resolveAction === "still_working"
+                              ? "bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-300 border-blue-600"
+                              : ""}`}>
                             🔄 Still Working — pick next follow-up
                           </Button>
                         </PopoverTrigger>
@@ -510,11 +524,15 @@ export default function EventDetail() {
                                 toast.error("Pick a future date");
                                 return;
                               }
+                              setResolveAction("still_working");
                               eventMutation.mutate({
                                 event_id: event.event_id,
                                 reschedule_next_follow_up_date: key,
                               } as any, {
-                                onSuccess: () => toast.success(`Next follow-up: ${format(d, "MMM d")}`),
+                                onSuccess: () => {
+                                  toast.success(`Next follow-up: ${format(d, "MMM d")}`);
+                                  setStillWorkingOpen(false);
+                                },
                               });
                             }}
                             disabled={(d) => toLocalDateKey(d) <= toLocalDateKey()}
