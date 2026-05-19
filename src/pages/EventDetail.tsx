@@ -212,12 +212,22 @@ export default function EventDetail() {
     setPendingStatus(null);
   };
 
-  // Post-event prompt for past booked events
+  // Post-event prompt — only for past events that are still "Upcoming" (Booked),
+  // not already in rescheduling, and with no results entered yet.
   const [showPostEventPrompt, setShowPostEventPrompt] = useState(false);
-  const isPastEvent = event?.event_date && event.event_date < toLocalDateKey() && (event.event_status || "Booked") === "Booked";
+  const needsPostEventPrompt = !!(
+    event?.event_date &&
+    event.event_date < toLocalDateKey() &&
+    (event.event_status || "Booked") === "Booked" &&
+    (!event.reschedule_status || event.reschedule_status === "None") &&
+    !(event.guest_count && event.guest_count > 0) &&
+    !(event.ordering_guest_count && event.ordering_guest_count > 0) &&
+    !(event.future_bookings_count && event.future_bookings_count > 0) &&
+    !(event.sharing_appointments_count && event.sharing_appointments_count > 0)
+  );
   useEffect(() => {
-    if (isPastEvent) setShowPostEventPrompt(true);
-  }, [isPastEvent]);
+    if (needsPostEventPrompt) setShowPostEventPrompt(true);
+  }, [needsPostEventPrompt]);
 
   if (!eventId) return null;
 
