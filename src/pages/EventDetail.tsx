@@ -460,6 +460,65 @@ export default function EventDetail() {
           <TabsContent value="details" className="mt-4">
             {event ? (
               <div className="space-y-4">
+                {(event as any).reschedule_status === "In Process of Rescheduling" && !rebookNotInterested && (
+                  <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2 text-orange-800 dark:text-orange-300">
+                        <RefreshCw className="w-4 h-4" />
+                        Resolve Rescheduling
+                      </CardTitle>
+                      <p className="text-xs text-orange-700 dark:text-orange-400">
+                        This event is sitting in rescheduling. Pick an outcome to clear it from your Today list.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Button size="sm" className="w-full gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => setShowReactivate(true)}>
+                        ✅ She Booked — set new date
+                      </Button>
+                      <Button size="sm" variant="outline" className="w-full gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10"
+                        onClick={() => markRebookNotInterestedMut.mutate()}
+                        disabled={markRebookNotInterestedMut.isPending}>
+                        ❌ No Longer Pursuing
+                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button size="sm" variant="outline" className="w-full gap-1.5">
+                            🔄 Still Working — pick next follow-up
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={rebookNextDate ? parseLocalDate(rebookNextDate) : undefined}
+                            onSelect={(d) => {
+                              if (!d) return;
+                              const key = toLocalDateKey(d);
+                              if (key <= toLocalDateKey()) {
+                                toast.error("Pick a future date");
+                                return;
+                              }
+                              eventMutation.mutate({
+                                event_id: event.event_id,
+                                reschedule_next_follow_up_date: key,
+                              } as any, {
+                                onSuccess: () => toast.success(`Next follow-up: ${format(d, "MMM d")}`),
+                              });
+                            }}
+                            disabled={(d) => toLocalDateKey(d) <= toLocalDateKey()}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {rebookNextDate && (
+                        <p className="text-[11px] text-orange-700 dark:text-orange-400 text-center">
+                          Current follow-up: {formatDateOnly(rebookNextDate, "MMM d, yyyy")}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Event Details</CardTitle>
