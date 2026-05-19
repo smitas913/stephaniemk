@@ -69,6 +69,33 @@ function ReschedulingActions({ eventRowId, onResolved }: { eventRowId: string; o
     onResolved();
   };
 
+  // Find the linked customer/lead for the event's hostess so we can keep
+  // their follow-up task in sync with the booking-attempt resolution.
+  const getLinkedCustomerId = async (): Promise<string | null> => {
+    const { data: ev } = await supabase
+      .from("events")
+      .select("hostess_converted_customer_id, hostess_name, hostess_phone, owner_user_id")
+      .eq("id", eventRowId)
+      .maybeSingle();
+    if (!ev) return null;
+    if ((ev as any).hostess_converted_customer_id) return (ev as any).hostess_converted_customer_id as string;
+    // Fallback: match by name (+ optional phone) within the same owner
+    const name = (ev as any).hostess_name as string | null;
+    if (!name) return null;
+    let q = supabase.from("customers").select("id").ilike("full_name", name.trim());
+    if ((ev as any).owner_user_id) q = q.eq("owner_user_id", (ev as any).owner_user_id);
+    const { data: rows } = await q.limit(1);
+    return rows && rows.length ? (rows[0] as any).id : null;
+  };
+
+  const syncCustomerFollowUp = async (nextDate: string | null) => {
+    const cid = await getLinkedCustomerId();
+    if (!cid) return;
+    await supabase.from("customers").update({
+      next_follow_up_date: nextDate,
+    } as any).eq("id", cid);
+  };
+
   const sheBooked = async () => {
     if (!pickedDate) return;
     setBusy(true);
@@ -80,6 +107,7 @@ function ReschedulingActions({ eventRowId, onResolved }: { eventRowId: string; o
       reschedule_next_follow_up_date: null,
       rebook_not_interested: false,
     } as any).eq("id", eventRowId);
+    if (!error) await syncCustomerFollowUp(null);
     setBusy(false);
     if (error) { toast.error("Failed to update event"); return; }
     toast.success("Marked booked — new date saved");
@@ -93,6 +121,7 @@ function ReschedulingActions({ eventRowId, onResolved }: { eventRowId: string; o
       rebook_not_interested: true,
       reschedule_next_follow_up_date: null,
     } as any).eq("id", eventRowId);
+    if (!error) await syncCustomerFollowUp(null);
     setBusy(false);
     if (error) { toast.error("Failed to update"); return; }
     toast.success("Closed — removed from Today");
@@ -104,10 +133,13 @@ function ReschedulingActions({ eventRowId, onResolved }: { eventRowId: string; o
       toast.error("Pick a future follow-up date");
       return;
     }
+    const nextKey = toLocalDateKey(pickedDate);
     setBusy(true);
     const { error } = await supabase.from("events").update({
-      reschedule_next_follow_up_date: toLocalDateKey(pickedDate),
+      reschedule_status: "In Process of Rescheduling",
+      reschedule_next_follow_up_date: nextKey,
     } as any).eq("id", eventRowId);
+    if (!error) await syncCustomerFollowUp(nextKey);
     setBusy(false);
     if (error) { toast.error("Failed to update"); return; }
     toast.success(`Follow-up moved to ${format(pickedDate, "MMM d")}`);
