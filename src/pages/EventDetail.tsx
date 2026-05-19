@@ -296,6 +296,8 @@ export default function EventDetail() {
   // ── Rebook sequence ──
   const [showReactivate, setShowReactivate] = useState(false);
   const [reactivateDate, setReactivateDate] = useState("");
+  const [resolveAction, setResolveAction] = useState<null | "booked" | "no_longer" | "still_working">(null);
+  const [stillWorkingOpen, setStillWorkingOpen] = useState(false);
 
   const isReschedulingOrCancelled = event &&
     (event.event_status === "Cancelled" || (event as any).reschedule_status === "In Process of Rescheduling");
