@@ -20,6 +20,7 @@ export type Database = {
           allow_non_working_day: boolean
           city: string | null
           contact_card_photo_url: string | null
+          converted_consultant_id: string | null
           converted_customer_id: string | null
           created_at: string
           email: string | null
@@ -44,6 +45,7 @@ export type Database = {
           allow_non_working_day?: boolean
           city?: string | null
           contact_card_photo_url?: string | null
+          converted_consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -68,6 +70,7 @@ export type Database = {
           allow_non_working_day?: boolean
           city?: string | null
           contact_card_photo_url?: string | null
+          converted_consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
           email?: string | null
@@ -87,7 +90,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_lead_status"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "booking_leads_converted_consultant_id_fkey"
+            columns: ["converted_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       business_goals: {
         Row: {
@@ -140,24 +151,27 @@ export type Database = {
       catalog_campaign_customers: {
         Row: {
           campaign_id: string
+          consultant_id: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           follow_up_completed: boolean
           follow_up_date: string | null
           id: string
         }
         Insert: {
           campaign_id: string
+          consultant_id?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           follow_up_completed?: boolean
           follow_up_date?: string | null
           id?: string
         }
         Update: {
           campaign_id?: string
+          consultant_id?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           follow_up_completed?: boolean
           follow_up_date?: string | null
           id?: string
@@ -168,6 +182,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "catalog_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_campaign_customers_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
             referencedColumns: ["id"]
           },
           {
@@ -272,30 +293,40 @@ export type Database = {
       }
       customer_notes: {
         Row: {
+          consultant_id: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           id: string
           note_text: string
           note_type: string
           owner_user_id: string | null
         }
         Insert: {
+          consultant_id?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           id?: string
           note_text: string
           note_type?: string
           owner_user_id?: string | null
         }
         Update: {
+          consultant_id?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           id?: string
           note_text?: string
           note_type?: string
           owner_user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_notes_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customer_notes_customer_id_fkey"
             columns: ["customer_id"]
@@ -331,6 +362,7 @@ export type Database = {
           email: string | null
           flagged_at: string | null
           follow_up_reason: string | null
+          former_consultant_data: Json | null
           full_name: string
           id: string
           is_active: boolean
@@ -371,6 +403,7 @@ export type Database = {
           email?: string | null
           flagged_at?: string | null
           follow_up_reason?: string | null
+          former_consultant_data?: Json | null
           full_name: string
           id?: string
           is_active?: boolean
@@ -411,6 +444,7 @@ export type Database = {
           email?: string | null
           flagged_at?: string | null
           follow_up_reason?: string | null
+          former_consultant_data?: Json | null
           full_name?: string
           id?: string
           is_active?: boolean
@@ -479,6 +513,7 @@ export type Database = {
           address: string | null
           allow_non_working_day: boolean
           canceled_at: string | null
+          consultant_id: string | null
           created_at: string
           customer_id: string | null
           customer_name: string
@@ -497,6 +532,7 @@ export type Database = {
           address?: string | null
           allow_non_working_day?: boolean
           canceled_at?: string | null
+          consultant_id?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -515,6 +551,7 @@ export type Database = {
           address?: string | null
           allow_non_working_day?: boolean
           canceled_at?: string | null
+          consultant_id?: string | null
           created_at?: string
           customer_id?: string | null
           customer_name?: string
@@ -529,7 +566,15 @@ export type Database = {
           plan_date?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_plan_items_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       day_type_targets: {
         Row: {
@@ -596,6 +641,7 @@ export type Database = {
           attending: boolean | null
           booked: boolean | null
           consultant_id: string | null
+          converted_consultant_id: string | null
           converted_customer_id: string | null
           created_at: string
           event_id: string
@@ -615,6 +661,7 @@ export type Database = {
           attending?: boolean | null
           booked?: boolean | null
           consultant_id?: string | null
+          converted_consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
           event_id: string
@@ -634,6 +681,7 @@ export type Database = {
           attending?: boolean | null
           booked?: boolean | null
           consultant_id?: string | null
+          converted_consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
           event_id?: string
@@ -649,7 +697,15 @@ export type Database = {
           task_invite_sent?: boolean
           thank_you_sent?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "event_guests_converted_consultant_id_fkey"
+            columns: ["converted_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_tasks: {
         Row: {
@@ -720,6 +776,7 @@ export type Database = {
           future_bookings_count: number | null
           google_form_link: string | null
           guest_count: number | null
+          hostess_converted_consultant_id: string | null
           hostess_converted_customer_id: string | null
           hostess_email: string | null
           hostess_name: string | null
@@ -769,6 +826,7 @@ export type Database = {
           future_bookings_count?: number | null
           google_form_link?: string | null
           guest_count?: number | null
+          hostess_converted_consultant_id?: string | null
           hostess_converted_customer_id?: string | null
           hostess_email?: string | null
           hostess_name?: string | null
@@ -818,6 +876,7 @@ export type Database = {
           future_bookings_count?: number | null
           google_form_link?: string | null
           guest_count?: number | null
+          hostess_converted_consultant_id?: string | null
           hostess_converted_customer_id?: string | null
           hostess_email?: string | null
           hostess_name?: string | null
@@ -845,6 +904,13 @@ export type Database = {
           zoom_password?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "events_hostess_converted_consultant_id_fkey"
+            columns: ["hostess_converted_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_hostess_converted_customer_id_fkey"
             columns: ["hostess_converted_customer_id"]
@@ -1250,8 +1316,9 @@ export type Database = {
           birthday: boolean | null
           cc_fee_amount: number
           cc_transaction_type: string | null
+          consultant_id: string | null
           created_at: string
-          customer_id: string
+          customer_id: string | null
           customer_name: string | null
           discount_amount: number
           discount_type_ids: string[]
@@ -1281,8 +1348,9 @@ export type Database = {
           birthday?: boolean | null
           cc_fee_amount?: number
           cc_transaction_type?: string | null
+          consultant_id?: string | null
           created_at?: string
-          customer_id: string
+          customer_id?: string | null
           customer_name?: string | null
           discount_amount?: number
           discount_type_ids?: string[]
@@ -1312,8 +1380,9 @@ export type Database = {
           birthday?: boolean | null
           cc_fee_amount?: number
           cc_transaction_type?: string | null
+          consultant_id?: string | null
           created_at?: string
-          customer_id?: string
+          customer_id?: string | null
           customer_name?: string | null
           discount_amount?: number
           discount_type_ids?: string[]
@@ -1340,6 +1409,13 @@ export type Database = {
           wholesale_amount?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
@@ -1647,24 +1723,41 @@ export type Database = {
       team_consultants: {
         Row: {
           address_line_1: string | null
+          address_line_2: string | null
           allow_non_working_day: boolean
+          attention_reason: string | null
+          beauty_notes: Json
+          became_customer_date: string | null
           birthday: string | null
+          birthday_mmdd: string | null
           city: string | null
           coaching_focus: string | null
           consultant_id: string | null
           created_at: string
+          customer_source: string | null
+          date_added: string | null
+          dormant_follow_up_stage: string | null
           email: string | null
           first_name: string | null
           first_order_date: string | null
           first_party_date: string | null
           first_team_member_date: string | null
+          flagged_at: string | null
           focus_group: string | null
+          follow_up_reason: string | null
+          former_consultant_data: Json | null
           id: string
+          is_skincare_customer: boolean
           join_date: string | null
+          last_contacted: string | null
           last_name: string | null
           last_order_date: string | null
           name: string
+          needs_attention: boolean
+          new_customer_flag: boolean
+          new_follow_up_stage: string | null
           next_coaching_date: string | null
+          next_follow_up_date: string | null
           notes: string | null
           onboarding_stage: string | null
           owner_user_id: string | null
@@ -1674,30 +1767,49 @@ export type Database = {
           relationship_type: string
           secondary_email: string | null
           secondary_phone: string | null
+          skincare_started_at: string | null
           state_territory: string | null
           status: string
+          tags: string[]
           updated_at: string | null
         }
         Insert: {
           address_line_1?: string | null
+          address_line_2?: string | null
           allow_non_working_day?: boolean
+          attention_reason?: string | null
+          beauty_notes?: Json
+          became_customer_date?: string | null
           birthday?: string | null
+          birthday_mmdd?: string | null
           city?: string | null
           coaching_focus?: string | null
           consultant_id?: string | null
           created_at?: string
+          customer_source?: string | null
+          date_added?: string | null
+          dormant_follow_up_stage?: string | null
           email?: string | null
           first_name?: string | null
           first_order_date?: string | null
           first_party_date?: string | null
           first_team_member_date?: string | null
+          flagged_at?: string | null
           focus_group?: string | null
+          follow_up_reason?: string | null
+          former_consultant_data?: Json | null
           id?: string
+          is_skincare_customer?: boolean
           join_date?: string | null
+          last_contacted?: string | null
           last_name?: string | null
           last_order_date?: string | null
           name: string
+          needs_attention?: boolean
+          new_customer_flag?: boolean
+          new_follow_up_stage?: string | null
           next_coaching_date?: string | null
+          next_follow_up_date?: string | null
           notes?: string | null
           onboarding_stage?: string | null
           owner_user_id?: string | null
@@ -1707,30 +1819,49 @@ export type Database = {
           relationship_type?: string
           secondary_email?: string | null
           secondary_phone?: string | null
+          skincare_started_at?: string | null
           state_territory?: string | null
           status?: string
+          tags?: string[]
           updated_at?: string | null
         }
         Update: {
           address_line_1?: string | null
+          address_line_2?: string | null
           allow_non_working_day?: boolean
+          attention_reason?: string | null
+          beauty_notes?: Json
+          became_customer_date?: string | null
           birthday?: string | null
+          birthday_mmdd?: string | null
           city?: string | null
           coaching_focus?: string | null
           consultant_id?: string | null
           created_at?: string
+          customer_source?: string | null
+          date_added?: string | null
+          dormant_follow_up_stage?: string | null
           email?: string | null
           first_name?: string | null
           first_order_date?: string | null
           first_party_date?: string | null
           first_team_member_date?: string | null
+          flagged_at?: string | null
           focus_group?: string | null
+          follow_up_reason?: string | null
+          former_consultant_data?: Json | null
           id?: string
+          is_skincare_customer?: boolean
           join_date?: string | null
+          last_contacted?: string | null
           last_name?: string | null
           last_order_date?: string | null
           name?: string
+          needs_attention?: boolean
+          new_customer_flag?: boolean
+          new_follow_up_stage?: string | null
           next_coaching_date?: string | null
+          next_follow_up_date?: string | null
           notes?: string | null
           onboarding_stage?: string | null
           owner_user_id?: string | null
@@ -1740,8 +1871,10 @@ export type Database = {
           relationship_type?: string
           secondary_email?: string | null
           secondary_phone?: string | null
+          skincare_started_at?: string | null
           state_territory?: string | null
           status?: string
+          tags?: string[]
           updated_at?: string | null
         }
         Relationships: [
@@ -2048,6 +2181,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      convert_person: {
+        Args: { _from_id: string; _from_type: string; _overrides?: Json }
+        Returns: Json
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2061,6 +2198,10 @@ export type Database = {
         Returns: boolean
       }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      merge_customer_into_consultant: {
+        Args: { _consultant_id: string; _customer_id: string }
+        Returns: Json
+      }
       normalize_phone: { Args: { p: string }; Returns: string }
     }
     Enums: {
