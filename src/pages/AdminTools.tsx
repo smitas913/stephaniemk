@@ -2,9 +2,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCog, ClipboardList } from "lucide-react";
+import { UserCog, ClipboardList, GitMerge } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import ConsultantRequests from "@/pages/ConsultantRequests";
+import MigrateDuplicatesToConsultants from "@/components/MigrateDuplicatesToConsultants";
 
 export default function AdminTools() {
   const { profile } = useAuth();
@@ -35,6 +36,10 @@ export default function AdminTools() {
               <ClipboardList className="w-4 h-4" />
               Requests
             </TabsTrigger>
+            <TabsTrigger value="migrate" className="gap-1.5">
+              <GitMerge className="w-4 h-4" />
+              Migrate Duplicates
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -43,6 +48,10 @@ export default function AdminTools() {
 
           <TabsContent value="requests">
             <ConsultantRequests embedded />
+          </TabsContent>
+
+          <TabsContent value="migrate">
+            <MigrateDuplicatesToConsultants />
           </TabsContent>
         </Tabs>
       </div>
