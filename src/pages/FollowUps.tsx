@@ -121,6 +121,10 @@ type ActionItem = {
   _anniversaryYears?: number;
   _anniversaryDate?: string | null; // YYYY-MM-DD anchor (join_date)
   _createdAt?: string | null;
+  // Set when a "lead" item is actually a rescheduling event row synthesized into
+  // Booking Activity. Handlers (skip, fresh start, navigate) must branch on this
+  // to update `events.reschedule_next_follow_up_date` instead of booking_leads.
+  _isRescheduleEvent?: boolean;
 };
 
 type FollowUpSnapshot = {
@@ -1599,19 +1603,35 @@ export default function FollowUps() {
           });
         } catch (e) { console.warn("[skip] hostess note failed:", e); }
       } else if (item.itemType === "lead") {
-        await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
-        try {
-          await createNote({
-            entity_type: "Lead",
-            person_id: item.id,
-            person_type: "lead",
-            note_body: skipNoteBody,
-            note_type: "Skipped",
-            next_follow_up_date: computed,
-            is_booking_attempt: false,
-            is_follow_up: false,
-          });
-        } catch (e) { console.warn("[skip] lead note failed:", e); }
+        if (item._isRescheduleEvent) {
+          // This "lead" row is actually a rescheduling EVENT. Update the event's
+          // reschedule_next_follow_up_date so the row clears from Booking Activity.
+          await updateEvent(item.id, { reschedule_next_follow_up_date: computed } as any);
+          try {
+            await createNote({
+              entity_type: "Hostess",
+              note_body: `[${item.name}] [Reschedule] ${skipNoteBody}`,
+              note_type: "Skipped",
+              next_follow_up_date: computed,
+              is_booking_attempt: false,
+              is_follow_up: false,
+            });
+          } catch (e) { console.warn("[skip] reschedule note failed:", e); }
+        } else {
+          await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
+          try {
+            await createNote({
+              entity_type: "Lead",
+              person_id: item.id,
+              person_type: "lead",
+              note_body: skipNoteBody,
+              note_type: "Skipped",
+              next_follow_up_date: computed,
+              is_booking_attempt: false,
+              is_follow_up: false,
+            });
+          } catch (e) { console.warn("[skip] lead note failed:", e); }
+        }
       } else if (item.itemType === "event_task") {
         // Event tasks: just push the due date out (no separate activity log)
         if (computed) {
@@ -1649,6 +1669,14 @@ export default function FollowUps() {
         return { prev, key: ["team-consultants"] };
       }
       if (item.itemType === "lead") {
+        if (item._isRescheduleEvent) {
+          await queryClient.cancelQueries({ queryKey: ["events"] });
+          const prev = queryClient.getQueryData<any[]>(["events"]);
+          queryClient.setQueryData<any[]>(["events"], (old) =>
+            (old || []).map((e) => e.id === item.id ? { ...e, reschedule_next_follow_up_date: computed } : e)
+          );
+          return { prev, key: ["events"] };
+        }
         await queryClient.cancelQueries({ queryKey: ["booking-leads"] });
         const prev = queryClient.getQueryData<any[]>(["booking-leads"]);
         queryClient.setQueryData<any[]>(["booking-leads"], (old) =>
@@ -2071,7 +2099,9 @@ export default function FollowUps() {
             case "customer":
               return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
             case "lead":
-              return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+              return item._isRescheduleEvent
+                ? updateEvent(item.id, { reschedule_next_follow_up_date: newDate } as any)
+                : updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
             case "prospect":
               return updateProspect(item.id, { next_follow_up_date: newDate } as any);
             case "consultant":
@@ -2200,7 +2230,10 @@ export default function FollowUps() {
   const navigateToItem = (item: ActionItem) => {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
     else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`, { state: { from: "/follow-ups" } });
-    else if (item.itemType === "lead") navigate(`/booking-leads/${item.id}`, { state: { from: "/follow-ups" } });
+    else if (item.itemType === "lead") {
+      if (item._isRescheduleEvent && item._eventId) navigate(`/events/${item._eventId}`);
+      else navigate(`/booking-leads/${item.id}`, { state: { from: "/follow-ups" } });
+    }
     else if (item.itemType === "hostess") {
       const evt = events.find(e => e.id === item.id);
       if (evt) navigate(`/events/${evt.event_id}`);
@@ -2347,20 +2380,29 @@ export default function FollowUps() {
                       const allCustomerItems = newOnlyFilter
                         ? allCustomerItemsRaw.filter(i => i._createdAt && new Date(i._createdAt).getTime() >= newCutoffMs)
                         : allCustomerItemsRaw;
-                      const rescheduleLeadItems: ActionItem[] = events
-                        .filter((e) => (e.reschedule_status || "None") === "In Process of Rescheduling")
-                        .map((e) => ({
-                          id: e.id,
-                          itemType: "lead",
-                          name: e.hostess_name || e.event_id,
-                          phone: e.hostess_phone ?? null,
-                          email: e.hostess_email ?? null,
-                          next_follow_up: e.reschedule_next_follow_up_date ?? null,
-                          follow_up_status: e.reschedule_next_follow_up_date && e.reschedule_next_follow_up_date < toLocalDateKey() ? "OVERDUE" : "TODAY",
-                          actionLabel: "Reschedule",
-                          followUpReason: "Reschedule",
-                          _eventId: e.event_id,
-                        }));
+                       const todayKeyForReschedule = toLocalDateKey();
+                       const rescheduleLeadItems: ActionItem[] = events
+                         .filter((e) => {
+                           if (e.is_archived) return false;
+                           if ((e.reschedule_status || "None") !== "In Process of Rescheduling") return false;
+                           if (e.requires_manual_next_step) return true;
+                           const fu = e.reschedule_next_follow_up_date;
+                           if (!fu) return true;            // no date yet → show today
+                           return fu <= todayKeyForReschedule; // due/overdue only
+                         })
+                         .map((e) => ({
+                           id: e.id,
+                           itemType: "lead",
+                           name: e.hostess_name || e.event_id,
+                           phone: e.hostess_phone ?? null,
+                           email: e.hostess_email ?? null,
+                           next_follow_up: e.reschedule_next_follow_up_date ?? null,
+                           follow_up_status: e.reschedule_next_follow_up_date && e.reschedule_next_follow_up_date < todayKeyForReschedule ? "OVERDUE" : "TODAY",
+                           actionLabel: "Reschedule",
+                           followUpReason: "Reschedule",
+                           _eventId: e.event_id,
+                           _isRescheduleEvent: true,
+                         }));
                       const allLeadItems = [...followUpItems.filter(i => i.itemType === "lead"), ...rescheduleLeadItems];
                      const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
 
