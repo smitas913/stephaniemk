@@ -810,6 +810,24 @@ export default function CustomerDetail() {
                     <p className="text-sm text-foreground whitespace-pre-wrap">{customer.notes}</p>
                   </>
                 )}
+
+                {(() => {
+                  const fcd = (customer as any).former_consultant_data as Record<string, any> | null;
+                  if (!fcd || typeof fcd !== "object") return null;
+                  return (
+                    <>
+                      <SectionHeader title="Former Consultant Record" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <InfoRow label="Former Consultant ID" value={fcd.former_consultant_id || "—"} />
+                        <InfoRow label="Join Date" value={formatDate(fcd.join_date) || "—"} />
+                        <InfoRow label="Last Status" value={fcd.status || "—"} />
+                        <InfoRow label="First Order Date" value={formatDate(fcd.first_order_date) || "—"} />
+                        <InfoRow label="First Party Date" value={formatDate(fcd.first_party_date) || "—"} />
+                        <InfoRow label="Archived On" value={fcd.archived_at ? formatDate(String(fcd.archived_at).slice(0, 10)) : "—"} />
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </CardContent>
