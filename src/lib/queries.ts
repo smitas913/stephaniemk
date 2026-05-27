@@ -1561,7 +1561,7 @@ export const resetOverdueFollowUps = async (
   cutoffDate: string,
   mode: "today" | "clear"
 ): Promise<{ customers: number; prospects: number; booking_leads: number }> => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateKeyImport();
   const newDate: string | null = mode === "today" ? today : null;
 
   const updateTable = async (table: "customers" | "prospects" | "booking_leads") => {
