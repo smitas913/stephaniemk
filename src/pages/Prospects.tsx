@@ -322,15 +322,19 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
                         {p.last_contact_date && (
                           <span className="text-xs text-muted-foreground">Last contact: {formatDateOnly(p.last_contact_date, "MMM d")}</span>
                         )}
-                        {p.next_follow_up_date && (
-                          <span className={cn("text-xs",
-                            p.next_follow_up_date < new Date().toISOString().split("T")[0] ? "text-destructive font-medium" :
-                            p.next_follow_up_date === new Date().toISOString().split("T")[0] ? "text-primary font-medium" :
-                            "text-muted-foreground"
-                          )}>
-                            Follow-up: {formatDateOnly(p.next_follow_up_date, "MMM d")}
-                          </span>
-                        )}
+                        {p.next_follow_up_date && (() => {
+                          const todayKey = toLocalDateKey();
+                          const cls = p.next_follow_up_date < todayKey
+                            ? "text-destructive font-medium"
+                            : p.next_follow_up_date === todayKey
+                              ? "text-primary font-medium"
+                              : "text-muted-foreground";
+                          return (
+                            <span className={cn("text-xs", cls)}>
+                              Follow-up: {formatDateOnly(p.next_follow_up_date, "MMM d")}
+                            </span>
+                          );
+                        })()}
                         {assignedName && (
                           <span className="text-xs text-muted-foreground">→ {assignedName}</span>
                         )}
