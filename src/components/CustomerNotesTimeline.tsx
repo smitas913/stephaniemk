@@ -207,6 +207,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
                   isLatest={idx === 0}
                   onDelete={() => deleteMutation.mutate(note.id)}
                   onSaveEdit={(updates) => editMutation.mutate({ id: note.id, ...updates })}
+                  onUpdateOutcome={(newBody) => editMutation.mutate({ id: note.id, note_body: newBody })}
                   isSaving={editMutation.isPending}
                 />
               ))}
