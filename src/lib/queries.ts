@@ -974,7 +974,7 @@ async function rollbackCustomerStateFromNotes(customerId: string) {
 
   // next_follow_up_date = soonest future follow_up date from remaining notes
   // (>= today), else null. Conservative: clear if nothing scheduled remains.
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toLocalDateKeyImport();
   const futureFollowUps = rows
     .map((r) => (r.next_follow_up_date || "").slice(0, 10))
     .filter((d) => d && d >= todayKey)
