@@ -194,6 +194,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   const [noteText, setNoteText] = useState(initialNote || "");
   const [nextStepText, setNextStepText] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpMode, setFollowUpMode] = useState<"suggested" | "custom" | "pause">("suggested");
   const [mailedSample, setMailedSample] = useState(false);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
@@ -208,6 +209,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       setOutcome(null);
       setNextStepText("");
       setFollowUpDate("");
+      setFollowUpMode("suggested");
       setMailedSample(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
