@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
