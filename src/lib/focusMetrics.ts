@@ -199,7 +199,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
 
   // ─── Bookings (events created on date) ───
   const bookingItems: FocusDetailItem[] = events
-    .filter((e: any) => e.created_at.startsWith(dateKey))
+    .filter((e: any) => getTimestampDateKey(e.created_at) === dateKey)
     .map((e: any) => ({
       id: e.event_id, name: e.hostess_name || e.event_id, type: "Event",
       detail: e.event_type || undefined,
