@@ -122,8 +122,8 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     setMailingDate(toLocalDateKey(addDays(new Date(), 30)));
   };
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".xlsx")) {
       toast.error("Please upload an .xlsx file");
@@ -131,42 +131,53 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     }
     setFileName(file.name);
 
-    try {
-      const XLSX: any = await import(/* @vite-ignore */ ("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm" as string));
-      const ab = await file.arrayBuffer();
-      const wb = XLSX.read(ab, { type: "array", cellText: false, cellDates: true, raw: false });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, header: 1 });
-      console.log("[PCP Import] First 3 rows from SheetJS:", raw.slice(0, 3));
-      const hdr = pickHeaderRow(raw);
-      if (!hdr) {
-        console.error("[PCP Import] Header detection failed. rows[0] =", raw[0]);
-        toast.error("Couldn't find required columns. Check browser console for the raw first row.");
-        return;
-      }
-      const col = (key: string) => (key in hdr.map ? hdr.map[key] : -1);
-      const parsed: ParsedRow[] = [];
-      for (let i = hdr.idx + 1; i < raw.length; i++) {
-        const r = raw[i] || [];
-        const first = String(r[col("first name")] ?? "").trim();
-        const last = String(r[col("last name")] ?? "").trim();
-        if (!first && !last) continue;
-        const phoneRaw = String(r[col("phone")] ?? "").trim();
-        parsed.push({
-          first_name: first,
-          last_name: last,
-          phoneRaw,
-          phone: stripPhone(phoneRaw),
-          email: String(r[col("personal email address")] ?? "").trim(),
-          street: String(r[col("street")] ?? "").trim(),
-          street2: String(r[col("street 2")] ?? "").trim(),
-          city: String(r[col("city")] ?? "").trim(),
-          state: String(r[col("state")] ?? "").trim(),
-          zip: String(r[col("zip code")] ?? "").trim(),
-          pcp_program: String(r[col("pcp program")] ?? "").trim(),
-        });
-      }
-      setRows(parsed);
+    console.log("PCP Import - file selected:", file.name, file.size, file.type);
+    const XLSX: any = await import(/* @vite-ignore */ ("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm" as string));
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const result = e.target!.result as ArrayBuffer;
+        console.log("PCP Import - FileReader loaded, byte length:", result.byteLength);
+        const data = new Uint8Array(result);
+        const workbook = XLSX.read(data, { type: "array", raw: false, cellDates: true });
+        console.log("PCP Import - sheet names:", workbook.SheetNames);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const raw: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+        console.log("PCP Import - row count:", raw.length);
+        console.log("PCP Import - first row:", raw[0]);
+        console.log("PCP Import - second row:", raw[1]);
+
+        const hdr = pickHeaderRow(raw);
+        if (!hdr) {
+          console.error("[PCP Import] Header detection failed. rows[0] =", raw[0]);
+          toast.error("Couldn't find required columns. Check browser console for the raw first row.");
+          return;
+        }
+        const col = (key: string) => (key in hdr.map ? hdr.map[key] : -1);
+        const parsed: ParsedRow[] = [];
+        for (let i = hdr.idx + 1; i < raw.length; i++) {
+          const r = raw[i] || [];
+          const first = String(r[col("first name")] ?? "").trim();
+          const last = String(r[col("last name")] ?? "").trim();
+          if (!first && !last) continue;
+          const phoneRaw = String(r[col("phone")] ?? "").trim();
+          parsed.push({
+            first_name: first,
+            last_name: last,
+            phoneRaw,
+            phone: stripPhone(phoneRaw),
+            email: String(r[col("personal email address")] ?? "").trim(),
+            street: String(r[col("street")] ?? "").trim(),
+            street2: String(r[col("street 2")] ?? "").trim(),
+            city: String(r[col("city")] ?? "").trim(),
+            state: String(r[col("state")] ?? "").trim(),
+            zip: String(r[col("zip code")] ?? "").trim(),
+            pcp_program: String(r[col("pcp program")] ?? "").trim(),
+          });
+        }
+        setRows(parsed);
 
       // Build match plan
       const built: MatchPlan[] = parsed.map((row) => {
