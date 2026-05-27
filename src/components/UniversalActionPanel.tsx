@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -10,14 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Mail, Users,
-  CheckCircle2, Calendar, ArrowRight, ExternalLink,
-  CalendarCheck, Clock, SkipForward, ShoppingCart, ArrowLeft,
+  CheckCircle2, ExternalLink, Calendar, ArrowRight, CalendarCheck,
+  Clock, SkipForward, ShoppingCart, ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
-import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
+import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
-import { supabase } from "@/integrations/supabase/client";
 import TextActionButton from "@/components/TextActionButton";
 import { INTENT_CATEGORIES, REASONS_BY_CATEGORY, resolveIntentCategory, type IntentCategory } from "@/lib/intentCategory";
 import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
@@ -53,9 +51,11 @@ export interface UniversalActionItem {
   lastContactDate?: string | null;
 }
 
-// Legacy flow uses two steps; the new strict flow uses 5.
+// Legacy flow uses two steps.
 type ActionStep = "action" | "whats-next";
-type StrictStep = "action" | "activity" | "booking-subcategory" | "event-invite-picker" | "outcome" | "booked-type" | "notes" | "next-step";
+
+// New unified 2-step flow (Customer + Lead).
+type UnifiedStep = "how-what" | "notes-next";
 
 const QUICK_ACTIONS_LEGACY = [
   { key: "Text", label: "Texted", icon: MessageSquare, emoji: "💬" },
@@ -66,117 +66,32 @@ const QUICK_ACTIONS_LEGACY = [
   { key: "Did Not Connect", label: "No Response", icon: Phone, emoji: "📵" },
 ] as const;
 
-// Strict flow Step 1: Action
-const STRICT_ACTIONS = [
+// Unified flow Step 1: how did you reach out?
+const UNIFIED_ACTIONS = [
   { key: "Call", label: "Call", icon: Phone, emoji: "📞" },
   { key: "Text", label: "Text", icon: MessageSquare, emoji: "💬" },
   { key: "Email", label: "Email", icon: Mail, emoji: "📧" },
   { key: "In Person", label: "In Person", icon: Users, emoji: "🤝" },
 ] as const;
 
-// Strict flow Step 2: Activity Type
-type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up" | "Follow-Up";
+// Unified flow Step 1: activity type
+type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up" | "Order Follow-Up" | "Follow-Up";
 const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
   { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
   { key: "Connection", label: "Connection", sublabel: "Coffee / relationship" },
   { key: "Send Info", label: "Send Info", sublabel: "Samples, links" },
   { key: "Sample Follow-Up", label: "Sample / Product Follow-Up", sublabel: "Following up on what they tried" },
+  { key: "Order Follow-Up", label: "Order Follow-Up", sublabel: "Check satisfaction / reorder" },
 ];
 
-// For leads, the streamlined choice is just Follow-Up vs Booking Ask.
 const LEAD_ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
   { key: "Follow-Up", label: "Follow-Up", sublabel: "Conversation / nurture touch" },
   { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
 ];
 
-// Strict flow Step 3: Outcome (optional)
 type Outcome = "Booked" | "Not Interested" | null;
 
-// Suggested next-step keys per Activity Type.
-const IN_PERSON_SOURCES = ["Networking", "Referral", "Vendor Event", "Social", "Other"] as const;
-const SUGGESTED_NEXT_BY_ACTIVITY: Record<ActivityType, "quick_touch" | "check_in" | "booking" | "sample_followup_handed" | "sample_followup_mailed" | "pause"> = {
-  "Booking Ask": "booking",
-  "Connection": "check_in",
-  "Send Info": "sample_followup_handed",
-  "Sample Follow-Up": "sample_followup_handed",
-  // Standard Follow-Up (no booking ask, no sample) defaults to Check-In (7 days).
-  "Follow-Up": "check_in",
-};
-
-const NEXT_STEP_OPTIONS = [
-  { key: "quick_touch", label: "Quick Touch (2 days)", days: 2 as number | null, reason: "Quick Touch" },
-  { key: "check_in", label: "Check-In (7 days)", days: 7 as number | null, reason: "Check-In" },
-  { key: "sample_followup_handed", label: "Sample Follow-Up (3 days)", days: 3 as number | null, reason: "Sample Follow-Up" },
-  { key: "sample_followup_mailed", label: "Sample Follow-Up (6 days — mailed)", days: 6 as number | null, reason: "Sample Follow-Up (Mailed)" },
-  { key: "reorder", label: "Reorder Cycle (30 / 60 / 90)", days: null as number | null, reason: "Reorder Cycle" },
-  { key: "booking", label: "Booking Follow-Up (3 days)", days: 3 as number | null, reason: "Booking Follow-Up" },
-  { key: "custom", label: "Pick a date", days: null as number | null, reason: "" },
-  // Pause Follow-Up — intentional break in communication. Expands to 120-day default + custom date picker.
-  { key: "pause", label: "Pause Follow-Up (120 days / custom)", days: null as number | null, reason: "Pause Follow-Up" },
-] as const;
-
-// Which Next Step keys are visible per Activity Type.
-// Booking Ask → Booking Follow-Up + Pause + custom date.
-// Other activities (Follow-Up family) → Quick Touch / Check-In / Reorder Cycle / Pause / custom date (hide Booking).
-// Pause replaces the old "No Follow-Up" — every contact must have a scheduled future re-engagement (unless DNC).
-const NEXT_STEP_KEYS_BY_ACTIVITY: Record<ActivityType, string[]> = {
-  "Booking Ask": ["booking", "custom", "pause"],
-  "Connection": ["quick_touch", "check_in", "reorder", "custom", "pause"],
-  "Send Info": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "pause"],
-  "Sample Follow-Up": ["sample_followup_handed", "sample_followup_mailed", "quick_touch", "check_in", "reorder", "custom", "pause"],
-  // Lead Follow-Up: Quick Touch + Check-In + Pause + custom date (no Reorder Cycle, no Booking).
-  "Follow-Up": ["quick_touch", "check_in", "custom", "pause"],
-};
-
-type EventInviteSuggestion = { key: string; label: string; sublabel: string; date: string; reason: string };
-
-/**
- * Compute suggested follow-up dates after inviting someone to an event.
- * Logic depends on how many days away the event is from today.
- */
-function buildEventInviteFollowUps(eventDateStr: string): EventInviteSuggestion[] {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const eventDate = parseLocalDate(eventDateStr);
-  const dayMs = 86400000;
-  const daysAway = Math.round((eventDate.getTime() - today.getTime()) / dayMs);
-  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
-
-  if (daysAway >= 10) {
-    const midDays = Math.floor(daysAway / 2);
-    return [
-      { key: "mid", label: "Mid-point Check-In", sublabel: `+${midDays}d — "Still planning to come?"`, date: fmt(addDays(today, midDays)), reason: "Event Mid-point Check-In" },
-      { key: "day-before", label: "Day-Before Reminder", sublabel: "1 day before event", date: fmt(addDays(eventDate, -1)), reason: "Event Reminder" },
-      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event (auto)", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
-    ];
-  }
-  if (daysAway >= 2) {
-    return [
-      { key: "day-before", label: "Day-Before Reminder", sublabel: "1 day before event", date: fmt(addDays(eventDate, -1)), reason: "Event Reminder" },
-      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event (auto)", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
-    ];
-  }
-  if (daysAway >= 0) {
-    return [
-      { key: "post", label: "Post-Event Follow-Up", sublabel: "1 day after event", date: fmt(addDays(eventDate, 1)), reason: "Post-Event Follow-Up" },
-    ];
-  }
-  // Past event
-  return [
-    { key: "today", label: "Post-Event Follow-Up — Today", sublabel: "Event has passed", date: fmt(today), reason: "Post-Event Follow-Up" },
-    { key: "tomorrow", label: "Post-Event Follow-Up — Tomorrow", sublabel: "Event has passed", date: fmt(addDays(today, 1)), reason: "Post-Event Follow-Up" },
-  ];
-}
-
-const WHATS_NEXT_OPTIONS = [
-  { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
-  { key: "next-week", label: "Move to next week", icon: CalendarCheck },
-  { key: "30d", label: "30 Days — Check-in", icon: CheckCircle2 },
-  { key: "60d", label: "60 Days — Mid-cycle", icon: CheckCircle2 },
-  { key: "90d", label: "90 Days — Reorder / Reconnect", icon: CheckCircle2 },
-  { key: "schedule", label: "Custom Date", icon: Calendar },
-] as const;
-
-/** Which intent categories are visible per person type. Reduces decision fatigue. */
+/** Which intent categories are visible per person type (legacy panel). */
 const ALLOWED_CATEGORIES_BY_PERSON: Record<PersonType, IntentCategory[]> = {
   customer: ["Follow-Up", "Booking"],
   lead: ["Follow-Up", "Booking"],
@@ -224,25 +139,22 @@ interface Props {
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
     followUpReason?: string | null;
-    /** Resolved intent category (Follow-Up | Booking | Coaching | Recruiting | Team Building). */
     category: IntentCategory;
-    /** When true, mark the person as Do-Not-Contact (DNC tag for customers, Not Interested status for leads). */
     dnc?: boolean;
   }) => void;
   onSkip?: (item: UniversalActionItem) => void;
   onNavigateToProfile?: (item: UniversalActionItem) => void;
   isPending?: boolean;
-  /** Optional pre-fill text for the "What Happened" notes field. */
   initialNote?: string;
 }
 
 export default function UniversalActionPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props) {
-  // Strict 5-step flow is used for Customer + Lead per product spec; legacy flow remains for the rest.
-  const useStrictFlow = item?.personType === "customer" || item?.personType === "lead";
+  // Unified 2-step flow for Customer + Lead. Legacy 2-step remains for other person types.
+  const useUnifiedFlow = item?.personType === "customer" || item?.personType === "lead";
 
-  if (useStrictFlow && item) {
+  if (useUnifiedFlow && item) {
     return (
-      <StrictFlowPanel
+      <UnifiedFlowPanel
         item={item}
         open={open}
         onClose={onClose}
@@ -269,255 +181,103 @@ export default function UniversalActionPanel({ item, open, onClose, onLogAction,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// STRICT 5-STEP FLOW (Customer + Lead)
-// Step 1: Action → 2: Activity Type → 3: Outcome (optional) → 4: Notes → 5: Next Step
+// UNIFIED 2-STEP FLOW (Customer + Lead)
+// Step 1: How & What → Step 2: Notes & Next Step (outcome inline)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props & { item: UniversalActionItem }) {
+function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending, initialNote }: Props & { item: UniversalActionItem }) {
   const navigate = useNavigate();
-  const [step, setStep] = useState<StrictStep>("action");
+  const [step, setStep] = useState<UnifiedStep>("how-what");
   const [action, setAction] = useState<string | null>(null);
-  const [intentMode, setIntentMode] = useState<"Follow-Up" | "Booking Attempt">("Follow-Up");
   const [activity, setActivity] = useState<ActivityType | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [noteText, setNoteText] = useState(initialNote || "");
   const [nextStepText, setNextStepText] = useState("");
-  const [nextOpt, setNextOpt] = useState<string | null>(null);
-  const [customDate, setCustomDate] = useState("");
-  const [source, setSource] = useState<string | null>(null);
-  const [bookedEventType, setBookedEventType] = useState<"Facial" | "Party" | "Guest Event" | "Career Chat" | null>(null);
-  const [showEventPicker, setShowEventPicker] = useState(false);
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [inviteEvents, setInviteEvents] = useState<any[]>([]);
-  const [inviteLoading, setInviteLoading] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
   const [mailedSample, setMailedSample] = useState(false);
-  const [invitedEvent, setInvitedEvent] = useState<{ event_id: string; name: string; event_date: string } | null>(null);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
   React.useEffect(() => {
-    if (open) setNoteText(initialNote || "");
+    if (open) {
+      setNoteText(initialNote || "");
+    } else {
+      // Reset everything when fully closed.
+      setStep("how-what");
+      setAction(null);
+      setActivity(null);
+      setOutcome(null);
+      setNextStepText("");
+      setFollowUpDate("");
+      setMailedSample(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialNote]);
 
-  const reset = useCallback(() => {
-    setStep("action");
-    setAction(null);
-    setIntentMode("Follow-Up");
-    setActivity(null);
-    setOutcome(null);
-    setNoteText("");
-    setNextStepText("");
-    setNextOpt(null);
-    setCustomDate("");
-    setSource(null);
-    setBookedEventType(null);
-    setMailedSample(false);
-    setInviteEvents([]);
-    setInviteLoading(false);
-    setInvitedEvent(null);
-  }, []);
-
   const handleClose = useCallback(() => {
-    reset();
     onClose();
-  }, [onClose, reset]);
+  }, [onClose]);
 
-  // Suggested next step (highlighted) — based on Activity Type. Not auto-applied.
-  // For Send Info / Sample Follow-Up, the "Mailed Sample" toggle shifts the suggestion
-  // from a 3-day in-person follow-up to a 6-day mailed follow-up.
   const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
-  const suggestedKey = activity
-    ? (isSampleActivity
-        ? (mailedSample ? "sample_followup_mailed" : "sample_followup_handed")
-        : SUGGESTED_NEXT_BY_ACTIVITY[activity])
-    : null;
+
+  // Auto-suggest a follow-up date when entering Step 2 based on activity type / mailed sample.
+  // Only fill if user hasn't already picked a date.
+  React.useEffect(() => {
+    if (step !== "notes-next" || followUpDate) return;
+    if (!activity) return;
+    const daysByActivity: Record<ActivityType, number> = {
+      "Booking Ask": 3,
+      "Connection": 7,
+      "Send Info": 3,
+      "Sample Follow-Up": 3,
+      "Order Follow-Up": 30,
+      "Follow-Up": 7,
+    };
+    const days = isSampleActivity && mailedSample ? 6 : daysByActivity[activity];
+    setFollowUpDate(format(addDays(new Date(), days), "yyyy-MM-dd"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, activity, mailedSample]);
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (activity) parts.push(`[${activity}]`);
     if (isSampleActivity && mailedSample) parts.push("[Mailed Sample]");
-    if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
     if (outcome === "Booked") parts.push("[Booked]");
-    if (outcome === "Booked" && bookedEventType) parts.push(`[Booking Created: ${bookedEventType}]`);
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
     if (noteText.trim()) parts.push(noteText.trim());
     if (nextStepText.trim()) parts.push(`Next Step: ${nextStepText.trim()}`);
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action, source, bookedEventType]);
+  }, [activity, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action]);
 
-  const submit = useCallback((nextDate: string | null, reason: string) => {
-    const isBooking = intentMode === "Booking Attempt" || activity === "Booking Ask" || outcome === "Booked";
+  const handleSave = useCallback(() => {
+    const isBooking = activity === "Booking Ask" || outcome === "Booked";
     const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
+    const isDnc = outcome === "Not Interested";
     onLogAction({
       item,
       actionType: action || "Call",
       note: buildNote(),
       isBookingAttempt: isBooking,
       isFollowUp: !isBooking,
-      // DNC clears follow-ups via DB trigger on customers; for leads the parent sets Not Interested.
-      nextFollowUpDate: outcome === "Not Interested" ? null : (nextDate ?? undefined),
-      followUpReason: outcome === "Not Interested" ? null : (reason || null),
+      nextFollowUpDate: isDnc ? null : (followUpDate || null),
+      followUpReason: isDnc ? null : (activity || null),
       category,
-      dnc: outcome === "Not Interested",
+      dnc: isDnc,
     });
     handleClose();
-  }, [action, intentMode, activity, outcome, buildNote, item, onLogAction, handleClose]);
+  }, [action, activity, outcome, followUpDate, item, onLogAction, buildNote, handleClose]);
 
-  const handleNextStepClick = useCallback((key: string) => {
-    setNextOpt(key);
-    if (key === "custom") return;
-    // Pause expands an inline picker (120 days quick-pick or custom date) — don't submit yet.
-    if (key === "pause") return;
-    if (key === "reorder") return;
-    const opt = NEXT_STEP_OPTIONS.find((o) => o.key === key);
-    if (!opt || opt.days == null) return;
-    const date = format(addDays(new Date(), opt.days), "yyyy-MM-dd");
-    submit(date, opt.reason);
-  }, [submit]);
-
-  const handleCustomDateConfirm = useCallback(() => {
-    if (!customDate) return;
-    submit(customDate, "");
-  }, [customDate, submit]);
-
-  const handleReorderPick = useCallback((days: 30 | 60 | 90) => {
-    const date = format(addDays(new Date(), days), "yyyy-MM-dd");
-    submit(date, `Reorder Cycle (${days}d)`);
-  }, [submit]);
-
-  /**
-   * Pause Follow-Up: intentional break in communication. Sets a future
-   * follow-up date so the contact re-surfaces on Today when the date arrives.
-   * Distinct from Reorder Cycle (product-driven). Quick option = 120 days;
-   * a custom date can also be picked.
-   */
-  const handlePausePick = useCallback((days: 120, custom?: string) => {
-    const date = custom || format(addDays(new Date(), days), "yyyy-MM-dd");
-    submit(date, "Pause Follow-Up");
-  }, [submit]);
-
-  // When user picks "Not Interested", short-circuit to save (no Next Step needed).
-  // When user picks "Booked", route to the booked-type sub-step to create the event.
-  const handleOutcomeClick = useCallback((o: Exclude<Outcome, null>) => {
-    setOutcome(o);
-    if (o === "Not Interested") {
-      // Save immediately — DNC clears follow-ups (customer trigger) or sets Not Interested status (lead).
-      setTimeout(() => {
-        const isBooking = intentMode === "Booking Attempt" || activity === "Booking Ask";
-        const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
-        onLogAction({
-          item,
-          actionType: action || "Call",
-          note: (() => {
-            const parts: string[] = [];
-            if (activity) parts.push(`[${activity}]`);
-            if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
-            parts.push("[Not Interested / DNC]");
-            if (noteText.trim()) parts.push(noteText.trim());
-            return parts.join(" ");
-          })(),
-          isBookingAttempt: isBooking,
-          isFollowUp: !isBooking,
-          nextFollowUpDate: null,
-          followUpReason: null,
-          category,
-          dnc: true,
-        });
-        handleClose();
-      }, 0);
-      return;
-    }
-    // Booked → choose event type, then create event
-    setStep("booked-type");
-  }, [activity, action, intentMode, noteText, source, item, onLogAction, handleClose]);
-
-  // Booked + event type chosen → log activity, then navigate to Create Event
-  // (Career Chat is a conversation, not an event — log only).
-  const handleBookedTypeConfirm = useCallback(async (t: "Facial" | "Party" | "Guest Event" | "Career Chat") => {
-    setBookedEventType(t);
-    const category: IntentCategory = "Booking";
-    const parts: string[] = [];
-    if (activity) parts.push(`[${activity}]`);
-    if (action === "In Person" && source) parts.push(`[In Person: ${source}]`);
-    parts.push("[Booked]");
-    parts.push(`[Booking Created: ${t}]`);
-    if (noteText.trim()) parts.push(noteText.trim());
-    onLogAction({
-      item,
-      actionType: action || "Call",
-      note: parts.join(" "),
-      isBookingAttempt: true,
-      isFollowUp: false,
-      nextFollowUpDate: null,
-      followUpReason: null,
-      category,
-    });
-
-    if (t === "Career Chat") {
-      handleClose();
-      return;
-    }
-
-    // For Guest Event — show upcoming events picker
-    if (t === "Guest Event") {
-      try {
-        const today = toLocalDateKey();
-        const { data } = await supabase
-          .from("events" as any)
-          .select("id, event_id, hostess_name, event_type, event_date, event_status")
-          .eq("event_type", "Guest Event")
-          .eq("event_status", "Booked")
-          .gte("event_date", today)
-          .order("event_date", { ascending: true })
-          .limit(10);
-        setUpcomingEvents(data || []);
-      } catch {}
-      setShowEventPicker(true);
-      return;
-    }
-
-    // For Facial/Party — navigate to create new event
-    handleClose();
-    const fromPath = window.location.pathname + window.location.search;
-    const params = new URLSearchParams({
-      type: t,
-      hostess: item.name || "",
-      ...(item.phone ? { phone: item.phone } : {}),
-      from: fromPath,
-    });
-    navigate(`/events/new?${params.toString()}`);
-  }, [activity, action, source, noteText, item, onLogAction, handleClose, navigate]);
-
-
+  const canContinue = !!action && !!activity;
   const badge = TYPE_BADGE_MAP[item.personType];
   const recentNotes = item.recentNotes || [];
   const canAddOrder = item.personType === "customer";
 
-  // Step labels for the progress header
-  const stepLabels: Record<StrictStep, string> = {
-    action: "1. Action",
-    activity: "2. Activity Type",
-    "booking-subcategory": "2. Booking Type",
-    "event-invite-picker": "Pick an Event",
-    outcome: "3. Outcome (optional)",
-    "booked-type": "Create Event",
-    notes: "4. Notes",
-    "next-step": "5. Next Step",
-  };
-
-  const goBack = () => {
-    if (step === "activity") setStep("action");
-    else if (step === "booking-subcategory") setStep("activity");
-    else if (step === "event-invite-picker") setStep("booking-subcategory");
-    else if (step === "outcome") setStep("activity");
-    else if (step === "booked-type") setStep("outcome");
-    else if (step === "notes") setStep("outcome");
-    else if (step === "next-step") setStep("notes");
+  const stepLabels: Record<UnifiedStep, string> = {
+    "how-what": "1. How & What",
+    "notes-next": "2. Notes & Next Step",
   };
 
   return (
-    <>
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] flex flex-col pb-safe p-0">
         <SheetHeader className="px-5 pt-5 pb-3">
@@ -597,20 +357,20 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
           {/* Step indicator */}
           <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-border/40">
             <div className="flex items-center gap-2 min-w-0">
-              {step !== "action" && (
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={goBack}>
+              {step !== "how-what" && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setStep("how-what")}>
                   <ArrowLeft className="w-3 h-3 mr-1" /> Back
                 </Button>
               )}
               <span className="text-xs font-semibold text-foreground truncate">{stepLabels[step]}</span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {(["action", "activity", "outcome", "notes", "next-step"] as StrictStep[]).map((s, i) => (
+              {(["how-what", "notes-next"] as UnifiedStep[]).map((s, i) => (
                 <span
                   key={s}
                   className={cn(
                     "h-1.5 w-4 rounded-full",
-                    s === step ? "bg-primary" : i < (["action", "activity", "outcome", "notes", "next-step"] as StrictStep[]).indexOf(step) ? "bg-primary/40" : "bg-muted"
+                    s === step ? "bg-primary" : i < (["how-what", "notes-next"] as UnifiedStep[]).indexOf(step) ? "bg-primary/40" : "bg-muted"
                   )}
                 />
               ))}
@@ -622,8 +382,8 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
 
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="px-5 py-4 space-y-4">
-            {/* Recent activity */}
-            {recentNotes.length > 0 && step === "action" && (
+            {/* Recent activity (Step 1 only) */}
+            {recentNotes.length > 0 && step === "how-what" && (
               <div className="space-y-1.5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Activity</p>
                 <div className="space-y-1 rounded-lg border border-border bg-muted/30 p-2.5">
@@ -644,42 +404,78 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
               </div>
             )}
 
-            {/* ── Step 1: Action ── */}
-            {step === "action" && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">How did you reach out?</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {STRICT_ACTIONS.map((a) => (
-                    <button
-                      key={a.key}
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => { setAction(a.key); setStep("activity"); }}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all",
-                        action === a.key
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card hover:border-primary hover:bg-primary/5",
-                        "active:scale-[0.97]",
-                        isPending && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <span className="text-lg">{a.emoji}</span>
-                      {a.label}
-                    </button>
-                  ))}
+            {/* ── Step 1: How & What ── */}
+            {step === "how-what" && (
+              <div className="space-y-5">
+                {/* How */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">How did you reach out?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {UNIFIED_ACTIONS.map((a) => (
+                      <button
+                        key={a.key}
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => setAction(a.key)}
+                        className={cn(
+                          "flex items-center justify-center gap-2 px-4 rounded-xl border-2 text-sm font-medium transition-all min-h-[48px]",
+                          action === a.key
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card hover:border-primary hover:bg-primary/5",
+                          "active:scale-[0.97]",
+                          isPending && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <span className="text-lg">{a.emoji}</span>
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
+                {/* What */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">What was the activity?</p>
+                  <div className="space-y-2">
+                    {(item.personType === "lead" ? LEAD_ACTIVITY_TYPES : ACTIVITY_TYPES).map((a) => (
+                      <button
+                        key={a.key}
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => setActivity(a.key)}
+                        className={cn(
+                          "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all min-h-[48px]",
+                          activity === a.key
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-card hover:border-primary/50 hover:bg-muted/40",
+                          "active:scale-[0.99]",
+                          isPending && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <span className="text-sm font-semibold text-foreground">{a.label}</span>
+                        <span className="text-xs text-muted-foreground">{a.sublabel}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
+                {/* Continue */}
+                <Button
+                  className="w-full min-h-[48px] text-base"
+                  onClick={() => setStep("notes-next")}
+                  disabled={!canContinue || isPending}
+                >
+                  Continue
+                </Button>
 
                 {/* Skip — defers without counting as activity */}
                 {onSkip && (
                   <button
                     type="button"
                     disabled={isPending}
-                    onClick={() => { onSkip(item); reset(); onClose(); }}
+                    onClick={() => { onSkip(item); onClose(); }}
                     className={cn(
-                      "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors",
+                      "w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-colors min-h-[48px]",
                       "bg-[hsl(0_0%_85%)] border border-[hsl(0_0%_75%)] text-[hsl(0_0%_30%)] hover:bg-[hsl(0_0%_80%)] hover:text-[hsl(0_0%_20%)]",
                       isPending && "opacity-50 cursor-not-allowed"
                     )}
@@ -692,275 +488,13 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
               </div>
             )}
 
-            {/* ── Step 2: Activity Type ── */}
-            {step === "activity" && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">What was the activity?</p>
-                <div className="space-y-2">
-                  {(item.personType === "lead" ? LEAD_ACTIVITY_TYPES : ACTIVITY_TYPES).map((a) => (
-                    <button
-                      key={a.key}
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => {
-                        setActivity(a.key);
-                        if (a.key === "Booking Ask") setStep("booking-subcategory");
-                        else setStep("outcome");
-                      }}
-                      className={cn(
-                        "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
-                        activity === a.key
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card hover:border-primary/50 hover:bg-muted/40",
-                        "active:scale-[0.99]",
-                        isPending && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <span className="text-sm font-semibold text-foreground">{a.label}</span>
-                      <span className="text-xs text-muted-foreground">{a.sublabel}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── Step 2b: Booking Subcategory ── */}
-            {step === "booking-subcategory" && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">What kind of booking ask?</p>
-                <div className="space-y-2">
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => setStep("outcome")}
-                    className={cn(
-                      "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
-                      "border-border bg-card hover:border-primary/50 hover:bg-muted/40",
-                      "active:scale-[0.99]",
-                      isPending && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <span className="text-sm font-semibold text-foreground">Asked for Appointment</span>
-                    <span className="text-xs text-muted-foreground">Direct booking request (facial, party, etc.)</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={async () => {
-                      setStep("event-invite-picker");
-                      setInviteLoading(true);
-                      try {
-                        const today = toLocalDateKey();
-                        const { data } = await supabase
-                          .from("events" as any)
-                          .select("id, event_id, hostess_name, event_type, event_date, event_status, guest_count")
-                          .gte("event_date", today)
-                          .order("event_date", { ascending: true })
-                          .limit(25);
-                        setInviteEvents(data || []);
-                      } catch {
-                        setInviteEvents([]);
-                      }
-                      setInviteLoading(false);
-                    }}
-                    className={cn(
-                      "w-full flex flex-col items-start gap-0.5 px-4 py-3 rounded-xl border-2 text-left transition-all",
-                      "border-border bg-card hover:border-primary/50 hover:bg-muted/40",
-                      "active:scale-[0.99]",
-                      isPending && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <span className="text-sm font-semibold text-foreground">Invited to Event</span>
-                    <span className="text-xs text-muted-foreground">Add this person to an upcoming event as Invited</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── Step 2c: Event Invite Picker ── */}
-            {step === "event-invite-picker" && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Pick an upcoming event</p>
-                {inviteLoading ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Loading…</p>
-                ) : inviteEvents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No upcoming events found. Create one from the Events page first.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {inviteEvents.map((e: any) => {
-                      const eventName = e.hostess_name || e.event_type || e.event_id;
-                      return (
-                        <button
-                          key={e.id}
-                          type="button"
-                          disabled={isPending}
-                          onClick={async () => {
-                            try {
-                              const userId = (await supabase.auth.getUser()).data.user?.id;
-                              await supabase.from("event_guests" as any).insert({
-                                event_id: e.event_id,
-                                name: item.name,
-                                phone: item.phone || null,
-                                owner_user_id: userId,
-                                rsvp: "Invited",
-                                attending: false,
-                              } as any);
-                              const newCount = (e.guest_count || 0) + 1;
-                              await supabase
-                                .from("events" as any)
-                                .update({ guest_count: newCount } as any)
-                                .eq("event_id", e.event_id);
-                            } catch {}
-                            setNoteText(`[Event Invite] — ${eventName}`);
-                            setInvitedEvent({ event_id: e.event_id, name: eventName, event_date: e.event_date });
-                            setStep("notes");
-                          }}
-                          className={cn(
-                            "w-full text-left px-3 py-2.5 rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-primary/5 transition-all",
-                            isPending && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <p className="text-sm font-medium text-foreground">{eventName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {e.event_type ? `${e.event_type} · ` : ""}{formatDateOnly(e.event_date, "MMM d, yyyy")}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Step 3: Outcome (optional) ── */}
-            {step === "outcome" && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">Outcome <span className="font-normal text-xs text-muted-foreground">(optional)</span></p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => handleOutcomeClick("Booked")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all",
-                      outcome === "Booked"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
-                        : "border-border bg-card hover:border-emerald-500/50 hover:bg-emerald-50/50",
-                      isPending && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Booked
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => handleOutcomeClick("Not Interested")}
-                    className={cn(
-                      "flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all",
-                      outcome === "Not Interested"
-                        ? "border-destructive bg-destructive/10 text-destructive"
-                        : "border-border bg-card hover:border-destructive/50 hover:bg-destructive/5",
-                      isPending && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    Not Interested (DNC)
-                  </button>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => { setOutcome(null); setStep("notes"); }}
-                  disabled={isPending}
-                >
-                  Skip — no outcome
-                </Button>
-                <p className="text-[11px] text-muted-foreground text-center">
-                  "Not Interested" {item.personType === "lead" ? "marks the lead as Not Interested" : "tags as DNC"} and stops follow-ups.
-                </p>
-              </div>
-            )}
-
-            {/* ── Step 3b: Booked → Choose Event Type ── */}
-            {step === "booked-type" && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">
-                  🎉 Booked! What type of appointment?
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  We'll log this booking and open Create Event with {item.name} pre-filled.
-                </p>
-                <div className="grid grid-cols-1 gap-2">
-                  {(["Facial", "Party", "Guest Event", "Career Chat"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => handleBookedTypeConfirm(t)}
-                      className={cn(
-                        "flex items-center justify-between gap-2 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all text-left",
-                        "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.99]",
-                        isPending && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <span className="font-semibold text-foreground">{t}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {t === "Career Chat" ? "Logged only" : t === "Guest Event" ? "Pick upcoming event" : "Opens Create Event"}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <Button
-                  variant="ghost"
-                  className="w-full text-xs"
-                  onClick={() => { setOutcome(null); setStep("notes"); }}
-                  disabled={isPending}
-                >
-                  Skip — just log the activity
-                </Button>
-              </div>
-            )}
-
-            {step === "notes" && (
-              <div className="space-y-3">
-                {action === "In Person" && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">
-                      Source <span className="font-normal text-xs text-muted-foreground">(optional — where did you meet?)</span>
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {IN_PERSON_SOURCES.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          disabled={isPending}
-                          onClick={() => setSource(source === s ? null : s)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full border text-xs font-medium transition-all",
-                            source === s
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-muted/40",
-                            isPending && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* ── Step 2: Notes & Next Step ── */}
+            {step === "notes-next" && (
+              <div className="space-y-4">
                 {isSampleActivity && (
                   <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={mailedSample}
-                        onChange={(e) => setMailedSample(e.target.checked)}
-                        className="w-4 h-4 accent-primary"
-                        disabled={isPending}
-                      />
+                      <Checkbox checked={mailedSample} onCheckedChange={(v) => setMailedSample(v === true)} disabled={isPending} />
                       <span className="text-sm font-medium text-foreground">Mailed Sample</span>
                     </label>
                     <p className="text-[11px] text-muted-foreground pl-6">
@@ -970,279 +504,115 @@ function StrictFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigateT
                     </p>
                   </div>
                 )}
-                <p className="text-sm font-semibold text-foreground">What Happened</p>
-                <Textarea
-                  placeholder="Brief conversation summary — what was discussed?"
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  className="min-h-[120px]"
-                  autoFocus
-                />
+
                 <div className="space-y-1.5">
-                  <p className="text-sm font-semibold text-foreground">Next Step</p>
+                  <p className="text-sm font-semibold text-foreground">What Happened <span className="font-normal text-xs text-muted-foreground">(optional)</span></p>
+                  <Textarea
+                    placeholder="Brief conversation summary — what was discussed?"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <p className="text-sm font-semibold text-foreground">Next Step <span className="font-normal text-xs text-muted-foreground">(optional)</span></p>
                   <Input
                     type="text"
-                    placeholder="e.g., Send samples, Follow up on reorder, Schedule facial..."
+                    placeholder="e.g., Send samples, Schedule facial, Follow up on reorder..."
                     value={nextStepText}
                     onChange={(e) => setNextStepText(e.target.value)}
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Free-text description of the intended next action. Schedule the follow-up date in the next step.
-                  </p>
                 </div>
-                <Button className="w-full" onClick={() => setStep("next-step")} disabled={isPending}>
-                  Continue to Next Step <ArrowRight className="w-4 h-4 ml-1.5" />
-                </Button>
-              </div>
-            )}
 
-            {/* ── Step 5: Next Step ── */}
-            {step === "next-step" && invitedEvent && (() => {
-              const suggestions = buildEventInviteFollowUps(invitedEvent.event_date);
-              return (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                    <p className="text-xs font-semibold text-foreground">
-                      Event: <span className="text-primary">{invitedEvent.name}</span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatDateOnly(invitedEvent.event_date, "EEE, MMM d, yyyy")}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">Suggested follow-ups</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Pick the date you want scheduled now. All dates are editable below.
-                  </p>
-                  <div className="space-y-1.5">
-                    {suggestions.map((s) => {
-                      const isSelected = nextOpt === `evt:${s.key}`;
-                      return (
-                        <button
-                          key={s.key}
-                          type="button"
-                          disabled={isPending}
-                          onClick={() => {
-                            setNextOpt(`evt:${s.key}`);
-                            submit(s.date, s.reason);
-                          }}
-                          className={cn(
-                            "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all text-left",
-                            isSelected
-                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                              : "border-border bg-card hover:border-primary/50 hover:bg-muted/50",
-                            isPending && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-foreground">{s.label}</span>
-                            <span className="text-[11px] text-muted-foreground">{s.sublabel}</span>
-                          </div>
-                          <span className="text-[11px] font-medium text-primary whitespace-nowrap">
-                            {formatDateOnly(s.date, "MMM d")}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="space-y-1.5 pt-2 border-t border-border">
-                    <p className="text-xs font-medium text-foreground">Or pick a custom date</p>
-                    <Input
-                      type="date"
-                      value={customDate}
-                      min={format(new Date(), "yyyy-MM-dd")}
-                      onChange={(e) => setCustomDate(e.target.value)}
-                      className="h-9"
-                    />
-                    <Button className="w-full" onClick={handleCustomDateConfirm} disabled={!customDate || isPending}>
-                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                      {isPending ? "Saving..." : `Set for ${customDate ? formatDateOnly(customDate) : "..."}`}
-                    </Button>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {step === "next-step" && !invitedEvent && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">When should you follow up?</p>
-                {suggestedKey && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Suggested for <span className="font-medium text-foreground">{activity}</span>:{" "}
-                    <span className="font-medium text-primary">
-                      {NEXT_STEP_OPTIONS.find((o) => o.key === suggestedKey)?.label}
-                    </span>
-                  </p>
-                )}
                 <div className="space-y-1.5">
-                  {NEXT_STEP_OPTIONS.filter((opt) => {
-                    const allowed = activity ? NEXT_STEP_KEYS_BY_ACTIVITY[activity] : null;
-                    return !allowed || allowed.includes(opt.key);
-                  }).map((opt) => {
-                    const isSuggested = opt.key === suggestedKey;
-                    const isSelected = nextOpt === opt.key;
-                    return (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => handleNextStepClick(opt.key)}
-                        className={cn(
-                          "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all text-left",
-                          isSelected
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                            : isSuggested
-                              ? "border-primary/40 bg-primary/5 hover:bg-primary/10"
-                              : "border-border bg-card hover:border-primary/50 hover:bg-muted/50",
-                          isPending && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <span className="text-sm font-medium text-foreground">{opt.label}</span>
-                        {isSuggested && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">
-                            Suggested
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                  <p className="text-sm font-semibold text-foreground">Schedule Follow-Up</p>
+                  <Input
+                    type="date"
+                    value={followUpDate}
+                    min={format(new Date(), "yyyy-MM-dd")}
+                    onChange={(e) => setFollowUpDate(e.target.value)}
+                    className="h-11"
+                    disabled={outcome === "Not Interested"}
+                  />
+                  {outcome === "Not Interested" && (
+                    <p className="text-[11px] text-muted-foreground">No follow-up scheduled — marked as DNC.</p>
+                  )}
                 </div>
 
-                {nextOpt === "reorder" && (
-                  <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
-                    <p className="text-xs font-medium text-foreground">Reorder cycle window</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[30, 60, 90].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          disabled={isPending}
-                          onClick={() => handleReorderPick(d as 30 | 60 | 90)}
-                          className={cn(
-                            "px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all",
-                            "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.97]",
-                            isPending && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          {d} days
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {nextOpt === "custom" && (
-                  <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
-                    <Input
-                      type="date"
-                      value={customDate}
-                      min={format(new Date(), "yyyy-MM-dd")}
-                      onChange={(e) => setCustomDate(e.target.value)}
-                      className="h-9"
-                      autoFocus
-                    />
-                    <Button className="w-full" onClick={handleCustomDateConfirm} disabled={!customDate || isPending}>
-                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                      {isPending ? "Saving..." : `Set for ${customDate ? formatDateOnly(customDate) : "..."}`}
-                    </Button>
-                  </div>
-                )}
-
-                {nextOpt === "pause" && (
-                  <div className="space-y-2 pt-2 pl-2 border-l-2 border-primary/20 ml-2">
-                    <p className="text-xs font-medium text-foreground">Pause for how long?</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Removes from active follow-up queue. Re-surfaces on Today when the date arrives.
-                    </p>
+                {/* Outcome row */}
+                <div className="space-y-1.5 pt-2 border-t border-border">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outcome <span className="font-normal normal-case">(optional)</span></p>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       disabled={isPending}
-                      onClick={() => handlePausePick(120)}
+                      onClick={() => setOutcome(outcome === "Booked" ? null : "Booked")}
                       className={cn(
-                        "w-full px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all text-left",
-                        "border-border bg-card hover:border-primary hover:bg-primary/5 active:scale-[0.99]",
+                        "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        outcome === "Booked"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
+                          : "border-border bg-card text-foreground hover:border-emerald-500/50",
                         isPending && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      120 days
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Booked ✓
                     </button>
-                    <div className="space-y-2">
-                      <p className="text-[11px] text-muted-foreground">Or pick a custom date:</p>
-                      <Input
-                        type="date"
-                        value={customDate}
-                        min={format(new Date(), "yyyy-MM-dd")}
-                        onChange={(e) => setCustomDate(e.target.value)}
-                        className="h-9"
-                      />
-                      <Button
-                        className="w-full"
-                        onClick={() => customDate && handlePausePick(120, customDate)}
-                        disabled={!customDate || isPending}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                        {isPending ? "Saving..." : `Pause until ${customDate ? formatDateOnly(customDate) : "..."}`}
-                      </Button>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setOutcome(outcome === "Not Interested" ? null : "Not Interested")}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        outcome === "Not Interested"
+                          ? "border-destructive bg-destructive/10 text-destructive"
+                          : "border-border bg-card text-foreground hover:border-destructive/50",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      Not Interested (DNC)
+                    </button>
                   </div>
-                )}
+                  {outcome === "Not Interested" && (
+                    <p className="text-[11px] text-destructive">
+                      {item.personType === "lead"
+                        ? "This marks the lead as Not Interested and stops all follow-ups."
+                        : "This tags the customer as DNC (Do Not Contact) and clears scheduled follow-ups."}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  className="w-full min-h-[48px] text-base"
+                  onClick={handleSave}
+                  disabled={isPending}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                  {isPending ? "Saving..." : "Save Activity"}
+                </Button>
               </div>
             )}
           </div>
         </ScrollArea>
       </SheetContent>
     </Sheet>
-
-    {/* Guest Event Picker Dialog */}
-    <Dialog open={showEventPicker} onOpenChange={(o) => { if (!o) { setShowEventPicker(false); handleClose(); }}}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-base">Which event is {item.name} coming to?</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 max-h-72 overflow-y-auto">
-          {upcomingEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No upcoming Guest Events found. Create one first from the Events page.</p>
-          ) : (
-            upcomingEvents.map((e: any) => (
-              <button key={e.id}
-                className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                onClick={async () => {
-                  try {
-                    const userId = (await supabase.auth.getUser()).data.user?.id;
-                    await supabase.from("event_guests" as any).insert({
-                      event_id: e.event_id,
-                      name: item.name,
-                      phone: item.phone || null,
-                      owner_user_id: userId,
-                      attending: false,
-                    } as any);
-                    const newCount = (e.guest_count || 0) + 1;
-                    await supabase.from("events" as any).update({ guest_count: newCount } as any).eq("event_id", e.event_id);
-                  } catch {}
-                  setShowEventPicker(false);
-                  handleClose();
-                }}>
-                <p className="text-sm font-medium text-foreground">{e.hostess_name || e.event_id}</p>
-                <p className="text-xs text-muted-foreground">{e.event_type} · {formatDateOnly(e.event_date, "MMM d, yyyy")}</p>
-              </button>
-            ))
-          )}
-        </div>
-        <Button variant="outline" size="sm" className="w-full" onClick={() => {
-          setShowEventPicker(false);
-          handleClose();
-          navigate(`/events/new?type=Guest Event&hostess=${encodeURIComponent(item.name || '')}&phone=${encodeURIComponent(item.phone || '')}&from=${encodeURIComponent(window.location.pathname + window.location.search)}`);
-        }}>
-          + Create a new Guest Event instead
-        </Button>
-      </DialogContent>
-    </Dialog>
-    </>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LEGACY FLOW (Hostess, Event Task, Prospect, Consultant) — unchanged behavior
 // ═══════════════════════════════════════════════════════════════════════════
+
+const WHATS_NEXT_OPTIONS = [
+  { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
+  { key: "next-week", label: "Move to next week", icon: CalendarCheck },
+  { key: "30d", label: "30 Days — Check-in", icon: CheckCircle2 },
+  { key: "60d", label: "60 Days — Mid-cycle", icon: CheckCircle2 },
+  { key: "90d", label: "90 Days — Reorder / Reconnect", icon: CheckCircle2 },
+  { key: "schedule", label: "Custom Date", icon: Calendar },
+] as const;
 
 function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
   const navigate = useNavigate();

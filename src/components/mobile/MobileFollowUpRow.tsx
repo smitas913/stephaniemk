@@ -1,14 +1,9 @@
 import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Phone, MessageSquare, CheckCircle2, ChevronRight, FileText, MoreHorizontal, Calendar, SkipForward } from "lucide-react";
+import { Phone, CheckCircle2, MoreHorizontal, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TextActionButton from "@/components/TextActionButton";
 import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 
 export interface MobileActionItem {
   id: string;
@@ -227,36 +222,16 @@ export default function MobileFollowUpRow({
               </>
             )}
 
-            {/* 3-dot menu → bottom sheet */}
-            <Drawer>
-              <DrawerTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={(e) => e.stopPropagation()}>
-                  <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent className="px-2 pb-6">
-                <div className="pt-2 pb-1 px-2">
-                  <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <button type="button" className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { onComplete?.(); }}>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />Mark Complete
-                  </button>
-                  <button type="button" className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { onReschedule?.(); }}>
-                    <Calendar className="w-5 h-5 text-amber-600" />Reschedule
-                  </button>
-                  <button type="button" className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { onSkip?.(); }}>
-                    <SkipForward className="w-5 h-5 text-muted-foreground" />Skip
-                  </button>
-                  <button type="button" className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { onAddNote?.(); }}>
-                    <FileText className="w-5 h-5 text-primary" />Add / View Notes
-                  </button>
-                  <button type="button" className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { onTap(); }}>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />View Detail
-                  </button>
-                </div>
-              </DrawerContent>
-            </Drawer>
+            {/* 3-dot button → opens the unified 2-step wizard (same as tapping the row) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              onClick={(e) => { e.stopPropagation(); onTap(); }}
+              aria-label="Open activity log"
+            >
+              <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+            </Button>
           </div>
         </div>
       </div>
