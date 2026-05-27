@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchScheduleSettings, upsertScheduleSettings, fetchBlackoutDays, createBlackoutDay, deleteBlackoutDay, countOverdueFollowUps, resetOverdueFollowUps } from "@/lib/queries";
 import { getHolidayList } from "@/lib/smartSchedule";
-import { formatDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -139,7 +139,7 @@ export default function ScheduleSettings() {
   const isOOOActive = oooStart && oooEnd;
 
   // ─── Reset Follow-Ups After Out of Office ───
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateKey();
   // Cutoff: if OOO end is in the past, use it; else use today.
   const cutoffDate = settings?.ooo_end_date && settings.ooo_end_date < today
     ? settings.ooo_end_date

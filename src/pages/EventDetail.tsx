@@ -380,7 +380,7 @@ export default function EventDetail() {
 
   // Pending workflow tasks
   const pendingTasks = eventTasks.filter((t: EventTask) => !t.is_completed);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toLocalDateKey();
 
   return (
     <Layout>

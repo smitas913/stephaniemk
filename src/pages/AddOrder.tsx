@@ -226,7 +226,7 @@ export default function AddOrder() {
   // Event options: upcoming first (asc), then past (desc)
   const eventOptions = useMemo(() => {
     if (!isEventBased) return [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDateKey();
     const upcoming = events
       .filter(e => (e.event_date || "") >= today)
       .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));

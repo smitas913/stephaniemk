@@ -654,7 +654,7 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
     );
     const legacyMapped: Note[] = ((legacy || []) as any[])
       .filter((l) => {
-        const key = `${(l.note_text || "").trim()}|${(l.created_at || "").slice(0, 10)}`;
+        const key = `${(l.note_text || "").trim()}|${l.created_at ? toLocalDateKeyImport(new Date(l.created_at)) : ""}`;
         return !seen.has(key);
       })
       .map((l) => ({
@@ -666,7 +666,7 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
         person_type: "customer",
         note_body: l.note_text,
         note_type: l.note_type || "Note",
-        note_date: (l.created_at || "").slice(0, 10),
+        note_date: l.created_at ? toLocalDateKeyImport(new Date(l.created_at)) : "",
         next_follow_up_date: null,
         is_booking_attempt: false,
         is_follow_up: false,
@@ -926,7 +926,7 @@ export const deleteNote = async (id: string) => {
       for (const m of (mirrors as any[]) || []) {
         if (
           (m.note_text || "").trim() === body &&
-          (m.created_at || "").slice(0, 10) === dateKey
+          (m.created_at ? toLocalDateKeyImport(new Date(m.created_at)) : "") === dateKey
         ) {
           await supabase.from("customer_notes").delete().eq("id", m.id);
         }
@@ -974,7 +974,7 @@ async function rollbackCustomerStateFromNotes(customerId: string) {
 
   // next_follow_up_date = soonest future follow_up date from remaining notes
   // (>= today), else null. Conservative: clear if nothing scheduled remains.
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toLocalDateKeyImport();
   const futureFollowUps = rows
     .map((r) => (r.next_follow_up_date || "").slice(0, 10))
     .filter((d) => d && d >= todayKey)
@@ -1004,7 +1004,7 @@ async function rollbackProspectStateFromNotes(prospectId: string) {
     .map((r) => (r.note_date || "").slice(0, 10))
     .filter(Boolean)
     .sort();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toLocalDateKeyImport();
   const futureFollowUps = rows
     .map((r) => (r.next_follow_up_date || "").slice(0, 10))
     .filter((d) => d && d >= todayKey)
@@ -1052,7 +1052,7 @@ async function rollbackLeadStatusFromNotes(leadId: string) {
     .sort();
   updates.last_contact_date = contactDates.length ? contactDates[contactDates.length - 1] : null;
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toLocalDateKeyImport();
   const futureFollowUps = rows
     .map((r) => (r.next_follow_up_date || "").slice(0, 10))
     .filter((d) => d && d >= todayKey)
@@ -1561,7 +1561,7 @@ export const resetOverdueFollowUps = async (
   cutoffDate: string,
   mode: "today" | "clear"
 ): Promise<{ customers: number; prospects: number; booking_leads: number }> => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateKeyImport();
   const newDate: string | null = mode === "today" ? today : null;
 
   const updateTable = async (table: "customers" | "prospects" | "booking_leads") => {
@@ -1598,7 +1598,7 @@ export const convertProspectToConsultant = async (
     state_territory: (prospect as any).state_territory || null,
     postal_code: (prospect as any).postal_code || null,
     prospect_id: prospect.id,
-    join_date: new Date().toISOString().split("T")[0],
+    join_date: toLocalDateKeyImport(),
     status: "Active",
     focus_group: "New Consultant",
     onboarding_stage: "New",
