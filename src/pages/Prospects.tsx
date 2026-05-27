@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { formatDateOnly, compareDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
