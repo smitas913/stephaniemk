@@ -605,6 +605,15 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
 // LEGACY FLOW (Hostess, Event Task, Prospect, Consultant) — unchanged behavior
 // ═══════════════════════════════════════════════════════════════════════════
 
+const WHATS_NEXT_OPTIONS = [
+  { key: "tomorrow", label: "Try again tomorrow", icon: ArrowRight },
+  { key: "next-week", label: "Move to next week", icon: CalendarCheck },
+  { key: "30d", label: "30 Days — Check-in", icon: CheckCircle2 },
+  { key: "60d", label: "60 Days — Mid-cycle", icon: CheckCircle2 },
+  { key: "90d", label: "90 Days — Reorder / Reconnect", icon: CheckCircle2 },
+  { key: "schedule", label: "Custom Date", icon: Calendar },
+] as const;
+
 function LegacyPanel({ item, open, onClose, onLogAction, onSkip, onNavigateToProfile, isPending }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState<ActionStep>("action");
