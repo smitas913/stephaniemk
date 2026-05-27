@@ -369,12 +369,13 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   }
 
   // ─── Rescheduling events → Booking Activity ───
-  // Events in rescheduling process with a follow-up date of today or overdue
+  // Only count a rescheduling event if a reschedule outreach note was actually logged today.
+  // Open/unresolved reschedules with no new action today must NOT inflate the daily count.
   for (const e of events) {
     const rescheduleStatus = (e as any).reschedule_status;
     if (rescheduleStatus !== "In Process of Rescheduling") continue;
-    const nextFollowUp = (e as any).reschedule_next_follow_up_date;
-    if (!nextFollowUp || nextFollowUp > dateKey) continue;
+    const loggedToday = (e as any).reschedule_last_contact_date === dateKey;
+    if (!loggedToday) continue;
     const k = `Event:${e.id}`;
     if (!bookingActivitySeen.has(k)) {
       bookingActivitySeen.add(k);
