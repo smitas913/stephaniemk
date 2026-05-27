@@ -593,8 +593,19 @@ export const uploadReceiptImage = async (file: File): Promise<string> => {
   const path = `${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from("expense-receipts").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("expense-receipts").getPublicUrl(path);
-  return data.publicUrl;
+  // Store the storage path (not a public URL). The bucket is private and access
+  // is granted on-demand via short-lived signed URLs (see getReceiptSignedUrl).
+  return path;
+};
+
+export const getReceiptSignedUrl = async (pathOrUrl: string): Promise<string> => {
+  // Backward compat: legacy rows stored a full public URL. Return it as-is.
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  const { data, error } = await supabase.storage
+    .from("expense-receipts")
+    .createSignedUrl(pathOrUrl, 60 * 10); // 10 minutes
+  if (error) throw error;
+  return data.signedUrl;
 };
 
 export const deleteExpense = async (id: string) => {
