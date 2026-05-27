@@ -666,7 +666,7 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
         person_type: "customer",
         note_body: l.note_text,
         note_type: l.note_type || "Note",
-        note_date: (l.created_at || "").slice(0, 10),
+        note_date: l.created_at ? toLocalDateKeyImport(new Date(l.created_at)) : "",
         next_follow_up_date: null,
         is_booking_attempt: false,
         is_follow_up: false,
