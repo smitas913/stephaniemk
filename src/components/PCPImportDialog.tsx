@@ -142,9 +142,6 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         toast.error("Couldn't find required columns. Need First Name, Last Name, Phone.");
         return;
       }
-        toast.error("Couldn't find required columns. Need First Name, Last Name, Phone.");
-        return;
-      }
       const col = (key: string) => (key in hdr.map ? hdr.map[key] : -1);
       const parsed: ParsedRow[] = [];
       for (let i = hdr.idx + 1; i < raw.length; i++) {
