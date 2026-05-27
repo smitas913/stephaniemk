@@ -134,11 +134,14 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     try {
       const XLSX: any = await import(/* @vite-ignore */ ("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm" as string));
       const ab = await file.arrayBuffer();
-      const wb = XLSX.read(ab, { type: "array" });
+      const wb = XLSX.read(ab, { type: "array", cellText: false, cellDates: true, raw: false });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, header: 1 });
       const hdr = pickHeaderRow(raw);
       if (!hdr) {
+        toast.error("Couldn't find required columns. Need First Name, Last Name, Phone.");
+        return;
+      }
         toast.error("Couldn't find required columns. Need First Name, Last Name, Phone.");
         return;
       }
