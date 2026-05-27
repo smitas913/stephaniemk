@@ -542,16 +542,74 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">Schedule Follow-Up</p>
-                  <Input
-                    type="date"
-                    value={followUpDate}
-                    min={format(new Date(), "yyyy-MM-dd")}
-                    onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="h-11"
-                    disabled={outcome === "Not Interested"}
-                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending || outcome === "Not Interested"}
+                      onClick={() => setFollowUpMode("suggested")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[56px]",
+                        followUpMode === "suggested"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50",
+                        (isPending || outcome === "Not Interested") && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span>Suggested</span>
+                      {suggestedDate && (
+                        <span className="text-[10px] font-normal opacity-80">
+                          {format(new Date(suggestedDate + "T00:00:00"), "MMM d")}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending || outcome === "Not Interested"}
+                      onClick={() => setFollowUpMode("custom")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[56px]",
+                        followUpMode === "custom"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50",
+                        (isPending || outcome === "Not Interested") && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Pick a Date</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setFollowUpMode("pause")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[56px]",
+                        followUpMode === "pause"
+                          ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                          : "border-border bg-card text-foreground hover:border-amber-500/50",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Pause</span>
+                    </button>
+                  </div>
+                  {followUpMode === "custom" && (
+                    <Input
+                      type="date"
+                      value={followUpDate}
+                      min={format(new Date(), "yyyy-MM-dd")}
+                      onChange={(e) => setFollowUpDate(e.target.value)}
+                      className="h-11"
+                      disabled={outcome === "Not Interested"}
+                    />
+                  )}
+                  {followUpMode === "pause" && outcome !== "Not Interested" && (
+                    <p className="text-[11px] text-muted-foreground">
+                      No follow-up scheduled. They'll stay out of the queue until you set a new date.
+                    </p>
+                  )}
                   {outcome === "Not Interested" && (
                     <p className="text-[11px] text-muted-foreground">No follow-up scheduled — marked as DNC.</p>
                   )}
@@ -559,14 +617,28 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
 
                 {/* Outcome row */}
                 <div className="space-y-1.5 pt-2 border-t border-border">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outcome <span className="font-normal normal-case">(optional)</span></p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outcome</p>
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       disabled={isPending}
-                      onClick={() => setOutcome(outcome === "Booked" ? null : "Booked")}
+                      onClick={() => setOutcome(null)}
                       className={cn(
-                        "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        "flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        outcome === null
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      No Outcome Yet
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setOutcome("Booked")}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
                         outcome === "Booked"
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
                           : "border-border bg-card text-foreground hover:border-emerald-500/50",
@@ -574,21 +646,21 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                       )}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Booked ✓
+                      Booked
                     </button>
                     <button
                       type="button"
                       disabled={isPending}
-                      onClick={() => setOutcome(outcome === "Not Interested" ? null : "Not Interested")}
+                      onClick={() => setOutcome("Not Interested")}
                       className={cn(
-                        "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        "flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
                         outcome === "Not Interested"
                           ? "border-destructive bg-destructive/10 text-destructive"
                           : "border-border bg-card text-foreground hover:border-destructive/50",
                         isPending && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      Not Interested (DNC)
+                      Not Interested
                     </button>
                   </div>
                   {outcome === "Not Interested" && (
@@ -599,6 +671,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                     </p>
                   )}
                 </div>
+
 
                 <Button
                   className="w-full min-h-[48px] text-base"
