@@ -137,9 +137,11 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
       const wb = XLSX.read(ab, { type: "array", cellText: false, cellDates: true, raw: false });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw: any[][] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false, header: 1 });
+      console.log("[PCP Import] First 3 rows from SheetJS:", raw.slice(0, 3));
       const hdr = pickHeaderRow(raw);
       if (!hdr) {
-        toast.error("Couldn't find required columns. Need First Name, Last Name, Phone.");
+        console.error("[PCP Import] Header detection failed. rows[0] =", raw[0]);
+        toast.error("Couldn't find required columns. Check browser console for the raw first row.");
         return;
       }
       const col = (key: string) => (key in hdr.map ? hdr.map[key] : -1);
