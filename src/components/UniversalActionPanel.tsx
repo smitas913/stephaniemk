@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Mail, Users,
-  CheckCircle2, ExternalLink,
+  CheckCircle2, ExternalLink, Calendar, ArrowRight, CalendarCheck,
   Clock, SkipForward, ShoppingCart, ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
