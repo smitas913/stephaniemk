@@ -654,7 +654,7 @@ export const fetchNotes = async (entityType: "Customer" | "Prospect", entityId: 
     );
     const legacyMapped: Note[] = ((legacy || []) as any[])
       .filter((l) => {
-        const key = `${(l.note_text || "").trim()}|${(l.created_at || "").slice(0, 10)}`;
+        const key = `${(l.note_text || "").trim()}|${l.created_at ? toLocalDateKeyImport(new Date(l.created_at)) : ""}`;
         return !seen.has(key);
       })
       .map((l) => ({
