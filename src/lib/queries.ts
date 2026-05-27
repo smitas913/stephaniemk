@@ -1004,7 +1004,7 @@ async function rollbackProspectStateFromNotes(prospectId: string) {
     .map((r) => (r.note_date || "").slice(0, 10))
     .filter(Boolean)
     .sort();
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = toLocalDateKeyImport();
   const futureFollowUps = rows
     .map((r) => (r.next_follow_up_date || "").slice(0, 10))
     .filter((d) => d && d >= todayKey)
