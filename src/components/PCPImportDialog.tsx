@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,7 +123,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     setMailingDate(toLocalDateKey(addDays(new Date(), 30)));
   };
 
-  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.name.toLowerCase().endsWith(".xlsx")) {
@@ -132,7 +133,6 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     setFileName(file.name);
 
     console.log("PCP Import - file selected:", file.name, file.size, file.type);
-    const XLSX: any = await import(/* @vite-ignore */ ("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm" as string));
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -179,7 +179,6 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         }
         setRows(parsed);
 
-        // Build match plan
         const built: MatchPlan[] = parsed.map((row) => {
           if (!row.phone || row.phone.length < 10) {
             return { row, action: "skip", reason: "No phone on row — skipped" };
@@ -188,9 +187,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
             const cp = stripPhone(c.phone);
             if (cp !== row.phone) return false;
             const full = (c.full_name || "").toLowerCase().trim();
-            const targetFirst = row.first_name.toLowerCase();
-            const targetLast = row.last_name.toLowerCase();
-            return full.includes(targetFirst) && full.includes(targetLast);
+            return full.includes(row.first_name.toLowerCase()) && full.includes(row.last_name.toLowerCase());
           });
           if (match) {
             return {
