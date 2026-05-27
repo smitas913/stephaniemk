@@ -194,6 +194,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   const [noteText, setNoteText] = useState(initialNote || "");
   const [nextStepText, setNextStepText] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpMode, setFollowUpMode] = useState<"suggested" | "custom" | "pause">("suggested");
   const [mailedSample, setMailedSample] = useState(false);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
@@ -208,6 +209,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       setOutcome(null);
       setNextStepText("");
       setFollowUpDate("");
+      setFollowUpMode("suggested");
       setMailedSample(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -219,11 +221,9 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
 
   const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
 
-  // Auto-suggest a follow-up date when entering Step 2 based on activity type / mailed sample.
-  // Only fill if user hasn't already picked a date.
-  React.useEffect(() => {
-    if (step !== "notes-next" || followUpDate) return;
-    if (!activity) return;
+  // Compute a context-aware suggested follow-up date based on the activity selected.
+  const suggestedDate = React.useMemo(() => {
+    if (!activity) return "";
     const daysByActivity: Record<ActivityType, number> = {
       "Booking Ask": 3,
       "Connection": 7,
@@ -233,9 +233,26 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       "Follow-Up": 7,
     };
     const days = isSampleActivity && mailedSample ? 6 : daysByActivity[activity];
-    setFollowUpDate(format(addDays(new Date(), days), "yyyy-MM-dd"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, activity, mailedSample]);
+    return format(addDays(new Date(), days), "yyyy-MM-dd");
+  }, [activity, isSampleActivity, mailedSample]);
+
+  // Seed the custom-date input with the suggested value when entering Step 2.
+  React.useEffect(() => {
+    if (step === "notes-next" && !followUpDate && suggestedDate) {
+      setFollowUpDate(suggestedDate);
+    }
+  }, [step, suggestedDate, followUpDate]);
+
+  // Force pause when DNC is selected.
+  React.useEffect(() => {
+    if (outcome === "Not Interested") setFollowUpMode("pause");
+  }, [outcome]);
+
+  const effectiveFollowUpDate = followUpMode === "pause"
+    ? null
+    : followUpMode === "custom"
+      ? (followUpDate || null)
+      : (suggestedDate || null);
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
@@ -259,13 +276,13 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       note: buildNote(),
       isBookingAttempt: isBooking,
       isFollowUp: !isBooking,
-      nextFollowUpDate: isDnc ? null : (followUpDate || null),
+      nextFollowUpDate: isDnc ? null : effectiveFollowUpDate,
       followUpReason: isDnc ? null : (activity || null),
       category,
       dnc: isDnc,
     });
     handleClose();
-  }, [action, activity, outcome, followUpDate, item, onLogAction, buildNote, handleClose]);
+  }, [action, activity, outcome, effectiveFollowUpDate, item, onLogAction, buildNote, handleClose]);
 
   const canContinue = !!action && !!activity;
   const badge = TYPE_BADGE_MAP[item.personType];
@@ -525,16 +542,74 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground">Schedule Follow-Up</p>
-                  <Input
-                    type="date"
-                    value={followUpDate}
-                    min={format(new Date(), "yyyy-MM-dd")}
-                    onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="h-11"
-                    disabled={outcome === "Not Interested"}
-                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending || outcome === "Not Interested"}
+                      onClick={() => setFollowUpMode("suggested")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[56px]",
+                        followUpMode === "suggested"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50",
+                        (isPending || outcome === "Not Interested") && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <span>Suggested</span>
+                      {suggestedDate && (
+                        <span className="text-[10px] font-normal opacity-80">
+                          {format(new Date(suggestedDate + "T00:00:00"), "MMM d")}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending || outcome === "Not Interested"}
+                      onClick={() => setFollowUpMode("custom")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[56px]",
+                        followUpMode === "custom"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50",
+                        (isPending || outcome === "Not Interested") && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Pick a Date</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setFollowUpMode("pause")}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[56px]",
+                        followUpMode === "pause"
+                          ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                          : "border-border bg-card text-foreground hover:border-amber-500/50",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Pause</span>
+                    </button>
+                  </div>
+                  {followUpMode === "custom" && (
+                    <Input
+                      type="date"
+                      value={followUpDate}
+                      min={format(new Date(), "yyyy-MM-dd")}
+                      onChange={(e) => setFollowUpDate(e.target.value)}
+                      className="h-11"
+                      disabled={outcome === "Not Interested"}
+                    />
+                  )}
+                  {followUpMode === "pause" && outcome !== "Not Interested" && (
+                    <p className="text-[11px] text-muted-foreground">
+                      No follow-up scheduled. They'll stay out of the queue until you set a new date.
+                    </p>
+                  )}
                   {outcome === "Not Interested" && (
                     <p className="text-[11px] text-muted-foreground">No follow-up scheduled — marked as DNC.</p>
                   )}
@@ -542,14 +617,28 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
 
                 {/* Outcome row */}
                 <div className="space-y-1.5 pt-2 border-t border-border">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outcome <span className="font-normal normal-case">(optional)</span></p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Outcome</p>
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
                       disabled={isPending}
-                      onClick={() => setOutcome(outcome === "Booked" ? null : "Booked")}
+                      onClick={() => setOutcome(null)}
                       className={cn(
-                        "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        "flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        outcome === null
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-foreground hover:border-primary/50",
+                        isPending && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      No Outcome Yet
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => setOutcome("Booked")}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
                         outcome === "Booked"
                           ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
                           : "border-border bg-card text-foreground hover:border-emerald-500/50",
@@ -557,21 +646,21 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                       )}
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Booked ✓
+                      Booked
                     </button>
                     <button
                       type="button"
                       disabled={isPending}
-                      onClick={() => setOutcome(outcome === "Not Interested" ? null : "Not Interested")}
+                      onClick={() => setOutcome("Not Interested")}
                       className={cn(
-                        "flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                        "flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
                         outcome === "Not Interested"
                           ? "border-destructive bg-destructive/10 text-destructive"
                           : "border-border bg-card text-foreground hover:border-destructive/50",
                         isPending && "opacity-50 cursor-not-allowed"
                       )}
                     >
-                      Not Interested (DNC)
+                      Not Interested
                     </button>
                   </div>
                   {outcome === "Not Interested" && (
@@ -582,6 +671,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                     </p>
                   )}
                 </div>
+
 
                 <Button
                   className="w-full min-h-[48px] text-base"

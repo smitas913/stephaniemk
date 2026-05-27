@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Phone, Mail, MessageSquare, Calendar, RefreshCw, FileText, Users, Briefcase, Pencil, Check, X } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Trash2, Phone, Mail, MessageSquare, Calendar, RefreshCw, FileText, Users, Briefcase, Pencil, Check, X, MoreVertical, CheckCircle2, XCircle, CircleDashed } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -204,6 +207,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
                   isLatest={idx === 0}
                   onDelete={() => deleteMutation.mutate(note.id)}
                   onSaveEdit={(updates) => editMutation.mutate({ id: note.id, ...updates })}
+                  onUpdateOutcome={(newBody) => editMutation.mutate({ id: note.id, note_body: newBody })}
                   isSaving={editMutation.isPending}
                 />
               ))}
@@ -219,12 +223,14 @@ function NoteItem({
   note,
   onDelete,
   onSaveEdit,
+  onUpdateOutcome,
   isSaving,
   isLatest = false,
 }: {
   note: Note;
   onDelete: () => void;
   onSaveEdit: (updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null }) => void;
+  onUpdateOutcome: (newBody: string) => void;
   isSaving?: boolean;
   isLatest?: boolean;
 }) {
@@ -236,6 +242,26 @@ function NoteItem({
   const [body, setBody] = useState(note.note_body || "");
   const [date, setDate] = useState(note.note_date || "");
   const [followUp, setFollowUp] = useState(note.next_follow_up_date || "");
+
+  // Detect current outcome from the note body (logged by the Activity wizard).
+  const bodyText = note.note_body || "";
+  const currentOutcome: "Booked" | "Not Interested" | null =
+    /\[Booked\]/i.test(bodyText) ? "Booked"
+    : /\[Not Interested(\s*\/\s*DNC)?\]/i.test(bodyText) ? "Not Interested"
+    : null;
+
+  const setOutcome = (next: "Booked" | "Not Interested" | null) => {
+    // Strip any existing outcome tag, then insert the new one (if any).
+    const stripped = bodyText
+      .replace(/\s*\[Booked\]\s*/gi, " ")
+      .replace(/\s*\[Not Interested(\s*\/\s*DNC)?\]\s*/gi, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    const tag = next === "Booked" ? "[Booked]" : next === "Not Interested" ? "[Not Interested / DNC]" : "";
+    const newBody = tag ? (stripped ? `${tag} ${stripped}` : tag) : stripped;
+    if (newBody === bodyText) return;
+    onUpdateOutcome(newBody);
+  };
 
   const handleSave = () => {
     if (!body.trim()) {
@@ -336,25 +362,40 @@ function NoteItem({
             )}
           </div>
           {!editing && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setEditing(true)}
-                title="Edit"
-              >
-                <Pencil className="w-3 h-3 text-muted-foreground" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={onDelete}
-                title="Delete"
-              >
-                <Trash2 className="w-3 h-3 text-destructive" />
-              </Button>
+            <div className="shrink-0 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="More actions">
+                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={() => setEditing(true)}>
+                    <Pencil className="w-3.5 h-3.5 mr-2" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Update Outcome</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setOutcome("Booked")} disabled={currentOutcome === "Booked"}>
+                    <CheckCircle2 className={cn("w-3.5 h-3.5 mr-2", currentOutcome === "Booked" ? "text-emerald-600" : "text-muted-foreground")} />
+                    Booked
+                    {currentOutcome === "Booked" && <Check className="w-3 h-3 ml-auto text-emerald-600" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOutcome("Not Interested")} disabled={currentOutcome === "Not Interested"}>
+                    <XCircle className={cn("w-3.5 h-3.5 mr-2", currentOutcome === "Not Interested" ? "text-destructive" : "text-muted-foreground")} />
+                    Not Interested
+                    {currentOutcome === "Not Interested" && <Check className="w-3 h-3 ml-auto text-destructive" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOutcome(null)} disabled={currentOutcome === null}>
+                    <CircleDashed className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                    No Outcome Yet
+                    {currentOutcome === null && <Check className="w-3 h-3 ml-auto text-muted-foreground" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                    <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
