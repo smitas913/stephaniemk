@@ -362,25 +362,40 @@ function NoteItem({
             )}
           </div>
           {!editing && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => setEditing(true)}
-                title="Edit"
-              >
-                <Pencil className="w-3 h-3 text-muted-foreground" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={onDelete}
-                title="Delete"
-              >
-                <Trash2 className="w-3 h-3 text-destructive" />
-              </Button>
+            <div className="shrink-0 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="More actions">
+                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={() => setEditing(true)}>
+                    <Pencil className="w-3.5 h-3.5 mr-2" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground">Update Outcome</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setOutcome("Booked")} disabled={currentOutcome === "Booked"}>
+                    <CheckCircle2 className={cn("w-3.5 h-3.5 mr-2", currentOutcome === "Booked" ? "text-emerald-600" : "text-muted-foreground")} />
+                    Booked
+                    {currentOutcome === "Booked" && <Check className="w-3 h-3 ml-auto text-emerald-600" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOutcome("Not Interested")} disabled={currentOutcome === "Not Interested"}>
+                    <XCircle className={cn("w-3.5 h-3.5 mr-2", currentOutcome === "Not Interested" ? "text-destructive" : "text-muted-foreground")} />
+                    Not Interested
+                    {currentOutcome === "Not Interested" && <Check className="w-3 h-3 ml-auto text-destructive" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setOutcome(null)} disabled={currentOutcome === null}>
+                    <CircleDashed className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                    No Outcome Yet
+                    {currentOutcome === null && <Check className="w-3 h-3 ml-auto text-muted-foreground" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                    <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
