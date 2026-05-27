@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList, SlidersHorizontal, MoreHorizontal, X, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
