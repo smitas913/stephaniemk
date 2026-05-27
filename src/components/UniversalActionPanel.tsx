@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -10,14 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   Phone, MessageSquare, Mail, Users,
-  CheckCircle2, Calendar, ArrowRight, ExternalLink,
-  CalendarCheck, Clock, SkipForward, ShoppingCart, ArrowLeft,
+  CheckCircle2, ExternalLink,
+  Clock, SkipForward, ShoppingCart, ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
-import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
+import { formatDateOnly } from "@/lib/dateOnly";
 import { openEmail } from "@/lib/emailPreference";
-import { supabase } from "@/integrations/supabase/client";
 import TextActionButton from "@/components/TextActionButton";
 import { INTENT_CATEGORIES, REASONS_BY_CATEGORY, resolveIntentCategory, type IntentCategory } from "@/lib/intentCategory";
 import { getLeadPriority, PRIORITY_META } from "@/lib/leadPriority";
