@@ -183,7 +183,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
               <Input
                 type="date"
                 value={nextFollowUp}
-                min={new Date().toISOString().split("T")[0]}
+                min={toLocalDateKey()}
                 onChange={(e) => setNextFollowUp(e.target.value)}
                 className="h-9 max-w-[200px]"
               />
