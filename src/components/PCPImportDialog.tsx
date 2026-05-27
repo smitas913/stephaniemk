@@ -45,21 +45,54 @@ function parseSeason(program: string): string {
   return m || "Catalog";
 }
 
+// Find column index by trying matchers in order; first match wins.
+function findCol(row: string[], matchers: ((c: string) => boolean)[]): number {
+  for (const m of matchers) {
+    const j = row.findIndex(m);
+    if (j >= 0) return j;
+  }
+  return -1;
+}
+
 function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number> } | null {
-  const want = [
-    "first name", "last name", "phone", "personal email address",
-    "street", "street 2", "city", "state", "zip code", "pcp program",
-  ];
-  for (let i = 0; i < Math.min(15, rows.length); i++) {
+  for (let i = 0; i < Math.min(5, rows.length); i++) {
     const row = (rows[i] || []).map((c) => String(c ?? "").toLowerCase().trim());
-    const found: Record<string, number> = {};
-    want.forEach((w) => {
-      const j = row.indexOf(w);
-      if (j >= 0) found[w] = j;
-    });
-    // Need at least first name + last name + phone to call it a valid header
-    if ("first name" in found && "last name" in found && "phone" in found) {
-      return { idx: i, map: found };
+    // Header row must contain "first name" (exact, trimmed, case-insensitive)
+    if (!row.some((c) => c === "first name")) continue;
+
+    const eq = (s: string) => (c: string) => c === s;
+    const has = (s: string) => (c: string) => c.includes(s);
+
+    const map: Record<string, number> = {
+      "first name": findCol(row, [eq("first name")]),
+      "last name": findCol(row, [eq("last name")]),
+      "phone": findCol(row, [
+        eq("phone"),
+        eq("phone number"),
+        eq("mobile phone"),
+        eq("cell phone"),
+        eq("home phone"),
+        has("phone"),
+      ]),
+      "personal email address": findCol(row, [
+        eq("personal email address"),
+        eq("email address"),
+        eq("email"),
+        has("email"),
+      ]),
+      "street": findCol(row, [eq("street"), eq("address"), eq("address 1"), eq("street 1"), eq("address line 1")]),
+      "street 2": findCol(row, [eq("street 2"), eq("address 2"), eq("address line 2")]),
+      "city": findCol(row, [eq("city")]),
+      "state": findCol(row, [eq("state"), eq("state/province"), eq("province")]),
+      "zip code": findCol(row, [eq("zip code"), eq("zip"), eq("postal code")]),
+      "pcp program": findCol(row, [eq("pcp program"), eq("program"), has("pcp")]),
+    };
+
+    if (map["first name"] >= 0 && map["last name"] >= 0 && map["phone"] >= 0) {
+      // Strip out -1s so caller's `key in map` check still works correctly
+      const clean: Record<string, number> = {};
+      Object.entries(map).forEach(([k, v]) => { if (v >= 0) clean[k] = v; });
+      return { idx: i, map: clean };
     }
   }
   return null;
