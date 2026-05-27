@@ -144,8 +144,11 @@ export default function LeadDetail() {
     if (!file || !id) return;
     setUploading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${id}/${Date.now()}.${ext}`;
+      // Path must start with auth.uid() to satisfy storage RLS ownership policies.
+      const path = `${user.id}/${id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("contact-cards").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from("contact-cards").getPublicUrl(path);
