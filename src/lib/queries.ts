@@ -1598,7 +1598,7 @@ export const convertProspectToConsultant = async (
     state_territory: (prospect as any).state_territory || null,
     postal_code: (prospect as any).postal_code || null,
     prospect_id: prospect.id,
-    join_date: new Date().toISOString().split("T")[0],
+    join_date: toLocalDateKeyImport(),
     status: "Active",
     focus_group: "New Consultant",
     onboarding_stage: "New",
