@@ -223,12 +223,14 @@ function NoteItem({
   note,
   onDelete,
   onSaveEdit,
+  onUpdateOutcome,
   isSaving,
   isLatest = false,
 }: {
   note: Note;
   onDelete: () => void;
   onSaveEdit: (updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null }) => void;
+  onUpdateOutcome: (newBody: string) => void;
   isSaving?: boolean;
   isLatest?: boolean;
 }) {
@@ -240,6 +242,26 @@ function NoteItem({
   const [body, setBody] = useState(note.note_body || "");
   const [date, setDate] = useState(note.note_date || "");
   const [followUp, setFollowUp] = useState(note.next_follow_up_date || "");
+
+  // Detect current outcome from the note body (logged by the Activity wizard).
+  const bodyText = note.note_body || "";
+  const currentOutcome: "Booked" | "Not Interested" | null =
+    /\[Booked\]/i.test(bodyText) ? "Booked"
+    : /\[Not Interested(\s*\/\s*DNC)?\]/i.test(bodyText) ? "Not Interested"
+    : null;
+
+  const setOutcome = (next: "Booked" | "Not Interested" | null) => {
+    // Strip any existing outcome tag, then insert the new one (if any).
+    const stripped = bodyText
+      .replace(/\s*\[Booked\]\s*/gi, " ")
+      .replace(/\s*\[Not Interested(\s*\/\s*DNC)?\]\s*/gi, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    const tag = next === "Booked" ? "[Booked]" : next === "Not Interested" ? "[Not Interested / DNC]" : "";
+    const newBody = tag ? (stripped ? `${tag} ${stripped}` : tag) : stripped;
+    if (newBody === bodyText) return;
+    onUpdateOutcome(newBody);
+  };
 
   const handleSave = () => {
     if (!body.trim()) {
