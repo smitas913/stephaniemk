@@ -221,11 +221,9 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
 
   const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
 
-  // Auto-suggest a follow-up date when entering Step 2 based on activity type / mailed sample.
-  // Only fill if user hasn't already picked a date.
-  React.useEffect(() => {
-    if (step !== "notes-next" || followUpDate) return;
-    if (!activity) return;
+  // Compute a context-aware suggested follow-up date based on the activity selected.
+  const suggestedDate = React.useMemo(() => {
+    if (!activity) return "";
     const daysByActivity: Record<ActivityType, number> = {
       "Booking Ask": 3,
       "Connection": 7,
@@ -235,9 +233,26 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       "Follow-Up": 7,
     };
     const days = isSampleActivity && mailedSample ? 6 : daysByActivity[activity];
-    setFollowUpDate(format(addDays(new Date(), days), "yyyy-MM-dd"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, activity, mailedSample]);
+    return format(addDays(new Date(), days), "yyyy-MM-dd");
+  }, [activity, isSampleActivity, mailedSample]);
+
+  // Seed the custom-date input with the suggested value when entering Step 2.
+  React.useEffect(() => {
+    if (step === "notes-next" && !followUpDate && suggestedDate) {
+      setFollowUpDate(suggestedDate);
+    }
+  }, [step, suggestedDate, followUpDate]);
+
+  // Force pause when DNC is selected.
+  React.useEffect(() => {
+    if (outcome === "Not Interested") setFollowUpMode("pause");
+  }, [outcome]);
+
+  const effectiveFollowUpDate = followUpMode === "pause"
+    ? null
+    : followUpMode === "custom"
+      ? (followUpDate || null)
+      : (suggestedDate || null);
 
   const buildNote = useCallback(() => {
     const parts: string[] = [];
@@ -261,13 +276,13 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       note: buildNote(),
       isBookingAttempt: isBooking,
       isFollowUp: !isBooking,
-      nextFollowUpDate: isDnc ? null : (followUpDate || null),
+      nextFollowUpDate: isDnc ? null : effectiveFollowUpDate,
       followUpReason: isDnc ? null : (activity || null),
       category,
       dnc: isDnc,
     });
     handleClose();
-  }, [action, activity, outcome, followUpDate, item, onLogAction, buildNote, handleClose]);
+  }, [action, activity, outcome, effectiveFollowUpDate, item, onLogAction, buildNote, handleClose]);
 
   const canContinue = !!action && !!activity;
   const badge = TYPE_BADGE_MAP[item.personType];
