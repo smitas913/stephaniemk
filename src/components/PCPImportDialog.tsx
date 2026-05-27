@@ -179,36 +179,42 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         }
         setRows(parsed);
 
-      // Build match plan
-      const built: MatchPlan[] = parsed.map((row) => {
-        if (!row.phone || row.phone.length < 10) {
-          return { row, action: "skip", reason: "No phone on row — skipped" };
-        }
-        const match = customers.find((c: any) => {
-          const cp = stripPhone(c.phone);
-          if (cp !== row.phone) return false;
-          const full = (c.full_name || "").toLowerCase().trim();
-          const targetFirst = row.first_name.toLowerCase();
-          const targetLast = row.last_name.toLowerCase();
-          return full.includes(targetFirst) && full.includes(targetLast);
+        // Build match plan
+        const built: MatchPlan[] = parsed.map((row) => {
+          if (!row.phone || row.phone.length < 10) {
+            return { row, action: "skip", reason: "No phone on row — skipped" };
+          }
+          const match = customers.find((c: any) => {
+            const cp = stripPhone(c.phone);
+            if (cp !== row.phone) return false;
+            const full = (c.full_name || "").toLowerCase().trim();
+            const targetFirst = row.first_name.toLowerCase();
+            const targetLast = row.last_name.toLowerCase();
+            return full.includes(targetFirst) && full.includes(targetLast);
+          });
+          if (match) {
+            return {
+              row,
+              action: "update",
+              customerId: (match as any).id,
+              customerName: (match as any).full_name,
+              reason: "Existing customer — will tag PCP & refresh",
+            };
+          }
+          return { row, action: "create", reason: "New customer — will create with PCP tag" };
         });
-        if (match) {
-          return {
-            row,
-            action: "update",
-            customerId: (match as any).id,
-            customerName: (match as any).full_name,
-            reason: "Existing customer — will tag PCP & refresh",
-          };
-        }
-        return { row, action: "create", reason: "New customer — will create with PCP tag" };
-      });
-      setPlan(built);
-      setStep("preview");
-    } catch (err) {
-      console.error(err);
-      toast.error("Could not read .xlsx file. Re-export from Excel and try again.");
-    }
+        setPlan(built);
+        setStep("preview");
+      } catch (err) {
+        console.error("PCP Import - parse error:", err);
+        toast.error("Could not read .xlsx file. Re-export from Excel and try again.");
+      }
+    };
+    reader.onerror = (err) => {
+      console.error("PCP Import - FileReader error:", err);
+      toast.error("Could not read file.");
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleImport = async () => {
