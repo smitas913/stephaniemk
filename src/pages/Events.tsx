@@ -71,7 +71,7 @@ export default function Events() {
   };
 
   const nextTaskByEvent = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDateKey();
     const grouped = new Map<string, EventTask[]>();
     for (const t of allTasks) {
       if (t.is_completed) continue;
