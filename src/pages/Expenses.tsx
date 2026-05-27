@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchExpenses, createExpense, deleteExpense, updateExpense, uploadReceiptImage } from "@/lib/queries";
+import { fetchExpenses, createExpense, deleteExpense, updateExpense, uploadReceiptImage, getReceiptSignedUrl } from "@/lib/queries";
 import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -189,7 +189,14 @@ export default function Expenses() {
                       <Badge variant="secondary" className={cn("text-[10px]", CATEGORY_COLORS[e.category] || "")}>{e.category}</Badge>
                       {e.receipt_url && (
                         <button
-                          onClick={() => setViewingReceipt(e.receipt_url)}
+                          onClick={async () => {
+                            try {
+                              const url = await getReceiptSignedUrl(e.receipt_url!);
+                              setViewingReceipt(url);
+                            } catch (err: any) {
+                              toast.error(err.message || "Could not open receipt");
+                            }
+                          }}
                           className="text-primary hover:text-primary/80 transition-colors"
                           title="View receipt"
                         >
