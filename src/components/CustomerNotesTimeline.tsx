@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotes, createNote, deleteNote, updateNote, fetchCustomer } from "@/lib/queries";
 import { resolveLongTermFollowUpDate } from "@/lib/longTermFollowUp";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import { NOTE_TYPES } from "@/lib/types";
 import type { Note } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
