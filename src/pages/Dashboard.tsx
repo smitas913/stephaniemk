@@ -198,11 +198,11 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-3">
         {/* HEADER — minimized */}
-        <div className="flex items-center justify-between gap-3 px-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
-            <p className="text-sm font-semibold text-foreground italic truncate">"{dailyQuote}"</p>
-            <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">· {weekLabel}</span>
+        <div className="flex items-start justify-between gap-3 px-1">
+          <div className="flex items-start gap-2 min-w-0 flex-1">
+            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0 mt-1" />
+            <p className="text-sm font-semibold text-foreground italic whitespace-normal break-words text-wrap">"{dailyQuote}"</p>
+            <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline mt-1">· {weekLabel}</span>
           </div>
           <Button onClick={() => navigate("/follow-ups")} size="sm" variant="ghost" className="h-7 text-xs shrink-0">
             Today
