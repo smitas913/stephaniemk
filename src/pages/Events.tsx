@@ -208,7 +208,7 @@ export default function Events() {
     });
   }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = toLocalDateKey();
   const { upcoming, past } = useMemo(() => {
     const sortAsc = [...filtered].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
     const upcoming = sortAsc
