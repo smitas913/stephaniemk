@@ -926,7 +926,7 @@ export const deleteNote = async (id: string) => {
       for (const m of (mirrors as any[]) || []) {
         if (
           (m.note_text || "").trim() === body &&
-          (m.created_at || "").slice(0, 10) === dateKey
+          (m.created_at ? toLocalDateKeyImport(new Date(m.created_at)) : "") === dateKey
         ) {
           await supabase.from("customer_notes").delete().eq("id", m.id);
         }
