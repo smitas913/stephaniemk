@@ -144,14 +144,24 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         const result = e.target!.result as ArrayBuffer;
         console.log("PCP Import - FileReader loaded, byte length:", result.byteLength);
         const data = new Uint8Array(result);
-        const workbook = XLSX.read(data, { type: "array", raw: false, cellDates: true });
+        const workbook = XLSX.read(data, { type: "array", dense: true });
         console.log("PCP Import - sheet names:", workbook.SheetNames);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const raw: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: true });
+        // Use dense array mode with explicit value extraction
+        const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1:L200");
+        const raw: any[][] = [];
+        for (let R = range.s.r; R <= range.e.r; R++) {
+          const row: any[] = [];
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const cell = (worksheet as any)[R]?.[C];
+            row.push(cell ? (cell.w ?? cell.v ?? "") : "");
+          }
+          raw.push(row);
+        }
         console.log("PCP Import - row count:", raw.length);
         console.log("PCP Import - first row RAW:", JSON.stringify(raw[0]));
-        console.log("PCP Import - second row:", raw[1]);
+        console.log("PCP Import - second row:", JSON.stringify(raw[1]));
 
         const hdr = pickHeaderRow(raw);
         if (!hdr) {
