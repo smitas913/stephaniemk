@@ -56,7 +56,10 @@ function findCol(row: string[], matchers: ((c: string) => boolean)[]): number {
 }
 
 function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number> } | null {
-  for (let i = 0; i < Math.min(5, rows.length); i++) {
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    // Skip entirely empty rows
+    if (!rows[i] || rows[i].every((c: any) => String(c ?? "").trim() === "")) continue;
+
     const row = (rows[i] || []).map((c) => String(c ?? "").toLowerCase().trim());
     // Header row must contain "first name" (exact, trimmed, case-insensitive)
     if (!row.some((c) => c === "first name")) continue;
