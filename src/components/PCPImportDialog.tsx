@@ -96,6 +96,7 @@ function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number
       return { idx: i, map: clean };
     }
   }
+  console.error("[PCP Import] All 5 rows failed header detection. Dumping rows:", JSON.stringify(rows.slice(0, 3)));
   return null;
 }
 
@@ -146,7 +147,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         const worksheet = workbook.Sheets[sheetName];
         const raw: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
         console.log("PCP Import - row count:", raw.length);
-        console.log("PCP Import - first row:", raw[0]);
+        console.log("PCP Import - first row RAW:", JSON.stringify(raw[0]));
         console.log("PCP Import - second row:", raw[1]);
 
         const hdr = pickHeaderRow(raw);
