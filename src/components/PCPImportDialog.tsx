@@ -96,7 +96,7 @@ function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number
       return { idx: i, map: clean };
     }
   }
-  console.error("[PCP Import] All 5 rows failed header detection. Dumping rows:", JSON.stringify(rows.slice(0, 3)));
+  console.error("[PCP Import] Header detection failed. Rows dump:", JSON.stringify(rows.slice(0, 3)));
   return null;
 }
 
