@@ -208,6 +208,8 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpMode, setFollowUpMode] = useState<"suggested" | "custom" | "pause">("suggested");
   const [mailedSample, setMailedSample] = useState(false);
+  const [alsoBookingAsk, setAlsoBookingAsk] = useState(false);
+  const [bookingSubtype, setBookingSubtype] = useState<"Asked for Appointment" | "Invited to Event" | null>(null);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
   React.useEffect(() => {
@@ -223,6 +225,8 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       setFollowUpDate("");
       setFollowUpMode("suggested");
       setMailedSample(false);
+      setAlsoBookingAsk(false);
+      setBookingSubtype(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialNote]);
@@ -232,6 +236,20 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   }, [onClose]);
 
   const isSampleActivity = activity === "Sent Info / Samples" || activity === "Order/Product/Sample Follow-Up";
+  const canAlsoBookingAsk = activity === "PCP Follow-Up" || activity === "Order/Product/Sample Follow-Up";
+  const showBookingSubtype = activity === "Booking Ask" || (canAlsoBookingAsk && alsoBookingAsk);
+
+  // Clear the "also booking ask" state when activity becomes ineligible.
+  React.useEffect(() => {
+    if (!canAlsoBookingAsk) {
+      setAlsoBookingAsk(false);
+    }
+  }, [canAlsoBookingAsk]);
+  React.useEffect(() => {
+    if (!showBookingSubtype && bookingSubtype !== null) {
+      setBookingSubtype(null);
+    }
+  }, [showBookingSubtype, bookingSubtype]);
 
   // Compute a context-aware suggested follow-up date based on activity + customer profile.
   // Returns both the date and a short human reason describing why we picked it.
@@ -290,6 +308,8 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (activity) parts.push(`[${activity}]`);
+    if (canAlsoBookingAsk && alsoBookingAsk) parts.push("[Booking Ask]");
+    if (bookingSubtype) parts.push(`[${bookingSubtype}]`);
     if (isSampleActivity && mailedSample) parts.push("[Mailed Sample]");
     if (outcome === "Booked") parts.push("[Booked]");
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
@@ -297,10 +317,10 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
     if (nextStepText.trim()) parts.push(`Next Step: ${nextStepText.trim()}`);
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action]);
+  }, [activity, canAlsoBookingAsk, alsoBookingAsk, bookingSubtype, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action]);
 
   const handleSave = useCallback(() => {
-    const isBooking = activity === "Booking Ask" || outcome === "Booked";
+    const isBooking = activity === "Booking Ask" || (canAlsoBookingAsk && alsoBookingAsk) || outcome === "Booked";
     const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
     const isDnc = outcome === "Not Interested";
     onLogAction({
@@ -315,7 +335,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       dnc: isDnc,
     });
     handleClose();
-  }, [action, activity, outcome, effectiveFollowUpDate, item, onLogAction, buildNote, handleClose]);
+  }, [action, activity, canAlsoBookingAsk, alsoBookingAsk, outcome, effectiveFollowUpDate, item, onLogAction, buildNote, handleClose]);
 
   const canContinue = !!action && !!activity;
   const badge = TYPE_BADGE_MAP[item.personType];
@@ -507,6 +527,20 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                       </button>
                     ))}
                   </div>
+                  {canAlsoBookingAsk && (
+                    <label className="flex items-start gap-2 mt-2 px-3 py-2.5 rounded-lg border border-border bg-muted/30 cursor-pointer select-none">
+                      <Checkbox
+                        checked={alsoBookingAsk}
+                        onCheckedChange={(v) => setAlsoBookingAsk(v === true)}
+                        disabled={isPending}
+                        className="mt-0.5"
+                      />
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium text-foreground">Also made a booking ask</span>
+                        <span className="text-[11px] text-muted-foreground">Tagged as a booking attempt — follow-up date still based on the activity above.</span>
+                      </span>
+                    </label>
+                  )}
                 </div>
 
                 {/* Continue */}
@@ -541,6 +575,30 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
             {/* ── Step 2: Notes & Next Step ── */}
             {step === "notes-next" && (
               <div className="space-y-4">
+                {showBookingSubtype && (
+                  <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-900/10 p-3">
+                    <p className="text-sm font-semibold text-foreground">Booking Ask — what kind?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["Asked for Appointment", "Invited to Event"] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => setBookingSubtype(bookingSubtype === s ? null : s)}
+                          className={cn(
+                            "px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                            bookingSubtype === s
+                              ? "border-amber-500 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                              : "border-border bg-card text-foreground hover:border-amber-500/50",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {isSampleActivity && (
                   <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
