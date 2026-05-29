@@ -206,6 +206,8 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
       const matchSkincare = filterSkincare === "all" || (filterSkincare === "yes" ? (c as any).is_skincare_customer === true : (c as any).is_skincare_customer !== true);
+      const cTags: string[] = Array.isArray((c as any).tags) ? (c as any).tags : [];
+      const matchTags = filterTags.length === 0 || filterTags.every((t) => cTags.includes(t));
 
       // Missing info filters (skipped when the combined Attention filter is on)
       let matchMissing = true;
