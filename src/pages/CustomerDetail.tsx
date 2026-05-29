@@ -1100,7 +1100,7 @@ export default function CustomerDetail() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Sent Catalog Dialog */}
+        {/* Sent Catalog Dialog (retained for skip→PCP flow) */}
         <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
@@ -1141,6 +1141,42 @@ export default function CustomerDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Sample Given Dialog */}
+        <Dialog open={sampleDialogOpen} onOpenChange={setSampleDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Sample Given</DialogTitle>
+              <DialogDescription>
+                Logs a "Sample Given" activity and schedules a 7-day reorder check-in.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">What sample was given? *</label>
+                <Input
+                  value={sampleName}
+                  onChange={(e) => setSampleName(e.target.value)}
+                  placeholder='e.g. "Timewise Miracle Set", "Satin Hands"'
+                  className="h-9"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Date *</label>
+                <Input type="date" value={sampleDate} onChange={(e) => setSampleDate(e.target.value)} className="h-9" />
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => sampleGivenMutation.mutate()}
+                disabled={sampleGivenMutation.isPending || !sampleName.trim() || !sampleDate}
+              >
+                {sampleGivenMutation.isPending ? "Logging…" : "Log Sample Given"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Convert to Consultant */}
         {!isConsultant && customer.relationship_status !== "Former Consultant" && (
