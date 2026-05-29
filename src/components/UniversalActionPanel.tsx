@@ -575,6 +575,30 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
             {/* ── Step 2: Notes & Next Step ── */}
             {step === "notes-next" && (
               <div className="space-y-4">
+                {showBookingSubtype && (
+                  <div className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-900/10 p-3">
+                    <p className="text-sm font-semibold text-foreground">Booking Ask — what kind?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["Asked for Appointment", "Invited to Event"] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => setBookingSubtype(bookingSubtype === s ? null : s)}
+                          className={cn(
+                            "px-3 py-2 rounded-lg border-2 text-xs font-medium transition-all min-h-[40px]",
+                            bookingSubtype === s
+                              ? "border-amber-500 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                              : "border-border bg-card text-foreground hover:border-amber-500/50",
+                            isPending && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {isSampleActivity && (
                   <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
