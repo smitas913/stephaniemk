@@ -321,6 +321,67 @@ export default function CustomerDetail() {
     onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
   });
 
+  // ─── Sample Given quick action ───
+  const [sampleDialogOpen, setSampleDialogOpen] = useState(false);
+  const [sampleName, setSampleName] = useState("");
+  const [sampleDate, setSampleDate] = useState<string>(todayKey());
+
+  const sampleGivenMutation = useMutation({
+    mutationFn: async () => {
+      const trimmed = sampleName.trim();
+      if (!trimmed) throw new Error("Sample name required");
+      const followUpDate = format(addDaysFn(parseISO(sampleDate), 7), "yyyy-MM-dd");
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id ?? null;
+
+      const { error: noteErr } = await supabase.from("notes").insert({
+        entity_type: "Customer",
+        customer_id: id!,
+        person_type: "customer",
+        person_id: id!,
+        note_type: "Sample Given",
+        note_body: `Sample Given — ${trimmed}`,
+        note_date: sampleDate,
+        next_follow_up_date: followUpDate,
+        is_follow_up: false,
+        is_booking_attempt: false,
+        tags: ["sample"],
+        owner_user_id: userId,
+      } as any);
+      if (noteErr) throw noteErr;
+
+      // Push next_follow_up forward only if existing one is later or missing (sooner-priority preserved).
+      const { data: existing } = await supabase
+        .from("customers")
+        .select("next_follow_up_date")
+        .eq("id", id!)
+        .maybeSingle();
+      const current = (existing as any)?.next_follow_up_date as string | null;
+      if (!current || current > followUpDate) {
+        await supabase
+          .from("customers")
+          .update({
+            next_follow_up_date: followUpDate,
+            follow_up_reason: `Sample Follow-Up — ${trimmed}`,
+          } as any)
+          .eq("id", id!);
+      }
+      return { followUpDate };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      setSampleDialogOpen(false);
+      setSampleName("");
+      toast.success(`Sample logged — follow-up ${formatDateOnly(res.followUpDate)}`);
+    },
+    onError: (err: any) => toast.error(`Failed to log sample: ${err?.message || "Unknown error"}`),
+  });
+
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const handleSkip = useCallback(() => {
     setSkipDialogOpen(true);
