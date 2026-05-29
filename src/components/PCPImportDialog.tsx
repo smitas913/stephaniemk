@@ -176,7 +176,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
   const [plan, setPlan] = useState<MatchPlan[]>([]);
   const [mailingDate, setMailingDate] = useState(toLocalDateKey(addDays(new Date(), 30)));
   const [progress, setProgress] = useState(0);
-  const [summary, setSummary] = useState({ matched: 0, created: 0, skipped: 0 });
+  const [summary, setSummary] = useState({ matched: 0, created: 0, skipped: 0, removed: 0 });
 
   // User decisions
   const [approvedCreates, setApprovedCreates] = useState<Set<number>>(new Set());
@@ -203,7 +203,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     setFileName("");
     setPlan([]);
     setProgress(0);
-    setSummary({ matched: 0, created: 0, skipped: 0 });
+    setSummary({ matched: 0, created: 0, skipped: 0, removed: 0 });
     setMailingDate(toLocalDateKey(addDays(new Date(), 30)));
     setApprovedCreates(new Set());
     setTier2Choices({});
@@ -468,7 +468,33 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
       }
     }
 
-    setSummary({ matched: matchedCount, created: createdCount, skipped: skippedCount });
+    // Cleanup: remove PCP + Program tags from customers tagged PCP who weren't in this import
+    let removedCount = 0;
+    try {
+      const importedIds = new Set(imported.map((x) => x.id));
+      const { data: currentPcp } = await supabase
+        .from("customers")
+        .select("id, tags")
+        .contains("tags", ["PCP"]);
+      const toClean = (currentPcp || []).filter((c: any) => !importedIds.has(c.id));
+      for (const c of toClean) {
+        const existing: string[] = Array.isArray((c as any).tags) ? (c as any).tags : [];
+        const nextTags = existing.filter((t) => t !== "PCP" && !t.startsWith("Program: "));
+        try {
+          await supabase
+            .from("customers")
+            .update({ tags: nextTags, updated_at: new Date().toISOString() } as any)
+            .eq("id", (c as any).id);
+          removedCount++;
+        } catch (e) {
+          console.error("PCP cleanup failed for", (c as any).id, e);
+        }
+      }
+    } catch (e) {
+      console.error("PCP cleanup query failed", e);
+    }
+
+    setSummary({ matched: matchedCount, created: createdCount, skipped: skippedCount, removed: removedCount });
     qc.invalidateQueries({ queryKey: ["customers"] });
     setStep("summary");
     toast.success(`PCP import complete — ${matchedCount + createdCount} customers queued for follow-up`);
@@ -751,6 +777,11 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               Follow-ups queued between {format(addDays(new Date(mailingDate + "T00:00:00"), 7), "MMM d")} and{" "}
               {format(addDays(new Date(mailingDate + "T00:00:00"), 17), "MMM d, yyyy")}.
             </p>
+            {summary.removed > 0 && (
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                {summary.removed} customer{summary.removed === 1 ? "" : "s"} removed from PCP list (not in this import).
+              </p>
+            )}
             <Button onClick={() => { reset(); onOpenChange(false); }}>Done</Button>
           </div>
         )}
