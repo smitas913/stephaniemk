@@ -422,10 +422,55 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               )}
             </PopoverContent>
           </Popover>
+          <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant={filterTags.length > 0 ? "default" : "outline"}
+                size="sm"
+                className="h-9 gap-1 text-xs max-w-full"
+                disabled={availableTags.length === 0}
+              >
+                <span className="truncate">Tags{filterTags.length > 0 && ` (${filterTags.length})`}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-2 max-h-72 overflow-y-auto" align="start">
+              {availableTags.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-2 py-1.5">No tags yet</div>
+              ) : (
+                availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    className={cn(
+                      "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
+                      filterTags.includes(tag)
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted text-foreground"
+                    )}
+                    onClick={() => {
+                      setFilterTags((prev) =>
+                        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                      );
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))
+              )}
+              {filterTags.length > 0 && (
+                <button
+                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
+                  onClick={() => { setFilterTags([]); setTagsOpen(false); }}
+                >
+                  Clear all
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
           <Button
             variant={filterAttention ? "default" : "outline"}
             size="sm"
-            className="h-9 gap-1 text-xs"
+            className="h-9 gap-1 text-xs max-w-full"
             onClick={() => {
               const next = !filterAttention;
               setFilterAttention(next);
@@ -436,10 +481,11 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               }
             }}
           >
-            <Flag className="w-3.5 h-3.5" />
-            Items to Complete
+            <Flag className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Items to Complete</span>
           </Button>
         </div>
+
 
         {filterAttention && (
           <div className="flex flex-col gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
