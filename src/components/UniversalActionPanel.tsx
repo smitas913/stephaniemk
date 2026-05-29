@@ -225,6 +225,8 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       setFollowUpDate("");
       setFollowUpMode("suggested");
       setMailedSample(false);
+      setAlsoBookingAsk(false);
+      setBookingSubtype(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialNote]);
