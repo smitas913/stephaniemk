@@ -478,6 +478,44 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               </div>
             </div>
 
+            {toCreate > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border p-2.5 text-sm font-medium hover:bg-muted/50 [&[data-state=open]>svg]:rotate-180">
+                  <span>{toCreate} new customer{toCreate === 1 ? "" : "s"}</span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 border rounded-md divide-y max-h-60 overflow-y-auto">
+                    {plan.filter((p) => p.action === "create").map((p, i) => (
+                      <div key={i} className="flex justify-between gap-3 p-2 text-sm">
+                        <span className="truncate">{p.row.first_name} {p.row.last_name}</span>
+                        <span className="text-muted-foreground text-xs shrink-0">{p.row.phoneRaw || "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {toSkip > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border p-2.5 text-sm font-medium hover:bg-muted/50 [&[data-state=open]>svg]:rotate-180">
+                  <span>{toSkip} skipped (no phone)</span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 border rounded-md divide-y max-h-60 overflow-y-auto">
+                    {plan.filter((p) => p.action === "skip").map((p, i) => (
+                      <div key={i} className="p-2 text-sm truncate">
+                        {p.row.first_name} {p.row.last_name}
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={reset}>Start Over</Button>
               <Button onClick={handleImport} disabled={toUpdate + toCreate === 0}>
