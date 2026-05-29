@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Info, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { addDays, format } from "date-fns";
@@ -144,24 +145,36 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         const result = e.target!.result as ArrayBuffer;
         console.log("PCP Import - FileReader loaded, byte length:", result.byteLength);
         const data = new Uint8Array(result);
-        const workbook = XLSX.read(data, { type: "array", dense: true });
+        const workbook = XLSX.read(data, { type: "array" });
         console.log("PCP Import - sheet names:", workbook.SheetNames);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        // Use dense array mode with explicit value extraction
-        const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1:L200");
-        const raw: any[][] = [];
-        for (let R = range.s.r; R <= range.e.r; R++) {
-          const row: any[] = [];
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const cell = (worksheet as any)[R]?.[C];
-            row.push(cell ? (cell.w ?? cell.v ?? "") : "");
+        let raw: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+
+        const firstRowEmpty = (rows: any[][]) =>
+          !rows[0] || rows[0].every((c: any) => String(c ?? "").trim() === "");
+
+        // Fallback: InTouch exports sometimes have non-standard shared strings
+        // that resolve as empty. Re-parse in dense mode and extract cells manually.
+        if (firstRowEmpty(raw)) {
+          console.warn("PCP Import - first row empty, retrying with dense mode");
+          const denseWb = XLSX.read(data, { type: "array", dense: true });
+          const denseWs = denseWb.Sheets[denseWb.SheetNames[0]];
+          const range = XLSX.utils.decode_range(denseWs["!ref"] || "A1:L200");
+          const denseRaw: any[][] = [];
+          for (let R = range.s.r; R <= range.e.r; R++) {
+            const row: any[] = [];
+            for (let C = range.s.c; C <= range.e.c; C++) {
+              const cell = (denseWs as any)[R]?.[C];
+              row.push(cell ? (cell.w ?? cell.v ?? "") : "");
+            }
+            denseRaw.push(row);
           }
-          raw.push(row);
+          raw = denseRaw;
         }
+
         console.log("PCP Import - row count:", raw.length);
         console.log("PCP Import - first row RAW:", JSON.stringify(raw[0]));
-        console.log("PCP Import - second row:", JSON.stringify(raw[1]));
 
         const hdr = pickHeaderRow(raw);
         if (!hdr) {
@@ -395,6 +408,13 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               <p className="text-xs text-muted-foreground mt-1">Only .xlsx — exported from InTouch PCP list</p>
               <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
             </div>
+            <div className="flex gap-2 items-start rounded-md border border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/30 p-2.5">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                <span className="font-medium">Tip:</span> If your file fails to upload, open it in Excel first and re-save as
+                Excel Workbook (.xlsx) before uploading. This clears formatting added by InTouch.
+              </p>
+            </div>
           </div>
         )}
 
@@ -457,6 +477,44 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
                 </Table>
               </div>
             </div>
+
+            {toCreate > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border p-2.5 text-sm font-medium hover:bg-muted/50 [&[data-state=open]>svg]:rotate-180">
+                  <span>{toCreate} new customer{toCreate === 1 ? "" : "s"}</span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 border rounded-md divide-y max-h-60 overflow-y-auto">
+                    {plan.filter((p) => p.action === "create").map((p, i) => (
+                      <div key={i} className="flex justify-between gap-3 p-2 text-sm">
+                        <span className="truncate">{p.row.first_name} {p.row.last_name}</span>
+                        <span className="text-muted-foreground text-xs shrink-0">{p.row.phoneRaw || "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {toSkip > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border p-2.5 text-sm font-medium hover:bg-muted/50 [&[data-state=open]>svg]:rotate-180">
+                  <span>{toSkip} skipped (no phone)</span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 border rounded-md divide-y max-h-60 overflow-y-auto">
+                    {plan.filter((p) => p.action === "skip").map((p, i) => (
+                      <div key={i} className="p-2 text-sm truncate">
+                        {p.row.first_name} {p.row.last_name}
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={reset}>Start Over</Button>
