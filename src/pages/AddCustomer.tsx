@@ -107,7 +107,7 @@ export default function AddCustomer() {
     <Layout>
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/customers")}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(originPath)}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
@@ -280,7 +280,7 @@ export default function AddCustomer() {
               <Button className="h-11 px-8" disabled={!canSubmit} onClick={() => mutation.mutate()}>
                 {mutation.isPending ? "Creating..." : "Create Customer"}
               </Button>
-              <Button variant="outline" className="h-11" onClick={() => navigate("/customers")}>Cancel</Button>
+              <Button variant="outline" className="h-11" onClick={() => navigate(originPath)}>Cancel</Button>
             </div>
           </CardContent>
         </Card>
