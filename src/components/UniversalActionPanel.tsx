@@ -308,6 +308,8 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   const buildNote = useCallback(() => {
     const parts: string[] = [];
     if (activity) parts.push(`[${activity}]`);
+    if (canAlsoBookingAsk && alsoBookingAsk) parts.push("[Booking Ask]");
+    if (bookingSubtype) parts.push(`[${bookingSubtype}]`);
     if (isSampleActivity && mailedSample) parts.push("[Mailed Sample]");
     if (outcome === "Booked") parts.push("[Booked]");
     if (outcome === "Not Interested") parts.push("[Not Interested / DNC]");
@@ -315,10 +317,10 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
     if (nextStepText.trim()) parts.push(`Next Step: ${nextStepText.trim()}`);
     if (parts.length === 0) parts.push(`${action || "Call"} contact`);
     return parts.join(" ");
-  }, [activity, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action]);
+  }, [activity, canAlsoBookingAsk, alsoBookingAsk, bookingSubtype, isSampleActivity, mailedSample, outcome, noteText, nextStepText, action]);
 
   const handleSave = useCallback(() => {
-    const isBooking = activity === "Booking Ask" || outcome === "Booked";
+    const isBooking = activity === "Booking Ask" || (canAlsoBookingAsk && alsoBookingAsk) || outcome === "Booked";
     const category: IntentCategory = isBooking ? "Booking" : "Follow-Up";
     const isDnc = outcome === "Not Interested";
     onLogAction({
@@ -333,7 +335,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       dnc: isDnc,
     });
     handleClose();
-  }, [action, activity, outcome, effectiveFollowUpDate, item, onLogAction, buildNote, handleClose]);
+  }, [action, activity, canAlsoBookingAsk, alsoBookingAsk, outcome, effectiveFollowUpDate, item, onLogAction, buildNote, handleClose]);
 
   const canContinue = !!action && !!activity;
   const badge = TYPE_BADGE_MAP[item.personType];
