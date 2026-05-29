@@ -128,6 +128,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     setProgress(0);
     setSummary({ matched: 0, created: 0, skipped: 0 });
     setMailingDate(toLocalDateKey(addDays(new Date(), 30)));
+    setApprovedCreates(new Set());
   };
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
