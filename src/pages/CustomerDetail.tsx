@@ -178,6 +178,26 @@ export default function CustomerDetail() {
       actionType: n.note_type || "Note",
       preview: (n.note_body || "").slice(0, 80),
     }));
+    // Infer typical reorder cadence from order history → snap to nearest of {30,60,90}.
+    let reorderCycleDays: number | null = null;
+    if (orders && orders.length >= 2) {
+      const sorted = [...orders]
+        .map((o: any) => o.order_date)
+        .filter(Boolean)
+        .sort();
+      const gaps: number[] = [];
+      for (let i = 1; i < sorted.length; i++) {
+        const a = new Date(sorted[i - 1] + "T00:00:00").getTime();
+        const b = new Date(sorted[i] + "T00:00:00").getTime();
+        const d = Math.round((b - a) / 86400000);
+        if (d > 0 && d <= 365) gaps.push(d);
+      }
+      if (gaps.length > 0) {
+        const avg = gaps.reduce((s, x) => s + x, 0) / gaps.length;
+        reorderCycleDays = [30, 60, 90].reduce((best, c) =>
+          Math.abs(c - avg) < Math.abs(best - avg) ? c : best, 30);
+      }
+    }
     return {
       id: customer.id,
       personType: "customer",
@@ -191,8 +211,10 @@ export default function CustomerDetail() {
       followUpStatus: computed.follow_up_status || undefined,
       nextFollowUpDate: customer.next_follow_up_date,
       recentNotes,
+      tags: (customer as any).tags || [],
+      reorderCycleDays,
     };
-  }, [customer, computed, recentUnifiedNotes]);
+  }, [customer, computed, recentUnifiedNotes, orders]);
 
   // Centralized action handler — same logic as Today workflow
   const actionMutation = useMutation({
