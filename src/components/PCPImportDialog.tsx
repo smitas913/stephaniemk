@@ -269,6 +269,9 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
       try {
         if (p.action === "skip") {
           skippedCount++;
+        } else if (p.action === "create" && !approvedCreates.has(i)) {
+          // User did not approve creating this customer — treat as skipped
+          skippedCount++;
         } else if (p.action === "update" && p.customerId) {
           const cust = customers.find((c: any) => c.id === p.customerId) as any;
           const existingTags: string[] = Array.isArray(cust?.tags) ? cust.tags : [];
