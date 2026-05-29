@@ -52,6 +52,11 @@ export default function CustomerTagChips({ customerId, tags, isCustomer, classNa
     if (!has && tag === "DNC") toast.success("Marked Do Not Contact — follow-ups cleared");
   };
 
+  // Surface any non-toggleable tags (e.g. "PCP", "Program: ...") that were applied
+  // by imports or automations. These render as read-only badges so users can see
+  // why a customer is on a list, but aren't editable here.
+  const extraTags = current.filter((t) => !(CUSTOMER_TAGS as readonly string[]).includes(t));
+
   return (
     <div className={cn("flex gap-1.5 flex-wrap items-center", className)}>
       {isCustomer && (
@@ -80,6 +85,26 @@ export default function CustomerTagChips({ customerId, tags, isCustomer, classNa
           >
             {tag === "DNC" ? "DNC" : tag}
           </button>
+        );
+      })}
+      {extraTags.map((tag) => {
+        const isPcp = tag === "PCP";
+        const isProgram = tag.startsWith("Program: ");
+        return (
+          <span
+            key={tag}
+            className={cn(
+              "text-[11px] px-2 py-0.5 rounded-full border font-medium",
+              isPcp
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : isProgram
+                  ? "bg-primary/10 text-primary border-primary/30"
+                  : "bg-muted text-muted-foreground border-muted-foreground/20",
+            )}
+            title={isPcp ? "On Preferred Customer Program list" : tag}
+          >
+            {isProgram ? tag.replace(/^Program:\s*/, "") : tag}
+          </span>
         );
       })}
     </div>
