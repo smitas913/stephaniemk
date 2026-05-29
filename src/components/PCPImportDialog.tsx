@@ -547,8 +547,8 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={reset}>Start Over</Button>
-              <Button onClick={handleImport} disabled={toUpdate + toCreate === 0}>
-                Import {toUpdate + toCreate} customers
+              <Button onClick={handleImport} disabled={toUpdate + approvedCreates.size === 0}>
+                Import {toUpdate + approvedCreates.size} customers
               </Button>
             </div>
           </div>
