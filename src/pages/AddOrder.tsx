@@ -42,6 +42,7 @@ type OrderTypeValue = (typeof ORDER_TYPE_OPTIONS)[number]["value"];
 
 export default function AddOrder() {
   const navigate = useNavigate();
+  const originPath = useOriginPath("/orders");
   const queryClient = useQueryClient();
   const [params] = useSearchParams();
   const { id: editOrderId } = useParams<{ id: string }>();
