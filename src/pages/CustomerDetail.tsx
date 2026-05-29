@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
+import { usePreviousLocation } from "@/hooks/usePreviousLocation";
 import SkipFollowUpDialog, { type SkipChoice } from "@/components/SkipFollowUpDialog";
 import { addDays as addDaysFn } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
