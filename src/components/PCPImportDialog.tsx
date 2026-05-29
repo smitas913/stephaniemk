@@ -408,6 +408,13 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               <p className="text-xs text-muted-foreground mt-1">Only .xlsx — exported from InTouch PCP list</p>
               <input ref={fileRef} type="file" accept=".xlsx" className="hidden" onChange={handleFile} />
             </div>
+            <div className="flex gap-2 items-start rounded-md border border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-950/30 p-2.5">
+              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                <span className="font-medium">Tip:</span> If your file fails to upload, open it in Excel first and re-save as
+                Excel Workbook (.xlsx) before uploading. This clears formatting added by InTouch.
+              </p>
+            </div>
           </div>
         )}
 
