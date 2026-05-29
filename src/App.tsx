@@ -501,7 +501,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <PeriodProvider>
-            <AppRoutes />
+            <PreviousLocationProvider>
+              <AppRoutes />
+            </PreviousLocationProvider>
           </PeriodProvider>
         </AuthProvider>
       </BrowserRouter>
