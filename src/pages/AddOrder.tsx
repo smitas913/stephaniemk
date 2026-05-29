@@ -550,7 +550,7 @@ export default function AddOrder() {
       toast.success(isEditMode ? "Order updated" : `Order saved for ${resolvedCustomerName}`);
 
       if (isEditMode) {
-        navigate("/orders");
+        navigate(originPath);
       } else if (addAnother || bulkMode) {
         setCustomerId("");
         setCustomerName("");
@@ -575,7 +575,7 @@ export default function AddOrder() {
         setFaceTypeOverride(null);
         setAttempted(false);
       } else if (!isNewCustomer) {
-        navigate("/orders");
+        navigate(originPath);
       }
     } catch (err: any) {
       toast.error(err.message || (isEditMode ? "Failed to update order" : "Failed to create order"));
@@ -645,8 +645,8 @@ export default function AddOrder() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="-ml-2" onClick={() => {
-            if (isEditMode) { navigate("/orders"); return; }
-            if (bulkMode && savedCount > 0) { navigate("/orders"); return; }
+            if (isEditMode) { navigate(originPath); return; }
+            if (bulkMode && savedCount > 0) { navigate(originPath); return; }
             setOrderType("");
           }}>
             <ArrowLeft className="w-5 h-5" />
@@ -682,7 +682,7 @@ export default function AddOrder() {
                       queryClient.invalidateQueries({ queryKey: ["orders"] });
                       queryClient.invalidateQueries({ queryKey: ["customers"] });
                       toast.success("Order deleted");
-                      navigate("/orders");
+                      navigate(originPath);
                     } catch (e: any) {
                       toast.error(e.message || "Failed to delete order");
                     }
@@ -1316,7 +1316,7 @@ export default function AddOrder() {
               >
                 {submitting ? "Saving..." : "Save Changes"}
               </Button>
-              <Button type="button" variant="outline" className="h-11" onClick={() => navigate("/orders")}>
+              <Button type="button" variant="outline" className="h-11" onClick={() => navigate(originPath)}>
                 Cancel
               </Button>
             </div>
@@ -1335,7 +1335,7 @@ export default function AddOrder() {
                 variant="outline"
                 className="h-11"
                 onClick={() => {
-                  if (savedCount > 0) navigate("/orders");
+                  if (savedCount > 0) navigate(originPath);
                   else { setBulkMode(false); }
                 }}
               >
@@ -1391,7 +1391,7 @@ export default function AddOrder() {
         onClose={() => {
           const shouldNav = followUpPrompt?.pendingNav;
           setFollowUpPrompt(null);
-          if (shouldNav) navigate("/orders");
+          if (shouldNav) navigate(originPath);
         }}
       />
 
