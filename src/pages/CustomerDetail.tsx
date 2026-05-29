@@ -35,7 +35,7 @@ import { normalizeStateAbbreviation } from "@/lib/usStates";
 import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEditFieldDialog";
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import BeautyNotesCard from "@/components/BeautyNotesCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
@@ -319,6 +319,67 @@ export default function CustomerDetail() {
       toast.success(`Catalog logged — follow-up ${formatDateOnly(res.followUpDate)}`);
     },
     onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
+  });
+
+  // ─── Sample Given quick action ───
+  const [sampleDialogOpen, setSampleDialogOpen] = useState(false);
+  const [sampleName, setSampleName] = useState("");
+  const [sampleDate, setSampleDate] = useState<string>(todayKey());
+
+  const sampleGivenMutation = useMutation({
+    mutationFn: async () => {
+      const trimmed = sampleName.trim();
+      if (!trimmed) throw new Error("Sample name required");
+      const followUpDate = format(addDaysFn(parseISO(sampleDate), 7), "yyyy-MM-dd");
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id ?? null;
+
+      const { error: noteErr } = await supabase.from("notes").insert({
+        entity_type: "Customer",
+        customer_id: id!,
+        person_type: "customer",
+        person_id: id!,
+        note_type: "Sample Given",
+        note_body: `Sample Given — ${trimmed}`,
+        note_date: sampleDate,
+        next_follow_up_date: followUpDate,
+        is_follow_up: false,
+        is_booking_attempt: false,
+        tags: ["sample"],
+        owner_user_id: userId,
+      } as any);
+      if (noteErr) throw noteErr;
+
+      // Push next_follow_up forward only if existing one is later or missing (sooner-priority preserved).
+      const { data: existing } = await supabase
+        .from("customers")
+        .select("next_follow_up_date")
+        .eq("id", id!)
+        .maybeSingle();
+      const current = (existing as any)?.next_follow_up_date as string | null;
+      if (!current || current > followUpDate) {
+        await supabase
+          .from("customers")
+          .update({
+            next_follow_up_date: followUpDate,
+            follow_up_reason: `Sample Follow-Up — ${trimmed}`,
+          } as any)
+          .eq("id", id!);
+      }
+      return { followUpDate };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
+      queryClient.invalidateQueries({ queryKey: ["customer-notes-unified", id] });
+      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
+      setSampleDialogOpen(false);
+      setSampleName("");
+      toast.success(`Sample logged — follow-up ${formatDateOnly(res.followUpDate)}`);
+    },
+    onError: (err: any) => toast.error(`Failed to log sample: ${err?.message || "Unknown error"}`),
   });
 
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
@@ -879,10 +940,11 @@ export default function CustomerDetail() {
             <CardTitle className="text-base">Notes & Activity ({recentUnifiedNotes.length})</CardTitle>
             <div className="flex items-center gap-1.5 flex-wrap">
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
-                setCatalogDate(todayKey());
-                setCatalogDialogOpen(true);
+                setSampleDate(todayKey());
+                setSampleName("");
+                setSampleDialogOpen(true);
               }}>
-                <BookOpen className="w-3 h-3" />Sent Catalog
+                <Sparkles className="w-3 h-3" />Sample Given
               </Button>
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
                 setActionPanelInitialNote("[Event Invite] ");
@@ -1038,7 +1100,7 @@ export default function CustomerDetail() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Sent Catalog Dialog */}
+        {/* Sent Catalog Dialog (retained for skip→PCP flow) */}
         <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
@@ -1079,6 +1141,42 @@ export default function CustomerDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Sample Given Dialog */}
+        <Dialog open={sampleDialogOpen} onOpenChange={setSampleDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" />Sample Given</DialogTitle>
+              <DialogDescription>
+                Logs a "Sample Given" activity and schedules a 7-day reorder check-in.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">What sample was given? *</label>
+                <Input
+                  value={sampleName}
+                  onChange={(e) => setSampleName(e.target.value)}
+                  placeholder='e.g. "Timewise Miracle Set", "Satin Hands"'
+                  className="h-9"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Date *</label>
+                <Input type="date" value={sampleDate} onChange={(e) => setSampleDate(e.target.value)} className="h-9" />
+              </div>
+              <Button
+                className="w-full"
+                onClick={() => sampleGivenMutation.mutate()}
+                disabled={sampleGivenMutation.isPending || !sampleName.trim() || !sampleDate}
+              >
+                {sampleGivenMutation.isPending ? "Logging…" : "Log Sample Given"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Convert to Consultant */}
         {!isConsultant && customer.relationship_status !== "Former Consultant" && (
