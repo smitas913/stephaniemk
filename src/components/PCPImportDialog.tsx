@@ -468,7 +468,33 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
       }
     }
 
-    setSummary({ matched: matchedCount, created: createdCount, skipped: skippedCount });
+    // Cleanup: remove PCP + Program tags from customers tagged PCP who weren't in this import
+    let removedCount = 0;
+    try {
+      const importedIds = new Set(imported.map((x) => x.id));
+      const { data: currentPcp } = await supabase
+        .from("customers")
+        .select("id, tags")
+        .contains("tags", ["PCP"]);
+      const toClean = (currentPcp || []).filter((c: any) => !importedIds.has(c.id));
+      for (const c of toClean) {
+        const existing: string[] = Array.isArray((c as any).tags) ? (c as any).tags : [];
+        const nextTags = existing.filter((t) => t !== "PCP" && !t.startsWith("Program: "));
+        try {
+          await supabase
+            .from("customers")
+            .update({ tags: nextTags, updated_at: new Date().toISOString() } as any)
+            .eq("id", (c as any).id);
+          removedCount++;
+        } catch (e) {
+          console.error("PCP cleanup failed for", (c as any).id, e);
+        }
+      }
+    } catch (e) {
+      console.error("PCP cleanup query failed", e);
+    }
+
+    setSummary({ matched: matchedCount, created: createdCount, skipped: skippedCount, removed: removedCount });
     qc.invalidateQueries({ queryKey: ["customers"] });
     setStep("summary");
     toast.success(`PCP import complete — ${matchedCount + createdCount} customers queued for follow-up`);
