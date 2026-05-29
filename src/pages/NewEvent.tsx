@@ -42,7 +42,9 @@ export default function NewEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const fromPath = searchParams.get("from") || "/events";
+  const originPath = useOriginPath("/events");
+  // Prefer explicit ?from= query (legacy callers), else tracked origin.
+  const fromPath = searchParams.get("from") || originPath;
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
 
