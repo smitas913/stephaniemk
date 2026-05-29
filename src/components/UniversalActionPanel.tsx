@@ -79,13 +79,21 @@ const UNIFIED_ACTIONS = [
 ] as const;
 
 // Unified flow Step 1: activity type
-type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up" | "Order Follow-Up" | "Follow-Up";
+type ActivityType =
+  | "Booking Ask"
+  | "Connection"
+  | "Order/Product/Sample Follow-Up"
+  | "PCP Follow-Up"
+  | "Recruiting Follow-Up"
+  | "Sent Info / Samples"
+  | "Follow-Up";
 const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
   { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
   { key: "Connection", label: "Connection", sublabel: "Coffee / relationship" },
-  { key: "Send Info", label: "Send Info", sublabel: "Samples, links" },
-  { key: "Sample Follow-Up", label: "Sample / Product Follow-Up", sublabel: "Following up on what they tried" },
-  { key: "Order Follow-Up", label: "Order Follow-Up", sublabel: "Check satisfaction / reorder" },
+  { key: "Order/Product/Sample Follow-Up", label: "Order / Product / Sample Follow-Up", sublabel: "Checking in on order, product, or sample" },
+  { key: "PCP Follow-Up", label: "PCP Follow-Up", sublabel: "Catalog cycle check-in" },
+  { key: "Recruiting Follow-Up", label: "Recruiting Follow-Up", sublabel: "Career chat / opportunity follow-up" },
+  { key: "Sent Info / Samples", label: "Sent Info / Samples", sublabel: "Sent samples, links, or catalog" },
 ];
 
 const LEAD_ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
@@ -223,13 +231,12 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
     onClose();
   }, [onClose]);
 
-  const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
+  const isSampleActivity = activity === "Sent Info / Samples" || activity === "Order/Product/Sample Follow-Up";
 
   // Compute a context-aware suggested follow-up date based on activity + customer profile.
   // Returns both the date and a short human reason describing why we picked it.
   const suggestion = React.useMemo<{ date: string; reason: string } | null>(() => {
     if (!activity) return null;
-    const isPCP = Array.isArray(item.tags) && item.tags.includes("PCP");
     const cycle = item.reorderCycleDays && [30, 60, 90].includes(item.reorderCycleDays)
       ? item.reorderCycleDays
       : 30;
@@ -241,21 +248,21 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       days = 3; reason = "Booking ask check-back";
     } else if (activity === "Connection") {
       days = 7; reason = "Connection touch";
-    } else if (activity === "Send Info") {
+    } else if (activity === "Sent Info / Samples") {
       days = 3;
       reason = mailedSample ? "Mailed sample arrival check" : "Info / sample in-hand check";
-    } else if (activity === "Sample Follow-Up") {
-      if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
-      else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
-    } else if (activity === "Order Follow-Up") {
-      if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
-      else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
+    } else if (activity === "Order/Product/Sample Follow-Up") {
+      days = cycle; reason = `${cycle}-day reorder follow-up`;
+    } else if (activity === "PCP Follow-Up") {
+      days = 90; reason = "PCP mailing cycle";
+    } else if (activity === "Recruiting Follow-Up") {
+      days = 7; reason = "Recruiting follow-up";
     } else {
       days = 7; reason = "Standard follow-up";
     }
 
     return { date: format(addDays(new Date(), days), "yyyy-MM-dd"), reason };
-  }, [activity, mailedSample, item.tags, item.reorderCycleDays]);
+  }, [activity, mailedSample, item.reorderCycleDays]);
 
 
   const suggestedDate = suggestion?.date || "";
