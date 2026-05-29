@@ -623,7 +623,7 @@ export default function CustomerDetail() {
             {customer.email && (
               <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${customer.email}`} onClick={(e) => openEmail(customer.email!, e)}><Mail className="w-4 h-4" /></a></Button>
             )}
-            <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}${!customerHasOrders ? "&type=Facial" : ""}`)}><Plus className="w-4 h-4 mr-1" />Order</Button>
+            <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}${!customerHasOrders ? "&type=Facial" : ""}`, orderOriginState)}><Plus className="w-4 h-4 mr-1" />Order</Button>
           </div>
         </div>
 
@@ -931,7 +931,7 @@ export default function CustomerDetail() {
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Order History ({orders.length})</CardTitle>
-            <Button size="sm" variant="ghost" className="text-primary text-xs" onClick={() => navigate(`/orders/new?customer=${id}${!customerHasOrders ? "&type=Facial" : ""}`)}>
+            <Button size="sm" variant="ghost" className="text-primary text-xs" onClick={() => navigate(`/orders/new?customer=${id}${!customerHasOrders ? "&type=Facial" : ""}`, orderOriginState)}>
               <Plus className="w-3 h-3 mr-1" />New
             </Button>
           </CardHeader>
