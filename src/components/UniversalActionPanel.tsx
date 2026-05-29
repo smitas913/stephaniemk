@@ -527,6 +527,20 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                       </button>
                     ))}
                   </div>
+                  {canAlsoBookingAsk && (
+                    <label className="flex items-start gap-2 mt-2 px-3 py-2.5 rounded-lg border border-border bg-muted/30 cursor-pointer select-none">
+                      <Checkbox
+                        checked={alsoBookingAsk}
+                        onCheckedChange={(v) => setAlsoBookingAsk(v === true)}
+                        disabled={isPending}
+                        className="mt-0.5"
+                      />
+                      <span className="flex flex-col">
+                        <span className="text-sm font-medium text-foreground">Also made a booking ask</span>
+                        <span className="text-[11px] text-muted-foreground">Tagged as a booking attempt — follow-up date still based on the activity above.</span>
+                      </span>
+                    </label>
+                  )}
                 </div>
 
                 {/* Continue */}
