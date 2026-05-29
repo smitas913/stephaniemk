@@ -23,6 +23,8 @@ export interface MobileActionItem {
   _attempts?: number;
   _leadStatus?: string;
   _lastContactRaw?: string | null;
+  _tags?: string[];
+  _alsoOverdue?: boolean;
 }
 
 const TYPE_BADGE_STYLES: Record<string, string> = {
