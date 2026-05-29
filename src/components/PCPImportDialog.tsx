@@ -231,6 +231,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
           return { row, action: "create", reason: "New customer — will create with PCP tag" };
         });
         setPlan(built);
+        setApprovedCreates(new Set());
         setStep("preview");
       } catch (err) {
         console.error("PCP Import - parse error:", err);
