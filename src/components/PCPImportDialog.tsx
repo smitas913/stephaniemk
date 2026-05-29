@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomers, fetchOrders } from "@/lib/queries";
@@ -8,9 +8,8 @@ import { toLocalDateKey } from "@/lib/dateOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Info, ChevronDown } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Info, ChevronDown, CheckCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -31,13 +30,18 @@ type ParsedRow = {
   pcp_program: string;
 };
 
+type Tier = 1 | 2 | 3 | "no_phone";
+
 type MatchPlan = {
   row: ParsedRow;
-  action: "update" | "create" | "skip";
-  customerId?: string;
-  customerName?: string;
-  reason: string;
+  tier: Tier;
+  candidateId?: string;
+  candidateName?: string;
+  candidatePhone?: string | null;
+  candidateEmail?: string | null;
 };
+
+type Tier2Choice = "use_crm" | "update_from_intouch" | "skip";
 
 type Step = "upload" | "preview" | "running" | "summary";
 
@@ -48,7 +52,6 @@ function parseSeason(program: string): string {
   return m || "Catalog";
 }
 
-// Find column index by trying matchers in order; first match wins.
 function findCol(row: string[], matchers: ((c: string) => boolean)[]): number {
   for (const m of matchers) {
     const j = row.findIndex(m);
@@ -59,11 +62,9 @@ function findCol(row: string[], matchers: ((c: string) => boolean)[]): number {
 
 function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number> } | null {
   for (let i = 0; i < Math.min(10, rows.length); i++) {
-    // Skip entirely empty rows
     if (!rows[i] || rows[i].every((c: any) => String(c ?? "").trim() === "")) continue;
 
     const row = (rows[i] || []).map((c) => String(c ?? "").toLowerCase().trim());
-    // Header row must contain "first name" (exact, trimmed, case-insensitive)
     if (!row.some((c) => c === "first name")) continue;
 
     const eq = (s: string) => (c: string) => c === s;
@@ -94,8 +95,7 @@ function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number
       "pcp program": findCol(row, [eq("pcp program"), eq("program"), has("pcp")]),
     };
 
-    if (map["first name"] >= 0 && map["last name"] >= 0 && map["phone"] >= 0) {
-      // Strip out -1s so caller's `key in map` check still works correctly
+    if (map["first name"] >= 0 && map["last name"] >= 0) {
       const clean: Record<string, number> = {};
       Object.entries(map).forEach(([k, v]) => { if (v >= 0) clean[k] = v; });
       return { idx: i, map: clean };
@@ -105,30 +105,109 @@ function pickHeaderRow(rows: any[][]): { idx: number; map: Record<string, number
   return null;
 }
 
+function nameMatches(row: ParsedRow, c: any): boolean {
+  const full = (c.full_name || "").toLowerCase().trim();
+  const f = row.first_name.toLowerCase().trim();
+  const l = row.last_name.toLowerCase().trim();
+  if (!f || !l) return false;
+  return full.includes(f) && full.includes(l);
+}
+
+function evaluateRow(row: ParsedRow, customers: any[], overridePhone?: string): MatchPlan {
+  const phone = overridePhone ?? row.phone;
+  const email = row.email.toLowerCase().trim();
+
+  // Tier 1: phone+name OR email+name
+  if (phone && phone.length === 10) {
+    const m = customers.find((c) => stripPhone(c.phone) === phone && nameMatches(row, c));
+    if (m) {
+      return {
+        row,
+        tier: 1,
+        candidateId: m.id,
+        candidateName: m.full_name,
+        candidatePhone: m.phone,
+        candidateEmail: m.email,
+      };
+    }
+  }
+  if (email) {
+    const m = customers.find(
+      (c) => (c.email || "").toLowerCase().trim() === email && nameMatches(row, c),
+    );
+    if (m) {
+      return {
+        row,
+        tier: 1,
+        candidateId: m.id,
+        candidateName: m.full_name,
+        candidatePhone: m.phone,
+        candidateEmail: m.email,
+      };
+    }
+  }
+
+  // Tier 2: name match only
+  const nameOnly = customers.find((c) => nameMatches(row, c));
+  if (nameOnly) {
+    return {
+      row,
+      tier: 2,
+      candidateId: nameOnly.id,
+      candidateName: nameOnly.full_name,
+      candidatePhone: nameOnly.phone,
+      candidateEmail: nameOnly.email,
+    };
+  }
+
+  // No phone bucket separately if blank
+  if (!phone || phone.length < 10) {
+    return { row, tier: "no_phone" };
+  }
+
+  return { row, tier: 3 };
+}
+
 export default function PCPImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
   const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState<ParsedRow[]>([]);
   const [plan, setPlan] = useState<MatchPlan[]>([]);
   const [mailingDate, setMailingDate] = useState(toLocalDateKey(addDays(new Date(), 30)));
   const [progress, setProgress] = useState(0);
   const [summary, setSummary] = useState({ matched: 0, created: 0, skipped: 0 });
+
+  // User decisions
   const [approvedCreates, setApprovedCreates] = useState<Set<number>>(new Set());
+  const [tier2Choices, setTier2Choices] = useState<Record<number, Tier2Choice>>({});
+  const [noPhoneInputs, setNoPhoneInputs] = useState<Record<number, string>>({});
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
 
+  // Effective plan: re-evaluate no_phone rows if user typed a phone
+  const effectivePlan = useMemo<MatchPlan[]>(() => {
+    return plan.map((p, i) => {
+      if (p.tier !== "no_phone") return p;
+      const typed = stripPhone(noPhoneInputs[i] || "");
+      if (typed.length === 10) {
+        return evaluateRow(p.row, customers, typed);
+      }
+      return p;
+    });
+  }, [plan, noPhoneInputs, customers]);
+
   const reset = () => {
     setStep("upload");
     setFileName("");
-    setRows([]);
     setPlan([]);
     setProgress(0);
     setSummary({ matched: 0, created: 0, skipped: 0 });
     setMailingDate(toLocalDateKey(addDays(new Date(), 30)));
     setApprovedCreates(new Set());
+    setTier2Choices({});
+    setNoPhoneInputs({});
   };
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,16 +219,12 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     }
     setFileName(file.name);
 
-    console.log("PCP Import - file selected:", file.name, file.size, file.type);
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const result = e.target!.result as ArrayBuffer;
-        console.log("PCP Import - FileReader loaded, byte length:", result.byteLength);
         const data = new Uint8Array(result);
         const workbook = XLSX.read(data, { type: "array" });
-        console.log("PCP Import - sheet names:", workbook.SheetNames);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         let raw: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
@@ -157,10 +232,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         const firstRowEmpty = (rows: any[][]) =>
           !rows[0] || rows[0].every((c: any) => String(c ?? "").trim() === "");
 
-        // Fallback: InTouch exports sometimes have non-standard shared strings
-        // that resolve as empty. Re-parse in dense mode and extract cells manually.
         if (firstRowEmpty(raw)) {
-          console.warn("PCP Import - first row empty, retrying with dense mode");
           const denseWb = XLSX.read(data, { type: "array", dense: true });
           const denseWs = denseWb.Sheets[denseWb.SheetNames[0]];
           const range = XLSX.utils.decode_range(denseWs["!ref"] || "A1:L200");
@@ -176,12 +248,8 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
           raw = denseRaw;
         }
 
-        console.log("PCP Import - row count:", raw.length);
-        console.log("PCP Import - first row RAW:", JSON.stringify(raw[0]));
-
         const hdr = pickHeaderRow(raw);
         if (!hdr) {
-          console.error("[PCP Import] Header detection failed. rows[0] =", raw[0]);
           toast.error("Couldn't find required columns. Check browser console for the raw first row.");
           return;
         }
@@ -207,31 +275,12 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
             pcp_program: String(r[col("pcp program")] ?? "").trim(),
           });
         }
-        setRows(parsed);
 
-        const built: MatchPlan[] = parsed.map((row) => {
-          if (!row.phone || row.phone.length < 10) {
-            return { row, action: "skip", reason: "No phone on row — skipped" };
-          }
-          const match = customers.find((c: any) => {
-            const cp = stripPhone(c.phone);
-            if (cp !== row.phone) return false;
-            const full = (c.full_name || "").toLowerCase().trim();
-            return full.includes(row.first_name.toLowerCase()) && full.includes(row.last_name.toLowerCase());
-          });
-          if (match) {
-            return {
-              row,
-              action: "update",
-              customerId: (match as any).id,
-              customerName: (match as any).full_name,
-              reason: "Existing customer — will tag PCP & refresh",
-            };
-          }
-          return { row, action: "create", reason: "New customer — will create with PCP tag" };
-        });
+        const built: MatchPlan[] = parsed.map((row) => evaluateRow(row, customers));
         setPlan(built);
         setApprovedCreates(new Set());
+        setTier2Choices({});
+        setNoPhoneInputs({});
         setStep("preview");
       } catch (err) {
         console.error("PCP Import - parse error:", err);
@@ -245,6 +294,26 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     reader.readAsArrayBuffer(file);
   };
 
+  // Derived counts on effective plan
+  const tier1 = effectivePlan
+    .map((p, i) => ({ p, i }))
+    .filter((x) => x.p.tier === 1);
+  const tier2 = effectivePlan
+    .map((p, i) => ({ p, i }))
+    .filter((x) => x.p.tier === 2);
+  const tier3 = effectivePlan
+    .map((p, i) => ({ p, i }))
+    .filter((x) => x.p.tier === 3);
+  const noPhone = effectivePlan
+    .map((p, i) => ({ p, i }))
+    .filter((x) => x.p.tier === "no_phone");
+
+  const tier2NonSkipped = tier2.filter(({ i }) => tier2Choices[i] && tier2Choices[i] !== "skip").length;
+  const approvedCreateCount = tier3.filter(({ i }) => approvedCreates.has(i)).length;
+  // no-phone rows that successfully became a tier (i.e. phone entered) are already in tier1/2/3 buckets above
+  const allTier2Decided = tier2.every(({ i }) => !!tier2Choices[i]);
+  const importCount = tier1.length + tier2NonSkipped + approvedCreateCount;
+
   const handleImport = async () => {
     if (!mailingDate) {
       toast.error("Please set the Expected Mailing Date");
@@ -256,24 +325,49 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id ?? null;
 
-    // Apply all updates/creates. Track resulting customer ids.
     type Imported = { id: string; first_name: string; last_order_date: string | null };
     const imported: Imported[] = [];
     let matchedCount = 0;
     let createdCount = 0;
     let skippedCount = 0;
 
-    const total = plan.length;
-    for (let i = 0; i < plan.length; i++) {
-      const p = plan[i];
+    const total = effectivePlan.length;
+    for (let i = 0; i < effectivePlan.length; i++) {
+      const p = effectivePlan[i];
       try {
-        if (p.action === "skip") {
+        // Decide effective action
+        let action: "update" | "create" | "skip" = "skip";
+        let updatePhone = false;
+        let updateEmail = false;
+        let targetId: string | undefined;
+
+        if (p.tier === 1) {
+          action = "update";
+          targetId = p.candidateId;
+        } else if (p.tier === 2) {
+          const choice = tier2Choices[i];
+          if (choice === "skip" || !choice) {
+            action = "skip";
+          } else if (choice === "use_crm") {
+            action = "update";
+            targetId = p.candidateId;
+          } else if (choice === "update_from_intouch") {
+            action = "update";
+            targetId = p.candidateId;
+            updatePhone = true;
+            updateEmail = true;
+          }
+        } else if (p.tier === 3) {
+          if (approvedCreates.has(i)) action = "create";
+          else action = "skip";
+        } else if (p.tier === "no_phone") {
+          action = "skip";
+        }
+
+        if (action === "skip") {
           skippedCount++;
-        } else if (p.action === "create" && !approvedCreates.has(i)) {
-          // User did not approve creating this customer — treat as skipped
-          skippedCount++;
-        } else if (p.action === "update" && p.customerId) {
-          const cust = customers.find((c: any) => c.id === p.customerId) as any;
+        } else if (action === "update" && targetId) {
+          const cust = customers.find((c: any) => c.id === targetId) as any;
           const existingTags: string[] = Array.isArray(cust?.tags) ? cust.tags : [];
           const programTag = p.row.pcp_program ? `Program: ${p.row.pcp_program}` : null;
           const nextTags = Array.from(new Set([
@@ -281,22 +375,27 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
             "PCP",
             ...(programTag ? [programTag] : []),
           ]));
-          await supabase
-            .from("customers")
-            .update({
-              tags: nextTags,
-              is_active: true,
-              updated_at: new Date().toISOString(),
-            } as any)
-            .eq("id", p.customerId);
+          const updatePayload: any = {
+            tags: nextTags,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          };
+          if (updatePhone) {
+            const newPhone = normalizePhoneForStorage(p.row.phoneRaw);
+            if (newPhone) updatePayload.phone = newPhone;
+          }
+          if (updateEmail && p.row.email) {
+            updatePayload.email = p.row.email;
+          }
+          await supabase.from("customers").update(updatePayload).eq("id", targetId);
           matchedCount++;
           const lastOrder = allOrders
-            .filter((o: any) => o.customer_id === p.customerId)
+            .filter((o: any) => o.customer_id === targetId)
             .map((o: any) => o.order_date)
             .sort()
             .pop() || null;
-          imported.push({ id: p.customerId, first_name: p.row.first_name, last_order_date: lastOrder });
-        } else if (p.action === "create") {
+          imported.push({ id: targetId, first_name: p.row.first_name, last_order_date: lastOrder });
+        } else if (action === "create") {
           const programTag = p.row.pcp_program ? `Program: ${p.row.pcp_program}` : null;
           const fullName = `${p.row.first_name} ${p.row.last_name}`.trim();
           const insertPayload: any = {
@@ -329,7 +428,6 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
       setProgress(Math.round(((i + 1) / Math.max(total, 1)) * 100));
     }
 
-    // Staggered follow-ups: customers with orders first (days 7-11), no-order last (days 12-17)
     const withOrders = imported
       .filter((x) => !!x.last_order_date)
       .sort((a, b) => (b.last_order_date! > a.last_order_date! ? 1 : -1));
@@ -376,11 +474,6 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     toast.success(`PCP import complete — ${matchedCount + createdCount} customers queued for follow-up`);
   };
 
-  const previewRows = plan.slice(0, 5);
-  const toUpdate = plan.filter((p) => p.action === "update").length;
-  const toCreate = plan.filter((p) => p.action === "create").length;
-  const toSkip = plan.filter((p) => p.action === "skip").length;
-
   return (
     <Dialog
       open={open}
@@ -400,8 +493,8 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         {step === "upload" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Upload your Mary Kay InTouch PCP export (.xlsx). We'll match on name + phone, tag matches as PCP, create
-              new customers for unmatched rows, and queue follow-ups around your mailing date.
+              Upload your Mary Kay InTouch PCP export (.xlsx). We'll match on name + phone or email, tag matches as PCP,
+              and let you review possible duplicates before creating new customers.
             </p>
             <div
               className={cn(
@@ -427,21 +520,6 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
 
         {step === "preview" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold text-primary">{toUpdate}</p>
-                <p className="text-xs text-muted-foreground">Will match & update</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold text-foreground">{toCreate}</p>
-                <p className="text-xs text-muted-foreground">Will create new</p>
-              </div>
-              <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-semibold text-muted-foreground">{toSkip}</p>
-                <p className="text-xs text-muted-foreground">Skipped (no phone)</p>
-              </div>
-            </div>
-
             <div>
               <label className="text-sm font-medium">Expected Mailing Date</label>
               <Input
@@ -455,88 +533,165 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               </p>
             </div>
 
-            <div>
-              <p className="text-sm font-medium mb-2">Preview — first 5 rows</p>
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Program</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewRows.map((p, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-sm">{p.row.first_name} {p.row.last_name}</TableCell>
-                        <TableCell className="text-sm">{p.row.phoneRaw || "—"}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{p.row.pcp_program || "—"}</TableCell>
-                        <TableCell>
-                          {p.action === "update" && <Badge variant="secondary">Match</Badge>}
-                          {p.action === "create" && <Badge>New</Badge>}
-                          {p.action === "skip" && <Badge variant="outline">Skip</Badge>}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+            {/* Section 1 — Matches (Tier 1) */}
+            <Collapsible>
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30 p-2.5 text-sm font-medium text-emerald-900 dark:text-emerald-200 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/50 [&[data-state=open]>svg]:rotate-180">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  {tier1.length} match{tier1.length === 1 ? "" : "es"} — will tag as PCP
+                </span>
+                <ChevronDown className="h-4 w-4 transition-transform" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 border border-emerald-200 dark:border-emerald-900/40 rounded-md divide-y divide-emerald-100 dark:divide-emerald-900/30 max-h-72 overflow-y-auto bg-emerald-50/40 dark:bg-emerald-950/10">
+                  {tier1.length === 0 && (
+                    <div className="p-3 text-xs text-muted-foreground">No high-confidence matches.</div>
+                  )}
+                  {tier1.map(({ p, i }) => (
+                    <div key={i} className="p-2.5 text-sm flex justify-between gap-3">
+                      <span className="truncate">{p.row.first_name} {p.row.last_name}</span>
+                      <span className="text-muted-foreground text-xs shrink-0">{p.row.phoneRaw || p.row.email || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
-            {toCreate > 0 && (
+            {/* Section 2 — Possible Matches (Tier 2) */}
+            {tier2.length > 0 && (
               <Collapsible defaultOpen>
                 <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 p-2.5 text-sm font-medium text-amber-900 dark:text-amber-200 hover:bg-amber-100/70 dark:hover:bg-amber-950/50 [&[data-state=open]>svg]:rotate-180">
                   <span className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
-                    {toCreate} will be created as new customer{toCreate === 1 ? "" : "s"}
+                    {tier2.length} possible match{tier2.length === 1 ? "" : "es"} — needs review
+                  </span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 space-y-2">
+                    {tier2.map(({ p, i }) => {
+                      const choice = tier2Choices[i];
+                      return (
+                        <div
+                          key={i}
+                          className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/10 p-3 space-y-2"
+                        >
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div className="font-medium text-muted-foreground">&nbsp;</div>
+                            <div className="font-medium text-foreground">InTouch</div>
+                            <div className="font-medium text-foreground">Your CRM</div>
+
+                            <div className="text-muted-foreground">Name</div>
+                            <div className="truncate">{p.row.first_name} {p.row.last_name}</div>
+                            <div className="truncate">{p.candidateName || "—"}</div>
+
+                            <div className="text-muted-foreground">Phone</div>
+                            <div className="truncate">{p.row.phoneRaw || "—"}</div>
+                            <div className="truncate">{p.candidatePhone || "—"}</div>
+
+                            <div className="text-muted-foreground">Email</div>
+                            <div className="truncate">{p.row.email || "—"}</div>
+                            <div className="truncate">{p.candidateEmail || "—"}</div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            <Button
+                              size="sm"
+                              variant={choice === "use_crm" ? "default" : "outline"}
+                              onClick={() => setTier2Choices((s) => ({ ...s, [i]: "use_crm" }))}
+                            >
+                              Use CRM data
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={choice === "update_from_intouch" ? "default" : "outline"}
+                              onClick={() => setTier2Choices((s) => ({ ...s, [i]: "update_from_intouch" }))}
+                            >
+                              Update from InTouch
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={choice === "skip" ? "default" : "outline"}
+                              onClick={() => setTier2Choices((s) => ({ ...s, [i]: "skip" }))}
+                            >
+                              Skip
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Section 3 — New customers (Tier 3) */}
+            {tier3.length > 0 && (
+              <Collapsible defaultOpen>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 p-2.5 text-sm font-medium text-amber-900 dark:text-amber-200 hover:bg-amber-100/70 dark:hover:bg-amber-950/50 [&[data-state=open]>svg]:rotate-180">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    {tier3.length} new customer{tier3.length === 1 ? "" : "s"} — check to include
                   </span>
                   <ChevronDown className="h-4 w-4 transition-transform" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="mt-2 border border-amber-200 dark:border-amber-900/40 rounded-md divide-y divide-amber-100 dark:divide-amber-900/30 max-h-72 overflow-y-auto bg-amber-50/40 dark:bg-amber-950/10">
                     <div className="p-2 text-xs text-amber-900 dark:text-amber-200 bg-amber-100/60 dark:bg-amber-950/30">
-                      Not found in CRM — may be a duplicate with a different phone number. Check the box to include.
+                      Not found in CRM — may be a duplicate with a different phone number or name spelling.
                     </div>
-                    {plan.map((p, planIdx) => p.action === "create" ? (
+                    {tier3.map(({ p, i }) => (
                       <label
-                        key={planIdx}
+                        key={i}
                         className="flex items-center gap-3 p-2.5 text-sm cursor-pointer hover:bg-amber-100/40 dark:hover:bg-amber-950/30"
                       >
                         <Checkbox
-                          checked={approvedCreates.has(planIdx)}
+                          checked={approvedCreates.has(i)}
                           onCheckedChange={(checked) => {
                             setApprovedCreates((prev) => {
                               const next = new Set(prev);
-                              if (checked) next.add(planIdx);
-                              else next.delete(planIdx);
+                              if (checked) next.add(i);
+                              else next.delete(i);
                               return next;
                             });
                           }}
                         />
-                        <div className="flex-1 min-w-0 flex justify-between gap-3">
+                        <div className="flex-1 min-w-0 flex flex-wrap justify-between gap-x-3 gap-y-0.5">
                           <span className="truncate">{p.row.first_name} {p.row.last_name}</span>
-                          <span className="text-muted-foreground text-xs shrink-0">{p.row.phoneRaw || "—"}</span>
+                          <span className="text-muted-foreground text-xs shrink-0">
+                            {p.row.phoneRaw || "—"}{p.row.email ? ` · ${p.row.email}` : ""}
+                          </span>
                         </div>
                       </label>
-                    ) : null)}
+                    ))}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
             )}
 
-            {toSkip > 0 && (
-              <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border p-2.5 text-sm font-medium hover:bg-muted/50 [&[data-state=open]>svg]:rotate-180">
-                  <span>{toSkip} skipped (no phone)</span>
+            {/* Section 4 — No phone on file */}
+            {noPhone.length > 0 && (
+              <Collapsible defaultOpen>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border bg-muted/40 p-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/60 [&[data-state=open]>svg]:rotate-180">
+                  <span>{noPhone.length} no phone on file — add a phone to include</span>
                   <ChevronDown className="h-4 w-4 transition-transform" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="mt-2 border rounded-md divide-y max-h-60 overflow-y-auto">
-                    {plan.filter((p) => p.action === "skip").map((p, i) => (
-                      <div key={i} className="p-2 text-sm truncate">
-                        {p.row.first_name} {p.row.last_name}
+                  <div className="mt-2 border rounded-md divide-y max-h-72 overflow-y-auto">
+                    {noPhone.map(({ p, i }) => (
+                      <div key={i} className="p-2.5 text-sm flex flex-wrap items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate font-medium">{p.row.first_name} {p.row.last_name}</div>
+                          <div className="truncate text-xs text-muted-foreground">{p.row.email || "no email"}</div>
+                        </div>
+                        <Input
+                          type="tel"
+                          placeholder="Add phone"
+                          value={noPhoneInputs[i] || ""}
+                          onChange={(e) =>
+                            setNoPhoneInputs((s) => ({ ...s, [i]: e.target.value }))
+                          }
+                          className="h-9 w-40"
+                        />
                       </div>
                     ))}
                   </div>
@@ -544,12 +699,22 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               </Collapsible>
             )}
 
-
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={reset}>Start Over</Button>
-              <Button onClick={handleImport} disabled={toUpdate + approvedCreates.size === 0}>
-                Import {toUpdate + approvedCreates.size} customers
-              </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={reset}>Start Over</Button>
+                <Button
+                  onClick={handleImport}
+                  disabled={!allTier2Decided || importCount === 0}
+                >
+                  Import {importCount} customer{importCount === 1 ? "" : "s"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-right">
+                {tier1.length} matched · {tier2NonSkipped} possible match{tier2NonSkipped === 1 ? "" : "es"} · {approvedCreateCount} new
+                {!allTier2Decided && tier2.length > 0 && (
+                  <span className="text-amber-700 dark:text-amber-300"> · decide on all possible matches to enable import</span>
+                )}
+              </p>
             </div>
           </div>
         )}
@@ -579,7 +744,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               </div>
               <div className="rounded-lg border p-3">
                 <p className="text-2xl font-semibold text-muted-foreground">{summary.skipped}</p>
-                <p className="text-xs text-muted-foreground">Skipped (no phone)</p>
+                <p className="text-xs text-muted-foreground">Skipped</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto">
