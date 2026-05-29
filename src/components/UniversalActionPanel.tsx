@@ -236,6 +236,20 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   }, [onClose]);
 
   const isSampleActivity = activity === "Sent Info / Samples" || activity === "Order/Product/Sample Follow-Up";
+  const canAlsoBookingAsk = activity === "PCP Follow-Up" || activity === "Order/Product/Sample Follow-Up";
+  const showBookingSubtype = activity === "Booking Ask" || (canAlsoBookingAsk && alsoBookingAsk);
+
+  // Clear the "also booking ask" state when activity becomes ineligible.
+  React.useEffect(() => {
+    if (!canAlsoBookingAsk) {
+      setAlsoBookingAsk(false);
+    }
+  }, [canAlsoBookingAsk]);
+  React.useEffect(() => {
+    if (!showBookingSubtype && bookingSubtype !== null) {
+      setBookingSubtype(null);
+    }
+  }, [showBookingSubtype, bookingSubtype]);
 
   // Compute a context-aware suggested follow-up date based on activity + customer profile.
   // Returns both the date and a short human reason describing why we picked it.
