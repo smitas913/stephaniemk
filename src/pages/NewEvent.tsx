@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useEffect } from "react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -41,7 +42,9 @@ export default function NewEvent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const fromPath = searchParams.get("from") || "/events";
+  const originPath = useOriginPath("/events");
+  // Prefer explicit ?from= query (legacy callers), else tracked origin.
+  const fromPath = searchParams.get("from") || originPath;
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
 

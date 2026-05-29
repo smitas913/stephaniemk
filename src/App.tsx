@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PeriodProvider } from "@/hooks/usePeriodFilter";
+import { PreviousLocationProvider } from "@/hooks/usePreviousLocation";
 import Landing from "./pages/Landing";
 import FollowUpDashboard from "./pages/FollowUpDashboard";
 import Dashboard from "./pages/Dashboard";
@@ -501,7 +502,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <PeriodProvider>
-            <AppRoutes />
+            <PreviousLocationProvider>
+              <AppRoutes />
+            </PreviousLocationProvider>
           </PeriodProvider>
         </AuthProvider>
       </BrowserRouter>

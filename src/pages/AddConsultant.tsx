@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
@@ -17,6 +18,7 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 export default function AddConsultant() {
   const navigate = useNavigate();
+  const originPath = useOriginPath("/leadership");
   const queryClient = useQueryClient();
 
   const [firstName, setFirstName] = useState("");
@@ -63,7 +65,7 @@ export default function AddConsultant() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       toast.success("Consultant added");
-      navigate("/leadership");
+      navigate(originPath);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -89,7 +91,7 @@ export default function AddConsultant() {
     <Layout>
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/leadership")}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(originPath)}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
@@ -235,7 +237,7 @@ export default function AddConsultant() {
               <Button className="h-11 px-8" disabled={!canSubmit} onClick={() => mutation.mutate()}>
                 {mutation.isPending ? "Adding..." : "Add Consultant"}
               </Button>
-              <Button variant="outline" className="h-11" onClick={() => navigate("/leadership")}>Cancel</Button>
+              <Button variant="outline" className="h-11" onClick={() => navigate(originPath)}>Cancel</Button>
             </div>
           </CardContent>
         </Card>

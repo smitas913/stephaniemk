@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createCustomer, fetchCustomers } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
@@ -18,6 +19,7 @@ import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 export default function AddCustomer() {
   const navigate = useNavigate();
+  const originPath = useOriginPath("/customers");
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
@@ -105,7 +107,7 @@ export default function AddCustomer() {
     <Layout>
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/customers")}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(originPath)}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
@@ -278,7 +280,7 @@ export default function AddCustomer() {
               <Button className="h-11 px-8" disabled={!canSubmit} onClick={() => mutation.mutate()}>
                 {mutation.isPending ? "Creating..." : "Create Customer"}
               </Button>
-              <Button variant="outline" className="h-11" onClick={() => navigate("/customers")}>Cancel</Button>
+              <Button variant="outline" className="h-11" onClick={() => navigate(originPath)}>Cancel</Button>
             </div>
           </CardContent>
         </Card>
