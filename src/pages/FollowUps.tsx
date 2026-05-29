@@ -125,6 +125,11 @@ type ActionItem = {
   // Booking Activity. Handlers (skip, fresh start, navigate) must branch on this
   // to update `events.reschedule_next_follow_up_date` instead of booking_leads.
   _isRescheduleEvent?: boolean;
+  // PCP catalog support: tags from customer record + whether this customer also
+  // has a stale/overdue care-cycle follow-up beyond the PCP one (used to merge
+  // into a single card with a subtle "also overdue" note).
+  _tags?: string[];
+  _alsoOverdue?: boolean;
 };
 
 type FollowUpSnapshot = {
@@ -808,6 +813,17 @@ export default function FollowUps() {
       const unifiedNote = unifiedNotesByCustomer.get(c.id);
       const lastNextStep = unifiedNote?.next_step || null;
       const fullAddress = [c.address_line_1, c.address_line_2, [c.city, c.state_territory, c.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      const tags: string[] = Array.isArray((c as any).tags) ? (c as any).tags : [];
+      const isPcp = tags.includes("PCP");
+      // "Also overdue" = PCP customer who is ALSO carrying a stale care-cycle
+      // touch beyond the PCP reorder window. Heuristic: dormant/warm activity
+      // OR >90d since last order. PCP follow-up reason wins on the card, but
+      // we surface a subtle merge note so the consultant knows to address both.
+      const alsoOverdue = isPcp && (
+        c.activity_status === "Dormant" ||
+        c.activity_status === "Warm" ||
+        (typeof c.days_since_last_order === "number" && c.days_since_last_order > 90)
+      );
       return {
         id: c.id, itemType: "customer" as const, name: c.full_name,
         phone: c.phone, email: c.email, vip: c.vip,
@@ -824,6 +840,8 @@ export default function FollowUps() {
         _address: fullAddress || null,
         _relationship_status: c.relationship_status,
         _createdAt: (c as any).created_at || null,
+        _tags: tags,
+        _alsoOverdue: alsoOverdue,
       };
     });
 
@@ -2412,14 +2430,26 @@ export default function FollowUps() {
                      const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
 
                      // Priority sort within a category: most overdue first, then due-today, then general.
+                     // PCP customers are pinned to the top of each status bucket, ordered by most
+                     // recent last order date (same staggering logic as the PCP import).
                      const prioritySort = (items: ActionItem[]) => {
-                       const score = (i: ActionItem) =>
+                       const statusScore = (i: ActionItem) =>
                          i.follow_up_status === "OVERDUE" ? 0 :
                          i.follow_up_status === "TODAY" ? 1 : 2;
+                       const isPcp = (i: ActionItem) => Array.isArray(i._tags) && i._tags.includes("PCP");
                        return [...items].sort((a, b) => {
-                         const sa = score(a);
-                         const sb = score(b);
+                         const sa = statusScore(a);
+                         const sb = statusScore(b);
                          if (sa !== sb) return sa - sb;
+                         const pa = isPcp(a) ? 0 : 1;
+                         const pb = isPcp(b) ? 0 : 1;
+                         if (pa !== pb) return pa - pb;
+                         if (pa === 0) {
+                           // Both PCP — most recent last order first (smallest days_since_last_order)
+                           const da = a.days_since_last_order ?? Number.MAX_SAFE_INTEGER;
+                           const db = b.days_since_last_order ?? Number.MAX_SAFE_INTEGER;
+                           if (da !== db) return da - db;
+                         }
                          return (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0);
                        });
                      };
@@ -2470,8 +2500,10 @@ export default function FollowUps() {
                           activity_status: item.activity_status,
                           _attempts: item._attempts,
                           _leadStatus: item._leadStatus,
-                          _lastContactRaw: item.lastContacted ?? null,
-                        });
+                           _lastContactRaw: item.lastContacted ?? null,
+                           _tags: item._tags,
+                           _alsoOverdue: item._alsoOverdue,
+                         });
 
                        return (
                          <>
@@ -4909,10 +4941,18 @@ function ActionRow({
         onClick={openWizard}
       >
         {/* Line 1: Name (full, never truncated) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-base font-semibold text-foreground break-words">{item.name}</p>
           {item.vip === "VIP" && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>
+          )}
+          {Array.isArray(item._tags) && item._tags.includes("PCP") && (
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 font-semibold shrink-0"
+              title="Preferred Customer Program — catalog follow-up"
+            >
+              PCP
+            </span>
           )}
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", badge.className)}>
             {badge.label}
@@ -4941,6 +4981,13 @@ function ActionRow({
 
         {/* Line 2: Follow-up type */}
         <p className="text-sm text-foreground/80 mt-0.5">{followUpTypeLabel}</p>
+
+        {/* PCP merge note: customer has both PCP catalog follow-up AND an overdue care-cycle touch */}
+        {item._alsoOverdue && Array.isArray(item._tags) && item._tags.includes("PCP") && (
+          <p className="text-xs text-pink-700/80 dark:text-pink-300/80 italic mt-0.5">
+            Also has overdue follow-up — address both in this call
+          </p>
+        )}
 
         {/* Line 3: Meta (smaller) */}
         {metaParts.length > 0 && (
