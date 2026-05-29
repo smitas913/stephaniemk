@@ -125,6 +125,11 @@ type ActionItem = {
   // Booking Activity. Handlers (skip, fresh start, navigate) must branch on this
   // to update `events.reschedule_next_follow_up_date` instead of booking_leads.
   _isRescheduleEvent?: boolean;
+  // PCP catalog support: tags from customer record + whether this customer also
+  // has a stale/overdue care-cycle follow-up beyond the PCP one (used to merge
+  // into a single card with a subtle "also overdue" note).
+  _tags?: string[];
+  _alsoOverdue?: boolean;
 };
 
 type FollowUpSnapshot = {
