@@ -940,10 +940,11 @@ export default function CustomerDetail() {
             <CardTitle className="text-base">Notes & Activity ({recentUnifiedNotes.length})</CardTitle>
             <div className="flex items-center gap-1.5 flex-wrap">
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
-                setCatalogDate(todayKey());
-                setCatalogDialogOpen(true);
+                setSampleDate(todayKey());
+                setSampleName("");
+                setSampleDialogOpen(true);
               }}>
-                <BookOpen className="w-3 h-3" />Sent Catalog
+                <Sparkles className="w-3 h-3" />Sample Given
               </Button>
               <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => {
                 setActionPanelInitialNote("[Event Invite] ");
