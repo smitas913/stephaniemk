@@ -176,7 +176,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
   const [plan, setPlan] = useState<MatchPlan[]>([]);
   const [mailingDate, setMailingDate] = useState(toLocalDateKey(addDays(new Date(), 30)));
   const [progress, setProgress] = useState(0);
-  const [summary, setSummary] = useState({ matched: 0, created: 0, skipped: 0 });
+  const [summary, setSummary] = useState({ matched: 0, created: 0, skipped: 0, removed: 0 });
 
   // User decisions
   const [approvedCreates, setApprovedCreates] = useState<Set<number>>(new Set());
