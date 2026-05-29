@@ -4939,10 +4939,18 @@ function ActionRow({
         onClick={openWizard}
       >
         {/* Line 1: Name (full, never truncated) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-base font-semibold text-foreground break-words">{item.name}</p>
           {item.vip === "VIP" && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium shrink-0">VIP</span>
+          )}
+          {Array.isArray(item._tags) && item._tags.includes("PCP") && (
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 font-semibold shrink-0"
+              title="Preferred Customer Program — catalog follow-up"
+            >
+              PCP
+            </span>
           )}
           <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0", badge.className)}>
             {badge.label}
@@ -4971,6 +4979,13 @@ function ActionRow({
 
         {/* Line 2: Follow-up type */}
         <p className="text-sm text-foreground/80 mt-0.5">{followUpTypeLabel}</p>
+
+        {/* PCP merge note: customer has both PCP catalog follow-up AND an overdue care-cycle touch */}
+        {item._alsoOverdue && Array.isArray(item._tags) && item._tags.includes("PCP") && (
+          <p className="text-xs text-pink-700/80 dark:text-pink-300/80 italic mt-0.5">
+            Also has overdue follow-up — address both in this call
+          </p>
+        )}
 
         {/* Line 3: Meta (smaller) */}
         {metaParts.length > 0 && (
