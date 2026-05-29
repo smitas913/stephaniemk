@@ -621,6 +621,11 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                       <span>Pause</span>
                     </button>
                   </div>
+                  {followUpMode === "suggested" && suggestedDate && suggestionReason && outcome !== "Not Interested" && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Suggested: {suggestionReason} ({format(new Date(suggestedDate + "T00:00:00"), "MMM d")})
+                    </p>
+                  )}
                   {followUpMode === "custom" && (
                     <Input
                       type="date"
