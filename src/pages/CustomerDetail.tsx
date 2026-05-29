@@ -61,6 +61,11 @@ export default function CustomerDetail() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const backPath = (location.state as any)?.from || "/customers";
+  // Forward the originating page (e.g. Today) when navigating to sub-forms like AddOrder,
+  // so the form can return all the way back to the original context on save/cancel.
+  const previousLocation = usePreviousLocation();
+  const forwardOrigin = (location.state as any)?.origin || previousLocation || backPath;
+  const orderOriginState = { state: { origin: forwardOrigin } } as const;
 
   const { data: customer } = useQuery({ queryKey: ["customer", id], queryFn: () => fetchCustomer(id!) });
   const { data: orders = [] } = useQuery({ queryKey: ["customer-orders", id], queryFn: () => fetchCustomerOrders(id!) });
