@@ -486,19 +486,41 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
             </div>
 
             {toCreate > 0 && (
-              <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border p-2.5 text-sm font-medium hover:bg-muted/50 [&[data-state=open]>svg]:rotate-180">
-                  <span>{toCreate} new customer{toCreate === 1 ? "" : "s"}</span>
+              <Collapsible defaultOpen>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 p-2.5 text-sm font-medium text-amber-900 dark:text-amber-200 hover:bg-amber-100/70 dark:hover:bg-amber-950/50 [&[data-state=open]>svg]:rotate-180">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    {toCreate} will be created as new customer{toCreate === 1 ? "" : "s"}
+                  </span>
                   <ChevronDown className="h-4 w-4 transition-transform" />
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="mt-2 border rounded-md divide-y max-h-60 overflow-y-auto">
-                    {plan.filter((p) => p.action === "create").map((p, i) => (
-                      <div key={i} className="flex justify-between gap-3 p-2 text-sm">
-                        <span className="truncate">{p.row.first_name} {p.row.last_name}</span>
-                        <span className="text-muted-foreground text-xs shrink-0">{p.row.phoneRaw || "—"}</span>
-                      </div>
-                    ))}
+                  <div className="mt-2 border border-amber-200 dark:border-amber-900/40 rounded-md divide-y divide-amber-100 dark:divide-amber-900/30 max-h-72 overflow-y-auto bg-amber-50/40 dark:bg-amber-950/10">
+                    <div className="p-2 text-xs text-amber-900 dark:text-amber-200 bg-amber-100/60 dark:bg-amber-950/30">
+                      Not found in CRM — may be a duplicate with a different phone number. Check the box to include.
+                    </div>
+                    {plan.map((p, planIdx) => p.action === "create" ? (
+                      <label
+                        key={planIdx}
+                        className="flex items-center gap-3 p-2.5 text-sm cursor-pointer hover:bg-amber-100/40 dark:hover:bg-amber-950/30"
+                      >
+                        <Checkbox
+                          checked={approvedCreates.has(planIdx)}
+                          onCheckedChange={(checked) => {
+                            setApprovedCreates((prev) => {
+                              const next = new Set(prev);
+                              if (checked) next.add(planIdx);
+                              else next.delete(planIdx);
+                              return next;
+                            });
+                          }}
+                        />
+                        <div className="flex-1 min-w-0 flex justify-between gap-3">
+                          <span className="truncate">{p.row.first_name} {p.row.last_name}</span>
+                          <span className="text-muted-foreground text-xs shrink-0">{p.row.phoneRaw || "—"}</span>
+                        </div>
+                      </label>
+                    ) : null)}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
