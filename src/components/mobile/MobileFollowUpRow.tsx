@@ -179,6 +179,14 @@ export default function MobileFollowUpRow({
                     VIP
                   </span>
                 )}
+                {Array.isArray(item._tags) && item._tags.includes("PCP") && (
+                  <span
+                    className="text-[9px] px-1 py-px rounded bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 font-semibold"
+                    title="Preferred Customer Program — catalog follow-up"
+                  >
+                    PCP
+                  </span>
+                )}
                 {urgencyBadge}
               </div>
             </div>
@@ -187,6 +195,12 @@ export default function MobileFollowUpRow({
             {item.lastNotePreview && (
               <p className="text-[11px] text-muted-foreground leading-tight truncate mb-0.5">
                 {item.lastNotePreview}
+              </p>
+            )}
+
+            {item._alsoOverdue && Array.isArray(item._tags) && item._tags.includes("PCP") && (
+              <p className="text-[11px] italic text-pink-700/80 dark:text-pink-300/80 leading-tight mb-0.5">
+                Also has overdue follow-up — address both in this call
               </p>
             )}
 
