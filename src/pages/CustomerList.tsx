@@ -49,6 +49,8 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
   const [missingOpen, setMissingOpen] = useState(false);
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [filterAttention, setFilterAttention] = useState(false);
   const [attentionView, setAttentionView] = useState<"all" | "followup" | "missing">("all");
   const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
@@ -204,6 +206,8 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       const matchVip = filterVip === "all" || (filterVip === "VIP" ? c.vip === "VIP" : c.vip !== "VIP");
       const matchFU = filterFollowUp === "all" || c.follow_up_status === filterFollowUp;
       const matchSkincare = filterSkincare === "all" || (filterSkincare === "yes" ? (c as any).is_skincare_customer === true : (c as any).is_skincare_customer !== true);
+      const cTags: string[] = Array.isArray((c as any).tags) ? (c as any).tags : [];
+      const matchTags = filterTags.length === 0 || filterTags.every((t) => cTags.includes(t));
 
       // Missing info filters (skipped when the combined Attention filter is on)
       let matchMissing = true;
@@ -230,7 +234,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         }
       }
 
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing;
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing && matchTags;
     });
 
     if (sortByVip === "vip-first") {
@@ -259,7 +263,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention, attentionView]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterTags, filterAttention, attentionView]);
+
+  const availableTags = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      const t = (c as any).tags;
+      if (Array.isArray(t)) for (const x of t) if (x) s.add(String(x));
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [customers]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
@@ -341,26 +354,26 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
 
         {/* Search + Archive Toggle */}
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[180px] basis-full sm:basis-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search name, phone, email, beauty notes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
           <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] max-w-full h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
-            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active (no DNC)</SelectItem>
               <SelectItem value="dnc">Do Not Contact</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
-            <SelectTrigger className="w-[150px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[150px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Skincare</SelectItem>
               <SelectItem value="yes">Skincare: Yes</SelectItem>
@@ -369,10 +382,10 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
           </Select>
           <Popover open={missingOpen} onOpenChange={setMissingOpen}>
             <PopoverTrigger asChild>
-              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs">
-                <AlertCircle className="w-3.5 h-3.5" />
-                Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}
-                <ChevronDown className="w-3 h-3" />
+              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs max-w-full">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-52 p-2" align="start">
@@ -409,10 +422,55 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               )}
             </PopoverContent>
           </Popover>
+          <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant={filterTags.length > 0 ? "default" : "outline"}
+                size="sm"
+                className="h-9 gap-1 text-xs max-w-full"
+                disabled={availableTags.length === 0}
+              >
+                <span className="truncate">Tags{filterTags.length > 0 && ` (${filterTags.length})`}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-2 max-h-72 overflow-y-auto" align="start">
+              {availableTags.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-2 py-1.5">No tags yet</div>
+              ) : (
+                availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    className={cn(
+                      "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
+                      filterTags.includes(tag)
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted text-foreground"
+                    )}
+                    onClick={() => {
+                      setFilterTags((prev) =>
+                        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                      );
+                    }}
+                  >
+                    {tag}
+                  </button>
+                ))
+              )}
+              {filterTags.length > 0 && (
+                <button
+                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
+                  onClick={() => { setFilterTags([]); setTagsOpen(false); }}
+                >
+                  Clear all
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
           <Button
             variant={filterAttention ? "default" : "outline"}
             size="sm"
-            className="h-9 gap-1 text-xs"
+            className="h-9 gap-1 text-xs max-w-full"
             onClick={() => {
               const next = !filterAttention;
               setFilterAttention(next);
@@ -423,10 +481,11 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               }
             }}
           >
-            <Flag className="w-3.5 h-3.5" />
-            Items to Complete
+            <Flag className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Items to Complete</span>
           </Button>
         </div>
+
 
         {filterAttention && (
           <div className="flex flex-col gap-2 px-3 py-2 rounded-md bg-primary/10 border border-primary/20">
