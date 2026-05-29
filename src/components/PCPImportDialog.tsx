@@ -115,6 +115,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
   const [mailingDate, setMailingDate] = useState(toLocalDateKey(addDays(new Date(), 30)));
   const [progress, setProgress] = useState(0);
   const [summary, setSummary] = useState({ matched: 0, created: 0, skipped: 0 });
+  const [approvedCreates, setApprovedCreates] = useState<Set<number>>(new Set());
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
