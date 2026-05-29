@@ -234,7 +234,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         }
       }
 
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing;
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing && matchTags;
     });
 
     if (sortByVip === "vip-first") {
