@@ -208,6 +208,8 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpMode, setFollowUpMode] = useState<"suggested" | "custom" | "pause">("suggested");
   const [mailedSample, setMailedSample] = useState(false);
+  const [alsoBookingAsk, setAlsoBookingAsk] = useState(false);
+  const [bookingSubtype, setBookingSubtype] = useState<"Asked for Appointment" | "Invited to Event" | null>(null);
 
   // Re-sync the pre-fill when the panel re-opens with a new initialNote.
   React.useEffect(() => {
