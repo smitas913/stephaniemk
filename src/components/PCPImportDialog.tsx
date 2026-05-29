@@ -777,6 +777,11 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
               Follow-ups queued between {format(addDays(new Date(mailingDate + "T00:00:00"), 7), "MMM d")} and{" "}
               {format(addDays(new Date(mailingDate + "T00:00:00"), 17), "MMM d, yyyy")}.
             </p>
+            {summary.removed > 0 && (
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                {summary.removed} customer{summary.removed === 1 ? "" : "s"} removed from PCP list (not in this import).
+              </p>
+            )}
             <Button onClick={() => { reset(); onOpenChange(false); }}>Done</Button>
           </div>
         )}
