@@ -2430,14 +2430,26 @@ export default function FollowUps() {
                      const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
 
                      // Priority sort within a category: most overdue first, then due-today, then general.
+                     // PCP customers are pinned to the top of each status bucket, ordered by most
+                     // recent last order date (same staggering logic as the PCP import).
                      const prioritySort = (items: ActionItem[]) => {
-                       const score = (i: ActionItem) =>
+                       const statusScore = (i: ActionItem) =>
                          i.follow_up_status === "OVERDUE" ? 0 :
                          i.follow_up_status === "TODAY" ? 1 : 2;
+                       const isPcp = (i: ActionItem) => Array.isArray(i._tags) && i._tags.includes("PCP");
                        return [...items].sort((a, b) => {
-                         const sa = score(a);
-                         const sb = score(b);
+                         const sa = statusScore(a);
+                         const sb = statusScore(b);
                          if (sa !== sb) return sa - sb;
+                         const pa = isPcp(a) ? 0 : 1;
+                         const pb = isPcp(b) ? 0 : 1;
+                         if (pa !== pb) return pa - pb;
+                         if (pa === 0) {
+                           // Both PCP — most recent last order first (smallest days_since_last_order)
+                           const da = a.days_since_last_order ?? Number.MAX_SAFE_INTEGER;
+                           const db = b.days_since_last_order ?? Number.MAX_SAFE_INTEGER;
+                           if (da !== db) return da - db;
+                         }
                          return (b.daysOverdue ?? 0) - (a.daysOverdue ?? 0);
                        });
                      };
