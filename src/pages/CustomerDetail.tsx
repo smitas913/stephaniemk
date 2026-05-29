@@ -36,7 +36,6 @@ import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEdi
 import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen, Sparkles } from "lucide-react";
-import { addDays as addDaysForSample, format as formatForSample } from "date-fns";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import BeautyNotesCard from "@/components/BeautyNotesCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
