@@ -241,26 +241,22 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       days = 3; reason = "Booking ask check-back";
     } else if (activity === "Connection") {
       days = 7; reason = "Connection touch";
-    } else if (isSampleActivity) {
-      if (mailedSample) { days = 3; reason = "Mailed sample arrival check"; }
-      else { days = 3; reason = "Sample in-hand check"; }
-    } else if (activity === "Sample Follow-Up" || activity === "Order Follow-Up") {
+    } else if (activity === "Send Info") {
+      days = 3;
+      reason = mailedSample ? "Mailed sample arrival check" : "Info / sample in-hand check";
+    } else if (activity === "Sample Follow-Up") {
+      if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
+      else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
+    } else if (activity === "Order Follow-Up") {
       if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
       else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
     } else {
       days = 7; reason = "Standard follow-up";
     }
-    // Note: Send Info / Sample Follow-Up matched isSampleActivity above (3 days, in-hand).
-    // The Sample/Order reorder branch applies only to Order Follow-Up (and any future
-    // non-sample reorder-style activity). Order Follow-Up isn't sample, so it reaches the
-    // reorder branch below.
-    if (activity === "Order Follow-Up") {
-      if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
-      else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
-    }
 
     return { date: format(addDays(new Date(), days), "yyyy-MM-dd"), reason };
-  }, [activity, isSampleActivity, mailedSample, item.tags, item.reorderCycleDays]);
+  }, [activity, mailedSample, item.tags, item.reorderCycleDays]);
+
 
   const suggestedDate = suggestion?.date || "";
   const suggestionReason = suggestion?.reason || "";
