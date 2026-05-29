@@ -602,7 +602,7 @@ export default function AddOrder() {
       <Layout>
         <div className="max-w-2xl space-y-6">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(originPath)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
