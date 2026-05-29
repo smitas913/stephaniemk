@@ -145,24 +145,36 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
         const result = e.target!.result as ArrayBuffer;
         console.log("PCP Import - FileReader loaded, byte length:", result.byteLength);
         const data = new Uint8Array(result);
-        const workbook = XLSX.read(data, { type: "array", dense: true });
+        const workbook = XLSX.read(data, { type: "array" });
         console.log("PCP Import - sheet names:", workbook.SheetNames);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        // Use dense array mode with explicit value extraction
-        const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1:L200");
-        const raw: any[][] = [];
-        for (let R = range.s.r; R <= range.e.r; R++) {
-          const row: any[] = [];
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const cell = (worksheet as any)[R]?.[C];
-            row.push(cell ? (cell.w ?? cell.v ?? "") : "");
+        let raw: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false });
+
+        const firstRowEmpty = (rows: any[][]) =>
+          !rows[0] || rows[0].every((c: any) => String(c ?? "").trim() === "");
+
+        // Fallback: InTouch exports sometimes have non-standard shared strings
+        // that resolve as empty. Re-parse in dense mode and extract cells manually.
+        if (firstRowEmpty(raw)) {
+          console.warn("PCP Import - first row empty, retrying with dense mode");
+          const denseWb = XLSX.read(data, { type: "array", dense: true });
+          const denseWs = denseWb.Sheets[denseWb.SheetNames[0]];
+          const range = XLSX.utils.decode_range(denseWs["!ref"] || "A1:L200");
+          const denseRaw: any[][] = [];
+          for (let R = range.s.r; R <= range.e.r; R++) {
+            const row: any[] = [];
+            for (let C = range.s.c; C <= range.e.c; C++) {
+              const cell = (denseWs as any)[R]?.[C];
+              row.push(cell ? (cell.w ?? cell.v ?? "") : "");
+            }
+            denseRaw.push(row);
           }
-          raw.push(row);
+          raw = denseRaw;
         }
+
         console.log("PCP Import - row count:", raw.length);
         console.log("PCP Import - first row RAW:", JSON.stringify(raw[0]));
-        console.log("PCP Import - second row:", JSON.stringify(raw[1]));
 
         const hdr = pickHeaderRow(raw);
         if (!hdr) {
