@@ -79,13 +79,21 @@ const UNIFIED_ACTIONS = [
 ] as const;
 
 // Unified flow Step 1: activity type
-type ActivityType = "Booking Ask" | "Connection" | "Send Info" | "Sample Follow-Up" | "Order Follow-Up" | "Follow-Up";
+type ActivityType =
+  | "Booking Ask"
+  | "Connection"
+  | "Order/Product/Sample Follow-Up"
+  | "PCP Follow-Up"
+  | "Recruiting Follow-Up"
+  | "Sent Info / Samples"
+  | "Follow-Up";
 const ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
   { key: "Booking Ask", label: "Booking Ask", sublabel: "Asked for an appointment" },
   { key: "Connection", label: "Connection", sublabel: "Coffee / relationship" },
-  { key: "Send Info", label: "Send Info", sublabel: "Samples, links" },
-  { key: "Sample Follow-Up", label: "Sample / Product Follow-Up", sublabel: "Following up on what they tried" },
-  { key: "Order Follow-Up", label: "Order Follow-Up", sublabel: "Check satisfaction / reorder" },
+  { key: "Order/Product/Sample Follow-Up", label: "Order / Product / Sample Follow-Up", sublabel: "Checking in on order, product, or sample" },
+  { key: "PCP Follow-Up", label: "PCP Follow-Up", sublabel: "Catalog cycle check-in" },
+  { key: "Recruiting Follow-Up", label: "Recruiting Follow-Up", sublabel: "Career chat / opportunity follow-up" },
+  { key: "Sent Info / Samples", label: "Sent Info / Samples", sublabel: "Sent samples, links, or catalog" },
 ];
 
 const LEAD_ACTIVITY_TYPES: { key: ActivityType; label: string; sublabel: string }[] = [
