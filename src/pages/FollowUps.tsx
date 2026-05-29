@@ -813,6 +813,17 @@ export default function FollowUps() {
       const unifiedNote = unifiedNotesByCustomer.get(c.id);
       const lastNextStep = unifiedNote?.next_step || null;
       const fullAddress = [c.address_line_1, c.address_line_2, [c.city, c.state_territory, c.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      const tags: string[] = Array.isArray((c as any).tags) ? (c as any).tags : [];
+      const isPcp = tags.includes("PCP");
+      // "Also overdue" = PCP customer who is ALSO carrying a stale care-cycle
+      // touch beyond the PCP reorder window. Heuristic: dormant/warm activity
+      // OR >90d since last order. PCP follow-up reason wins on the card, but
+      // we surface a subtle merge note so the consultant knows to address both.
+      const alsoOverdue = isPcp && (
+        c.activity_status === "Dormant" ||
+        c.activity_status === "Warm" ||
+        (typeof c.days_since_last_order === "number" && c.days_since_last_order > 90)
+      );
       return {
         id: c.id, itemType: "customer" as const, name: c.full_name,
         phone: c.phone, email: c.email, vip: c.vip,
@@ -829,6 +840,8 @@ export default function FollowUps() {
         _address: fullAddress || null,
         _relationship_status: c.relationship_status,
         _createdAt: (c as any).created_at || null,
+        _tags: tags,
+        _alsoOverdue: alsoOverdue,
       };
     });
 
