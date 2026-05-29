@@ -49,6 +49,10 @@ export interface UniversalActionItem {
   leadStatus?: string;
   /** For leads: last contact date (YYYY-MM-DD) used for priority calc. */
   lastContactDate?: string | null;
+  /** Customer tags (e.g. "PCP"). Used to tune follow-up suggestions. */
+  tags?: string[] | null;
+  /** Customer's typical reorder cadence in days, snapped to {30,60,90} when known. */
+  reorderCycleDays?: number | null;
 }
 
 // Legacy flow uses two steps.
@@ -221,20 +225,41 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
 
   const isSampleActivity = activity === "Send Info" || activity === "Sample Follow-Up";
 
-  // Compute a context-aware suggested follow-up date based on the activity selected.
-  const suggestedDate = React.useMemo(() => {
-    if (!activity) return "";
-    const daysByActivity: Record<ActivityType, number> = {
-      "Booking Ask": 3,
-      "Connection": 7,
-      "Send Info": 3,
-      "Sample Follow-Up": 3,
-      "Order Follow-Up": 30,
-      "Follow-Up": 7,
-    };
-    const days = isSampleActivity && mailedSample ? 6 : daysByActivity[activity];
-    return format(addDays(new Date(), days), "yyyy-MM-dd");
-  }, [activity, isSampleActivity, mailedSample]);
+  // Compute a context-aware suggested follow-up date based on activity + customer profile.
+  // Returns both the date and a short human reason describing why we picked it.
+  const suggestion = React.useMemo<{ date: string; reason: string } | null>(() => {
+    if (!activity) return null;
+    const isPCP = Array.isArray(item.tags) && item.tags.includes("PCP");
+    const cycle = item.reorderCycleDays && [30, 60, 90].includes(item.reorderCycleDays)
+      ? item.reorderCycleDays
+      : 30;
+
+    let days: number;
+    let reason: string;
+
+    if (activity === "Booking Ask") {
+      days = 3; reason = "Booking ask check-back";
+    } else if (activity === "Connection") {
+      days = 7; reason = "Connection touch";
+    } else if (activity === "Send Info") {
+      days = 3;
+      reason = mailedSample ? "Mailed sample arrival check" : "Info / sample in-hand check";
+    } else if (activity === "Sample Follow-Up") {
+      if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
+      else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
+    } else if (activity === "Order Follow-Up") {
+      if (isPCP) { days = 90; reason = "PCP mailing cycle"; }
+      else { days = cycle; reason = `${cycle}-day reorder follow-up`; }
+    } else {
+      days = 7; reason = "Standard follow-up";
+    }
+
+    return { date: format(addDays(new Date(), days), "yyyy-MM-dd"), reason };
+  }, [activity, mailedSample, item.tags, item.reorderCycleDays]);
+
+
+  const suggestedDate = suggestion?.date || "";
+  const suggestionReason = suggestion?.reason || "";
 
   // Seed the custom-date input with the suggested value when entering Step 2.
   React.useEffect(() => {
@@ -242,6 +267,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
       setFollowUpDate(suggestedDate);
     }
   }, [step, suggestedDate, followUpDate]);
+
 
   // Force pause when DNC is selected.
   React.useEffect(() => {
@@ -595,6 +621,11 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
                       <span>Pause</span>
                     </button>
                   </div>
+                  {followUpMode === "suggested" && suggestedDate && suggestionReason && outcome !== "Not Interested" && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Suggested: {suggestionReason} ({format(new Date(suggestedDate + "T00:00:00"), "MMM d")})
+                    </p>
+                  )}
                   {followUpMode === "custom" && (
                     <Input
                       type="date"
