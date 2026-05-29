@@ -354,26 +354,26 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
 
         {/* Search + Archive Toggle */}
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[180px] basis-full sm:basis-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Search name, phone, email, beauty notes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
           <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
-            <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] max-w-full h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
-            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active (no DNC)</SelectItem>
               <SelectItem value="dnc">Do Not Contact</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
-            <SelectTrigger className="w-[150px] h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[150px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Skincare</SelectItem>
               <SelectItem value="yes">Skincare: Yes</SelectItem>
@@ -382,10 +382,10 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
           </Select>
           <Popover open={missingOpen} onOpenChange={setMissingOpen}>
             <PopoverTrigger asChild>
-              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs">
-                <AlertCircle className="w-3.5 h-3.5" />
-                Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}
-                <ChevronDown className="w-3 h-3" />
+              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs max-w-full">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}</span>
+                <ChevronDown className="w-3 h-3 shrink-0" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-52 p-2" align="start">
