@@ -49,6 +49,10 @@ export interface UniversalActionItem {
   leadStatus?: string;
   /** For leads: last contact date (YYYY-MM-DD) used for priority calc. */
   lastContactDate?: string | null;
+  /** Customer tags (e.g. "PCP"). Used to tune follow-up suggestions. */
+  tags?: string[] | null;
+  /** Customer's typical reorder cadence in days, snapped to {30,60,90} when known. */
+  reorderCycleDays?: number | null;
 }
 
 // Legacy flow uses two steps.
