@@ -19,6 +19,7 @@ import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 
 export default function AddCustomer() {
   const navigate = useNavigate();
+  const originPath = useOriginPath("/customers");
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
