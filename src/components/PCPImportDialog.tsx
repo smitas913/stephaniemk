@@ -203,7 +203,7 @@ export default function PCPImportDialog({ open, onOpenChange }: { open: boolean;
     setFileName("");
     setPlan([]);
     setProgress(0);
-    setSummary({ matched: 0, created: 0, skipped: 0 });
+    setSummary({ matched: 0, created: 0, skipped: 0, removed: 0 });
     setMailingDate(toLocalDateKey(addDays(new Date(), 30)));
     setApprovedCreates(new Set());
     setTier2Choices({});
