@@ -263,7 +263,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterAttention, attentionView]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterTags, filterAttention, attentionView]);
+
+  const availableTags = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      const t = (c as any).tags;
+      if (Array.isArray(t)) for (const x of t) if (x) s.add(String(x));
+    }
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [customers]);
 
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
