@@ -781,6 +781,31 @@ export default function FollowUps() {
     return s;
   }, [customers]);
 
+  // Lookup keys for active Customer-status records. Anything in the Booking Activity
+  // queue (booking_leads OR rescheduling events) matching one of these belongs to a
+  // contact who has already been promoted to Customer — they should not linger in
+  // the lead queue or generate "Lead not found" actions.
+  const customerLookupKeys = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      if ((c as any).relationship_status !== "Customer") continue;
+      if ((c as any).is_active === false) continue;
+      if (c.full_name) s.add(`name:${c.full_name.trim().toLowerCase()}`);
+      const phone = (c.phone || "").replace(/\D/g, "");
+      if (phone.length >= 10) s.add(`phone:${phone.slice(-10)}`);
+      if (c.email) s.add(`email:${c.email.trim().toLowerCase()}`);
+    }
+    return s;
+  }, [customers]);
+
+  const isExistingCustomer = useCallback((name?: string | null, phone?: string | null, email?: string | null) => {
+    if (name && customerLookupKeys.has(`name:${name.trim().toLowerCase()}`)) return true;
+    const p = (phone || "").replace(/\D/g, "");
+    if (p.length >= 10 && customerLookupKeys.has(`phone:${p.slice(-10)}`)) return true;
+    if (email && customerLookupKeys.has(`email:${email.trim().toLowerCase()}`)) return true;
+    return false;
+  }, [customerLookupKeys]);
+
   // Detail sheet queries
   const { data: detailNotes = [] } = useQuery({
     queryKey: ["customer-notes", detailItem?.id],
@@ -924,6 +949,10 @@ export default function FollowUps() {
     const leadItems: ActionItem[] = bookingLeads
       .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
       .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
+      // Hide booking leads whose contact already exists as a Customer-status record.
+      // Conversion normally deletes the lead row, but pre-existing orphans (or leads
+      // duplicated by phone/email) would otherwise linger and surface "Lead not found".
+      .filter((lead) => !isExistingCustomer(lead.name, lead.phone, lead.email))
       .map((lead) => {
         const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
@@ -1176,7 +1205,7 @@ export default function FollowUps() {
       birthdaysOverdue,
       birthdaysUpcoming,
     };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
 
   useEffect(() => {
     const activeStartDate = scheduleSettings?.ooo_start_date || null;
@@ -2408,6 +2437,10 @@ export default function FollowUps() {
                          .filter((e) => {
                            if (e.is_archived) return false;
                            if ((e.reschedule_status || "None") !== "In Process of Rescheduling") return false;
+                           // If the hostess already exists as a Customer, route reschedule
+                           // through their customer follow-ups / Events page rather than
+                           // leaving them in the Booking Activity lead queue.
+                           if (isExistingCustomer((e as any).hostess_name, (e as any).hostess_phone, (e as any).hostess_email)) return false;
                            if (e.requires_manual_next_step) return true;
                            const fu = e.reschedule_next_follow_up_date;
                            if (!fu) return true;            // no date yet → show today
@@ -4560,11 +4593,15 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const newStatus = (status === "New Contact" || status === "New") ? "Working" : status;
       const autoFollowUpDays = getAutoFollowUpDays(newStatus);
       const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
+      // Respect the user-selected next follow-up date so that saving an activity
+      // moves the contact off Today onto the chosen day. Fall back to the auto
+      // cadence date when the field is empty.
+      const effectiveNextDate = nextFollowUp || autoNextDate;
 
       await Promise.all([
         updateBookingLead(item.id, {
           last_contact_date: today,
-          next_follow_up_date: autoNextDate,
+          next_follow_up_date: effectiveNextDate,
           status: newStatus,
           notes: updatedNotes,
           lead_activity: activityType,
@@ -4576,18 +4613,18 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
           note_body: newNote.trim(),
           note_type: activityType,
           next_step: nextStepText.trim() || null,
-          next_follow_up_date: autoNextDate,
+          next_follow_up_date: effectiveNextDate,
           is_booking_attempt: isBookingAttempt,
           is_follow_up: isFollowUpFlag,
         }),
       ]);
 
       // Update local state immediately
-      setNextFollowUp(autoNextDate);
+      setNextFollowUp(effectiveNextDate);
       setStatus(newStatus);
       setNewNote("");
       setActivityLogged(true);
-      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)}`);
+      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(effectiveNextDate)}`);
 
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
