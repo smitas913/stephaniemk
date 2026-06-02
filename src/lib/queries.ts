@@ -1181,12 +1181,19 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
     .single();
   if (cErr) throw cErr;
 
-  // Mark lead as converted (Booked)
-  const { error: uErr } = await supabase
-    .from("booking_leads" as any)
-    .update({ converted_customer_id: customer.id, status: "Booked" } as any)
-    .eq("id", lead.id);
-  if (uErr) throw uErr;
+  // Re-point any historical Lead notes to the new Customer so activity history
+  // is preserved and continues to count toward trackers.
+  await supabase
+    .from("notes")
+    .update({
+      entity_type: "Customer",
+      person_type: "customer",
+      person_id: customer.id,
+      customer_id: customer.id,
+      prospect_id: null,
+    } as any)
+    .eq("entity_type", "Lead")
+    .eq("person_id", lead.id);
 
   // Auto-create an event for the booking
   const { generateEventId } = await import("./eventId");
@@ -1213,6 +1220,12 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
   } catch (e) {
     console.error("Failed to generate workflow tasks for converted lead", e);
   }
+
+  // Delete the original booking_lead. Data lives on the customer record now;
+  // leaving the lead around creates orphans that break "Lead not found" lookups
+  // and lead-queue counters.
+  const { error: delErr } = await supabase.from("booking_leads" as any).delete().eq("id", lead.id);
+  if (delErr) console.error("Failed to delete converted booking lead", delErr);
 
   return { customer, eventId };
 };
