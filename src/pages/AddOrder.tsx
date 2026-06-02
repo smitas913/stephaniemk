@@ -459,7 +459,7 @@ export default function AddOrder() {
         resolvedCustomerId = newCust.id;
         resolvedCustomerName = newCust.full_name;
         if (!isEditMode && orderDate >= toLocalDateKey()) {
-          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
+          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: false });
         }
       }
 
