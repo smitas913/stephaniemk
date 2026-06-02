@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchBookingLeads, createBookingLead, updateBookingLead, deleteBookingLead, convertBookingLeadToCustomer, fetchEvents, createTeamConsultant, createNote, fetchAllLatestNotes, fetchCustomers } from "@/lib/queries";
 import { BOOKING_LEAD_STATUSES, BOOKING_LEAD_SOURCES, LEAD_ACTIVITIES, NEXT_STEP_TYPES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
@@ -209,7 +210,21 @@ export default function BookingLeads({ embedded = false }: { embedded?: boolean 
         onboarding_stage: "New",
         focus_group: "New Consultant",
       });
-      await updateBookingLead(lead.id, { converted_customer_id: consultant.id, status: "Booked" } as any);
+      // Re-point any historical Lead notes onto the new consultant record so
+      // activity history isn't lost and trackers stay accurate.
+      await supabase
+        .from("notes")
+        .update({
+          entity_type: "Consultant",
+          person_type: "consultant",
+          person_id: consultant.id,
+          customer_id: null,
+          prospect_id: null,
+        } as any)
+        .eq("entity_type", "Lead")
+        .eq("person_id", lead.id);
+      // Delete the original booking_lead so it doesn't orphan in the leads queue.
+      await deleteBookingLead(lead.id);
       return consultant;
     },
     onSuccess: () => {

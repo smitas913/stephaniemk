@@ -202,7 +202,18 @@ export default function LeadDetail() {
   if (!lead) {
     return (
       <Layout>
-        <p className="text-muted-foreground text-center py-12">Lead not found.</p>
+        <div className="max-w-md mx-auto text-center py-16 space-y-3">
+          <p className="text-foreground font-medium">This lead is no longer available.</p>
+          <p className="text-sm text-muted-foreground">
+            It may have been converted to a customer or consultant. Check your Clients or Leadership lists.
+          </p>
+          <div className="flex gap-2 justify-center pt-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/clients?tab=leads")}>
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Leads
+            </Button>
+            <Button size="sm" onClick={() => navigate("/clients")}>Go to Clients</Button>
+          </div>
+        </div>
       </Layout>
     );
   }
