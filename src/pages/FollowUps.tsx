@@ -2437,6 +2437,10 @@ export default function FollowUps() {
                          .filter((e) => {
                            if (e.is_archived) return false;
                            if ((e.reschedule_status || "None") !== "In Process of Rescheduling") return false;
+                           // If the hostess already exists as a Customer, route reschedule
+                           // through their customer follow-ups / Events page rather than
+                           // leaving them in the Booking Activity lead queue.
+                           if (isExistingCustomer((e as any).hostess_name, (e as any).hostess_phone, (e as any).hostess_email)) return false;
                            if (e.requires_manual_next_step) return true;
                            const fu = e.reschedule_next_follow_up_date;
                            if (!fu) return true;            // no date yet → show today
