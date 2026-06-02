@@ -4593,11 +4593,15 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
       const newStatus = (status === "New Contact" || status === "New") ? "Working" : status;
       const autoFollowUpDays = getAutoFollowUpDays(newStatus);
       const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
+      // Respect the user-selected next follow-up date so that saving an activity
+      // moves the contact off Today onto the chosen day. Fall back to the auto
+      // cadence date when the field is empty.
+      const effectiveNextDate = nextFollowUp || autoNextDate;
 
       await Promise.all([
         updateBookingLead(item.id, {
           last_contact_date: today,
-          next_follow_up_date: autoNextDate,
+          next_follow_up_date: effectiveNextDate,
           status: newStatus,
           notes: updatedNotes,
           lead_activity: activityType,
@@ -4609,18 +4613,18 @@ function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
           note_body: newNote.trim(),
           note_type: activityType,
           next_step: nextStepText.trim() || null,
-          next_follow_up_date: autoNextDate,
+          next_follow_up_date: effectiveNextDate,
           is_booking_attempt: isBookingAttempt,
           is_follow_up: isFollowUpFlag,
         }),
       ]);
 
       // Update local state immediately
-      setNextFollowUp(autoNextDate);
+      setNextFollowUp(effectiveNextDate);
       setStatus(newStatus);
       setNewNote("");
       setActivityLogged(true);
-      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(autoNextDate)}`);
+      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(effectiveNextDate)}`);
 
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
