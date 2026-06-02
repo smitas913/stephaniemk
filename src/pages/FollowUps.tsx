@@ -949,6 +949,10 @@ export default function FollowUps() {
     const leadItems: ActionItem[] = bookingLeads
       .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
       .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
+      // Hide booking leads whose contact already exists as a Customer-status record.
+      // Conversion normally deletes the lead row, but pre-existing orphans (or leads
+      // duplicated by phone/email) would otherwise linger and surface "Lead not found".
+      .filter((lead) => !isExistingCustomer(lead.name, lead.phone, lead.email))
       .map((lead) => {
         const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
         const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
