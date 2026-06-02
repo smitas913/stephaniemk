@@ -459,7 +459,7 @@ export default function AddOrder() {
         resolvedCustomerId = newCust.id;
         resolvedCustomerName = newCust.full_name;
         if (!isEditMode && orderDate >= toLocalDateKey()) {
-          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: !(addAnother || bulkMode) });
+          setFollowUpPrompt({ id: newCust.id, name: newCust.full_name, pendingNav: false });
         }
       }
 
@@ -547,11 +547,12 @@ export default function AddOrder() {
       if (isEditMode && editOrderId) queryClient.invalidateQueries({ queryKey: ["order", editOrderId] });
 
       setSavedCount(prev => prev + 1);
-      toast.success(isEditMode ? "Order updated" : `Order saved for ${resolvedCustomerName}`);
+      toast.success(isEditMode ? "Order updated" : "Order saved!");
 
       if (isEditMode) {
         navigate(originPath);
-      } else if (addAnother || bulkMode) {
+      } else {
+        // Reset form for immediate new order entry
         setCustomerId("");
         setCustomerName("");
         setCustomerSearch("");
@@ -574,9 +575,8 @@ export default function AddOrder() {
         setFollowUpIntent("none");
         setFaceTypeOverride(null);
         setAttempted(false);
-      } else if (!isNewCustomer) {
-        navigate(originPath);
       }
+
     } catch (err: any) {
       toast.error(err.message || (isEditMode ? "Failed to update order" : "Failed to create order"));
     } finally {
