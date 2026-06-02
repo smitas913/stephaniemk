@@ -781,6 +781,31 @@ export default function FollowUps() {
     return s;
   }, [customers]);
 
+  // Lookup keys for active Customer-status records. Anything in the Booking Activity
+  // queue (booking_leads OR rescheduling events) matching one of these belongs to a
+  // contact who has already been promoted to Customer — they should not linger in
+  // the lead queue or generate "Lead not found" actions.
+  const customerLookupKeys = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of customers) {
+      if ((c as any).relationship_status !== "Customer") continue;
+      if ((c as any).is_active === false) continue;
+      if (c.full_name) s.add(`name:${c.full_name.trim().toLowerCase()}`);
+      const phone = (c.phone || "").replace(/\D/g, "");
+      if (phone.length >= 10) s.add(`phone:${phone.slice(-10)}`);
+      if (c.email) s.add(`email:${c.email.trim().toLowerCase()}`);
+    }
+    return s;
+  }, [customers]);
+
+  const isExistingCustomer = useCallback((name?: string | null, phone?: string | null, email?: string | null) => {
+    if (name && customerLookupKeys.has(`name:${name.trim().toLowerCase()}`)) return true;
+    const p = (phone || "").replace(/\D/g, "");
+    if (p.length >= 10 && customerLookupKeys.has(`phone:${p.slice(-10)}`)) return true;
+    if (email && customerLookupKeys.has(`email:${email.trim().toLowerCase()}`)) return true;
+    return false;
+  }, [customerLookupKeys]);
+
   // Detail sheet queries
   const { data: detailNotes = [] } = useQuery({
     queryKey: ["customer-notes", detailItem?.id],
