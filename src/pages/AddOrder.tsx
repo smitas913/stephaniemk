@@ -551,7 +551,7 @@ export default function AddOrder() {
 
       if (isEditMode) {
         navigate(originPath);
-      } else {
+      } else if (addAnother) {
         // Reset form for immediate new order entry
         setCustomerId("");
         setCustomerName("");
@@ -575,6 +575,9 @@ export default function AddOrder() {
         setFollowUpIntent("none");
         setFaceTypeOverride(null);
         setAttempted(false);
+      } else {
+        // Save Order → navigate to Today page
+        navigate("/follow-ups");
       }
 
     } catch (err: any) {
