@@ -254,7 +254,7 @@ export interface ProspectNote {
   owner_user_id: string | null;
 }
 
-export const EXPENSE_CATEGORIES = ["Section 1 (Wholesale Products)", "Section 2 (MK Supplies & Samples)", "Inventory Freight", "Supplies", "Shipping / Postage", "Marketing", "Events", "Tools", "Admin / Office Help", "Accounting", "Meals", "Travel", "Networking"] as const;
+export const EXPENSE_CATEGORIES = ["Section 1 (Wholesale Products)", "Section 2 (MK Supplies & Samples)", "Inventory Freight", "Supplies", "Shipping / Postage", "Marketing", "Events", "Tools", "Admin / Office Help", "Accounting", "Meals", "Travel", "Networking", "Gifts & Prizes - Customers", "Prizes & Promotions - Consultants", "Business Gifts", "Unit Events & Meetings", "Personal Use", "Demos & Samples"] as const;
 
 export interface Expense {
   id: string;
