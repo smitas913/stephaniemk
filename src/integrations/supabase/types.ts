@@ -2230,6 +2230,12 @@ export type Database = {
         | "Section 2 (MK Supplies & Samples)"
         | "Inventory Freight"
         | "Shipping / Postage"
+        | "Gifts & Prizes - Customers"
+        | "Prizes & Promotions - Consultants"
+        | "Business Gifts"
+        | "Unit Events & Meetings"
+        | "Personal Use"
+        | "Demos & Samples"
       income_category: "Commission" | "Bonus" | "Referral" | "Other"
       opportunity_status:
         | "New Contact"
@@ -2399,6 +2405,12 @@ export const Constants = {
         "Section 2 (MK Supplies & Samples)",
         "Inventory Freight",
         "Shipping / Postage",
+        "Gifts & Prizes - Customers",
+        "Prizes & Promotions - Consultants",
+        "Business Gifts",
+        "Unit Events & Meetings",
+        "Personal Use",
+        "Demos & Samples",
       ],
       income_category: ["Commission", "Bonus", "Referral", "Other"],
       opportunity_status: [
