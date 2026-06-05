@@ -594,36 +594,87 @@ export default function CustomerDetail() {
     <Layout>
       <div className="max-w-3xl mx-auto space-y-5 pb-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="-ml-2" onClick={() => navigate(backPath)}><ArrowLeft className="w-5 h-5" /></Button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
-              <DncBadge tags={(customer as any).tags} />
+        <div className="space-y-2">
+          {/* Row 1: Back + Avatar + Name + Status */}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="-ml-2 shrink-0 h-9 w-9" onClick={() => navigate(backPath)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="w-12 h-12 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-base">
+              {customer.full_name
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((p) => p[0]?.toUpperCase())
+                .join("") || "?"}
             </div>
-            <div className="flex gap-2 mt-1 flex-wrap items-center">
-              {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New Customer</span>}
-              {(customer as any).is_skincare_customer && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium">Skincare</span>}
-              {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
-              <CustomerTagChips
-                customerId={customer.id}
-                tags={(customer as any).tags || []}
-                isCustomer={(customer.relationship_status || "Customer") === "Customer"}
-                className="ml-1"
-              />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold tracking-tight text-foreground truncate">{customer.full_name}</h2>
+              {computed.activity_status && (
+                <span className="inline-block text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium mt-0.5">
+                  {computed.activity_status}
+                </span>
+              )}
             </div>
           </div>
-          <div className="flex gap-1">
-            {customer.phone && (
-              <>
-                <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(customer.phone)}`}><Phone className="w-4 h-4" /></a></Button>
-                <TextActionButton phone={customer.phone} trigger="icon-button" />
-              </>
-            )}
-            {customer.email && (
-              <Button size="sm" variant="outline" asChild title="Email"><a href={`mailto:${customer.email}`} onClick={(e) => openEmail(customer.email!, e)}><Mail className="w-4 h-4" /></a></Button>
-            )}
-            <Button size="sm" onClick={() => navigate(`/orders/new?customer=${id}${!customerHasOrders ? "&type=Facial" : ""}`, orderOriginState)}><Plus className="w-4 h-4 mr-1" />Order</Button>
+
+          {/* Row 2: Tag chips */}
+          <div className="flex gap-1.5 flex-wrap items-center">
+            <DncBadge tags={(customer as any).tags} />
+            {(customer as any).new_customer_flag && <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">New</span>}
+            {(customer as any).is_skincare_customer && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium">Skincare</span>}
+            {computed.vip && <span className="text-[11px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">VIP</span>}
+            <CustomerTagChips
+              customerId={customer.id}
+              tags={(customer as any).tags || []}
+              isCustomer={(customer.relationship_status || "Customer") === "Customer"}
+            />
+          </div>
+
+          {/* Row 3: Compact action icon bar */}
+          <div className="grid grid-cols-4 gap-1.5">
+            <a
+              href={customer.phone ? `tel:${phoneForLink(customer.phone)}` : undefined}
+              aria-disabled={!customer.phone}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 h-14 rounded-md border border-input bg-background hover:bg-accent transition-colors",
+                !customer.phone && "opacity-40 pointer-events-none"
+              )}
+            >
+              <Phone className="w-4 h-4" />
+              <span className="text-xs">Call</span>
+            </a>
+            <a
+              href={customer.phone ? `sms:${phoneForLink(customer.phone)}` : undefined}
+              aria-disabled={!customer.phone}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 h-14 rounded-md border border-input bg-background hover:bg-accent transition-colors",
+                !customer.phone && "opacity-40 pointer-events-none"
+              )}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="text-xs">Text</span>
+            </a>
+            <a
+              href={customer.email ? `mailto:${customer.email}` : undefined}
+              onClick={(e) => customer.email && openEmail(customer.email, e)}
+              aria-disabled={!customer.email}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 h-14 rounded-md border border-input bg-background hover:bg-accent transition-colors",
+                !customer.email && "opacity-40 pointer-events-none"
+              )}
+            >
+              <Mail className="w-4 h-4" />
+              <span className="text-xs">Email</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => navigate(`/orders/new?customer=${id}${!customerHasOrders ? "&type=Facial" : ""}`, orderOriginState)}
+              className="flex flex-col items-center justify-center gap-0.5 h-14 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="text-xs">Order</span>
+            </button>
           </div>
         </div>
 
