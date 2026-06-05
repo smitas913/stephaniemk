@@ -644,14 +644,17 @@ export default function CustomerDetail() {
               <Phone className="w-4 h-4" />
               <span className="text-xs">Call</span>
             </a>
-            <div className="contents [&>*]:!w-full">
-              <TextActionButton
-                phone={customer.phone}
-                trigger="icon-button"
-                className="!h-14 flex-col gap-0.5 !px-0 w-full"
-                iconClassName="w-4 h-4"
-              />
-            </div>
+            <a
+              href={customer.phone ? `sms:${phoneForLink(customer.phone)}` : undefined}
+              aria-disabled={!customer.phone}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 h-14 rounded-md border border-input bg-background hover:bg-accent transition-colors",
+                !customer.phone && "opacity-40 pointer-events-none"
+              )}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="text-xs">Text</span>
+            </a>
             <a
               href={customer.email ? `mailto:${customer.email}` : undefined}
               onClick={(e) => customer.email && openEmail(customer.email, e)}
