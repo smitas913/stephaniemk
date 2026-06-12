@@ -247,7 +247,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   // ─── Sharing items ───
   const sharingItems: FocusDetailItem[] = [
     ...prospects
-      .filter((p: any) => p.opportunity_status === "Shared" && p.updated_at?.startsWith(dateKey))
+      .filter((p: any) => p.opportunity_status === "Shared" && getTimestampDateKey(p.updated_at) === dateKey)
       .map((p: any) => ({ id: p.id, name: p.name, type: "Prospect" as const, detail: "Shared Opportunity" })),
     ...events
       .filter((e: any) => e.event_date === dateKey && ((e as any).sharing_appointments_count || 0) > 0)
