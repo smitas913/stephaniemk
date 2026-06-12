@@ -1059,7 +1059,7 @@ export default function CustomerDetail() {
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
                           )}
                           <span className="text-[11px] text-muted-foreground">
-                            {note.note_date ? formatDateOnly(note.note_date, "MMM d, yyyy") : ""}
+                            {note.created_at ? format(new Date(note.created_at), "MMM d, yyyy") : ""}
                           </span>
                           {note.next_follow_up_date && (
                             <span className="text-[11px] text-primary font-medium">
