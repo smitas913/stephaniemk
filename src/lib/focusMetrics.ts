@@ -119,7 +119,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   // ─── Reach-out items from unified notes ───
   const reachOutItems: FocusDetailItem[] = unifiedNotes
     .filter((n: any) => {
-      const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+      const noteDay = getTimestampDateKey(n.created_at) || n.note_date;
       if (noteDay !== dateKey) return false;
       if (!isOutreachNote(n)) return false;
       if (n.entity_type === "Customer") return CUSTOMER_DAILY_ACTIVITY_TYPES.has(n.note_type);
@@ -153,7 +153,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   const leadIdsWithBookingAttemptToday = new Set<string>();
   for (const n of unifiedNotes as any[]) {
     if (n.entity_type !== "Lead") continue;
-    const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+    const noteDay = getTimestampDateKey(n.created_at) || n.note_date;
     if (noteDay !== dateKey) continue;
     if (!isOutreachNote(n)) continue;
     if (!contactTypes.has(n.note_type)) continue;
@@ -176,7 +176,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   // ─── Consultant coaching items (each activity counts separately) ───
   const consultantCoachingItems: FocusDetailItem[] = [];
   for (const n of unifiedNotes) {
-    const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
+    const noteDay = getTimestampDateKey((n as any).created_at) || (n as any).note_date;
     const hasCoachingTag = Array.isArray((n as any).tags) && (n as any).tags.includes("consultant_coaching");
     if (noteDay !== dateKey || !hasCoachingTag) continue;
     const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
@@ -208,7 +208,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   // ─── Booking attempt items ───
   const bookingAttemptItems: FocusDetailItem[] = unifiedNotes
     .filter((n: any) => {
-      const noteDay = n.note_date || getTimestampDateKey(n.created_at);
+      const noteDay = getTimestampDateKey(n.created_at) || n.note_date;
       if (noteDay !== dateKey) return false;
       if (n.is_booking_attempt !== true) return false;
       // Exclude administrative/cleanup notes even if mistakenly flagged.
@@ -280,7 +280,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   }
   // Also include event-related coaching/prep notes
   for (const n of unifiedNotes) {
-    const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
+    const noteDay = getTimestampDateKey((n as any).created_at) || (n as any).note_date;
     if (noteDay !== dateKey) continue;
     if ((n as any).entity_type !== "Hostess") continue;
     const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
@@ -316,7 +316,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   // ─── Recruiting Follow-Up details (prospect activities) ───
   const recruitingFollowUpItems: FocusDetailItem[] = [];
   for (const n of unifiedNotes) {
-    const noteDay = (n as any).note_date || getTimestampDateKey((n as any).created_at);
+    const noteDay = getTimestampDateKey((n as any).created_at) || (n as any).note_date;
     if (noteDay !== dateKey) continue;
     if ((n as any).entity_type !== "Prospect") continue;
     const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);

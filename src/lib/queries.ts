@@ -720,9 +720,13 @@ export const createNote = async (note: {
   result_type?: "Face" | "Career Chat" | "Booking Conversation" | null;
 }) => {
   const userId = await getCurrentUserId();
+  // Always stamp note_date with the user's LOCAL calendar day so evening
+  // entries don't roll over to tomorrow via the server's UTC CURRENT_DATE default.
+  const localToday = toLocalDateKeyImport(new Date());
+  const noteWithLocalDate = { ...note, note_date: note.note_date ?? localToday };
   const { data, error } = await supabase
     .from("notes")
-    .insert({ ...note, owner_user_id: userId } as any)
+    .insert({ ...noteWithLocalDate, owner_user_id: userId } as any)
     .select()
     .single();
   if (error) throw error;

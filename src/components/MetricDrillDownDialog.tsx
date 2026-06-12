@@ -112,7 +112,7 @@ export default function MetricDrillDownDialog({
         out.push({
           id: `con-${c.id}`,
           source: "Consultant",
-          date: (c.created_at || "").slice(0, 10),
+          date: c.created_at ? `${new Date(c.created_at).getFullYear()}-${String(new Date(c.created_at).getMonth() + 1).padStart(2, "0")}-${String(new Date(c.created_at).getDate()).padStart(2, "0")}` : "",
           personName: c.name || "Consultant",
           personId: c.id,
           personType: "consultant",
