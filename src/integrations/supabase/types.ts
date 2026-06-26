@@ -806,6 +806,7 @@ export type Database = {
       events: {
         Row: {
           allow_non_working_day: boolean
+          booked_from: string | null
           checklist_day_before_sent: boolean | null
           checklist_google_form_completed: boolean | null
           checklist_guest_list_received: boolean | null
@@ -856,6 +857,7 @@ export type Database = {
         }
         Insert: {
           allow_non_working_day?: boolean
+          booked_from?: string | null
           checklist_day_before_sent?: boolean | null
           checklist_google_form_completed?: boolean | null
           checklist_guest_list_received?: boolean | null
@@ -906,6 +908,7 @@ export type Database = {
         }
         Update: {
           allow_non_working_day?: boolean
+          booked_from?: string | null
           checklist_day_before_sent?: boolean | null
           checklist_google_form_completed?: boolean | null
           checklist_guest_list_received?: boolean | null
