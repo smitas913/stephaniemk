@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS event_scope TEXT NOT NULL DEFAULT 'Personal';
