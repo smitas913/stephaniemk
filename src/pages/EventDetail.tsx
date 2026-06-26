@@ -760,7 +760,9 @@ export default function EventDetail() {
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
                         <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
+                      </div>
                       <div className="space-y-1.5 sm:col-span-3">
+
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booked From</label>
                         <Select
                           value={(event as any).booked_from || ""}
