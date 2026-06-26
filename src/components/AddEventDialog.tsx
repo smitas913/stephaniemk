@@ -101,6 +101,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     setEventDate(toLocalDateKey());
     setHostessName("");
     setHostessPhone("");
+    setBookedFrom("");
+
   };
 
   const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype) && !mutation.isPending;
