@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { fetchCustomers, fetchBookingLeads, fetchProspects, upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
+import { fetchCustomers, fetchBookingLeads, fetchProspects, upsertEvent, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { useQuery as useRQ } from "@tanstack/react-query";
 import { fetchEvents } from "@/lib/queries";
