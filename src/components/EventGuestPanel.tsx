@@ -419,7 +419,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   )}
 
                   {/* No-show follow-up CTA */}
-                  {noShowFollowUp === g.id && outcome === "noshow" && (
+                  {noShowFollowUp === g.id && isNoShow && (
                     <div className="mt-2 flex items-center gap-2">
                       <p className="text-xs text-muted-foreground">Save her to booking leads for follow-up?</p>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveNoShowAsLead(g)}>
