@@ -8,19 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PartyPopper, Sparkles, Share2, Megaphone, MapPin, Monitor } from "lucide-react";
+import { PartyPopper, Sparkles, Megaphone, MapPin, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
   { value: "Party", label: "Party", icon: PartyPopper },
   { value: "Facial", label: "Facial", icon: Sparkles },
-  { value: "Sharing Appointment", label: "Sharing", icon: Share2 },
   { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
 
 const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
-const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
+const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "Facebook/Social Media", "Referral", "Cold Contact", "Current Customer", "Networking Event", "Other"] as const;
 
 
 interface AddEventDialogProps {
