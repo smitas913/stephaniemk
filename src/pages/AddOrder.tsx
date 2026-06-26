@@ -521,6 +521,19 @@ export default function AddOrder() {
         await updateOrder(editOrderId, orderPayload);
       } else {
         await createOrder(orderPayload);
+
+        // Auto-unarchive if this customer was archived
+        if (!isNonCustomer && !isNewCustomer && resolvedCustomerId) {
+          const selectedCust = customers.find(c => c.id === resolvedCustomerId);
+          if (selectedCust && (selectedCust as any).is_active === false) {
+            try {
+              await unarchiveCustomer(resolvedCustomerId);
+              toast.info(`${resolvedCustomerName} has been reactivated.`);
+            } catch (e) {
+              console.error("Failed to unarchive customer on order", e);
+            }
+          }
+        }
       }
 
       if (!isNonCustomer && resolvedCustomerId && isSkincareCustomer) {
