@@ -627,7 +627,7 @@ export default function Events() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
-            <p className="text-sm text-muted-foreground">{filtered.length} event{filtered.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-muted-foreground">{activeEvents.length} {isBusiness ? "business" : "product"} event{activeEvents.length !== 1 ? "s" : ""}</p>
           </div>
           <Button onClick={() => navigate("/events/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New Event
