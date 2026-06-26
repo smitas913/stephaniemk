@@ -435,6 +435,21 @@ export default function NewEvent() {
             </div>
             )}
 
+            {/* Where did you meet the hostess? — hide for Guest Events */}
+            {eventType !== "Guest Event" && (
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Where did you meet the hostess?</label>
+              <select
+                value={hostessSource}
+                onChange={(e) => setHostessSource(e.target.value)}
+                className="h-10 max-w-sm w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Select —</option>
+                {HOSTESS_SOURCE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            )}
+
             {/* Notes */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Notes</label>
