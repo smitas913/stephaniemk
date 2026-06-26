@@ -274,10 +274,15 @@ export default function Events() {
           </TableCell>
           <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
           <TableCell className="text-xs">
-            {e.event_type || "—"}
-            {(e.event_format && e.event_format !== "In-Person") && (
-              <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
-            )}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span>{e.event_type || "—"}</span>
+              {(e.event_format && e.event_format !== "In-Person") && (
+                <span className="text-muted-foreground">• {e.event_format}</span>
+              )}
+              <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 font-medium", scopeChipClasses((e as any).event_scope || "Personal"))}>
+                {(e as any).event_scope || "Personal"}
+              </Badge>
+            </div>
           </TableCell>
           <TableCell>
             <div className="flex flex-wrap gap-1">
@@ -299,11 +304,20 @@ export default function Events() {
               )}
             </div>
           </TableCell>
-          <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
-          <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
-          <TableCell className="text-right text-sm font-semibold">
-            {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
-          </TableCell>
+          {!isBusiness && (
+            <>
+              <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
+              <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
+              <TableCell className="text-right text-sm font-semibold">
+                {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
+              </TableCell>
+            </>
+          )}
+          {isBusiness && (
+            <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate">
+              {e.notes || (e as any).hostess_next_action || "—"}
+            </TableCell>
+          )}
           <TableCell className="text-xs">
             {e.event_status === "Held" ? (
               (e as any).thank_you_sent ? (
