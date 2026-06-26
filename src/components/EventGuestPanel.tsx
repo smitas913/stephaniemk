@@ -170,48 +170,63 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     if (match) handleSelectSuggestion(match);
   };
 
-  const applyOutcome = async (g: EventGuest, outcome: Exclude<OutcomeKey, null>) => {
-    // Map outcome to the canonical boolean flags. One outcome per guest, so we reset the others.
-    const base: any = {
-      attending: outcome !== "noshow",
-      ordered:   outcome === "ordered",
-      booked:    outcome === "booked",
-      interested: outcome === "career",
-    };
+  const toggleOutcome = async (g: EventGuest, outcome: OutcomeKey) => {
+    const active = getActiveOutcomes(g);
+    const willBeOn = !active.has(outcome);
+    const updates: any = {};
 
-    if (outcome === "career") {
-      try {
-        const noteHost = hostessName?.trim() || "the party";
-        await createBookingLead({
-          name: g.name,
-          phone: g.phone || undefined,
-          lead_source: "Other",
-          source_detail: "Party Guest",
-          status: "New Contact",
-          notes: `Career interest from ${noteHost}'s party`,
-        } as any);
-      } catch (e: any) {
-        toast.error(e.message || "Could not create prospect");
-      }
+    switch (outcome) {
+      case "tried":
+        // tried & noshow share `attending` — they're mutex
+        updates.attending = willBeOn ? true : null;
+        break;
+      case "noshow":
+        updates.attending = willBeOn ? false : null;
+        if (willBeOn) setNoShowFollowUp(g.id);
+        else setNoShowFollowUp((prev) => (prev === g.id ? null : prev));
+        break;
+      case "ordered":
+        updates.ordered = willBeOn;
+        break;
+      case "booked":
+        updates.booked = willBeOn;
+        break;
+      case "career":
+        updates.interested = willBeOn;
+        if (willBeOn) {
+          try {
+            const noteHost = hostessName?.trim() || "the party";
+            await createBookingLead({
+              name: g.name,
+              phone: g.phone || undefined,
+              lead_source: "Other",
+              source_detail: "Party Guest",
+              status: "New Contact",
+              notes: `Career interest from ${noteHost}'s party`,
+            } as any);
+          } catch (e: any) {
+            toast.error(e.message || "Could not create prospect");
+          }
+        }
+        break;
+      case "joined":
+        if (willBeOn) {
+          setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+          return; // persistence happens in finalizeJoin
+        } else {
+          updates.converted_consultant_id = null;
+        }
+        break;
     }
 
-    if (outcome === "joined") {
-      // Open inline form; finalize on submit
-      setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+    await updateMutation.mutateAsync({ id: g.id, updates });
+
+    if (willBeOn) {
+      if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
+      if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
+      if (outcome === "career")  toast.success(`${g.name} added to booking leads`);
+      if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
     }
-
-    if (outcome === "noshow") {
-      setNoShowFollowUp(g.id);
-    } else {
-      setNoShowFollowUp((prev) => (prev === g.id ? null : prev));
-    }
-
-    await updateMutation.mutateAsync({ id: g.id, updates: base });
-
-    if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
-    if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
-    if (outcome === "career")  toast.success(`${g.name} added to booking leads`);
-    if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
   };
 
   const finalizeJoin = async () => {
