@@ -897,7 +897,7 @@ export default function EventDetail() {
                         <TableHead className="text-xs">Type</TableHead>
                         <TableHead className="text-xs">Payment</TableHead>
                         <TableHead className="text-xs">Notes</TableHead>
-                        <TableHead className="text-xs">TY</TableHead>
+                        
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -917,25 +917,6 @@ export default function EventDetail() {
                           </TableCell>
                           <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[150px] truncate">{o.notes || ""}</TableCell>
-                          <TableCell>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const newVal = !(o as any).thank_you_sent;
-                                const { error } = await supabase.from("orders").update({ thank_you_sent: newVal } as any).eq("id", o.id);
-                                if (error) { toast.error(error.message); return; }
-                                queryClient.invalidateQueries({ queryKey: ["orders"] });
-                              }}
-                              className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded font-medium border",
-                                (o as any).thank_you_sent
-                                  ? "bg-green-100 text-green-700 border-green-200"
-                                  : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
-                              )}
-                            >
-                              {(o as any).thank_you_sent ? "TY ✓" : "Send TY"}
-                            </button>
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

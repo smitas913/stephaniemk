@@ -22,7 +22,6 @@ export default function ThankYouRemindersCard() {
   const today = toLocalDateKey();
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-  const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
 
   // Held + past events where hostess TY note not sent
   const pendingHostess = useMemo(
