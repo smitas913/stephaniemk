@@ -41,6 +41,10 @@ export default function AdminTools() {
               <GitMerge className="w-4 h-4" />
               Migrate Duplicates
             </TabsTrigger>
+            <TabsTrigger value="merge" className="gap-1.5">
+              <GitMerge className="w-4 h-4" />
+              Merge Duplicates
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
