@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
+import { insertNewEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { seedHostessCoaching } from "@/lib/hostessCoaching";
@@ -68,8 +68,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         payload.zoom_password = zoomDefaults.zoom_password || null;
         payload.zoom_link = zoomDefaults.zoom_link || null;
       }
-      await upsertEvent(payload as any);
-      return eventId;
+      const inserted = await insertNewEvent(payload as any);
+      return (inserted?.event_id as string) || eventId;
     },
     onSuccess: async (eventId) => {
       try {
