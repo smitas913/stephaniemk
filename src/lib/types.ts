@@ -135,6 +135,7 @@ export interface EventRecord {
   virtual_platform: string | null;
   virtual_platform_link: string | null;
   virtual_notes: string | null;
+  thank_you_sent?: boolean;
 }
 
 export interface ZoomDefaults {
