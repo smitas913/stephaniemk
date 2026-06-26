@@ -8,6 +8,8 @@ export function generateEventId(
     "Party": "P",
     "Facial": "F",
     "Sharing Appointment": "S",
+    "Pearl Appointment": "PA",
+
     "Lead Generating Event": "L",
     "Reorder": "R",
   };
