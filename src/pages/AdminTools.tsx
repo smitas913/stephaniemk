@@ -6,6 +6,7 @@ import { UserCog, ClipboardList, GitMerge } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import ConsultantRequests from "@/pages/ConsultantRequests";
 import MigrateDuplicatesToConsultants from "@/components/MigrateDuplicatesToConsultants";
+import MergeDuplicates from "@/components/MergeDuplicates";
 
 export default function AdminTools() {
   const { profile } = useAuth();
