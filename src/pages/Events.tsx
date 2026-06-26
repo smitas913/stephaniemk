@@ -783,8 +783,8 @@ export default function Events() {
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">No events found.</p>
+        ) : activeEvents.length === 0 ? (
+          <p className="text-muted-foreground text-center py-12">No {isBusiness ? "business" : "product"} events found.</p>
         ) : (
           <div className="space-y-6">
             <EventSection rows={upcoming} label="Upcoming" />
