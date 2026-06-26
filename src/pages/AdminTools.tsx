@@ -58,6 +58,10 @@ export default function AdminTools() {
           <TabsContent value="migrate">
             <MigrateDuplicatesToConsultants />
           </TabsContent>
+
+          <TabsContent value="merge">
+            <MergeDuplicates />
+          </TabsContent>
         </Tabs>
       </div>
     </Layout>
