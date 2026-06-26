@@ -730,6 +730,17 @@ export default function EventDetail() {
                           </Button>
                         )
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={cn(
+                          "h-8 text-xs gap-1.5",
+                          (event as any).thank_you_sent && "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                        )}
+                        onClick={() => updateField("thank_you_sent", !(event as any).thank_you_sent)}
+                      >
+                        {(event as any).thank_you_sent ? <>✓ Thank You Sent</> : <>Mark Thank You Note Sent</>}
+                      </Button>
                     </div>
                     {/* Recent activity */}
                     {(() => {
