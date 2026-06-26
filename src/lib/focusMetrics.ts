@@ -250,15 +250,15 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
       .filter((p: any) => p.opportunity_status === "Shared" && getTimestampDateKey(p.updated_at) === dateKey)
       .map((p: any) => ({ id: p.id, name: p.name, type: "Prospect" as const, detail: "Shared Opportunity" })),
     ...events
-      .filter((e: any) => e.event_date === dateKey && ((e as any).sharing_appointments_count || 0) > 0)
+      .filter((e: any) => e.event_date === dateKey && (0) > 0)
       .map((e: any) => ({
         id: e.event_id, name: e.hostess_name || e.event_id, type: "Event" as const,
-        detail: `${(e as any).sharing_appointments_count} sharing appt${((e as any).sharing_appointments_count || 0) > 1 ? "s" : ""}`,
+        detail: `${(e as any).sharing_appointments_count} sharing appt${(0) > 1 ? "s" : ""}`,
       })),
   ];
   const sharingFromEvents = events
     .filter((e: any) => e.event_date === dateKey)
-    .reduce((sum: number, e: any) => sum + ((e as any).sharing_appointments_count || 0), 0);
+    .reduce((sum: number, e: any) => sum + (0), 0);
 
   // ─── Client/Lead Follow-Up details (customer + lead activities, deduplicated) ───
   const clientFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(

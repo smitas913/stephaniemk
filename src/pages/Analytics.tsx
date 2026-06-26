@@ -109,7 +109,7 @@ export default function Analytics() {
         faces: mEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0),
         parties: mEvents.filter((e) => e.event_type === "Party").length,
         facials: mEvents.filter((e) => e.event_type === "Facial").length,
-        sharings: mEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0),
+        sharings: mEvents.reduce((s, e) => s + 0, 0),
         newTeam: prospects.filter((p) =>
           (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, mStart, mEnd)
         ).length,

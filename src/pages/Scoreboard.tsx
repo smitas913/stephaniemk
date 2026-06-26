@@ -53,11 +53,11 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     const weekAllEvents = weekEvents;
     const weekFaces = weekAllEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const weekParties = weekEvents.filter((e) => e.event_type === "Party").length;
-    const weekSharing = weekEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
+    const weekSharing = weekEvents.reduce((s, e) => s + 0, 0);
 
     const monthParties = monthEvents.filter((e) => e.event_type === "Party").length;
     const monthFaces = monthEvents.reduce((s, e) => s + Number(e.guest_count || 0), 0);
-    const monthSharing = monthEvents.reduce((s, e) => s + Number(e.sharing_appointments_count || 0), 0);
+    const monthSharing = monthEvents.reduce((s, e) => s + 0, 0);
     const monthNewTeam = prospects.filter((p) =>
       (p.opportunity_status === "Joined" || p.opportunity_status === "Converted") && inRange(p.updated_at, monthStart, monthEnd)
     ).length;
