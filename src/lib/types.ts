@@ -97,7 +97,6 @@ export type EventStatus = typeof EVENT_STATUSES[number];
 export const RESCHEDULE_STATUSES = ["None", "Rescheduled", "In Process of Rescheduling"] as const;
 export type RescheduleStatus = typeof RESCHEDULE_STATUSES[number];
 
-export const COACHING_STATUSES = ["Booked", "Coaching Scheduled", "Invites Sent", "Confirmed", "Completed"] as const;
 export const RSVP_OPTIONS = ["Invited", "Yes", "No", "Maybe"] as const;
 
 export interface EventRecord {
@@ -110,7 +109,6 @@ export interface EventRecord {
   guest_count: number;
   ordering_guest_count: number | null;
   future_bookings_count: number | null;
-  sharing_appointments_count: number | null;
   event_status: string;
   reschedule_status: string | null;
   is_archived: boolean | null;
@@ -120,14 +118,7 @@ export interface EventRecord {
   updated_at: string;
   hostess_phone: string | null;
   hostess_email: string | null;
-  coaching_status: string | null;
-  coaching_call_date: string | null;
-  coaching_notes: string | null;
-  checklist_invitations_sent: boolean;
-  checklist_guest_list_received: boolean;
-  checklist_google_form_completed: boolean;
-  checklist_samples_sent: boolean;
-  checklist_reminders_sent: boolean;
+  hostess_source: string | null;
   google_form_link: string | null;
   hostess_next_action: string | null;
   hostess_next_action_date: string | null;
