@@ -414,7 +414,7 @@ export default function Events() {
 
         {isExpanded && taskInfo && (
           <TableRow className="bg-muted/20">
-            <TableCell colSpan={9} className="py-2">
+            <TableCell colSpan={isBusiness ? 7 : 9} className="py-2">
               <div className="pl-6 space-y-1">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
                   <ClipboardList className="w-3 h-3" /> All pending tasks
