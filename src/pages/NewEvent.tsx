@@ -148,17 +148,9 @@ export default function NewEvent() {
       return (inserted?.event_id as string) || eventId;
     },
     onSuccess: async (eventId) => {
-      try {
-        if (eventType === "Guest Event") {
-          await generateGuestEventWorkflowTasks(eventId, eventDate || null);
-        } else {
-          await generateEventWorkflowTasks(eventId, eventDate || null);
-        }
-      } catch (e) {
-        console.error("Failed to generate workflow tasks", e);
-      }
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+
 
       // Auto-add pending guest for Guest Events booked from lead/booking flow
       if (eventType === "Guest Event" && pendingGuestName) {
