@@ -57,6 +57,7 @@ export default function NewEvent() {
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
+  const [hostessSource, setHostessSource] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [eventLocation, setEventLocation] = useState("");
   const [eventVenueType, setEventVenueType] = useState("");
