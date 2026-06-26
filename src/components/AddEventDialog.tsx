@@ -32,6 +32,7 @@ interface AddEventDialogProps {
 
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
 
   const [eventType, setEventType] = useState<string>("Party");
