@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, createTodoForToday } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
