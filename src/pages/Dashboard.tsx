@@ -239,8 +239,6 @@ export default function Dashboard() {
         {/* HOSTESS COACHING REMINDERS (auto from events) */}
         <HostessCoachingCard />
 
-        {/* THANK YOU NOTE REMINDERS */}
-        <ThankYouRemindersCard />
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />
