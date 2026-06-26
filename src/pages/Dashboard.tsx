@@ -22,6 +22,7 @@ import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
 import TodoListCard from "@/components/TodoListCard";
+import HostessCoachingCard from "@/components/HostessCoachingCard";
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
 
@@ -233,6 +234,9 @@ export default function Dashboard() {
           {/* MY 6 MOST IMPORTANT THINGS — sits beside Daily Success Drivers on desktop */}
           <TodoListCard />
         </div>
+
+        {/* HOSTESS COACHING REMINDERS (auto from events) */}
+        <HostessCoachingCard />
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />

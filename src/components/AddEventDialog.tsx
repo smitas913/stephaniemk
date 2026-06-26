@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { seedHostessCoaching } from "@/lib/hostessCoaching";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +69,14 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
       } catch (e) {
         console.error("Failed to generate workflow tasks", e);
       }
+      try {
+        await seedHostessCoaching(eventId, hostessName.trim() || null);
+      } catch (e) {
+        console.error("Failed to seed hostess coaching tasks", e);
+      }
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["hostess-coaching-tasks"] });
       toast.success("Event created");
       resetForm();
       onOpenChange(false);
