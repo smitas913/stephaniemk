@@ -158,18 +158,28 @@ export default function EventDetail() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["events"] }),
   });
 
-  // Post-event completion dialog
-  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
-  const [completionData, setCompletionData] = useState({ guest_count: "", bookings: "", sharings: "" });
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-
-  const handleStatusChange = (val: string) => {
+  const handleStatusChange = async (val: string) => {
     if (!event || val === (event.event_status || "Booked")) return;
     if (val === "Held") {
-      setPendingStatus(val);
-      setCompletionData({ guest_count: "", bookings: "", sharings: "" });
-      setShowCompletionDialog(true);
-      // Thank you note will be created in submitCompletion
+      eventMutation.mutate({ event_id: event.event_id, event_status: "Held" } as any);
+      // Auto-add thank you notes to MIT list (skip if one already exists for this event)
+      if (event.hostess_name) {
+        const token = `[${event.event_id}]`;
+        const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        if (userId) {
+          const { data: existing } = await supabase
+            .from("todos" as any)
+            .select("id")
+            .eq("user_id", userId)
+            .ilike("text", `%${token}%`)
+            .limit(1);
+          if (!existing || existing.length === 0) {
+            await createTodoForToday(todoText);
+          }
+        }
+      }
+      toast.success("Event marked as Held");
     } else if (val === "Cancelled") {
       // Clear rescheduling status when cancelling — they're mutually exclusive
       eventMutation.mutate({
@@ -183,35 +193,6 @@ export default function EventDetail() {
     }
   };
 
-  const submitCompletion = async () => {
-    if (!event || !pendingStatus) return;
-    eventMutation.mutate({
-      event_id: event.event_id,
-      event_status: pendingStatus,
-      guest_count: parseInt(completionData.guest_count) || 0,
-      future_bookings_count: parseInt(completionData.bookings) || 0,
-      sharing_appointments_count: parseInt(completionData.sharings) || 0,
-    } as any);
-    // Auto-add thank you notes to MIT list (skip if one already exists for this event)
-    if (pendingStatus === "Held" && event.hostess_name) {
-      const token = `[${event.event_id}]`;
-      const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (userId) {
-        const { data: existing } = await supabase
-          .from("todos" as any)
-          .select("id")
-          .eq("user_id", userId)
-          .ilike("text", `%${token}%`)
-          .limit(1);
-        if (!existing || existing.length === 0) {
-          await createTodoForToday(todoText);
-        }
-      }
-    }
-    setShowCompletionDialog(false);
-    setPendingStatus(null);
-  };
 
   // Post-event prompt — only for past events that are still "Upcoming" (Booked),
   // not already in rescheduling, and with no results entered yet.
