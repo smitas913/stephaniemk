@@ -401,7 +401,7 @@ export default function EventDetail() {
         </div>
 
         {/* KPI Strip — compact */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="bg-muted/40 rounded-lg p-2.5 text-center">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date</p>
             <p className="text-xs font-bold text-foreground">{event?.event_date ? formatDateOnly(event.event_date, "MMM d") : "—"}</p>
@@ -418,15 +418,8 @@ export default function EventDetail() {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
             <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
           </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sharing</p>
-            <p className="text-xs font-bold text-orange-600">{(event as any)?.sharing_appointments_count ?? "—"}</p>
-          </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Conv.</p>
-            <p className="text-xs font-bold text-blue-600">{convRate ? `${convRate}%` : "—"}</p>
-          </div>
         </div>
+
 
         {/* Tabs */}
         <Tabs defaultValue="details">
