@@ -29,52 +29,21 @@ type GuestSuggestion = {
   email: string | null;
 };
 
-// Outcome model — one outcome per guest, derived from existing boolean fields so existing data is preserved.
-type OutcomeKey =
-  | "tried"
-  | "ordered"
-  | "booked"
-  | "career"
-  | "joined"
-  | "noshow"
-  | null;
+// Outcomes are multi-select per guest. Each maps to its own DB field so multiple can be true.
+type OutcomeKey = "tried" | "ordered" | "booked" | "career" | "joined" | "noshow";
 
-function getOutcome(g: EventGuest): OutcomeKey {
-  const anyG = g as any;
-  if (anyG.joined_team) return "joined"; // not a real column — defensive
-  if (g.ordered) return "ordered";
-  if ((g as any).booked) return "booked";
-  if (g.interested) return "career";
-  if (g.attending === true) return "tried";
-  if (g.attending === false) return "noshow";
-  return null;
+function getActiveOutcomes(g: EventGuest): Set<OutcomeKey> {
+  const set = new Set<OutcomeKey>();
+  if (g.attending === true) set.add("tried");
+  if (g.attending === false) set.add("noshow");
+  if (g.ordered) set.add("ordered");
+  if ((g as any).booked) set.add("booked");
+  if (g.interested) set.add("career");
+  if ((g as any).converted_consultant_id) set.add("joined");
+  return set;
 }
 
-function outcomeBadgeClass(o: OutcomeKey) {
-  switch (o) {
-    case "tried":   return "bg-blue-100 text-blue-700";
-    case "ordered": return "bg-green-100 text-green-700";
-    case "booked":  return "bg-amber-100 text-amber-700";
-    case "career":  return "bg-violet-100 text-violet-700";
-    case "joined":  return "bg-pink-100 text-pink-700";
-    case "noshow":  return "bg-muted text-muted-foreground";
-    default:        return "bg-muted text-muted-foreground";
-  }
-}
-
-function outcomeLabel(o: OutcomeKey): string {
-  switch (o) {
-    case "tried":   return "Tried Product ✓";
-    case "ordered": return "Ordered ✓";
-    case "booked":  return "Booked Next ✓";
-    case "career":  return "Career Interest";
-    case "joined":  return "She Joined";
-    case "noshow":  return "No Show";
-    default:        return "Pick outcome";
-  }
-}
-
-const OUTCOME_OPTIONS: { key: Exclude<OutcomeKey, null>; label: string }[] = [
+const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
   { key: "tried",   label: "Tried Product" },
   { key: "ordered", label: "Ordered" },
   { key: "booked",  label: "Booked Next Event" },
