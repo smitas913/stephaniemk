@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { upsertEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
@@ -31,6 +32,7 @@ interface AddEventDialogProps {
 
 export default function AddEventDialog({ open, onOpenChange, existingEventIds, onCreated }: AddEventDialogProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
 
   const [eventType, setEventType] = useState<string>("Party");
@@ -87,6 +89,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
       resetForm();
       onOpenChange(false);
       onCreated?.(eventId);
+      navigate(`/events/${eventId}`);
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to create event");

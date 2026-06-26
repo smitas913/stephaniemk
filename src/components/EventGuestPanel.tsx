@@ -29,52 +29,21 @@ type GuestSuggestion = {
   email: string | null;
 };
 
-// Outcome model — one outcome per guest, derived from existing boolean fields so existing data is preserved.
-type OutcomeKey =
-  | "tried"
-  | "ordered"
-  | "booked"
-  | "career"
-  | "joined"
-  | "noshow"
-  | null;
+// Outcomes are multi-select per guest. Each maps to its own DB field so multiple can be true.
+type OutcomeKey = "tried" | "ordered" | "booked" | "career" | "joined" | "noshow";
 
-function getOutcome(g: EventGuest): OutcomeKey {
-  const anyG = g as any;
-  if (anyG.joined_team) return "joined"; // not a real column — defensive
-  if (g.ordered) return "ordered";
-  if ((g as any).booked) return "booked";
-  if (g.interested) return "career";
-  if (g.attending === true) return "tried";
-  if (g.attending === false) return "noshow";
-  return null;
+function getActiveOutcomes(g: EventGuest): Set<OutcomeKey> {
+  const set = new Set<OutcomeKey>();
+  if (g.attending === true) set.add("tried");
+  if (g.attending === false) set.add("noshow");
+  if (g.ordered) set.add("ordered");
+  if ((g as any).booked) set.add("booked");
+  if (g.interested) set.add("career");
+  if ((g as any).converted_consultant_id) set.add("joined");
+  return set;
 }
 
-function outcomeBadgeClass(o: OutcomeKey) {
-  switch (o) {
-    case "tried":   return "bg-blue-100 text-blue-700";
-    case "ordered": return "bg-green-100 text-green-700";
-    case "booked":  return "bg-amber-100 text-amber-700";
-    case "career":  return "bg-violet-100 text-violet-700";
-    case "joined":  return "bg-pink-100 text-pink-700";
-    case "noshow":  return "bg-muted text-muted-foreground";
-    default:        return "bg-muted text-muted-foreground";
-  }
-}
-
-function outcomeLabel(o: OutcomeKey): string {
-  switch (o) {
-    case "tried":   return "Tried Product ✓";
-    case "ordered": return "Ordered ✓";
-    case "booked":  return "Booked Next ✓";
-    case "career":  return "Career Interest";
-    case "joined":  return "She Joined";
-    case "noshow":  return "No Show";
-    default:        return "Pick outcome";
-  }
-}
-
-const OUTCOME_OPTIONS: { key: Exclude<OutcomeKey, null>; label: string }[] = [
+const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
   { key: "tried",   label: "Tried Product" },
   { key: "ordered", label: "Ordered" },
   { key: "booked",  label: "Booked Next Event" },
@@ -201,48 +170,63 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     if (match) handleSelectSuggestion(match);
   };
 
-  const applyOutcome = async (g: EventGuest, outcome: Exclude<OutcomeKey, null>) => {
-    // Map outcome to the canonical boolean flags. One outcome per guest, so we reset the others.
-    const base: any = {
-      attending: outcome !== "noshow",
-      ordered:   outcome === "ordered",
-      booked:    outcome === "booked",
-      interested: outcome === "career",
-    };
+  const toggleOutcome = async (g: EventGuest, outcome: OutcomeKey) => {
+    const active = getActiveOutcomes(g);
+    const willBeOn = !active.has(outcome);
+    const updates: any = {};
 
-    if (outcome === "career") {
-      try {
-        const noteHost = hostessName?.trim() || "the party";
-        await createBookingLead({
-          name: g.name,
-          phone: g.phone || undefined,
-          lead_source: "Other",
-          source_detail: "Party Guest",
-          status: "New Contact",
-          notes: `Career interest from ${noteHost}'s party`,
-        } as any);
-      } catch (e: any) {
-        toast.error(e.message || "Could not create prospect");
-      }
+    switch (outcome) {
+      case "tried":
+        // tried & noshow share `attending` — they're mutex
+        updates.attending = willBeOn ? true : null;
+        break;
+      case "noshow":
+        updates.attending = willBeOn ? false : null;
+        if (willBeOn) setNoShowFollowUp(g.id);
+        else setNoShowFollowUp((prev) => (prev === g.id ? null : prev));
+        break;
+      case "ordered":
+        updates.ordered = willBeOn;
+        break;
+      case "booked":
+        updates.booked = willBeOn;
+        break;
+      case "career":
+        updates.interested = willBeOn;
+        if (willBeOn) {
+          try {
+            const noteHost = hostessName?.trim() || "the party";
+            await createBookingLead({
+              name: g.name,
+              phone: g.phone || undefined,
+              lead_source: "Other",
+              source_detail: "Party Guest",
+              status: "New Contact",
+              notes: `Career interest from ${noteHost}'s party`,
+            } as any);
+          } catch (e: any) {
+            toast.error(e.message || "Could not create prospect");
+          }
+        }
+        break;
+      case "joined":
+        if (willBeOn) {
+          setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+          return; // persistence happens in finalizeJoin
+        } else {
+          updates.converted_consultant_id = null;
+        }
+        break;
     }
 
-    if (outcome === "joined") {
-      // Open inline form; finalize on submit
-      setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+    await updateMutation.mutateAsync({ id: g.id, updates });
+
+    if (willBeOn) {
+      if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
+      if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
+      if (outcome === "career")  toast.success(`${g.name} added to booking leads`);
+      if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
     }
-
-    if (outcome === "noshow") {
-      setNoShowFollowUp(g.id);
-    } else {
-      setNoShowFollowUp((prev) => (prev === g.id ? null : prev));
-    }
-
-    await updateMutation.mutateAsync({ id: g.id, updates: base });
-
-    if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
-    if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
-    if (outcome === "career")  toast.success(`${g.name} added to booking leads`);
-    if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
   };
 
   const finalizeJoin = async () => {
@@ -250,15 +234,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     const userId = (await supabase.auth.getUser()).data.user?.id;
     const trimmedName = joinForm.name.trim();
     if (!trimmedName) { toast.error("Name required"); return; }
-    const { error } = await supabase.from("team_consultants").insert({
+    const { data: inserted, error } = await supabase.from("team_consultants").insert({
       name: trimmedName,
       phone: joinForm.phone.trim() || null,
       status: "Active",
       join_date: new Date().toISOString().slice(0, 10),
       relationship_type: "Personal Recruit",
       owner_user_id: userId,
-    } as any);
+    } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
+    if (inserted?.id) {
+      await updateMutation.mutateAsync({ id: joinForm.guestId, updates: { converted_consultant_id: inserted.id } as any });
+    }
     toast.success(`${trimmedName} added to your team!`);
     setJoinForm(null);
     queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
@@ -365,23 +352,20 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           // ── POST-EVENT: simple list with inline outcome buttons ──
           <div className="space-y-2">
             {guests.map((g) => {
-              const outcome = getOutcome(g);
+              const active = getActiveOutcomes(g);
+              const isNoShow = active.has("noshow");
+              const hasPositive = active.size > 0 && !(active.size === 1 && isNoShow);
               return (
                 <div key={g.id} className={cn(
                   "rounded-lg border transition-colors p-2.5",
-                  outcome === "noshow" ? "border-border bg-muted/30" :
-                  outcome ? "border-green-200 bg-green-50/40" :
+                  isNoShow && !hasPositive ? "border-border bg-muted/30" :
+                  hasPositive ? "border-green-200 bg-green-50/40" :
                   "border-border"
                 )}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-foreground">{g.name}</p>
-                        {outcome && (
-                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", outcomeBadgeClass(outcome))}>
-                            {outcomeLabel(outcome)}
-                          </span>
-                        )}
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                     </div>
@@ -391,24 +375,25 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     </Button>
                   </div>
 
-                  {/* Outcome selector */}
+                  {/* Outcome multi-select */}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {OUTCOME_OPTIONS.map((opt) => {
-                      const active = outcome === opt.key;
+                      const isActive = active.has(opt.key);
                       return (
                         <Button
                           key={opt.key}
                           type="button"
                           size="sm"
-                          variant={active ? "default" : "outline"}
-                          className={cn("h-7 text-[11px] px-2", active && "ring-2 ring-primary/30")}
-                          onClick={() => applyOutcome(g, opt.key)}
+                          variant={isActive ? "default" : "outline"}
+                          className={cn("h-7 text-[11px] px-2", isActive && "ring-2 ring-primary/30")}
+                          onClick={() => toggleOutcome(g, opt.key)}
                         >
-                          {opt.label}
+                          {isActive ? `${opt.label} ✓` : opt.label}
                         </Button>
                       );
                     })}
                   </div>
+
 
                   {/* Inline join form */}
                   {joinForm && joinForm.guestId === g.id && (
@@ -434,7 +419,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   )}
 
                   {/* No-show follow-up CTA */}
-                  {noShowFollowUp === g.id && outcome === "noshow" && (
+                  {noShowFollowUp === g.id && isNoShow && (
                     <div className="mt-2 flex items-center gap-2">
                       <p className="text-xs text-muted-foreground">Save her to booking leads for follow-up?</p>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveNoShowAsLead(g)}>
