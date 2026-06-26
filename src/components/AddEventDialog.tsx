@@ -20,6 +20,9 @@ const EVENT_TYPES = [
 
 const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
+const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
+
+
 interface AddEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
