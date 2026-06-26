@@ -835,6 +835,7 @@ export type Database = {
           hostess_next_action: string | null
           hostess_next_action_date: string | null
           hostess_phone: string | null
+          hostess_source: string | null
           id: string
           is_archived: boolean | null
           notes: string | null
@@ -886,6 +887,7 @@ export type Database = {
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
           hostess_phone?: string | null
+          hostess_source?: string | null
           id?: string
           is_archived?: boolean | null
           notes?: string | null
@@ -937,6 +939,7 @@ export type Database = {
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
           hostess_phone?: string | null
+          hostess_source?: string | null
           id?: string
           is_archived?: boolean | null
           notes?: string | null
