@@ -318,9 +318,6 @@ export default function EventDetail() {
     },
   });
 
-  // Pending workflow tasks
-  const pendingTasks = eventTasks.filter((t: EventTask) => !t.is_completed);
-  const todayStr = toLocalDateKey();
 
   return (
     <Layout>
