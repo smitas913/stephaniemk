@@ -312,12 +312,12 @@ export default function LeadDetail() {
               className="hidden"
               onChange={handlePhotoUpload}
             />
-            {(lead as any).contact_card_photo_url ? (
+            {storedPhoto ? (
               <div className="relative w-full max-w-md mx-auto">
                 <img
-                  src={(lead as any).contact_card_photo_url}
+                  src={signedPhotoUrl ?? undefined}
                   alt={`${lead.name} contact card`}
-                  className="w-full aspect-[1.586/1] object-cover rounded-lg border border-border shadow-sm"
+                  className="w-full aspect-[1.586/1] object-cover rounded-lg border border-border shadow-sm bg-muted"
                 />
                 <div className="absolute top-2 right-2 flex gap-1">
                   <Button
