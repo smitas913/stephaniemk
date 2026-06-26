@@ -3536,6 +3536,13 @@ export default function FollowUps() {
           </SheetContent>
         </Sheet>
 
+        {/* Thank You Notes — bottom of Today page */}
+        <div className="mt-6">
+          <ThankYouRemindersCard />
+        </div>
+
+
+
         {/* Fresh Start Dialog — reschedule today's backlog forward */}
         <Dialog open={showFreshStart} onOpenChange={setShowFreshStart}>
           <DialogContent className="max-w-md">
