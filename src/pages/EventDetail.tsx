@@ -32,20 +32,9 @@ import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
-const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
+const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
-const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
-
-
-// Coaching prep steps in order — each one drives booking rate
-const PREP_STEPS = [
-  { field: "checklist_google_form_completed",  label: "Hostess pre-profile form sent & completed",      hint: "Send the Google form right after booking so you can personalize her event" },
-  { field: "checklist_guest_list_received",    label: "Guest list received from hostess",               hint: "Follow up if you haven't heard back — this unlocks the next steps" },
-  { field: "checklist_invitations_sent",       label: "Invitation made & sent to guests",               hint: "Send your Canva invite + guest form so you can prep goody bags" },
-  { field: "checklist_samples_sent",           label: "Goody bags prepped & pictures sent to guests",   hint: "Sending personalized goody bag pics gets guests excited and more likely to show" },
-  { field: "checklist_reminders_sent",         label: "Soft reach out + guest reminders sent (2-3 days out)", hint: "Biggest driver of attendance — don't skip this one" },
-  { field: "checklist_day_before_sent",        label: "Day-before reminder sent to guests",             hint: "A quick excited message the day before keeps energy high and reduces no-shows" },
-];
+const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "Facebook/Social Media", "Referral", "Cold Contact", "Current Customer", "Networking Event", "Other"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
