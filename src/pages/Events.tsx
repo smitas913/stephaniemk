@@ -483,9 +483,14 @@ export default function Events() {
           </div>
         </div>
 
-        {/* Row 2: Hostess name + type */}
+        {/* Row 2: Contact/Hostess name + type + scope */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 shrink-0", scopeChipClasses((e as any).event_scope || "Personal"))}>
+              {(e as any).event_scope || "Personal"}
+            </Badge>
+          </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {e.event_type || "—"}{e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
           </span>
@@ -494,9 +499,10 @@ export default function Events() {
         {/* Row 3: Stats + next task */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {(e.guest_count || 0) > 0 && <span><Users className="w-3 h-3 inline mr-0.5" />{e.guest_count}</span>}
-            {orderCount > 0 && <span><ShoppingBag className="w-3 h-3 inline mr-0.5" />{orderCount}</span>}
-            {evTotalSales > 0 && <span className="text-green-600 font-medium">${evTotalSales.toFixed(0)}</span>}
+            {!isBusiness && (e.guest_count || 0) > 0 && <span><Users className="w-3 h-3 inline mr-0.5" />{e.guest_count}</span>}
+            {!isBusiness && orderCount > 0 && <span><ShoppingBag className="w-3 h-3 inline mr-0.5" />{orderCount}</span>}
+            {!isBusiness && evTotalSales > 0 && <span className="text-green-600 font-medium">${evTotalSales.toFixed(0)}</span>}
+            {isBusiness && e.notes && <span className="truncate max-w-[200px]">{e.notes}</span>}
           </div>
           {e.event_status === "Held" ? (
             (e as any).thank_you_sent ? (
