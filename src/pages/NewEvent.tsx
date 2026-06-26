@@ -144,8 +144,8 @@ export default function NewEvent() {
         payload.virtual_platform_link = platformLink || null;
         payload.virtual_notes = virtualNotes.trim() || null;
       }
-      await upsertEvent(payload as any);
-      return eventId;
+      const inserted = await insertNewEvent(payload as any);
+      return (inserted?.event_id as string) || eventId;
     },
     onSuccess: async (eventId) => {
       try {
