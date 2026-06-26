@@ -87,7 +87,6 @@ export default function QuickBookingDialog({
         payload.zoom_link = zoomDefaults.zoom_link || null;
       }
       await upsertEvent(payload);
-      await generateEventWorkflowTasks(eventId, eventDate);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["events"] });
