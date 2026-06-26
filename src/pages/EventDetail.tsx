@@ -554,10 +554,10 @@ export default function EventDetail() {
                         </Select>
                       </div>
 
-                      {/* Results — Guests, Bookings, Sharing */}
+                      {/* Results — Guests, Bookings */}
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Results</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] text-muted-foreground mb-1 block">Guests / Faces</label>
                             <Input type="number" min={0} className="h-8 text-xs"
@@ -578,17 +578,6 @@ export default function EventDetail() {
                               onBlur={(e) => {
                                 const val = parseInt(e.target.value) || 0;
                                 if (val !== ((event as any).future_bookings_count || 0)) updateField("future_bookings_count", val);
-                              }} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Sharing Appts</label>
-                            <Input type="number" min={0} className="h-8 text-xs"
-                              defaultValue={(event as any).sharing_appointments_count || ""}
-                              key={`sc-${(event as any).sharing_appointments_count}`}
-                              placeholder="0"
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                if (val !== ((event as any).sharing_appointments_count || 0)) updateField("sharing_appointments_count", val);
                               }} />
                           </div>
                         </div>
