@@ -33,6 +33,8 @@ const FORMAT_OPTIONS = [
   { value: "Virtual", label: "Virtual", icon: Monitor },
 ] as const;
 
+const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "Facebook/Social Media", "Referral", "Cold Contact", "Current Customer", "Networking Event", "Other"] as const;
+
 const VIRTUAL_PLATFORMS = [
   { value: "Zoom", label: "Zoom" },
   { value: "Other", label: "Other" },
@@ -55,6 +57,7 @@ export default function NewEvent() {
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
+  const [hostessSource, setHostessSource] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [eventLocation, setEventLocation] = useState("");
   const [eventVenueType, setEventVenueType] = useState("");
@@ -124,6 +127,7 @@ export default function NewEvent() {
         event_time: eventTime || null,
         hostess_name: hostessName.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
+        hostess_source: hostessSource || null,
         guest_count: 0,
         notes: notes.trim() || null,
       };
@@ -428,6 +432,21 @@ export default function NewEvent() {
                 onChange={(e) => setHostessPhone(e.target.value)}
                 className="h-10 max-w-sm"
               />
+            </div>
+            )}
+
+            {/* Where did you meet the hostess? — hide for Guest Events */}
+            {eventType !== "Guest Event" && (
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Where did you meet the hostess?</label>
+              <select
+                value={hostessSource}
+                onChange={(e) => setHostessSource(e.target.value)}
+                className="h-10 max-w-sm w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— Select —</option>
+                {HOSTESS_SOURCE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
             </div>
             )}
 

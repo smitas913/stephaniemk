@@ -2,9 +2,9 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, generateGuestInviteTask, fetchEventTasksByEventId, completeEventTask, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, createTodoForToday } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, createTodoForToday } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
-import type { EventTask } from "@/lib/queries";
+
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { addDays, format } from "date-fns";
 import { COACHING_STATUSES, EVENT_STATUSES, RESCHEDULE_STATUSES } from "@/lib/types";
@@ -26,26 +26,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, DollarSign, Users, ShoppingBag, TrendingUp, CalendarDays, CalendarIcon, Phone, Mail, ClipboardCheck, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Users, TrendingUp, CalendarIcon, Phone, Mail, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
-const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
+const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
-const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
-
-
-// Coaching prep steps in order — each one drives booking rate
-const PREP_STEPS = [
-  { field: "checklist_google_form_completed",  label: "Hostess pre-profile form sent & completed",      hint: "Send the Google form right after booking so you can personalize her event" },
-  { field: "checklist_guest_list_received",    label: "Guest list received from hostess",               hint: "Follow up if you haven't heard back — this unlocks the next steps" },
-  { field: "checklist_invitations_sent",       label: "Invitation made & sent to guests",               hint: "Send your Canva invite + guest form so you can prep goody bags" },
-  { field: "checklist_samples_sent",           label: "Goody bags prepped & pictures sent to guests",   hint: "Sending personalized goody bag pics gets guests excited and more likely to show" },
-  { field: "checklist_reminders_sent",         label: "Soft reach out + guest reminders sent (2-3 days out)", hint: "Biggest driver of attendance — don't skip this one" },
-  { field: "checklist_day_before_sent",        label: "Day-before reminder sent to guests",             hint: "A quick excited message the day before keeps energy high and reduces no-shows" },
-];
+const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "Facebook/Social Media", "Referral", "Cold Contact", "Current Customer", "Networking Event", "Other"] as const;
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -57,11 +46,6 @@ export default function EventDetail() {
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
-  const { data: eventTasks = [] } = useQuery({
-    queryKey: ["event-tasks", eventId],
-    queryFn: () => fetchEventTasksByEventId(eventId!),
-    enabled: !!eventId,
-  });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
@@ -206,8 +190,7 @@ export default function EventDetail() {
     (!event.reschedule_status || event.reschedule_status === "None") &&
     !(event.guest_count && event.guest_count > 0) &&
     !(event.ordering_guest_count && event.ordering_guest_count > 0) &&
-    !(event.future_bookings_count && event.future_bookings_count > 0) &&
-    !(event.sharing_appointments_count && event.sharing_appointments_count > 0)
+    !(event.future_bookings_count && event.future_bookings_count > 0)
   );
   useEffect(() => {
     if (needsPostEventPrompt) setShowPostEventPrompt(true);
@@ -228,31 +211,6 @@ export default function EventDetail() {
     eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
   };
 
-  const toggleChecklist = async (field: string) => {
-    if (!event) return;
-    const newValue = !(event as any)[field];
-    eventMutation.mutate({ event_id: event.event_id, [field]: newValue } as any);
-    if (field === "checklist_google_form_completed" && newValue) {
-      try {
-        await generateGuestInviteTask(event.event_id);
-        queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
-        toast.success("Task created: Send Guest Invite + Guest Form");
-      } catch (e) {
-        console.error("Failed to create guest invite task", e);
-      }
-    }
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      await completeEventTask(taskId);
-      queryClient.invalidateQueries({ queryKey: ["event-tasks", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
-      toast.success("Task completed");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to complete task");
-    }
-  };
 
   // Check if hostess is already a customer — by phone OR by name (case-insensitive)
   const existingCustomer = useMemo(() => {
@@ -273,9 +231,6 @@ export default function EventDetail() {
     setLocalLocation((event as any)?.event_location || "");
   }, [(event as any)?.event_location]);
 
-  // Prep progress
-  const prepDone = event ? PREP_STEPS.filter(s => (event as any)[s.field]).length : 0;
-  const prepTotal = PREP_STEPS.length;
 
   // ── Rebook sequence ──
   const [showReactivate, setShowReactivate] = useState(false);
@@ -362,9 +317,6 @@ export default function EventDetail() {
     },
   });
 
-  // Pending workflow tasks
-  const pendingTasks = eventTasks.filter((t: EventTask) => !t.is_completed);
-  const todayStr = toLocalDateKey();
 
   return (
     <Layout>
@@ -427,14 +379,6 @@ export default function EventDetail() {
         <Tabs defaultValue="details">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details" className="flex-1 sm:flex-none">Details & Hostess</TabsTrigger>
-            <TabsTrigger value="prep" className="flex-1 sm:flex-none">
-              Event Coaching
-              {event && prepDone < prepTotal && (
-                <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-700 font-bold rounded-full px-1.5">
-                  {prepTotal - prepDone}
-                </span>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="guests" className="flex-1 sm:flex-none">
               Guests & Orders
               {orderCount > 0 && (
@@ -609,10 +553,10 @@ export default function EventDetail() {
                         </Select>
                       </div>
 
-                      {/* Results — Guests, Bookings, Sharing */}
+                      {/* Results — Guests, Bookings */}
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Results</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] text-muted-foreground mb-1 block">Guests / Faces</label>
                             <Input type="number" min={0} className="h-8 text-xs"
@@ -633,17 +577,6 @@ export default function EventDetail() {
                               onBlur={(e) => {
                                 const val = parseInt(e.target.value) || 0;
                                 if (val !== ((event as any).future_bookings_count || 0)) updateField("future_bookings_count", val);
-                              }} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Sharing Appts</label>
-                            <Input type="number" min={0} className="h-8 text-xs"
-                              defaultValue={(event as any).sharing_appointments_count || ""}
-                              key={`sc-${(event as any).sharing_appointments_count}`}
-                              placeholder="0"
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                if (val !== ((event as any).sharing_appointments_count || 0)) updateField("sharing_appointments_count", val);
                               }} />
                           </div>
                         </div>
@@ -764,15 +697,14 @@ export default function EventDetail() {
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
                       </div>
                       <div className="space-y-1.5 sm:col-span-3">
-
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booked From</label>
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Where did you meet the hostess?</label>
                         <Select
-                          value={(event as any).booked_from || ""}
-                          onValueChange={(val) => updateField("booked_from", val || null)}
+                          value={(event as any).hostess_source || ""}
+                          onValueChange={(val) => updateField("hostess_source", val || null)}
                         >
-                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="How did you meet the hostess?" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select source" /></SelectTrigger>
                           <SelectContent>
-                            {BOOKED_FROM_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                            {HOSTESS_SOURCE_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -857,129 +789,6 @@ export default function EventDetail() {
             )}
           </TabsContent>
 
-          {/* ── Tab 2: Event Coaching ── */}
-          <TabsContent value="prep" className="mt-4 space-y-4">
-            {event ? (
-              <>
-                {/* ── REBOOK SEQUENCE — shown when Cancelled or Rescheduling ── */}
-                {isReschedulingOrCancelled && !rebookNotInterested ? (
-                  <div className="space-y-4">
-                    <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm flex items-center gap-2 text-amber-800 dark:text-amber-300">
-                          <RefreshCw className="w-4 h-4" />
-                          Rebook Outreach Sequence
-                        </CardTitle>
-                        <p className="text-xs text-amber-700 dark:text-amber-400">
-                          {event.event_status === "Cancelled" ? "Event was cancelled" : "Event is rescheduling"} — work through these follow-up steps to rebook her.
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {/* Current step */}
-                        <div className="bg-white dark:bg-amber-950/40 rounded-lg border border-amber-200 dark:border-amber-700 p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold text-foreground">
-                              Step {rebookAttemptNumber + 1} — {rebookStepLabel(rebookAttemptNumber)}
-                            </p>
-                            {rebookNextDate && (
-                              <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium",
-                                rebookNextDate < toLocalDateKey() ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                              )}>
-                                {rebookNextDate < toLocalDateKey() ? "Overdue" : `Due ${formatDateOnly(rebookNextDate, "MMM d")}`}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {rebookAttemptNumber < 4
-                              ? "After this, next follow-up will be scheduled automatically."
-                              : "Quarterly check-ins continue until she rebooks or says not interested."}
-                          </p>
-                          <Button size="sm" className="w-full gap-1.5" onClick={() => logRebookAttemptMut.mutate()}
-                            disabled={logRebookAttemptMut.isPending}>
-                            <Phone className="w-3.5 h-3.5" />
-                            Log Rebook Attempt — Schedule Next Follow-Up
-                          </Button>
-                        </div>
-
-                        {/* Rebook success */}
-                        <Button size="sm" variant="outline" className="w-full gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
-                          onClick={() => setShowReactivate(true)}>
-                          ✅ She said yes — Reactivate with new date
-                        </Button>
-
-                        {/* Not interested */}
-                        <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground hover:text-destructive"
-                          onClick={() => markRebookNotInterestedMut.mutate()}
-                          disabled={markRebookNotInterestedMut.isPending}>
-                          Not Interested — Stop outreach (stays in hold rate stats)
-                        </Button>
-
-                        {/* Attempt history */}
-                        {rebookAttemptNumber > 0 && (
-                          <p className="text-[10px] text-muted-foreground text-center">
-                            {rebookAttemptNumber} attempt{rebookAttemptNumber !== 1 ? "s" : ""} made so far
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                ) : rebookNotInterested ? (
-                  <Card className="border-border/50">
-                    <CardContent className="p-4 text-center space-y-2">
-                      <p className="text-sm font-medium text-foreground">Not Interested</p>
-                      <p className="text-xs text-muted-foreground">Outreach stopped. This event is counted in your hold rate stats as a booking that didn't hold.</p>
-                      <Button size="sm" variant="outline" onClick={() => markRebookNotInterestedMut.mutate()}>
-                        Resume outreach
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                {/* ── NORMAL COACHING CHECKLIST — hide for Guest Events ── */}
-                {event?.event_type === "Guest Event" ? (
-                  <Card className="border-border/50">
-                    <CardContent className="p-4 text-center space-y-1">
-                      <p className="text-sm font-medium text-foreground">Guest Event Prep</p>
-                      <p className="text-xs text-muted-foreground">Tasks are managed in your event task list above — send invites, reminders, and day-before messages.</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                {/* Coaching reminders now live on the Today page (Hostess Coaching card).
-                    The Google Form link below stays here so it's easy to grab. */}
-                <Card className="border-border/50">
-                  <CardContent className="p-3 text-xs text-muted-foreground">
-                    Coaching reminders for this hostess appear on your <Link to="/dashboard" className="text-primary hover:underline">Today page</Link> — check them off there and the next reminder will appear automatically.
-                  </CardContent>
-                </Card>
-
-                {/* Google Form Link */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hostess Pre-Profile Form Link</label>
-                  <div className="flex gap-2">
-                    <Input
-                      className="h-9 text-sm flex-1"
-                      placeholder="https://forms.google.com/..."
-                      defaultValue={event.google_form_link || ""}
-                      key={`gfl-${event.google_form_link}`}
-                      onBlur={(e) => { if (e.target.value !== (event.google_form_link || "")) updateField("google_form_link", e.target.value || null); }}
-                    />
-                    {event.google_form_link && (
-                      <Button size="sm" variant="outline" className="h-9 shrink-0" asChild>
-                        <a href={event.google_form_link} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-3.5 h-3.5 mr-1.5" />Open
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                </> 
-                )} {/* end non-Guest Event checklist */}
-                </>
-                )}
-              </>
-            ) : null}
-          </TabsContent>
 
           {/* ── Tab 4: Guests & Orders ── */}
           <TabsContent value="guests" className="mt-4 space-y-4">

@@ -8,19 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PartyPopper, Sparkles, Share2, Megaphone, MapPin, Monitor } from "lucide-react";
+import { PartyPopper, Sparkles, Megaphone, MapPin, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
   { value: "Party", label: "Party", icon: PartyPopper },
   { value: "Facial", label: "Facial", icon: Sparkles },
-  { value: "Sharing Appointment", label: "Sharing", icon: Share2 },
   { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
 
 const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
-const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
+const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "Facebook/Social Media", "Referral", "Cold Contact", "Current Customer", "Networking Event", "Other"] as const;
 
 
 interface AddEventDialogProps {
@@ -40,7 +39,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
-  const [bookedFrom, setBookedFrom] = useState<string>("");
+  const [hostessSource, setHostessSource] = useState<string>("");
 
 
   const isLeadGen = eventType === "Lead Generating Event";
@@ -57,7 +56,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         event_date: eventDate,
         hostess_name: hostessName.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
-        booked_from: bookedFrom || null,
+        hostess_source: hostessSource || null,
 
         guest_count: 0,
       };
@@ -101,7 +100,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     setEventDate(toLocalDateKey());
     setHostessName("");
     setHostessPhone("");
-    setBookedFrom("");
+    setHostessSource("");
 
   };
 
@@ -230,16 +229,16 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
             />
           </div>
 
-          {/* Booked From */}
+          {/* Where did you meet the hostess? */}
           <div>
-            <label className="text-sm font-medium text-foreground">Booked From</label>
+            <label className="text-sm font-medium text-foreground">Where did you meet the hostess?</label>
             <select
-              value={bookedFrom}
-              onChange={(e) => setBookedFrom(e.target.value)}
+              value={hostessSource}
+              onChange={(e) => setHostessSource(e.target.value)}
               className="h-9 mt-1 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="">— Select —</option>
-              {BOOKED_FROM_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              {HOSTESS_SOURCE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
 
