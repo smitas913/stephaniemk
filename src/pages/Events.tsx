@@ -56,6 +56,8 @@ export default function Events() {
   const [formatFilter, setFormatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rescheduleFilter, setRescheduleFilter] = useState("all");
+  const [scopeFilter, setScopeFilter] = useState("all");
+  const [categoryTab, setCategoryTab] = useState<"product" | "business">("product");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
   const [expandedTasksFor, setExpandedTasksFor] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export default function Events() {
     formatFilter !== "all",
     statusFilter !== "all",
     rescheduleFilter !== "all",
+    scopeFilter !== "all",
   ].filter(Boolean).length;
 
   const clearFilters = () => {
@@ -77,6 +80,7 @@ export default function Events() {
     setFormatFilter("all");
     setStatusFilter("all");
     setRescheduleFilter("all");
+    setScopeFilter("all");
   };
 
   const nextTaskByEvent = useMemo(() => {
