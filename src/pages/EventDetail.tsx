@@ -148,23 +148,6 @@ export default function EventDetail() {
     if (!event || val === (event.event_status || "Booked")) return;
     if (val === "Held") {
       eventMutation.mutate({ event_id: event.event_id, event_status: "Held" } as any);
-      // Auto-add thank you notes to MIT list (skip if one already exists for this event)
-      if (event.hostess_name) {
-        const token = `[${event.event_id}]`;
-        const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
-        const userId = (await supabase.auth.getUser()).data.user?.id;
-        if (userId) {
-          const { data: existing } = await supabase
-            .from("todos" as any)
-            .select("id")
-            .eq("user_id", userId)
-            .ilike("text", `%${token}%`)
-            .limit(1);
-          if (!existing || existing.length === 0) {
-            await createTodoForToday(todoText);
-          }
-        }
-      }
       toast.success("Event marked as Held");
     } else if (val === "Cancelled") {
       // Clear rescheduling status when cancelling — they're mutually exclusive
