@@ -44,6 +44,13 @@ export default function MergeDuplicates() {
   const [mergedIds, setMergedIds] = useState<Set<string>>(new Set());
   const [mergedCustomerIds, setMergedCustomerIds] = useState<Set<string>>(new Set());
 
+  // Manual merge state
+  const [manualKeepId, setManualKeepId] = useState<string>("");
+  const [manualMergeId, setManualMergeId] = useState<string>("");
+  const [keepOpen, setKeepOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
+
   const duplicates = useMemo(() => {
     const pairs: DuplicatePair[] = [];
     const usedCustomerIds = new Set<string>();
