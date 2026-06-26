@@ -269,6 +269,19 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     }
   };
 
+  const partyRescheduled = guests.some((g: any) => g.party_rescheduled);
+  const togglePartyRescheduled = async () => {
+    const newVal = !partyRescheduled;
+    try {
+      await Promise.all(
+        guests.map((g) => updateMutation.mutateAsync({ id: g.id, updates: { party_rescheduled: newVal } as any }))
+      );
+      toast.success(newVal ? "Party marked rescheduled/cancelled for all guests" : "Cleared party rescheduled status");
+    } catch (e: any) {
+      toast.error(e.message || "Could not update");
+    }
+  };
+
   // ── Live stats: Faces / Sales / Bookings
   const facesCount = guests.filter((g) => g.attending === true).length;
   const bookingsCount = guests.filter((g: any) => g.booked).length;
