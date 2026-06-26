@@ -286,7 +286,11 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
         <Button
           className="w-full"
           onClick={handleLog}
-          disabled={!selectedAction || logMutation.isPending || (nextOption === "schedule" && !customDate)}
+          disabled={
+            logMutation.isPending ||
+            (nextOption === "schedule" && !customDate) ||
+            (!selectedAction && !(nextOption === "schedule" && customDate))
+          }
         >
           <CheckCircle2 className="w-4 h-4 mr-1.5" />
           {logMutation.isPending ? "Saving..." : "Log Activity"}
