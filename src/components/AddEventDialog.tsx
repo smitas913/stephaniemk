@@ -229,16 +229,16 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
             />
           </div>
 
-          {/* Booked From */}
+          {/* Where did you meet the hostess? */}
           <div>
-            <label className="text-sm font-medium text-foreground">Booked From</label>
+            <label className="text-sm font-medium text-foreground">Where did you meet the hostess?</label>
             <select
-              value={bookedFrom}
-              onChange={(e) => setBookedFrom(e.target.value)}
+              value={hostessSource}
+              onChange={(e) => setHostessSource(e.target.value)}
               className="h-9 mt-1 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
               <option value="">— Select —</option>
-              {BOOKED_FROM_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              {HOSTESS_SOURCE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
 
