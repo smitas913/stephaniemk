@@ -72,13 +72,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryKey: ["upcoming-events-for-booking"],
     enabled: !!bookForm,
     queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from("events")
         .select("id, event_id, event_date, hostess_name")
-        .gte("event_date", today)
         .neq("event_id", eventId)
-        .order("event_date", { ascending: true })
+        .order("event_date", { ascending: false })
         .limit(50);
       if (error) throw error;
       return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null }>;
