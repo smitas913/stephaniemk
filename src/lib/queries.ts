@@ -1259,12 +1259,8 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
     } as any);
   if (evErr) throw evErr;
 
-  // Generate workflow tasks for the new event
-  try {
-    await generateEventWorkflowTasks(eventId, null);
-  } catch (e) {
-    console.error("Failed to generate workflow tasks for converted lead", e);
-  }
+
+
 
   // Delete the original booking_lead. Data lives on the customer record now;
   // leaving the lead around creates orphans that break "Lead not found" lookups
@@ -1392,108 +1388,8 @@ export const deleteEventTasksByEventId = async (eventId: string) => {
   if (error) throw error;
 };
 
-/** Generate the standard workflow tasks for a new event */
-export const generateEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
-  const userId = await getCurrentUserId();
-  const ooo = await fetchScheduleSettings();
-  const workdays = buildWorkdayFlags(ooo);
-  const todayDate = new Date();
-  todayDate.setHours(0, 0, 0, 0);
 
-  // Task 1: Send Hostess Form — due today (skip blocked days)
-  const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
-  const today = toLocalDateKeyImport(todayAdjusted);
 
-  const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
-    { event_id: eventId, task_name: "Send hostess pre-profile form", task_type: "hostess_form", due_date: today, owner_user_id: userId },
-  ];
-
-  // Pre-event tasks (only if event_date is set)
-  if (eventDate) {
-    const ed = new Date(eventDate + "T12:00:00");
-    const sevenBefore = new Date(ed); sevenBefore.setDate(ed.getDate() - 7);
-    const fiveBefore = new Date(ed); fiveBefore.setDate(ed.getDate() - 5);
-    const threeBefore = new Date(ed); threeBefore.setDate(ed.getDate() - 3);
-    const twoBefore = new Date(ed); twoBefore.setDate(ed.getDate() - 2);
-    const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
-
-    // Smart-schedule each pre-event task
-    const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
-
-    tasks.push(
-      { event_id: eventId, task_name: "Follow up: has hostess filled out form?", task_type: "pre_profile", due_date: fmt(fiveBefore), owner_user_id: userId },
-      { event_id: eventId, task_name: "Invitation made & sent to guests", task_type: "invitation_sent", due_date: fmt(fiveBefore), owner_user_id: userId },
-      { event_id: eventId, task_name: "Soft reach out #1 to hostess (1 week out)", task_type: "soft_reach_1", due_date: fmt(sevenBefore), owner_user_id: userId },
-      { event_id: eventId, task_name: "Soft reach out #2 + guest reminders (2-3 days out)", task_type: "soft_reach_2", due_date: fmt(threeBefore), owner_user_id: userId },
-      { event_id: eventId, task_name: "Day-before confirmation with hostess", task_type: "final_confirmation", due_date: fmt(oneBefore), owner_user_id: userId },
-    );
-  }
-
-  const { error } = await supabase
-    .from("event_tasks" as any)
-    .insert(tasks as any);
-  if (error) throw error;
-};
-
-/** Generate workflow tasks specifically for Guest Events */
-export const generateGuestEventWorkflowTasks = async (eventId: string, eventDate: string | null) => {
-  const userId = await getCurrentUserId();
-  const ooo = await fetchScheduleSettings();
-  const workdays = buildWorkdayFlags(ooo);
-  const todayDate = new Date();
-  todayDate.setHours(0, 0, 0, 0);
-  const todayAdjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
-  const today = toLocalDateKeyImport(todayAdjusted);
-  const fmt = (d: Date) => toLocalDateKeyImport(nextAvailableWeekday(d, ooo, new Set(), workdays));
-  const tasks: Array<{ event_id: string; task_name: string; task_type: string; due_date: string | null; owner_user_id: string | null }> = [
-    { event_id: eventId, task_name: "Send invite / event info to guests", task_type: "guest_invite_send", due_date: today, owner_user_id: userId },
-  ];
-  if (eventDate) {
-    const ed = new Date(eventDate + "T12:00:00");
-    const daysUntil = Math.round((ed.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
-    const oneBefore = new Date(ed); oneBefore.setDate(ed.getDate() - 1);
-    const threeBefore = new Date(ed); threeBefore.setDate(ed.getDate() - 3);
-    const sevenBefore = new Date(ed); sevenBefore.setDate(ed.getDate() - 7);
-    tasks.push({ event_id: eventId, task_name: "Day-before excitement text to guests 🎉", task_type: "guest_reminder_1day", due_date: fmt(oneBefore), owner_user_id: userId });
-    if (daysUntil >= 4) tasks.push({ event_id: eventId, task_name: "3-day reminder to guests", task_type: "guest_reminder_3day", due_date: fmt(threeBefore), owner_user_id: userId });
-    if (daysUntil >= 7) tasks.push({ event_id: eventId, task_name: "1-week reminder to guests", task_type: "guest_reminder_1week", due_date: fmt(sevenBefore), owner_user_id: userId });
-  }
-  const { error } = await supabase.from("event_tasks" as any).insert(tasks as any);
-  if (error) throw error;
-};
-/** Create a todo item for today's MIT list */
-export const createTodoForToday = async (text: string) => {
-  const userId = await getCurrentUserId();
-  if (!userId) return;
-  const today = toLocalDateKeyImport(new Date());
-  const { error } = await supabase
-    .from("todos" as any)
-    .insert({ user_id: userId, text, done: false, todo_date: today } as any);
-  if (error) console.error("Failed to create todo:", error);
-};
-
-export const generateGuestInviteTask = async (eventId: string) => {
-  const userId = await getCurrentUserId();
-  const ooo = await fetchScheduleSettings();
-  const workdays = buildWorkdayFlags(ooo);
-  const todayDate = new Date();
-  todayDate.setHours(0, 0, 0, 0);
-  const adjusted = nextAvailableDay(todayDate, ooo, new Set(), workdays);
-  const today = toLocalDateKeyImport(adjusted);
-
-  // Check if already exists
-  const { data: existing } = await supabase
-    .from("event_tasks" as any)
-    .select("id")
-    .eq("event_id", eventId)
-    .eq("task_type", "guest_invite");
-  if (existing && existing.length > 0) return;
-
-  const { error } = await supabase
-    .from("event_tasks" as any)
-    .insert({ event_id: eventId, task_name: "Send guest invite + guest form", task_type: "guest_invite", due_date: today, owner_user_id: userId } as any);
-  if (error) throw error;
-};
 
 // ─── Schedule Settings (OOO + Light Mode) ───
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { insertNewEvent, generateEventWorkflowTasks, fetchZoomDefaults } from "@/lib/queries";
+import { insertNewEvent, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { seedHostessCoaching } from "@/lib/hostessCoaching";
@@ -73,11 +73,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     },
     onSuccess: async (eventId) => {
       try {
-        await generateEventWorkflowTasks(eventId, eventDate || null);
-      } catch (e) {
-        console.error("Failed to generate workflow tasks", e);
-      }
-      try {
+
         await seedHostessCoaching(eventId, hostessName.trim() || null);
       } catch (e) {
         console.error("Failed to seed hostess coaching tasks", e);
