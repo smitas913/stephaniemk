@@ -99,7 +99,8 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
   });
 
   const handleLog = useCallback(() => {
-    if (!selectedAction) {
+    const isDateOnlyUpdate = !selectedAction && nextOption === "schedule" && !!customDate;
+    if (!selectedAction && !isDateOnlyUpdate) {
       toast.error("Please select an action first");
       return;
     }
@@ -117,7 +118,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
     }
 
     logMutation.mutate({
-      action: selectedAction,
+      action: selectedAction || "Scheduled",
       note: noteText,
       nextFollowUpDate: nextDate,
     });
@@ -285,7 +286,11 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
         <Button
           className="w-full"
           onClick={handleLog}
-          disabled={!selectedAction || logMutation.isPending || (nextOption === "schedule" && !customDate)}
+          disabled={
+            logMutation.isPending ||
+            (nextOption === "schedule" && !customDate) ||
+            (!selectedAction && !(nextOption === "schedule" && customDate))
+          }
         >
           <CheckCircle2 className="w-4 h-4 mr-1.5" />
           {logMutation.isPending ? "Saving..." : "Log Activity"}
