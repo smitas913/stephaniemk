@@ -1,13 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders } from "@/lib/queries";
-import { RSVP_OPTIONS } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -148,7 +145,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       event_id: eventId,
       name: trimmedName,
       phone: phone.trim() || null,
-      rsvp: "Invited",
+      rsvp: "Yes",
       converted_customer_id: linkedCustomerId,
       consultant_id: linkedConsultantId,
     });
@@ -269,6 +266,19 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     }
   };
 
+  const partyRescheduled = guests.some((g: any) => g.party_rescheduled);
+  const togglePartyRescheduled = async () => {
+    const newVal = !partyRescheduled;
+    try {
+      await Promise.all(
+        guests.map((g) => updateMutation.mutateAsync({ id: g.id, updates: { party_rescheduled: newVal } as any }))
+      );
+      toast.success(newVal ? "Party marked rescheduled/cancelled for all guests" : "Cleared party rescheduled status");
+    } catch (e: any) {
+      toast.error(e.message || "Could not update");
+    }
+  };
+
   // ── Live stats: Faces / Sales / Bookings
   const facesCount = guests.filter((g) => g.attending === true).length;
   const bookingsCount = guests.filter((g: any) => g.booked).length;
@@ -354,10 +364,12 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             {guests.map((g) => {
               const active = getActiveOutcomes(g);
               const isNoShow = active.has("noshow");
+              const isRescheduled = !!(g as any).party_rescheduled;
               const hasPositive = active.size > 0 && !(active.size === 1 && isNoShow);
               return (
                 <div key={g.id} className={cn(
                   "rounded-lg border transition-colors p-2.5",
+                  isRescheduled ? "border-amber-300 bg-amber-50/60" :
                   isNoShow && !hasPositive ? "border-border bg-muted/30" :
                   hasPositive ? "border-green-200 bg-green-50/40" :
                   "border-border"
@@ -366,6 +378,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-foreground">{g.name}</p>
+                        {isRescheduled && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                            Party Rescheduled/Cancelled
+                          </span>
+                        )}
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                     </div>
@@ -376,23 +393,25 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   </div>
 
                   {/* Outcome multi-select */}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {OUTCOME_OPTIONS.map((opt) => {
-                      const isActive = active.has(opt.key);
-                      return (
-                        <Button
-                          key={opt.key}
-                          type="button"
-                          size="sm"
-                          variant={isActive ? "default" : "outline"}
-                          className={cn("h-7 text-[11px] px-2", isActive && "ring-2 ring-primary/30")}
-                          onClick={() => toggleOutcome(g, opt.key)}
-                        >
-                          {isActive ? `${opt.label} ✓` : opt.label}
-                        </Button>
-                      );
-                    })}
-                  </div>
+                  {!isRescheduled && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {OUTCOME_OPTIONS.map((opt) => {
+                        const isActive = active.has(opt.key);
+                        return (
+                          <Button
+                            key={opt.key}
+                            type="button"
+                            size="sm"
+                            variant={isActive ? "default" : "outline"}
+                            className={cn("h-7 text-[11px] px-2", isActive && "ring-2 ring-primary/30")}
+                            onClick={() => toggleOutcome(g, opt.key)}
+                          >
+                            {isActive ? `${opt.label} ✓` : opt.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  )}
 
 
                   {/* Inline join form */}
@@ -433,50 +452,40 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                 </div>
               );
             })}
+
+            {/* Event-level: Party Rescheduled/Cancelled (applies to all guests) */}
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "w-full h-9 text-xs mt-2 border-amber-300",
+                partyRescheduled
+                  ? "bg-amber-100 text-amber-900 hover:bg-amber-100 ring-2 ring-amber-300"
+                  : "text-amber-800 hover:bg-amber-50"
+              )}
+              onClick={togglePartyRescheduled}
+            >
+              {partyRescheduled ? "Party Rescheduled/Cancelled ✓ (click to clear)" : "Mark Party Rescheduled/Cancelled (all guests)"}
+            </Button>
           </div>
         ) : (
-          // ── PRE-EVENT: minimal table (Name / Phone / RSVP only) ──
-          <div className="border border-border rounded-lg overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="text-[10px]">Name</TableHead>
-                  <TableHead className="text-[10px]">Phone</TableHead>
-                  <TableHead className="text-[10px] w-24">RSVP</TableHead>
-                  <TableHead className="text-[10px] w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {guests.map((g) => (
-                  <TableRow key={g.id} className="group">
-                    <TableCell className="text-xs font-medium py-1.5">{g.name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground py-1.5">{formatPhone(g.phone)}</TableCell>
-                    <TableCell className="py-1.5">
-                      <Select
-                        value={g.rsvp || "Invited"}
-                        onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}
-                      >
-                        <SelectTrigger className={cn(
-                          "h-7 text-[11px] w-24",
-                          (g.rsvp || "Invited") === "Invited" && "bg-muted text-muted-foreground border-muted"
-                        )}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {RSVP_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="py-1.5 text-right">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          // ── PRE-EVENT: simple list with Confirmed badge ──
+          <div className="space-y-1.5">
+            {guests.map((g) => (
+              <div key={g.id} className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 group">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
+                  {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
+                </div>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
+                  Confirmed
+                </span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
+                  <Trash2 className="w-3 h-3 text-destructive" />
+                </Button>
+              </div>
+            ))}
           </div>
         )
       )}
