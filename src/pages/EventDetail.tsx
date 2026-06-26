@@ -46,11 +46,6 @@ export default function EventDetail() {
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
-  const { data: eventTasks = [] } = useQuery({
-    queryKey: ["event-tasks", eventId],
-    queryFn: () => fetchEventTasksByEventId(eventId!),
-    enabled: !!eventId,
-  });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
