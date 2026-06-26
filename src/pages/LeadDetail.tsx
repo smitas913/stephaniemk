@@ -151,8 +151,8 @@ export default function LeadDetail() {
       const path = `${user.id}/${id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("contact-cards").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: { publicUrl } } = supabase.storage.from("contact-cards").getPublicUrl(path);
-      await updateBookingLead(id, { contact_card_photo_url: publicUrl } as any);
+      // Bucket is private — store the object path, resolve to a signed URL at display time.
+      await updateBookingLead(id, { contact_card_photo_url: path } as any);
       queryClient.invalidateQueries({ queryKey: ["booking-lead", id] });
       toast.success("Contact card photo saved");
     } catch (err: any) {
@@ -162,6 +162,21 @@ export default function LeadDetail() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
+  // Resolve stored value (object path, or legacy public URL) to a short-lived signed URL.
+  const storedPhoto = (lead as any)?.contact_card_photo_url as string | null | undefined;
+  const [signedPhotoUrl, setSignedPhotoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!storedPhoto) { setSignedPhotoUrl(null); return; }
+    const marker = "/contact-cards/";
+    const idx = storedPhoto.indexOf(marker);
+    const path = idx >= 0 ? storedPhoto.slice(idx + marker.length) : storedPhoto;
+    supabase.storage.from("contact-cards").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setSignedPhotoUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [storedPhoto]);
 
   const handlePhotoRemove = async () => {
     if (!id) return;
@@ -297,12 +312,12 @@ export default function LeadDetail() {
               className="hidden"
               onChange={handlePhotoUpload}
             />
-            {(lead as any).contact_card_photo_url ? (
+            {storedPhoto ? (
               <div className="relative w-full max-w-md mx-auto">
                 <img
-                  src={(lead as any).contact_card_photo_url}
+                  src={signedPhotoUrl ?? undefined}
                   alt={`${lead.name} contact card`}
-                  className="w-full aspect-[1.586/1] object-cover rounded-lg border border-border shadow-sm"
+                  className="w-full aspect-[1.586/1] object-cover rounded-lg border border-border shadow-sm bg-muted"
                 />
                 <div className="absolute top-2 right-2 flex gap-1">
                   <Button
