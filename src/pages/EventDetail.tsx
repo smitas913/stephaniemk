@@ -760,8 +760,20 @@ export default function EventDetail() {
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
                         <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
+                      <div className="space-y-1.5 sm:col-span-3">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booked From</label>
+                        <Select
+                          value={(event as any).booked_from || ""}
+                          onValueChange={(val) => updateField("booked_from", val || null)}
+                        >
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="How did you meet the hostess?" /></SelectTrigger>
+                          <SelectContent>
+                            {BOOKED_FROM_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
+
                     {/* Contact + Log + Convert buttons */}
                     <div className="flex gap-2 flex-wrap">
                       {event.hostess_phone && (
