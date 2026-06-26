@@ -707,6 +707,57 @@ export type Database = {
           },
         ]
       }
+      event_referrals: {
+        Row: {
+          added_to_leads: boolean
+          created_at: string
+          event_id: string
+          id: string
+          name: string
+          out_of_town: boolean
+          owner_user_id: string
+          phone: string | null
+          referred_by: string | null
+        }
+        Insert: {
+          added_to_leads?: boolean
+          created_at?: string
+          event_id: string
+          id?: string
+          name: string
+          out_of_town?: boolean
+          owner_user_id?: string
+          phone?: string | null
+          referred_by?: string | null
+        }
+        Update: {
+          added_to_leads?: boolean
+          created_at?: string
+          event_id?: string
+          id?: string
+          name?: string
+          out_of_town?: boolean
+          owner_user_id?: string
+          phone?: string | null
+          referred_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_referrals_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_referrals_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       event_tasks: {
         Row: {
           allow_non_working_day: boolean
@@ -1049,6 +1100,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      hostess_coaching_tasks: {
+        Row: {
+          created_at: string
+          done: boolean
+          done_at: string | null
+          due_date: string
+          event_id: string
+          hostess_name: string
+          id: string
+          step: number
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          done_at?: string | null
+          due_date: string
+          event_id: string
+          hostess_name?: string
+          id?: string
+          step: number
+          text: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          done_at?: string | null
+          due_date?: string
+          event_id?: string
+          hostess_name?: string
+          id?: string
+          step?: number
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hostess_coaching_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "hostess_coaching_tasks_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["event_id"]
+          },
+        ]
       }
       income: {
         Row: {
