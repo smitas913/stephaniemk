@@ -190,8 +190,7 @@ export default function EventDetail() {
     (!event.reschedule_status || event.reschedule_status === "None") &&
     !(event.guest_count && event.guest_count > 0) &&
     !(event.ordering_guest_count && event.ordering_guest_count > 0) &&
-    !(event.future_bookings_count && event.future_bookings_count > 0) &&
-    !(event.sharing_appointments_count && event.sharing_appointments_count > 0)
+    !(event.future_bookings_count && event.future_bookings_count > 0)
   );
   useEffect(() => {
     if (needsPostEventPrompt) setShowPostEventPrompt(true);
