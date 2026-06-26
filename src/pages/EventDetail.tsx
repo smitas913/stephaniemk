@@ -232,9 +232,6 @@ export default function EventDetail() {
     setLocalLocation((event as any)?.event_location || "");
   }, [(event as any)?.event_location]);
 
-  // Prep progress
-  const prepDone = event ? PREP_STEPS.filter(s => (event as any)[s.field]).length : 0;
-  const prepTotal = PREP_STEPS.length;
 
   // ── Rebook sequence ──
   const [showReactivate, setShowReactivate] = useState(false);
