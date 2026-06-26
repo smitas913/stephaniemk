@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders } from "@/lib/queries";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
@@ -9,6 +10,8 @@ import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+
 
 interface Props {
   eventId: string;
@@ -51,6 +54,7 @@ const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
 
 export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -61,6 +65,27 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   // Inline sub-forms for outcomes that need a little extra info
   const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
+  const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
+
+  // Upcoming events for the "Booked Next Event" linking panel
+  const { data: upcomingEvents = [] } = useQuery({
+    queryKey: ["upcoming-events-for-booking"],
+    enabled: !!bookForm,
+    queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, event_id, event_date, hostess_name")
+        .gte("event_date", today)
+        .neq("event_id", eventId)
+        .order("event_date", { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null }>;
+    },
+  });
+
+
 
   // Autocomplete: search customers + consultants by name
   useEffect(() => {
@@ -187,6 +212,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "booked":
         updates.booked = willBeOn;
+        if (willBeOn) {
+          setBookForm({ guestId: g.id, name: g.name, phone: g.phone || "", search: "", selectedEventId: null });
+        } else {
+          setBookForm((prev) => (prev && prev.guestId === g.id ? null : prev));
+        }
         break;
       case "career":
         updates.interested = willBeOn;
@@ -246,6 +276,26 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     toast.success(`${trimmedName} added to your team!`);
     setJoinForm(null);
     queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+  };
+
+  const linkBookingToEvent = async () => {
+    if (!bookForm || !bookForm.selectedEventId) return;
+    const { error } = await supabase
+      .from("events")
+      .update({ hostess_name: bookForm.name, hostess_phone: bookForm.phone || null } as any)
+      .eq("id", bookForm.selectedEventId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${bookForm.name} linked as hostess`);
+    queryClient.invalidateQueries({ queryKey: ["events"] });
+    setBookForm(null);
+  };
+
+  const createEventForBooking = () => {
+    if (!bookForm) return;
+    const params = new URLSearchParams({ type: "Party", hostess: bookForm.name });
+    if (bookForm.phone) params.set("phone", bookForm.phone);
+    setBookForm(null);
+    navigate(`/events/new?${params.toString()}`);
   };
 
   const saveNoShowAsLead = async (g: EventGuest) => {
@@ -448,6 +498,68 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                     </div>
                   )}
+
+                  {/* Inline booking link panel */}
+                  {bookForm && bookForm.guestId === g.id && (() => {
+                    const q = bookForm.search.trim().toLowerCase();
+                    const filtered = upcomingEvents.filter((e) => {
+                      if (!q) return true;
+                      const label = `${e.event_date || ""} ${e.hostess_name || ""}`.toLowerCase();
+                      return label.includes(q);
+                    });
+                    return (
+                      <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50/60 space-y-2">
+                        <p className="text-xs font-medium text-amber-800">Link this booking to an event</p>
+                        <div className="space-y-1.5">
+                          <Input
+                            value={bookForm.search}
+                            onChange={(e) => setBookForm({ ...bookForm, search: e.target.value, selectedEventId: null })}
+                            placeholder="Search upcoming events…"
+                            className="h-8 text-xs"
+                          />
+                          {filtered.length === 0 ? (
+                            <p className="text-[11px] text-muted-foreground px-1">No upcoming events found</p>
+                          ) : (
+                            <ul className="max-h-40 overflow-auto rounded-md border border-border bg-popover">
+                              {filtered.map((e) => {
+                                const sel = bookForm.selectedEventId === e.id;
+                                const dateLabel = e.event_date ? format(new Date(e.event_date + "T12:00:00"), "MMM d, yyyy") : "No date";
+                                return (
+                                  <li key={e.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setBookForm({ ...bookForm, selectedEventId: e.id })}
+                                      className={cn(
+                                        "w-full text-left px-2 py-1.5 text-xs hover:bg-accent",
+                                        sel && "bg-accent font-medium"
+                                      )}
+                                    >
+                                      {dateLabel} · {e.hostess_name || "(no hostess)"}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={linkBookingToEvent}>
+                            Link as Hostess
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={createEventForBooking}>
+                            Create New Event
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => setBookForm(null)}
+                            className="ml-auto text-[11px] text-muted-foreground hover:underline"
+                          >
+                            Skip
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* No-show follow-up CTA */}
                   {noShowFollowUp === g.id && isNoShow && (
