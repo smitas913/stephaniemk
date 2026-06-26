@@ -33,6 +33,8 @@ const FORMAT_OPTIONS = [
   { value: "Virtual", label: "Virtual", icon: Monitor },
 ] as const;
 
+const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "Facebook/Social Media", "Referral", "Cold Contact", "Current Customer", "Networking Event", "Other"] as const;
+
 const VIRTUAL_PLATFORMS = [
   { value: "Zoom", label: "Zoom" },
   { value: "Other", label: "Other" },
