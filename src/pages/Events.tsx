@@ -16,12 +16,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList, SlidersHorizontal, MoreHorizontal, X, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
+
+const BUSINESS_EVENT_TYPES = new Set(["Career Chat", "Pearl Appointment"]);
+const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
+
+const scopeChipClasses = (scope: string) =>
+  scope === "Unit"
+    ? "bg-teal-100 text-teal-700 border-teal-200"
+    : "bg-muted text-muted-foreground border-border";
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -47,6 +56,8 @@ export default function Events() {
   const [formatFilter, setFormatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rescheduleFilter, setRescheduleFilter] = useState("all");
+  const [scopeFilter, setScopeFilter] = useState("all");
+  const [categoryTab, setCategoryTab] = useState<"product" | "business">("product");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
   const [expandedTasksFor, setExpandedTasksFor] = useState<string | null>(null);
@@ -61,6 +72,7 @@ export default function Events() {
     formatFilter !== "all",
     statusFilter !== "all",
     rescheduleFilter !== "all",
+    scopeFilter !== "all",
   ].filter(Boolean).length;
 
   const clearFilters = () => {
@@ -68,6 +80,7 @@ export default function Events() {
     setFormatFilter("all");
     setStatusFilter("all");
     setRescheduleFilter("all");
+    setScopeFilter("all");
   };
 
   const nextTaskByEvent = useMemo(() => {
@@ -196,6 +209,7 @@ export default function Events() {
       if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
       if (statusFilter !== "all" && e.event_status !== statusFilter) return false;
       if (rescheduleFilter !== "all" && (e.reschedule_status || "None") !== rescheduleFilter) return false;
+      if (scopeFilter !== "all" && ((e as any).event_scope || "Personal") !== scopeFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -206,11 +220,25 @@ export default function Events() {
       }
       return true;
     });
-  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
+  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter, scopeFilter]);
+
+  // Split by category (Product vs Business)
+  const { productEvents, businessEvents } = useMemo(() => {
+    const productEvents: EventRecord[] = [];
+    const businessEvents: EventRecord[] = [];
+    for (const e of filtered) {
+      if (isBusinessType(e.event_type)) businessEvents.push(e);
+      else productEvents.push(e);
+    }
+    return { productEvents, businessEvents };
+  }, [filtered]);
+
+  const activeEvents = categoryTab === "business" ? businessEvents : productEvents;
+  const isBusiness = categoryTab === "business";
 
   const todayStr = toLocalDateKey();
   const { upcoming, past } = useMemo(() => {
-    const sortAsc = [...filtered].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
+    const sortAsc = [...activeEvents].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
     const upcoming = sortAsc
       .filter((e) => (e.event_date || "") >= todayStr && e.event_status !== "Cancelled")
       .reverse();
@@ -218,10 +246,10 @@ export default function Events() {
       .filter((e) => (e.event_date || "") < todayStr || e.event_status === "Cancelled")
       .reverse();
     return { upcoming, past };
-  }, [filtered, todayStr]);
+  }, [activeEvents, todayStr]);
 
-  const totalSales = filtered.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
-  const totalGuests = filtered.reduce((s, e) => s + (e.guest_count || 0), 0);
+  const totalSales = activeEvents.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
+  const totalGuests = activeEvents.reduce((s, e) => s + (e.guest_count || 0), 0);
   const deleteTargetLinkedCount = deleteTarget ? (eventSales.get(deleteTarget.event_id)?.orderCount || 0) : 0;
 
   const EventRow = ({ e }: { e: EventRecord }) => {
@@ -246,10 +274,15 @@ export default function Events() {
           </TableCell>
           <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
           <TableCell className="text-xs">
-            {e.event_type || "—"}
-            {(e.event_format && e.event_format !== "In-Person") && (
-              <span className="ml-1 text-muted-foreground">• {e.event_format}</span>
-            )}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span>{e.event_type || "—"}</span>
+              {(e.event_format && e.event_format !== "In-Person") && (
+                <span className="text-muted-foreground">• {e.event_format}</span>
+              )}
+              <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 font-medium", scopeChipClasses((e as any).event_scope || "Personal"))}>
+                {(e as any).event_scope || "Personal"}
+              </Badge>
+            </div>
           </TableCell>
           <TableCell>
             <div className="flex flex-wrap gap-1">
@@ -271,11 +304,20 @@ export default function Events() {
               )}
             </div>
           </TableCell>
-          <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
-          <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
-          <TableCell className="text-right text-sm font-semibold">
-            {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
-          </TableCell>
+          {!isBusiness && (
+            <>
+              <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
+              <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
+              <TableCell className="text-right text-sm font-semibold">
+                {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
+              </TableCell>
+            </>
+          )}
+          {isBusiness && (
+            <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate">
+              {e.notes || (e as any).hostess_next_action || "—"}
+            </TableCell>
+          )}
           <TableCell className="text-xs">
             {e.event_status === "Held" ? (
               (e as any).thank_you_sent ? (
@@ -372,7 +414,7 @@ export default function Events() {
 
         {isExpanded && taskInfo && (
           <TableRow className="bg-muted/20">
-            <TableCell colSpan={9} className="py-2">
+            <TableCell colSpan={isBusiness ? 7 : 9} className="py-2">
               <div className="pl-6 space-y-1">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
                   <ClipboardList className="w-3 h-3" /> All pending tasks
@@ -441,9 +483,14 @@ export default function Events() {
           </div>
         </div>
 
-        {/* Row 2: Hostess name + type */}
+        {/* Row 2: Contact/Hostess name + type + scope */}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 shrink-0", scopeChipClasses((e as any).event_scope || "Personal"))}>
+              {(e as any).event_scope || "Personal"}
+            </Badge>
+          </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {e.event_type || "—"}{e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
           </span>
@@ -452,9 +499,10 @@ export default function Events() {
         {/* Row 3: Stats + next task */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {(e.guest_count || 0) > 0 && <span><Users className="w-3 h-3 inline mr-0.5" />{e.guest_count}</span>}
-            {orderCount > 0 && <span><ShoppingBag className="w-3 h-3 inline mr-0.5" />{orderCount}</span>}
-            {evTotalSales > 0 && <span className="text-green-600 font-medium">${evTotalSales.toFixed(0)}</span>}
+            {!isBusiness && (e.guest_count || 0) > 0 && <span><Users className="w-3 h-3 inline mr-0.5" />{e.guest_count}</span>}
+            {!isBusiness && orderCount > 0 && <span><ShoppingBag className="w-3 h-3 inline mr-0.5" />{orderCount}</span>}
+            {!isBusiness && evTotalSales > 0 && <span className="text-green-600 font-medium">${evTotalSales.toFixed(0)}</span>}
+            {isBusiness && e.notes && <span className="truncate max-w-[200px]">{e.notes}</span>}
           </div>
           {e.event_status === "Held" ? (
             (e as any).thank_you_sent ? (
@@ -546,12 +594,13 @@ export default function Events() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Hostess</TableHead>
+                  <TableHead className="text-xs">{isBusiness ? "Contact" : "Hostess"}</TableHead>
                   <TableHead className="text-xs">Type</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-center">Guests</TableHead>
-                  <TableHead className="text-xs text-center">Orders</TableHead>
-                  <TableHead className="text-xs text-right">Sales</TableHead>
+                  {!isBusiness && <TableHead className="text-xs text-center">Guests</TableHead>}
+                  {!isBusiness && <TableHead className="text-xs text-center">Orders</TableHead>}
+                  {!isBusiness && <TableHead className="text-xs text-right">Sales</TableHead>}
+                  {isBusiness && <TableHead className="text-xs">Notes</TableHead>}
                   <TableHead className="text-xs">Next Task</TableHead>
                   <TableHead className="text-xs w-[110px] text-right">Actions</TableHead>
                 </TableRow>
@@ -578,7 +627,7 @@ export default function Events() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Events</h2>
-            <p className="text-sm text-muted-foreground">{filtered.length} event{filtered.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-muted-foreground">{activeEvents.length} {isBusiness ? "business" : "product"} event{activeEvents.length !== 1 ? "s" : ""}</p>
           </div>
           <Button onClick={() => navigate("/events/new")} className="gap-1.5">
             <Plus className="w-4 h-4" /> New Event
@@ -593,7 +642,7 @@ export default function Events() {
                 <Calendar className="w-4 h-4 text-blue-600" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Events</span>
               </div>
-              <p className="text-lg font-bold text-blue-600">{filtered.length}</p>
+              <p className="text-lg font-bold text-blue-600">{activeEvents.length}</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
@@ -615,6 +664,20 @@ export default function Events() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Category Tabs */}
+        <Tabs value={categoryTab} onValueChange={(v) => setCategoryTab(v as "product" | "business")}>
+          <TabsList className="grid w-full sm:w-auto grid-cols-2">
+            <TabsTrigger value="product">
+              Product Events
+              <span className="ml-2 text-[10px] bg-muted-foreground/15 rounded-full px-1.5 py-0.5">{productEvents.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="business">
+              Business Events
+              <span className="ml-2 text-[10px] bg-muted-foreground/15 rounded-full px-1.5 py-0.5">{businessEvents.length}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Search + Filters bar */}
         <div className="flex items-center gap-2">
@@ -699,6 +762,17 @@ export default function Events() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Scope</label>
+                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="Personal">Personal</SelectItem>
+                      <SelectItem value="Unit">Unit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -709,8 +783,8 @@ export default function Events() {
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">No events found.</p>
+        ) : activeEvents.length === 0 ? (
+          <p className="text-muted-foreground text-center py-12">No {isBusiness ? "business" : "product"} events found.</p>
         ) : (
           <div className="space-y-6">
             <EventSection rows={upcoming} label="Upcoming" />
