@@ -34,6 +34,8 @@ import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
+const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
+
 
 // Coaching prep steps in order — each one drives booking rate
 const PREP_STEPS = [
