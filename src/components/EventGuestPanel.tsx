@@ -278,6 +278,26 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
   };
 
+  const linkBookingToEvent = async () => {
+    if (!bookForm || !bookForm.selectedEventId) return;
+    const { error } = await supabase
+      .from("events")
+      .update({ hostess_name: bookForm.name, hostess_phone: bookForm.phone || null } as any)
+      .eq("id", bookForm.selectedEventId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${bookForm.name} linked as hostess`);
+    queryClient.invalidateQueries({ queryKey: ["events"] });
+    setBookForm(null);
+  };
+
+  const createEventForBooking = () => {
+    if (!bookForm) return;
+    const params = new URLSearchParams({ type: "Party", hostess: bookForm.name });
+    if (bookForm.phone) params.set("phone", bookForm.phone);
+    setBookForm(null);
+    navigate(`/events/new?${params.toString()}`);
+  };
+
   const saveNoShowAsLead = async (g: EventGuest) => {
     try {
       const noteHost = hostessName?.trim() || "the party";
