@@ -302,6 +302,47 @@ export const upsertEvent = async (event: Partial<EventRecord> & { event_id: stri
   return data;
 };
 
+/**
+ * Insert a brand-new event with a guaranteed-unique event_id.
+ * Queries the DB at call time for any IDs that share the same base (so stale client cache
+ * never causes us to overwrite an existing event via upsert). If a collision exists, appends
+ * `-2`, `-3`, etc. Returns the inserted row including the final event_id used.
+ */
+export const insertNewEvent = async (
+  event: Partial<EventRecord> & { event_id: string }
+) => {
+  const userId = await getCurrentUserId();
+  const baseId = event.event_id;
+
+  // Pull any existing IDs that start with this base
+  const { data: existing, error: lookupErr } = await supabase
+    .from("events")
+    .select("event_id")
+    .or(`event_id.eq.${baseId},event_id.like.${baseId}-%`);
+  if (lookupErr) throw lookupErr;
+
+  const taken = new Set((existing || []).map((r: any) => r.event_id));
+  let finalId = baseId;
+  if (taken.has(finalId)) {
+    let suffix = 2;
+    while (taken.has(`${baseId}-${suffix}`)) suffix++;
+    finalId = `${baseId}-${suffix}`;
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .insert({ ...event, event_id: finalId, owner_user_id: userId } as any)
+    .select()
+    .single();
+  if (error) throw error;
+
+  if (event.hostess_name) {
+    const { autoProgressLeadFromEvent } = await import("./leadAutoStatus");
+    await autoProgressLeadFromEvent({ hostessName: event.hostess_name as string });
+  }
+  return data as any;
+};
+
 export const updateEventGuest = async (id: string, updates: Partial<EventGuest>) => {
   const { data, error } = await supabase
     .from("event_guests")
