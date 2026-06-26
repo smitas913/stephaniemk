@@ -1,21 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEventGuests, createEventGuest, deleteEventGuest, convertGuestToCustomer, updateEventGuest, createBookingLead } from "@/lib/queries";
+import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders } from "@/lib/queries";
 import { RSVP_OPTIONS } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash2, ArrowRightLeft, Plus, Mail, UserPlus } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useNavigate, Link } from "react-router-dom";
-import { toLocalDateKey } from "@/lib/dateOnly";
-import { format, addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -23,19 +18,8 @@ interface Props {
   eventType?: string;
   isHeld?: boolean;
   eventDate?: string | null;
+  hostessName?: string | null;
 }
-
-const GUEST_OUTCOMES = [
-  { value: "became_customer", label: "Became a customer" },
-  { value: "booked_appointment", label: "Booked a party/facial" },
-  { value: "booked_career_chat", label: "Booked a career chat" },
-];
-
-const NO_SHOW_OPTIONS = [
-  { value: "add_to_leads", label: "Add to booking leads" },
-  { value: "schedule_followup", label: "Schedule a follow-up" },
-  { value: "no_action", label: "No action needed" },
-];
 
 type GuestSuggestion = {
   kind: "customer" | "consultant";
@@ -45,26 +29,72 @@ type GuestSuggestion = {
   email: string | null;
 };
 
-export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate }: Props) {
+// Outcome model — one outcome per guest, derived from existing boolean fields so existing data is preserved.
+type OutcomeKey =
+  | "tried"
+  | "ordered"
+  | "booked"
+  | "career"
+  | "joined"
+  | "noshow"
+  | null;
+
+function getOutcome(g: EventGuest): OutcomeKey {
+  const anyG = g as any;
+  if (anyG.joined_team) return "joined"; // not a real column — defensive
+  if (g.ordered) return "ordered";
+  if ((g as any).booked) return "booked";
+  if (g.interested) return "career";
+  if (g.attending === true) return "tried";
+  if (g.attending === false) return "noshow";
+  return null;
+}
+
+function outcomeBadgeClass(o: OutcomeKey) {
+  switch (o) {
+    case "tried":   return "bg-blue-100 text-blue-700";
+    case "ordered": return "bg-green-100 text-green-700";
+    case "booked":  return "bg-amber-100 text-amber-700";
+    case "career":  return "bg-violet-100 text-violet-700";
+    case "joined":  return "bg-pink-100 text-pink-700";
+    case "noshow":  return "bg-muted text-muted-foreground";
+    default:        return "bg-muted text-muted-foreground";
+  }
+}
+
+function outcomeLabel(o: OutcomeKey): string {
+  switch (o) {
+    case "tried":   return "Tried Product ✓";
+    case "ordered": return "Ordered ✓";
+    case "booked":  return "Booked Next ✓";
+    case "career":  return "Career Interest";
+    case "joined":  return "She Joined";
+    case "noshow":  return "No Show";
+    default:        return "Pick outcome";
+  }
+}
+
+const OUTCOME_OPTIONS: { key: Exclude<OutcomeKey, null>; label: string }[] = [
+  { key: "tried",   label: "Tried Product" },
+  { key: "ordered", label: "Ordered" },
+  { key: "booked",  label: "Booked Next Event" },
+  { key: "career",  label: "Career Interest" },
+  { key: "joined",  label: "She Joined" },
+  { key: "noshow",  label: "No Show" },
+];
+
+export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
   const [linkedConsultantId, setLinkedConsultantId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
-  const [outcomeGuest, setOutcomeGuest] = useState<EventGuest | null>(null);
-  const [selectedOutcomes, setSelectedOutcomes] = useState<string[]>([]);
-  const [noShowGuest, setNoShowGuest] = useState<EventGuest | null>(null);
-  const [noShowAction, setNoShowAction] = useState("");
-  const suggestionListId = useMemo(() => `guest-suggestions-${eventId.replace(/[^a-zA-Z0-9_-]/g, "-")}`, [eventId]);
 
-  const isGuestEvent = eventType === "Guest Event";
-  const isPostEvent = useMemo(() => {
-    if (!eventDate) return false;
-    return eventDate < toLocalDateKey(new Date());
-  }, [eventDate]);
+  // Inline sub-forms for outcomes that need a little extra info
+  const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
+  const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
 
   // Autocomplete: search customers + consultants by name
   useEffect(() => {
@@ -86,15 +116,14 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     return () => { cancelled = true; clearTimeout(t); };
   }, [name, showForm]);
 
-  useEffect(() => {
-    if (!showForm) {
-      setSuggestions([]);
-    }
-  }, [showForm]);
-
   const { data: guestsRaw = [] } = useQuery({
     queryKey: ["event-guests", eventId],
     queryFn: () => fetchEventGuests(eventId),
+  });
+
+  const { data: allOrders = [] } = useQuery({
+    queryKey: ["orders"],
+    queryFn: () => fetchOrders(),
   });
 
   const RSVP_SORT_ORDER: Record<string, number> = { Yes: 0, Maybe: 1, Invited: 2, No: 3 };
@@ -109,69 +138,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
       })
       .map((x) => x.g);
   }, [guestsRaw]);
-
-  // Master "Thank you notes" todo for this event — bidirectional sync with guest checkboxes
-  const [masterTodo, setMasterTodo] = useState<{ id: string; done: boolean } | null>(null);
-  const lastMasterDone = useRef<boolean | null>(null);
-  const tokenStr = `[${eventId}]`;
-
-  const reloadMasterTodo = async () => {
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-    if (!userId) return;
-    const { data } = await supabase
-      .from("todos" as any)
-      .select("id, done, created_at")
-      .eq("user_id", userId)
-      .ilike("text", `%${tokenStr}%`)
-      .order("created_at", { ascending: true });
-    const rows = (data as any[]) || [];
-    if (rows.length > 1) {
-      // De-dupe: keep oldest, delete the rest
-      const dupeIds = rows.slice(1).map((r) => r.id);
-      await supabase.from("todos" as any).delete().in("id", dupeIds);
-    }
-    setMasterTodo(rows[0] ? { id: rows[0].id, done: !!rows[0].done } : null);
-  };
-
-  useEffect(() => {
-    reloadMasterTodo();
-    const i = setInterval(reloadMasterTodo, 6000);
-    return () => clearInterval(i);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
-
-  // Master → guests: when master `done` changes externally, mirror to all guests
-  useEffect(() => {
-    if (!masterTodo) return;
-    if (lastMasterDone.current === null) {
-      lastMasterDone.current = masterTodo.done;
-      return;
-    }
-    if (lastMasterDone.current === masterTodo.done) return;
-    lastMasterDone.current = masterTodo.done;
-    guests.forEach((g) => {
-      if ((g.thank_you_sent || false) !== masterTodo.done) {
-        updateMutation.mutate({ id: g.id, updates: { thank_you_sent: masterTodo.done } as any });
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [masterTodo?.done]);
-
-  // Guests → master: when all guests have TY sent, auto-complete master
-  useEffect(() => {
-    if (!isHeld || !masterTodo || guests.length === 0) return;
-    const allSent = guests.every((g) => g.thank_you_sent);
-    if (allSent && !masterTodo.done) {
-      (async () => {
-        await supabase.from("todos" as any).update({ done: true } as any).eq("id", masterTodo.id);
-        lastMasterDone.current = true;
-        setMasterTodo({ ...masterTodo, done: true });
-        toast.success("All thank you notes sent! MIT task completed ✅");
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guests, masterTodo, isHeld]);
-
 
   const addMutation = useMutation({
     mutationFn: createEventGuest,
@@ -194,16 +160,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
       toast.success("Guest removed");
     },
-  });
-
-  const convertMutation = useMutation({
-    mutationFn: convertGuestToCustomer,
-    onSuccess: (customer) => {
-      queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      toast.success(`${customer.full_name} added as customer`);
-    },
-    onError: (err: any) => toast.error(err.message || "Failed to convert"),
   });
 
   const handleAdd = () => {
@@ -245,99 +201,122 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
     if (match) handleSelectSuggestion(match);
   };
 
-  const handleAttendedToggle = (g: EventGuest, checked: boolean) => {
-    const updates: Partial<EventGuest> = { attending: checked };
-    if (checked && (g.rsvp === "Invited" || !g.rsvp)) {
-      (updates as any).rsvp = "Yes";
-    }
-    updateMutation.mutate({ id: g.id, updates });
-  };
+  const applyOutcome = async (g: EventGuest, outcome: Exclude<OutcomeKey, null>) => {
+    // Map outcome to the canonical boolean flags. One outcome per guest, so we reset the others.
+    const base: any = {
+      attending: outcome !== "noshow",
+      ordered:   outcome === "ordered",
+      booked:    outcome === "booked",
+      interested: outcome === "career",
+    };
 
-  const handleOutcomeConfirm = async () => {
-    if (!outcomeGuest) return;
-    // Mark attended
-    await updateEventGuest(outcomeGuest.id, { attending: true });
-    queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-
-    // Handle each outcome
-    for (const outcome of selectedOutcomes) {
-      if (outcome === "became_customer") {
-        convertMutation.mutate(outcomeGuest);
-      } else if (outcome === "booked_appointment") {
-        navigate(`/events/new?hostess=${encodeURIComponent(outcomeGuest.name)}&phone=${encodeURIComponent(outcomeGuest.phone || "")}&from=/events/${eventId}`);
-      } else if (outcome === "booked_career_chat") {
-        navigate(`/prospects?prefill=${encodeURIComponent(outcomeGuest.name)}`);
+    if (outcome === "career") {
+      try {
+        const noteHost = hostessName?.trim() || "the party";
+        await createBookingLead({
+          name: g.name,
+          phone: g.phone || undefined,
+          lead_source: "Other",
+          source_detail: "Party Guest",
+          status: "New Contact",
+          notes: `Career interest from ${noteHost}'s party`,
+        } as any);
+      } catch (e: any) {
+        toast.error(e.message || "Could not create prospect");
       }
     }
-    toast.success(`Outcomes logged for ${outcomeGuest.name}!`);
-    setOutcomeGuest(null);
-    setSelectedOutcomes([]);
+
+    if (outcome === "joined") {
+      // Open inline form; finalize on submit
+      setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+    }
+
+    if (outcome === "noshow") {
+      setNoShowFollowUp(g.id);
+    } else {
+      setNoShowFollowUp((prev) => (prev === g.id ? null : prev));
+    }
+
+    await updateMutation.mutateAsync({ id: g.id, updates: base });
+
+    if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
+    if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
+    if (outcome === "career")  toast.success(`${g.name} added to booking leads`);
+    if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
   };
 
-  const handleNoShowConfirm = async () => {
-    if (!outcomeGuest) return;
-    await updateEventGuest(outcomeGuest.id, { attending: false });
-    if (noShowAction === "add_to_leads") {
-      await createBookingLead({
-        name: outcomeGuest.name,
-        phone: outcomeGuest.phone || undefined,
-        lead_source: "Party Guest",
-        next_follow_up_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
-        status: "New",
-      } as any);
-      toast.success(`${outcomeGuest.name} added to booking leads`);
-    } else if (noShowAction === "schedule_followup") {
-      await createBookingLead({
-        name: outcomeGuest.name,
-        phone: outcomeGuest.phone || undefined,
-        lead_source: "Party Guest",
-        next_follow_up_date: format(addDays(new Date(), 7), "yyyy-MM-dd"),
-        status: "New",
-        notes: "Did not attend event — follow up to reschedule",
-      } as any);
-      toast.success(`Follow-up scheduled for ${outcomeGuest.name}`);
-    } else {
-      toast.success(`${outcomeGuest.name} marked as did not attend`);
-    }
-    queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-    queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-    setNoShowGuest(null);
-    setNoShowAction("");
-    setOutcomeGuest(null);
+  const finalizeJoin = async () => {
+    if (!joinForm) return;
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    const trimmedName = joinForm.name.trim();
+    if (!trimmedName) { toast.error("Name required"); return; }
+    const { error } = await supabase.from("team_consultants").insert({
+      name: trimmedName,
+      phone: joinForm.phone.trim() || null,
+      status: "Active",
+      join_date: new Date().toISOString().slice(0, 10),
+      relationship_type: "Personal Recruit",
+      owner_user_id: userId,
+    } as any);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${trimmedName} added to your team!`);
+    setJoinForm(null);
+    queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
   };
+
+  const saveNoShowAsLead = async (g: EventGuest) => {
+    try {
+      const noteHost = hostessName?.trim() || "the party";
+      await createBookingLead({
+        name: g.name,
+        phone: g.phone || undefined,
+        lead_source: "Other",
+        source_detail: "Party Guest",
+        status: "New Contact",
+        notes: `No-show from ${noteHost}'s party — follow up to reschedule`,
+      } as any);
+      toast.success(`${g.name} added to booking leads`);
+      setNoShowFollowUp(null);
+    } catch (e: any) {
+      toast.error(e.message || "Could not save");
+    }
+  };
+
+  // ── Live stats: Faces / Sales / Bookings
+  const facesCount = guests.filter((g) => g.attending === true).length;
+  const bookingsCount = guests.filter((g: any) => g.booked).length;
+  const salesTotal = useMemo(() => {
+    const linked = (allOrders as any[]).filter((o) => o.event_id === eventId || o.parent_event_id === eventId);
+    return linked.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+  }, [allOrders, eventId]);
 
   const rsvpYes = guests.filter((g) => g.rsvp === "Yes").length;
-  const attendingCount = guests.filter((g) => g.attending).length;
-  const orderedCount = guests.filter((g) => g.ordered).length;
-  const contactedCount = guests.filter((g: any) => g.task_invite_sent && g.task_day_before_sent).length;
-  const thankYouCount = guests.filter((g) => g.thank_you_sent).length;
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Guests ({guests.length})
-          </p>
-          {guests.length > 0 && (
-            <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground items-center">
-              <span>RSVP: {rsvpYes}</span>
-              <span>·</span>
-              <span>Attended: {attendingCount}</span>
-              <span>·</span>
-              <span>Ordered: {orderedCount}</span>
-              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                Tasks: {contactedCount}/{guests.length} contacted
-              </span>
-              {isHeld && (
-                <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
-                  Thank you: {thankYouCount}/{guests.length} sent
-                </span>
-              )}
-            </div>
-          )}
+      {/* Stat chips — Faces / Sales / Bookings */}
+      <div className="flex flex-wrap gap-2">
+        <div className="px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 text-xs">
+          <span className="font-semibold">{facesCount}</span> Faces
         </div>
-        <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowForm(!showForm)}>
+        <div className="px-3 py-1.5 rounded-md bg-green-50 text-green-700 text-xs">
+          <span className="font-semibold">${salesTotal.toFixed(0)}</span> Sales
+        </div>
+        <div className="px-3 py-1.5 rounded-md bg-amber-50 text-amber-700 text-xs">
+          <span className="font-semibold">{bookingsCount}</span> Bookings
+        </div>
+        {guests.length > 0 && (
+          <div className="px-3 py-1.5 rounded-md bg-muted text-muted-foreground text-xs ml-auto">
+            {guests.length} guest{guests.length === 1 ? "" : "s"} · RSVP Yes: {rsvpYes}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {isHeld ? "Guest outcomes" : "Guest list"}
+        </p>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-3 h-3 mr-1" />Add Guest
         </Button>
       </div>
@@ -349,15 +328,13 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
               placeholder="Name (type to search)"
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
-              className="h-7 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="h-8 w-full rounded-md border border-input bg-background px-3 text-xs text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
               onBlur={() => setTimeout(() => setSuggestions([]), 150)}
             />
             {suggestions.length > 0 && (
-              <ul
-                className="absolute z-50 mt-1 left-0 right-0 max-h-56 overflow-auto rounded-md border border-border bg-popover shadow-md"
-              >
+              <ul className="absolute z-50 mt-1 left-0 right-0 max-h-56 overflow-auto rounded-md border border-border bg-popover shadow-md">
                 {suggestions.map((s) => (
                   <li key={`${s.kind}-${s.id}`}>
                     <button
@@ -376,189 +353,140 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
             )}
           </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
-            className="h-7 text-xs w-32" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
-          <Button size="sm" className="h-7 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
+            className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
 
       {guests.length === 0 && !showForm ? (
         <p className="text-xs text-muted-foreground py-2">No guests tracked yet</p>
       ) : guests.length > 0 && (
-        isGuestEvent && isHeld ? (
-          // Guest Event post-event view — smart outcome per guest
+        isHeld ? (
+          // ── POST-EVENT: simple list with inline outcome buttons ──
           <div className="space-y-2">
-            {guests.map((g) => (
-              <div key={g.id} className={cn(
-                "flex items-center gap-3 p-2.5 rounded-lg border transition-colors",
-                g.attending === true ? "border-green-200 bg-green-50/50" :
-                g.attending === false ? "border-border bg-muted/30" :
-                "border-border"
-              )}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{g.name}</p>
-                  {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
-                  {g.converted_customer_id && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">Customer ✓</span>
-                  )}
-                  {g.consultant_id && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-medium ml-1">Consultant ✓</span>
-                  )}
-                </div>
-                {g.attending === null || g.attending === undefined ? (
-                  // Not yet marked
-                  <div className="flex gap-1.5">
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-green-300 text-green-700 hover:bg-green-50"
-                      onClick={() => { setOutcomeGuest(g); setSelectedOutcomes([]); }}>
-                      ✅ Attended
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-red-200 text-red-600 hover:bg-red-50"
-                      onClick={() => { setOutcomeGuest(g); setNoShowGuest(g); }}>
-                      ❌ No Show
+            {guests.map((g) => {
+              const outcome = getOutcome(g);
+              return (
+                <div key={g.id} className={cn(
+                  "rounded-lg border transition-colors p-2.5",
+                  outcome === "noshow" ? "border-border bg-muted/30" :
+                  outcome ? "border-green-200 bg-green-50/40" :
+                  "border-border"
+                )}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground">{g.name}</p>
+                        {outcome && (
+                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", outcomeBadgeClass(outcome))}>
+                            {outcomeLabel(outcome)}
+                          </span>
+                        )}
+                      </div>
+                      {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
+                      onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
+                      <Trash2 className="w-3 h-3 text-destructive" />
                     </Button>
                   </div>
-                ) : g.attending ? (
-                  <>
-                    <span className="text-xs text-green-600 font-medium">Attended ✅</span>
-                    <label className="flex items-center gap-1 cursor-pointer ml-1">
-                      <Checkbox
-                        checked={g.thank_you_sent || false}
-                        onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !!v } as any })}
-                      />
-                      <span className="text-[11px] text-muted-foreground">✉️ TY sent</span>
-                    </label>
-                  </>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Did not attend</span>
-                )}
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
-                  onClick={() => deleteMutation.mutate(g.id)}>
-                  <Trash2 className="w-3 h-3 text-destructive" />
-                </Button>
-              </div>
-            ))}
+
+                  {/* Outcome selector */}
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {OUTCOME_OPTIONS.map((opt) => {
+                      const active = outcome === opt.key;
+                      return (
+                        <Button
+                          key={opt.key}
+                          type="button"
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          className={cn("h-7 text-[11px] px-2", active && "ring-2 ring-primary/30")}
+                          onClick={() => applyOutcome(g, opt.key)}
+                        >
+                          {opt.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Inline join form */}
+                  {joinForm && joinForm.guestId === g.id && (
+                    <div className="mt-2 p-2 rounded-md border border-pink-200 bg-pink-50/50 space-y-2">
+                      <p className="text-xs font-medium text-pink-700">Add to your team</p>
+                      <div className="flex gap-2">
+                        <Input
+                          value={joinForm.name}
+                          onChange={(e) => setJoinForm({ ...joinForm, name: e.target.value })}
+                          placeholder="Name"
+                          className="h-8 text-xs"
+                        />
+                        <Input
+                          value={joinForm.phone}
+                          onChange={(e) => setJoinForm({ ...joinForm, phone: e.target.value })}
+                          placeholder="Phone"
+                          className="h-8 text-xs w-36"
+                        />
+                        <Button size="sm" className="h-8 text-xs" onClick={finalizeJoin}>Add</Button>
+                        <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setJoinForm(null)}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No-show follow-up CTA */}
+                  {noShowFollowUp === g.id && outcome === "noshow" && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">Save her to booking leads for follow-up?</p>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveNoShowAsLead(g)}>
+                        Save to Booking Leads
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setNoShowFollowUp(null)}>
+                        Skip
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
-          // Standard table view for non-Guest Events or non-held events
+          // ── PRE-EVENT: minimal table (Name / Phone / RSVP only) ──
           <div className="border border-border rounded-lg overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-[10px]">Name</TableHead>
                   <TableHead className="text-[10px]">Phone</TableHead>
-                  <TableHead className="text-[10px] w-20">RSVP</TableHead>
-                  <TableHead className="text-[10px] text-center w-16">Attended</TableHead>
-                  <TableHead className="text-[10px] text-center w-16">Ordered</TableHead>
-                  <TableHead className="text-[10px] text-center w-16">Booked</TableHead>
-                  <TableHead className="text-[10px] text-center w-16">Interested</TableHead>
-                  <TableHead
-                    className="text-[10px] text-center w-32"
-                    title={isHeld ? "Invite sent / Day-before text sent / Thank you sent" : "Invite sent / Day-before text sent"}
-                  >
-                    Tasks
-                  </TableHead>
-                  <TableHead className="text-[10px] w-16"></TableHead>
+                  <TableHead className="text-[10px] w-24">RSVP</TableHead>
+                  <TableHead className="text-[10px] w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {guests.map((g) => (
                   <TableRow key={g.id} className="group">
-                    <TableCell className="text-xs font-medium py-1.5">
-                      <div className="flex items-center gap-1.5">
-                        {g.name}
-                        {g.converted_customer_id && (
-                          <Link
-                            to={`/customers/${g.converted_customer_id}`}
-                            className="text-[9px] px-1 py-0.5 rounded bg-primary/10 text-primary font-medium hover:bg-primary/20"
-                            title="View customer profile"
-                          >
-                            Customer ✓
-                          </Link>
-                        )}
-                        {g.consultant_id && (
-                          <span
-                            className="text-[9px] px-1 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 font-medium"
-                            title="Linked consultant"
-                          >
-                            Consultant ✓
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableCell className="text-xs font-medium py-1.5">{g.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground py-1.5">{formatPhone(g.phone)}</TableCell>
                     <TableCell className="py-1.5">
-                      <Select value={g.rsvp || "Invited"} onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}>
+                      <Select
+                        value={g.rsvp || "Invited"}
+                        onValueChange={(v) => updateMutation.mutate({ id: g.id, updates: { rsvp: v } })}
+                      >
                         <SelectTrigger className={cn(
-                          "h-6 text-[10px] w-20",
+                          "h-7 text-[11px] w-24",
                           (g.rsvp || "Invited") === "Invited" && "bg-muted text-muted-foreground border-muted"
-                        )}><SelectValue /></SelectTrigger>
-                        <SelectContent>{RSVP_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                        )}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RSVP_OPTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <Checkbox checked={g.attending} onCheckedChange={(v) => handleAttendedToggle(g, !!v)} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <Checkbox checked={g.ordered} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { ordered: !!v } })} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <Checkbox checked={(g as any).booked || false} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { booked: !!v } as any })} />
-                    </TableCell>
-                    <TableCell className="text-center py-1.5">
-                      <Checkbox checked={g.interested} onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { interested: !!v } })} />
-                    </TableCell>
-                    <TableCell className="py-1.5">
-                      <div className="flex items-center justify-center gap-2">
-                        <label className="flex items-center gap-1 cursor-pointer" title="Invite sent">
-                          <Checkbox
-                            checked={(g as any).task_invite_sent || false}
-                            onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { task_invite_sent: !!v } as any })}
-                          />
-                          <span className="text-[10px]">📨</span>
-                        </label>
-                        <label className="flex items-center gap-1 cursor-pointer" title="Day-before text sent">
-                          <Checkbox
-                            checked={(g as any).task_day_before_sent || false}
-                            onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { task_day_before_sent: !!v } as any })}
-                          />
-                          <span className="text-[10px]">🎉</span>
-                        </label>
-                        {isHeld && (
-                          <label className="flex items-center gap-1 cursor-pointer" title="Thank you sent">
-                            <Checkbox
-                              checked={g.thank_you_sent || false}
-                              onCheckedChange={(v) => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !!v } as any })}
-                            />
-                            <span className="text-[10px]">✉️</span>
-                          </label>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-1.5">
-                      <div className={cn(
-                        "flex gap-0.5 transition-opacity",
-                        isPostEvent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                      )}>
-                        {!g.converted_customer_id && (
-                          <Button
-                            variant={isPostEvent ? "outline" : "ghost"}
-                            size={isPostEvent ? "sm" : "icon"}
-                            className={isPostEvent ? "h-6 px-2 text-[10px]" : "h-6 w-6"}
-                            title="Convert to customer"
-                            onClick={() => convertMutation.mutate(g)}
-                            disabled={convertMutation.isPending}
-                          >
-                            {isPostEvent ? (
-                              <><UserPlus className="w-3 h-3 mr-1 text-primary" />Convert</>
-                            ) : (
-                              <ArrowRightLeft className="w-3 h-3 text-primary" />
-                            )}
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Remove"
-                          onClick={() => deleteMutation.mutate(g.id)}>
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
-                      </div>
+                    <TableCell className="py-1.5 text-right">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -567,60 +495,6 @@ export default function EventGuestPanel({ eventId, eventType, isHeld, eventDate 
           </div>
         )
       )}
-
-      {/* Attended — Outcome Dialog */}
-      <Dialog open={!!outcomeGuest && !noShowGuest} onOpenChange={(o) => { if (!o) { setOutcomeGuest(null); setSelectedOutcomes([]); }}}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base">What happened with {outcomeGuest?.name}?</DialogTitle>
-          </DialogHeader>
-          <p className="text-xs text-muted-foreground">Select all that apply</p>
-          <div className="space-y-2">
-            {GUEST_OUTCOMES.map(o => (
-              <label key={o.value} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
-                <Checkbox
-                  checked={selectedOutcomes.includes(o.value)}
-                  onCheckedChange={(v) => {
-                    setSelectedOutcomes(prev => v ? [...prev, o.value] : prev.filter(x => x !== o.value));
-                  }}
-                />
-                <span className="text-sm font-medium text-foreground">{o.label}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Button variant="outline" className="flex-1" onClick={() => { setOutcomeGuest(null); setSelectedOutcomes([]); }}>Cancel</Button>
-            <Button className="flex-1" onClick={handleOutcomeConfirm}>
-              {selectedOutcomes.length === 0 ? "Mark Attended Only" : "Save & Continue"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Did Not Attend Dialog */}
-      <Dialog open={!!noShowGuest} onOpenChange={(o) => { if (!o) { setNoShowGuest(null); setNoShowAction(""); setOutcomeGuest(null); }}}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-base">What's next for {noShowGuest?.name}?</DialogTitle>
-          </DialogHeader>
-          <p className="text-xs text-muted-foreground">They didn't make it — what should happen next?</p>
-          <div className="space-y-2">
-            {NO_SHOW_OPTIONS.map(o => (
-              <button key={o.value} type="button"
-                onClick={() => setNoShowAction(o.value)}
-                className={cn("w-full text-left p-2.5 rounded-lg border text-sm font-medium transition-colors",
-                  noShowAction === o.value ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/50"
-                )}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Button variant="outline" className="flex-1" onClick={() => { setNoShowGuest(null); setNoShowAction(""); setOutcomeGuest(null); }}>Cancel</Button>
-            <Button className="flex-1" disabled={!noShowAction} onClick={handleNoShowConfirm}>Confirm</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
