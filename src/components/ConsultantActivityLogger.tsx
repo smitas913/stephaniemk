@@ -99,7 +99,8 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
   });
 
   const handleLog = useCallback(() => {
-    if (!selectedAction) {
+    const isDateOnlyUpdate = !selectedAction && nextOption === "schedule" && !!customDate;
+    if (!selectedAction && !isDateOnlyUpdate) {
       toast.error("Please select an action first");
       return;
     }
