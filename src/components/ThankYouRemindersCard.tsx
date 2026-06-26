@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchEvents, fetchOrders } from "@/lib/queries";
+import { fetchEvents } from "@/lib/queries";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { toast } from "sonner";
 
@@ -22,7 +22,6 @@ export default function ThankYouRemindersCard() {
   const today = toLocalDateKey();
 
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
-  const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
 
   // Held + past events where hostess TY note not sent
   const pendingHostess = useMemo(
@@ -66,10 +65,6 @@ export default function ThankYouRemindersCard() {
     },
   });
 
-  const pendingOrders = useMemo(
-    () => (orders as any[]).filter((o) => !o.thank_you_sent).slice(0, 25),
-    [orders],
-  );
 
   const markEvent = useMutation({
     mutationFn: async (eventId: string) => {
@@ -99,21 +94,8 @@ export default function ThankYouRemindersCard() {
     },
   });
 
-  const markOrder = useMutation({
-    mutationFn: async (orderId: string) => {
-      const { error } = await supabase
-        .from("orders")
-        .update({ thank_you_sent: true } as any)
-        .eq("id", orderId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Order thank you marked");
-    },
-  });
 
-  const totalPending = pendingHostess.length + pendingGuests.length + pendingOrders.length;
+  const totalPending = pendingHostess.length + pendingGuests.length;
   if (totalPending === 0) return null;
 
   return (
@@ -165,26 +147,6 @@ export default function ThankYouRemindersCard() {
           </div>
         )}
 
-        {pendingOrders.length > 0 && (
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Orders</p>
-            {pendingOrders.slice(0, 10).map((o: any) => (
-              <div key={o.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
-                <div className="flex-1 min-w-0 text-sm">
-                  <span className="font-medium">{o.customer_name || o.customers?.full_name || "Order"}</span>
-                  <span className="text-muted-foreground"> — ${Number(o.retail_amount || 0).toFixed(2)} · {formatDateOnly(o.order_date)}</span>
-                </div>
-                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                  onClick={() => markOrder.mutate(o.id)} disabled={markOrder.isPending}>
-                  <Check className="w-3 h-3" /> Sent
-                </Button>
-              </div>
-            ))}
-            {pendingOrders.length > 10 && (
-              <p className="text-[11px] text-muted-foreground italic">+{pendingOrders.length - 10} more orders pending</p>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
