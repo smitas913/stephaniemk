@@ -539,7 +539,6 @@ export default function MergeDuplicates() {
                       setManualConfirmOpen(false);
                       setManualKeepId("");
                       setManualMergeId("");
-                      toast.success(`Merged ${duplicate.full_name} into ${primary.full_name}`);
                     },
                   }
                 );
