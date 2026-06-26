@@ -127,6 +127,7 @@ export default function NewEvent() {
         event_time: eventTime || null,
         hostess_name: hostessName.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
+        hostess_source: hostessSource || null,
         guest_count: 0,
         notes: notes.trim() || null,
       };
