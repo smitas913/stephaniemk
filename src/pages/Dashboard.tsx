@@ -23,7 +23,7 @@ import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
 import TodoListCard from "@/components/TodoListCard";
 import HostessCoachingCard from "@/components/HostessCoachingCard";
-import ThankYouRemindersCard from "@/components/ThankYouRemindersCard";
+
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
 
@@ -239,8 +239,6 @@ export default function Dashboard() {
         {/* HOSTESS COACHING REMINDERS (auto from events) */}
         <HostessCoachingCard />
 
-        {/* THANK YOU NOTE REMINDERS */}
-        <ThankYouRemindersCard />
 
         {/* QUICK ADD */}
         <QuickAddBar onLogged={invalidateAll} />

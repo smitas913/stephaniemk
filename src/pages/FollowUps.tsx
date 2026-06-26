@@ -56,6 +56,7 @@ import { toast } from "sonner";
 import { format, addDays } from "date-fns";
 import { resolveIntentCategory, categoryTag } from "@/lib/intentCategory";
 import TextActionButton from "@/components/TextActionButton";
+import ThankYouRemindersCard from "@/components/ThankYouRemindersCard";
 import { useTodaySections, TodaySectionWrapper } from "@/components/TodaySectionWrapper";
 import {
   formatDateOnly,
@@ -3534,6 +3535,13 @@ export default function FollowUps() {
             </ScrollArea>
           </SheetContent>
         </Sheet>
+
+        {/* Thank You Notes — bottom of Today page */}
+        <div className="mt-6">
+          <ThankYouRemindersCard />
+        </div>
+
+
 
         {/* Fresh Start Dialog — reschedule today's backlog forward */}
         <Dialog open={showFreshStart} onOpenChange={setShowFreshStart}>
