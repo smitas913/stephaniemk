@@ -148,7 +148,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       event_id: eventId,
       name: trimmedName,
       phone: phone.trim() || null,
-      rsvp: "Invited",
+      rsvp: "Yes",
       converted_customer_id: linkedCustomerId,
       consultant_id: linkedConsultantId,
     });
