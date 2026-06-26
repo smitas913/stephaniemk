@@ -665,6 +665,20 @@ export default function Events() {
           </Card>
         </div>
 
+        {/* Category Tabs */}
+        <Tabs value={categoryTab} onValueChange={(v) => setCategoryTab(v as "product" | "business")}>
+          <TabsList className="grid w-full sm:w-auto grid-cols-2">
+            <TabsTrigger value="product">
+              Product Events
+              <span className="ml-2 text-[10px] bg-muted-foreground/15 rounded-full px-1.5 py-0.5">{productEvents.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="business">
+              Business Events
+              <span className="ml-2 text-[10px] bg-muted-foreground/15 rounded-full px-1.5 py-0.5">{businessEvents.length}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Search + Filters bar */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
