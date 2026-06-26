@@ -16,12 +16,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList, SlidersHorizontal, MoreHorizontal, X, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
+
+const BUSINESS_EVENT_TYPES = new Set(["Career Chat", "Pearl Appointment"]);
+const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
+
+const scopeChipClasses = (scope: string) =>
+  scope === "Unit"
+    ? "bg-teal-100 text-teal-700 border-teal-200"
+    : "bg-muted text-muted-foreground border-border";
 
 const statusColor = (s: string) => {
   switch (s) {
