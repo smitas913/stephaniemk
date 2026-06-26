@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, createTodoForToday } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
@@ -148,23 +148,6 @@ export default function EventDetail() {
     if (!event || val === (event.event_status || "Booked")) return;
     if (val === "Held") {
       eventMutation.mutate({ event_id: event.event_id, event_status: "Held" } as any);
-      // Auto-add thank you notes to MIT list (skip if one already exists for this event)
-      if (event.hostess_name) {
-        const token = `[${event.event_id}]`;
-        const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
-        const userId = (await supabase.auth.getUser()).data.user?.id;
-        if (userId) {
-          const { data: existing } = await supabase
-            .from("todos" as any)
-            .select("id")
-            .eq("user_id", userId)
-            .ilike("text", `%${token}%`)
-            .limit(1);
-          if (!existing || existing.length === 0) {
-            await createTodoForToday(todoText);
-          }
-        }
-      }
       toast.success("Event marked as Held");
     } else if (val === "Cancelled") {
       // Clear rescheduling status when cancelling — they're mutually exclusive
@@ -747,6 +730,17 @@ export default function EventDetail() {
                           </Button>
                         )
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={cn(
+                          "h-8 text-xs gap-1.5",
+                          (event as any).thank_you_sent && "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                        )}
+                        onClick={() => updateField("thank_you_sent", !(event as any).thank_you_sent)}
+                      >
+                        {(event as any).thank_you_sent ? <>✓ Thank You Sent</> : <>Mark Thank You Note Sent</>}
+                      </Button>
                     </div>
                     {/* Recent activity */}
                     {(() => {
@@ -875,6 +869,7 @@ export default function EventDetail() {
                         <TableHead className="text-xs">Type</TableHead>
                         <TableHead className="text-xs">Payment</TableHead>
                         <TableHead className="text-xs">Notes</TableHead>
+                        <TableHead className="text-xs">TY</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -894,6 +889,25 @@ export default function EventDetail() {
                           </TableCell>
                           <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[150px] truncate">{o.notes || ""}</TableCell>
+                          <TableCell>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const newVal = !(o as any).thank_you_sent;
+                                const { error } = await supabase.from("orders").update({ thank_you_sent: newVal } as any).eq("id", o.id);
+                                if (error) { toast.error(error.message); return; }
+                                queryClient.invalidateQueries({ queryKey: ["orders"] });
+                              }}
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded font-medium border",
+                                (o as any).thank_you_sent
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                              )}
+                            >
+                              {(o as any).thank_you_sent ? "TY ✓" : "Send TY"}
+                            </button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

@@ -851,6 +851,7 @@ export type Database = {
           reschedule_next_follow_up_date: string | null
           reschedule_status: string | null
           sharing_appointments_count: number | null
+          thank_you_sent: boolean
           updated_at: string | null
           virtual_notes: string | null
           virtual_platform: string | null
@@ -903,6 +904,7 @@ export type Database = {
           reschedule_next_follow_up_date?: string | null
           reschedule_status?: string | null
           sharing_appointments_count?: number | null
+          thank_you_sent?: boolean
           updated_at?: string | null
           virtual_notes?: string | null
           virtual_platform?: string | null
@@ -955,6 +957,7 @@ export type Database = {
           reschedule_next_follow_up_date?: string | null
           reschedule_status?: string | null
           sharing_appointments_count?: number | null
+          thank_you_sent?: boolean
           updated_at?: string | null
           virtual_notes?: string | null
           virtual_platform?: string | null
@@ -1455,6 +1458,7 @@ export type Database = {
           referral: boolean | null
           retail_amount: number
           tax_amount: number
+          thank_you_sent: boolean
           updated_at: string | null
           wholesale_amount: number | null
         }
@@ -1487,6 +1491,7 @@ export type Database = {
           referral?: boolean | null
           retail_amount?: number
           tax_amount?: number
+          thank_you_sent?: boolean
           updated_at?: string | null
           wholesale_amount?: number | null
         }
@@ -1519,6 +1524,7 @@ export type Database = {
           referral?: boolean | null
           retail_amount?: number
           tax_amount?: number
+          thank_you_sent?: boolean
           updated_at?: string | null
           wholesale_amount?: number | null
         }
