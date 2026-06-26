@@ -43,7 +43,14 @@ export default function EventDetail() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  // Include eventId in the key + force fresh fetch on mount so navigating to a
+  // newly-created event never flashes stale data from a previously viewed event.
+  const { data: events = [] } = useQuery({
+    queryKey: ["events", eventId],
+    queryFn: fetchEvents,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });

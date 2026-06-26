@@ -75,12 +75,14 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     },
     onSuccess: async (eventId) => {
       try {
-
         await seedHostessCoaching(eventId, hostessName.trim() || null);
       } catch (e) {
         console.error("Failed to seed hostess coaching tasks", e);
       }
-      queryClient.invalidateQueries({ queryKey: ["events"] });
+      // Clear any stale single-event cache for this id, then refetch the list
+      // so EventDetail has fresh data the moment we navigate.
+      queryClient.removeQueries({ queryKey: ["event", eventId] });
+      await queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["hostess-coaching-tasks"] });
       toast.success("Event created");
