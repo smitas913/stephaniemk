@@ -380,14 +380,6 @@ export default function EventDetail() {
         <Tabs defaultValue="details">
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details" className="flex-1 sm:flex-none">Details & Hostess</TabsTrigger>
-            <TabsTrigger value="prep" className="flex-1 sm:flex-none">
-              Event Coaching
-              {event && prepDone < prepTotal && (
-                <span className="ml-1.5 text-[10px] bg-amber-100 text-amber-700 font-bold rounded-full px-1.5">
-                  {prepTotal - prepDone}
-                </span>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="guests" className="flex-1 sm:flex-none">
               Guests & Orders
               {orderCount > 0 && (
