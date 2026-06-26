@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, MessageSquare, Users, UserCheck } from "lucide-react";
+import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, MessageSquare, Users, UserCheck, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -23,8 +23,10 @@ const EVENT_TYPES = [
   { value: "Guest Event", label: "Guest Event", icon: Users },
   { value: "Career Chat", label: "Career Chat", icon: MessageSquare },
   { value: "Sharing Appointment", label: "Sharing Appt", icon: Share2 },
+  { value: "Pearl Appointment", label: "Pearl Appt", icon: Gem },
   { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
+
 
 const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
