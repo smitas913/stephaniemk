@@ -118,7 +118,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
     }
 
     logMutation.mutate({
-      action: selectedAction,
+      action: selectedAction || "Scheduled",
       note: noteText,
       nextFollowUpDate: nextDate,
     });
