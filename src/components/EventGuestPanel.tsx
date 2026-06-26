@@ -212,6 +212,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "booked":
         updates.booked = willBeOn;
+        if (willBeOn) {
+          setBookForm({ guestId: g.id, name: g.name, phone: g.phone || "", search: "", selectedEventId: null });
+        } else {
+          setBookForm((prev) => (prev && prev.guestId === g.id ? null : prev));
+        }
         break;
       case "career":
         updates.interested = willBeOn;
