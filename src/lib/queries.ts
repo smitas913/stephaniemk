@@ -1259,12 +1259,8 @@ export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEv
     } as any);
   if (evErr) throw evErr;
 
-  // Generate workflow tasks for the new event
-  try {
-    await generateEventWorkflowTasks(eventId, null);
-  } catch (e) {
-    console.error("Failed to generate workflow tasks for converted lead", e);
-  }
+
+
 
   // Delete the original booking_lead. Data lives on the customer record now;
   // leaving the lead around creates orphans that break "Lead not found" lookups
