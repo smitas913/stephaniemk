@@ -230,6 +230,21 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
             />
           </div>
 
+          {/* Booked From */}
+          <div>
+            <label className="text-sm font-medium text-foreground">Booked From</label>
+            <select
+              value={bookedFrom}
+              onChange={(e) => setBookedFrom(e.target.value)}
+              className="h-9 mt-1 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">— Select —</option>
+              {BOOKED_FROM_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+
+
+
           <Button
             className="w-full h-10"
             disabled={!canSubmit}
