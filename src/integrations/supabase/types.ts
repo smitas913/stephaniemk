@@ -651,6 +651,7 @@ export type Database = {
           notes: string | null
           ordered: boolean | null
           owner_user_id: string | null
+          party_rescheduled: boolean
           phone: string | null
           rsvp: string | null
           task_day_before_sent: boolean
@@ -671,6 +672,7 @@ export type Database = {
           notes?: string | null
           ordered?: boolean | null
           owner_user_id?: string | null
+          party_rescheduled?: boolean
           phone?: string | null
           rsvp?: string | null
           task_day_before_sent?: boolean
@@ -691,6 +693,7 @@ export type Database = {
           notes?: string | null
           ordered?: boolean | null
           owner_user_id?: string | null
+          party_rescheduled?: boolean
           phone?: string | null
           rsvp?: string | null
           task_day_before_sent?: boolean
