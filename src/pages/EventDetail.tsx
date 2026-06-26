@@ -1008,6 +1008,7 @@ export default function EventDetail() {
                   eventType={event?.event_type}
                   isHeld={event?.event_status === "Held"}
                   eventDate={event?.event_date}
+                  hostessName={event?.hostess_name}
                 />
               </CardContent>
             </Card>
