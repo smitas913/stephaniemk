@@ -352,23 +352,20 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           // ── POST-EVENT: simple list with inline outcome buttons ──
           <div className="space-y-2">
             {guests.map((g) => {
-              const outcome = getOutcome(g);
+              const active = getActiveOutcomes(g);
+              const isNoShow = active.has("noshow");
+              const hasPositive = active.size > 0 && !(active.size === 1 && isNoShow);
               return (
                 <div key={g.id} className={cn(
                   "rounded-lg border transition-colors p-2.5",
-                  outcome === "noshow" ? "border-border bg-muted/30" :
-                  outcome ? "border-green-200 bg-green-50/40" :
+                  isNoShow && !hasPositive ? "border-border bg-muted/30" :
+                  hasPositive ? "border-green-200 bg-green-50/40" :
                   "border-border"
                 )}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-foreground">{g.name}</p>
-                        {outcome && (
-                          <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", outcomeBadgeClass(outcome))}>
-                            {outcomeLabel(outcome)}
-                          </span>
-                        )}
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                     </div>
@@ -378,24 +375,25 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     </Button>
                   </div>
 
-                  {/* Outcome selector */}
+                  {/* Outcome multi-select */}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {OUTCOME_OPTIONS.map((opt) => {
-                      const active = outcome === opt.key;
+                      const isActive = active.has(opt.key);
                       return (
                         <Button
                           key={opt.key}
                           type="button"
                           size="sm"
-                          variant={active ? "default" : "outline"}
-                          className={cn("h-7 text-[11px] px-2", active && "ring-2 ring-primary/30")}
-                          onClick={() => applyOutcome(g, opt.key)}
+                          variant={isActive ? "default" : "outline"}
+                          className={cn("h-7 text-[11px] px-2", isActive && "ring-2 ring-primary/30")}
+                          onClick={() => toggleOutcome(g, opt.key)}
                         >
-                          {opt.label}
+                          {isActive ? `${opt.label} ✓` : opt.label}
                         </Button>
                       );
                     })}
                   </div>
+
 
                   {/* Inline join form */}
                   {joinForm && joinForm.guestId === g.id && (
