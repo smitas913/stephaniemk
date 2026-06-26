@@ -642,7 +642,7 @@ export default function Events() {
                 <Calendar className="w-4 h-4 text-blue-600" />
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Events</span>
               </div>
-              <p className="text-lg font-bold text-blue-600">{filtered.length}</p>
+              <p className="text-lg font-bold text-blue-600">{activeEvents.length}</p>
             </CardContent>
           </Card>
           <Card className="border-border/50 shadow-sm">
