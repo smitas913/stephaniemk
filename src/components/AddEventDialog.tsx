@@ -89,6 +89,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
       resetForm();
       onOpenChange(false);
       onCreated?.(eventId);
+      navigate(`/events/${eventId}`);
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to create event");
