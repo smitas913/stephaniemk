@@ -54,6 +54,7 @@ const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
 
 export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -64,6 +65,27 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   // Inline sub-forms for outcomes that need a little extra info
   const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
+  const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
+
+  // Upcoming events for the "Booked Next Event" linking panel
+  const { data: upcomingEvents = [] } = useQuery({
+    queryKey: ["upcoming-events-for-booking"],
+    enabled: !!bookForm,
+    queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, event_id, event_date, hostess_name")
+        .gte("event_date", today)
+        .neq("event_id", eventId)
+        .order("event_date", { ascending: true })
+        .limit(50);
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null }>;
+    },
+  });
+
+
 
   // Autocomplete: search customers + consultants by name
   useEffect(() => {
