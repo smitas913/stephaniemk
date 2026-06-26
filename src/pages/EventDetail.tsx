@@ -698,15 +698,14 @@ export default function EventDetail() {
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
                       </div>
                       <div className="space-y-1.5 sm:col-span-3">
-
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booked From</label>
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Where did you meet the hostess?</label>
                         <Select
-                          value={(event as any).booked_from || ""}
-                          onValueChange={(val) => updateField("booked_from", val || null)}
+                          value={(event as any).hostess_source || ""}
+                          onValueChange={(val) => updateField("hostess_source", val || null)}
                         >
-                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="How did you meet the hostess?" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select source" /></SelectTrigger>
                           <SelectContent>
-                            {BOOKED_FROM_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                            {HOSTESS_SOURCE_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
