@@ -57,6 +57,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         event_date: eventDate,
         hostess_name: hostessName.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
+        booked_from: bookedFrom || null,
+
         guest_count: 0,
       };
       if (isVirtual && zoomDefaults) {
