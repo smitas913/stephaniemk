@@ -73,11 +73,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     },
     onSuccess: async (eventId) => {
       try {
-        await generateEventWorkflowTasks(eventId, eventDate || null);
-      } catch (e) {
-        console.error("Failed to generate workflow tasks", e);
-      }
-      try {
+
         await seedHostessCoaching(eventId, hostessName.trim() || null);
       } catch (e) {
         console.error("Failed to seed hostess coaching tasks", e);
