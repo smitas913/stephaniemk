@@ -34,6 +34,8 @@ import { toast } from "sonner";
 
 const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Networking Event", "Vendor Event"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
+const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
+
 
 // Coaching prep steps in order — each one drives booking rate
 const PREP_STEPS = [
@@ -158,18 +160,28 @@ export default function EventDetail() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["events"] }),
   });
 
-  // Post-event completion dialog
-  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
-  const [completionData, setCompletionData] = useState({ guest_count: "", bookings: "", sharings: "" });
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-
-  const handleStatusChange = (val: string) => {
+  const handleStatusChange = async (val: string) => {
     if (!event || val === (event.event_status || "Booked")) return;
     if (val === "Held") {
-      setPendingStatus(val);
-      setCompletionData({ guest_count: "", bookings: "", sharings: "" });
-      setShowCompletionDialog(true);
-      // Thank you note will be created in submitCompletion
+      eventMutation.mutate({ event_id: event.event_id, event_status: "Held" } as any);
+      // Auto-add thank you notes to MIT list (skip if one already exists for this event)
+      if (event.hostess_name) {
+        const token = `[${event.event_id}]`;
+        const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        if (userId) {
+          const { data: existing } = await supabase
+            .from("todos" as any)
+            .select("id")
+            .eq("user_id", userId)
+            .ilike("text", `%${token}%`)
+            .limit(1);
+          if (!existing || existing.length === 0) {
+            await createTodoForToday(todoText);
+          }
+        }
+      }
+      toast.success("Event marked as Held");
     } else if (val === "Cancelled") {
       // Clear rescheduling status when cancelling — they're mutually exclusive
       eventMutation.mutate({
@@ -183,35 +195,6 @@ export default function EventDetail() {
     }
   };
 
-  const submitCompletion = async () => {
-    if (!event || !pendingStatus) return;
-    eventMutation.mutate({
-      event_id: event.event_id,
-      event_status: pendingStatus,
-      guest_count: parseInt(completionData.guest_count) || 0,
-      future_bookings_count: parseInt(completionData.bookings) || 0,
-      sharing_appointments_count: parseInt(completionData.sharings) || 0,
-    } as any);
-    // Auto-add thank you notes to MIT list (skip if one already exists for this event)
-    if (pendingStatus === "Held" && event.hostess_name) {
-      const token = `[${event.event_id}]`;
-      const todoText = `Thank you notes — ${event.hostess_name} ${event.event_type || "Event"} ${token}`;
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (userId) {
-        const { data: existing } = await supabase
-          .from("todos" as any)
-          .select("id")
-          .eq("user_id", userId)
-          .ilike("text", `%${token}%`)
-          .limit(1);
-        if (!existing || existing.length === 0) {
-          await createTodoForToday(todoText);
-        }
-      }
-    }
-    setShowCompletionDialog(false);
-    setPendingStatus(null);
-  };
 
   // Post-event prompt — only for past events that are still "Upcoming" (Booked),
   // not already in rescheduling, and with no results entered yet.
@@ -420,7 +403,7 @@ export default function EventDetail() {
         </div>
 
         {/* KPI Strip — compact */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="bg-muted/40 rounded-lg p-2.5 text-center">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date</p>
             <p className="text-xs font-bold text-foreground">{event?.event_date ? formatDateOnly(event.event_date, "MMM d") : "—"}</p>
@@ -437,15 +420,8 @@ export default function EventDetail() {
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
             <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
           </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sharing</p>
-            <p className="text-xs font-bold text-orange-600">{(event as any)?.sharing_appointments_count ?? "—"}</p>
-          </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Conv.</p>
-            <p className="text-xs font-bold text-blue-600">{convRate ? `${convRate}%` : "—"}</p>
-          </div>
         </div>
+
 
         {/* Tabs */}
         <Tabs defaultValue="details">
@@ -787,7 +763,21 @@ export default function EventDetail() {
                         <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
                       </div>
+                      <div className="space-y-1.5 sm:col-span-3">
+
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Booked From</label>
+                        <Select
+                          value={(event as any).booked_from || ""}
+                          onValueChange={(val) => updateField("booked_from", val || null)}
+                        >
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="How did you meet the hostess?" /></SelectTrigger>
+                          <SelectContent>
+                            {BOOKED_FROM_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
+
                     {/* Contact + Log + Convert buttons */}
                     <div className="flex gap-2 flex-wrap">
                       {event.hostess_phone && (
@@ -1147,7 +1137,7 @@ export default function EventDetail() {
           <p className="text-sm text-muted-foreground">This event's date has passed — please update the status.</p>
           <div className="flex flex-col gap-2 pt-2">
             <Button className="w-full" onClick={() => { setShowPostEventPrompt(false); handleStatusChange("Held"); }}>
-              ✅ Held — Enter Results
+              ✅ Mark as Held
             </Button>
             <Button variant="outline" className="w-full" onClick={() => {
               eventMutation.mutate({
@@ -1176,38 +1166,6 @@ export default function EventDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Event Completion Dialog */}
-      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Event Results</DialogTitle>
-            <p className="text-sm text-muted-foreground">How did it go? Enter the results below.</p>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="text-sm font-medium">Guest Count (Faces)</label>
-              <Input type="number" min={0} placeholder="0" value={completionData.guest_count}
-                onChange={(e) => setCompletionData(p => ({ ...p, guest_count: e.target.value }))} className="h-10 mt-1" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Bookings</label>
-                <Input type="number" min={0} placeholder="0" value={completionData.bookings}
-                  onChange={(e) => setCompletionData(p => ({ ...p, bookings: e.target.value }))} className="h-10 mt-1" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Sharings</label>
-                <Input type="number" min={0} placeholder="0" value={completionData.sharings}
-                  onChange={(e) => setCompletionData(p => ({ ...p, sharings: e.target.value }))} className="h-10 mt-1" />
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button className="flex-1 h-10" onClick={submitCompletion}>Save Results</Button>
-              <Button variant="outline" className="h-10" onClick={() => { setShowCompletionDialog(false); setPendingStatus(null); }}>Skip</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 }

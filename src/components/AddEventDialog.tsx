@@ -20,6 +20,9 @@ const EVENT_TYPES = [
 
 const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
 
+const BOOKED_FROM_OPTIONS = ["David's Bridal", "Vendor Event", "Facial Box", "Networking", "Warm Chatter", "Customer Referral", "Social Media", "Existing Customer", "Other"] as const;
+
+
 interface AddEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,6 +40,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
+  const [bookedFrom, setBookedFrom] = useState<string>("");
+
 
   const isLeadGen = eventType === "Lead Generating Event";
   const isVirtual = eventFormat === "Virtual";
@@ -52,6 +57,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         event_date: eventDate,
         hostess_name: hostessName.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
+        booked_from: bookedFrom || null,
+
         guest_count: 0,
       };
       if (isVirtual && zoomDefaults) {
@@ -94,6 +101,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     setEventDate(toLocalDateKey());
     setHostessName("");
     setHostessPhone("");
+    setBookedFrom("");
+
   };
 
   const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype) && !mutation.isPending;
@@ -220,6 +229,21 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
               className="h-9 mt-1"
             />
           </div>
+
+          {/* Booked From */}
+          <div>
+            <label className="text-sm font-medium text-foreground">Booked From</label>
+            <select
+              value={bookedFrom}
+              onChange={(e) => setBookedFrom(e.target.value)}
+              className="h-9 mt-1 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">— Select —</option>
+              {BOOKED_FROM_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+
+
 
           <Button
             className="w-full h-10"
