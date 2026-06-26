@@ -1137,7 +1137,7 @@ export default function EventDetail() {
           <p className="text-sm text-muted-foreground">This event's date has passed — please update the status.</p>
           <div className="flex flex-col gap-2 pt-2">
             <Button className="w-full" onClick={() => { setShowPostEventPrompt(false); handleStatusChange("Held"); }}>
-              ✅ Held — Enter Results
+              ✅ Mark as Held
             </Button>
             <Button variant="outline" className="w-full" onClick={() => {
               eventMutation.mutate({
