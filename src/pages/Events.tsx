@@ -594,12 +594,13 @@ export default function Events() {
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="text-xs">Date</TableHead>
-                  <TableHead className="text-xs">Hostess</TableHead>
+                  <TableHead className="text-xs">{isBusiness ? "Contact" : "Hostess"}</TableHead>
                   <TableHead className="text-xs">Type</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs text-center">Guests</TableHead>
-                  <TableHead className="text-xs text-center">Orders</TableHead>
-                  <TableHead className="text-xs text-right">Sales</TableHead>
+                  {!isBusiness && <TableHead className="text-xs text-center">Guests</TableHead>}
+                  {!isBusiness && <TableHead className="text-xs text-center">Orders</TableHead>}
+                  {!isBusiness && <TableHead className="text-xs text-right">Sales</TableHead>}
+                  {isBusiness && <TableHead className="text-xs">Notes</TableHead>}
                   <TableHead className="text-xs">Next Task</TableHead>
                   <TableHead className="text-xs w-[110px] text-right">Actions</TableHead>
                 </TableRow>
