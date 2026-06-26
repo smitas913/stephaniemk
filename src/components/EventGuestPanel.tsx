@@ -234,15 +234,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     const userId = (await supabase.auth.getUser()).data.user?.id;
     const trimmedName = joinForm.name.trim();
     if (!trimmedName) { toast.error("Name required"); return; }
-    const { error } = await supabase.from("team_consultants").insert({
+    const { data: inserted, error } = await supabase.from("team_consultants").insert({
       name: trimmedName,
       phone: joinForm.phone.trim() || null,
       status: "Active",
       join_date: new Date().toISOString().slice(0, 10),
       relationship_type: "Personal Recruit",
       owner_user_id: userId,
-    } as any);
+    } as any).select("id").single();
     if (error) { toast.error(error.message); return; }
+    if (inserted?.id) {
+      await updateMutation.mutateAsync({ id: joinForm.guestId, updates: { converted_consultant_id: inserted.id } as any });
+    }
     toast.success(`${trimmedName} added to your team!`);
     setJoinForm(null);
     queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
