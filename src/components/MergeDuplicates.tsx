@@ -8,7 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, GitMerge, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Loader2, GitMerge, CheckCircle2, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface DuplicatePair {
@@ -40,6 +43,13 @@ export default function MergeDuplicates() {
   const [customerMergeTarget, setCustomerMergeTarget] = useState<CustomerDupGroup | null>(null);
   const [mergedIds, setMergedIds] = useState<Set<string>>(new Set());
   const [mergedCustomerIds, setMergedCustomerIds] = useState<Set<string>>(new Set());
+
+  // Manual merge state
+  const [manualKeepId, setManualKeepId] = useState<string>("");
+  const [manualMergeId, setManualMergeId] = useState<string>("");
+  const [keepOpen, setKeepOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [manualConfirmOpen, setManualConfirmOpen] = useState(false);
 
   const duplicates = useMemo(() => {
     const pairs: DuplicatePair[] = [];
@@ -380,6 +390,167 @@ export default function MergeDuplicates() {
           </div>
         )}
       </div>
+
+      {/* Manual Merge */}
+      <div className="pt-4">
+        <h3 className="text-sm font-semibold text-foreground">Manual Merge</h3>
+        <p className="text-xs text-muted-foreground mb-2">
+          Pick any two customers to merge — useful when automatic detection misses a duplicate.
+        </p>
+        <Card className="border-border/50">
+          <CardContent className="p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Keep */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Keep this customer</label>
+                <Popover open={keepOpen} onOpenChange={setKeepOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="truncate">
+                        {manualKeepId
+                          ? customers.find((c) => c.id === manualKeepId)?.full_name || "Select customer..."
+                          : "Select customer..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 w-4 h-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search by name..." />
+                      <CommandList>
+                        <CommandEmpty>No customer found.</CommandEmpty>
+                        <CommandGroup>
+                          {customers
+                            .filter((c) => c.id !== manualMergeId)
+                            .map((c) => (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.full_name} ${c.email || ""} ${c.phone || ""}`}
+                                onSelect={() => { setManualKeepId(c.id); setKeepOpen(false); }}
+                              >
+                                <Check className={cn("mr-2 w-4 h-4", manualKeepId === c.id ? "opacity-100" : "opacity-0")} />
+                                <span className="truncate">{c.full_name}</span>
+                                {c.email && <span className="ml-2 text-xs text-muted-foreground truncate">{c.email}</span>}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Merge & delete */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Merge &amp; delete this one</label>
+                <Popover open={mergeOpen} onOpenChange={setMergeOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="truncate">
+                        {manualMergeId
+                          ? customers.find((c) => c.id === manualMergeId)?.full_name || "Select customer..."
+                          : "Select customer..."}
+                      </span>
+                      <ChevronsUpDown className="ml-2 w-4 h-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search by name..." />
+                      <CommandList>
+                        <CommandEmpty>No customer found.</CommandEmpty>
+                        <CommandGroup>
+                          {customers
+                            .filter((c) => c.id !== manualKeepId)
+                            .map((c) => (
+                              <CommandItem
+                                key={c.id}
+                                value={`${c.full_name} ${c.email || ""} ${c.phone || ""}`}
+                                onSelect={() => { setManualMergeId(c.id); setMergeOpen(false); }}
+                              >
+                                <Check className={cn("mr-2 w-4 h-4", manualMergeId === c.id ? "opacity-100" : "opacity-0")} />
+                                <span className="truncate">{c.full_name}</span>
+                                {c.email && <span className="ml-2 text-xs text-muted-foreground truncate">{c.email}</span>}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                className="gap-1.5"
+                disabled={!manualKeepId || !manualMergeId || manualKeepId === manualMergeId || customerMergeMutation.isPending}
+                onClick={() => setManualConfirmOpen(true)}
+              >
+                <GitMerge className="w-3.5 h-3.5" />
+                Merge
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <AlertDialog open={manualConfirmOpen} onOpenChange={setManualConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Merge these customers?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  Merge <strong>{customers.find((c) => c.id === manualMergeId)?.full_name}</strong> into{" "}
+                  <strong>{customers.find((c) => c.id === manualKeepId)?.full_name}</strong>.
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                  <li>All orders, notes, follow-ups, and event guests from the duplicate are re-pointed to the primary</li>
+                  <li>Missing fields on the primary are filled from the duplicate (phone, email, address, birthday)</li>
+                  <li>Notes are appended</li>
+                  <li>The duplicate record is then deleted</li>
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={customerMergeMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                const primary = customers.find((c) => c.id === manualKeepId);
+                const duplicate = customers.find((c) => c.id === manualMergeId);
+                if (!primary || !duplicate) return;
+                customerMergeMutation.mutate(
+                  { primary, duplicate, matchType: "phone" },
+                  {
+                    onSuccess: () => {
+                      setManualConfirmOpen(false);
+                      setManualKeepId("");
+                      setManualMergeId("");
+                    },
+                  }
+                );
+              }}
+            >
+              {customerMergeMutation.isPending ? "Merging..." : "Merge"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
 
       <AlertDialog open={!!mergeTarget} onOpenChange={(open) => !open && setMergeTarget(null)}>
         <AlertDialogContent>

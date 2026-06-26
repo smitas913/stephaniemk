@@ -6,6 +6,7 @@ import { UserCog, ClipboardList, GitMerge } from "lucide-react";
 import UserManagement from "@/pages/UserManagement";
 import ConsultantRequests from "@/pages/ConsultantRequests";
 import MigrateDuplicatesToConsultants from "@/components/MigrateDuplicatesToConsultants";
+import MergeDuplicates from "@/components/MergeDuplicates";
 
 export default function AdminTools() {
   const { profile } = useAuth();
@@ -40,6 +41,10 @@ export default function AdminTools() {
               <GitMerge className="w-4 h-4" />
               Migrate Duplicates
             </TabsTrigger>
+            <TabsTrigger value="merge" className="gap-1.5">
+              <GitMerge className="w-4 h-4" />
+              Merge Duplicates
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -52,6 +57,10 @@ export default function AdminTools() {
 
           <TabsContent value="migrate">
             <MigrateDuplicatesToConsultants />
+          </TabsContent>
+
+          <TabsContent value="merge">
+            <MergeDuplicates />
           </TabsContent>
         </Tabs>
       </div>
