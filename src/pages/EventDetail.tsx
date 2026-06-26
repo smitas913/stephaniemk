@@ -955,36 +955,11 @@ export default function EventDetail() {
                   </Card>
                 ) : (
                   <>
-                {/* Progress bar */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${(prepDone / prepTotal) * 100}%` }} />
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{prepDone} of {prepTotal} done</span>
-                </div>
-
+                {/* Coaching reminders now live on the Today page (Hostess Coaching card).
+                    The Google Form link below stays here so it's easy to grab. */}
                 <Card className="border-border/50">
-                  <CardHeader className="pb-1">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <ClipboardCheck className="w-4 h-4 text-primary" />
-                      Coaching Checklist
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-border">
-                      {PREP_STEPS.map(({ field, label, hint }) => {
-                        const done = !!(event as any)[field];
-                        return (
-                          <label key={field} className={cn("flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30", done && "opacity-60")}>
-                            <Checkbox checked={done} onCheckedChange={() => toggleChecklist(field)} className="mt-0.5" />
-                            <div className="flex-1 min-w-0">
-                              <span className={cn("text-sm", done && "line-through text-muted-foreground")}>{label}</span>
-                              {!done && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
+                  <CardContent className="p-3 text-xs text-muted-foreground">
+                    Coaching reminders for this hostess appear on your <Link to="/dashboard" className="text-primary hover:underline">Today page</Link> — check them off there and the next reminder will appear automatically.
                   </CardContent>
                 </Card>
 
