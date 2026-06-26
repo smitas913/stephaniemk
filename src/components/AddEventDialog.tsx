@@ -68,8 +68,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         payload.zoom_password = zoomDefaults.zoom_password || null;
         payload.zoom_link = zoomDefaults.zoom_link || null;
       }
-      await upsertEvent(payload as any);
-      return eventId;
+      const inserted = await insertNewEvent(payload as any);
+      return (inserted?.event_id as string) || eventId;
     },
     onSuccess: async (eventId) => {
       try {
