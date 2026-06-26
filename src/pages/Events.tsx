@@ -209,6 +209,7 @@ export default function Events() {
       if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
       if (statusFilter !== "all" && e.event_status !== statusFilter) return false;
       if (rescheduleFilter !== "all" && (e.reschedule_status || "None") !== rescheduleFilter) return false;
+      if (scopeFilter !== "all" && ((e as any).event_scope || "Personal") !== scopeFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -219,11 +220,25 @@ export default function Events() {
       }
       return true;
     });
-  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
+  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter, scopeFilter]);
+
+  // Split by category (Product vs Business)
+  const { productEvents, businessEvents } = useMemo(() => {
+    const productEvents: EventRecord[] = [];
+    const businessEvents: EventRecord[] = [];
+    for (const e of filtered) {
+      if (isBusinessType(e.event_type)) businessEvents.push(e);
+      else productEvents.push(e);
+    }
+    return { productEvents, businessEvents };
+  }, [filtered]);
+
+  const activeEvents = categoryTab === "business" ? businessEvents : productEvents;
+  const isBusiness = categoryTab === "business";
 
   const todayStr = toLocalDateKey();
   const { upcoming, past } = useMemo(() => {
-    const sortAsc = [...filtered].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
+    const sortAsc = [...activeEvents].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
     const upcoming = sortAsc
       .filter((e) => (e.event_date || "") >= todayStr && e.event_status !== "Cancelled")
       .reverse();
@@ -231,10 +246,10 @@ export default function Events() {
       .filter((e) => (e.event_date || "") < todayStr || e.event_status === "Cancelled")
       .reverse();
     return { upcoming, past };
-  }, [filtered, todayStr]);
+  }, [activeEvents, todayStr]);
 
-  const totalSales = filtered.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
-  const totalGuests = filtered.reduce((s, e) => s + (e.guest_count || 0), 0);
+  const totalSales = activeEvents.reduce((s, e) => s + (eventSales.get(e.event_id)?.total || 0), 0);
+  const totalGuests = activeEvents.reduce((s, e) => s + (e.guest_count || 0), 0);
   const deleteTargetLinkedCount = deleteTarget ? (eventSales.get(deleteTarget.event_id)?.orderCount || 0) : 0;
 
   const EventRow = ({ e }: { e: EventRecord }) => {
