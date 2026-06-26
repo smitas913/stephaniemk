@@ -1,114 +1,87 @@
-# Plan: True Customer ↔ Consultant Conversion + Consultant Orders
+# Events Section Overhaul — Implementation Plan
 
-## Goal
-Customer and Consultant stay as **distinct record types** (one or the other, never both). Conversion is a full **data migration** with the source record deleted after a verified transfer. Orders can be logged against either type.
+This is a large change touching ~5 files plus 2 new DB tables. Approving this plan greenlights the whole pass.
 
----
+## 1. Database changes (one migration)
 
-## 1. Data model changes
+**New table `event_referrals`** (per spec):
+- `id`, `event_id` (text FK → events.event_id), `name`, `phone`, `referred_by`, `out_of_town`, `added_to_leads`, `owner_user_id`, `created_at`
+- RLS scoped to owner_user_id; GRANTs for authenticated + service_role
 
-**`orders` table**
-- Add nullable `consultant_id uuid` column alongside existing `customer_id`.
-- Loosen the NOT NULL on `customer_id` (or keep NOT NULL and instead use a single polymorphic pair with a CHECK that exactly one of `customer_id` / `consultant_id` is set). Recommended: make `customer_id` nullable + CHECK `(customer_id IS NOT NULL) <> (consultant_id IS NOT NULL)`.
-- Update `update_customer_last_order` trigger to also handle the consultant branch (write to a new `team_consultants.last_order_date` column).
-- Add `team_consultants.last_order_date date` for parity with `customers.last_order_date_order_log`.
+**New table `hostess_coaching_tasks`** (separate from `todos` so we can track sequence + due date + event link cleanly without overloading the 6MIT todo system):
+- `id`, `user_id`, `event_id` (text), `hostess_name`, `step` (1-4), `text`, `due_date` (date, local), `done` (bool), `done_at`, `created_at`
+- RLS by user_id; GRANTs as above
+- These render on the Today page in a new "Hostess Coaching" card — they are NOT mixed into the 6MIT todos card (cleaner separation, and 6MIT is capped at 6).
 
-**`team_consultants` table** — add any columns currently only on `customers` that need to carry over and aren't already there:
-- `tags text[] default '{}'`
-- `beauty_notes jsonb default '{}'`
-- `next_follow_up_date`, `follow_up_reason`, `new_follow_up_stage`, `dormant_follow_up_stage`
-- `last_contacted`, `became_customer_date`, `date_added`
-- `address_line_2`, `birthday_mmdd`
-- `is_skincare_customer`, `skincare_started_at`
-- `customer_source`, `new_customer_flag`
-- `needs_attention`, `attention_reason`, `flagged_at`
-- `secondary_email`, `secondary_phone` (if not already present)
+**Why a new task table not `todos`:** todos has no event link, no sequence step, and is user-facing free-text. Mixing system-generated coaching tasks would clutter the 6MIT card.
 
-**Re-pointing FKs on conversion** — these tables currently reference `customer_id` and need an equivalent path when the person becomes a consultant. Two options:
-- (A) Add nullable `consultant_id` to each and re-point on conversion.
-- (B) Keep the customer row as a hidden "shell" purely to host historical FKs.
+## 2. EventGuestPanel.tsx — rewrite
 
-**Recommendation: Option A** (true migration, no shells). Tables to extend with a nullable `consultant_id`:
-- `orders` (already covered above)
-- `customer_notes`
-- `notes` (already polymorphic via `person_type`/`person_id` — use that instead, no schema change)
-- `daily_plan_items`
-- `catalog_campaign_customers`
-- `event_guests.converted_customer_id` → add `converted_consultant_id`
-- `booking_leads.converted_customer_id` → add `converted_consultant_id`
-- `completed_birthdays` (already polymorphic via `person_type`/`person_id`)
+**Pre-event view (status ≠ "Held"):**
+- Stats chips at top: Faces, Sales, Bookings (live from current guest state)
+- Guest table: Name | Phone | RSVP only
+- Keep inline "Add Guest" form
+- Remove: attended/ordered/booked/interested checkboxes, task columns (📨/🎉/✉️)
 
-RLS policies on each new column mirror existing ones (`is_internal_user` / owner checks).
+**Post-event view (status = "Held"):**
+- Same stats chips
+- Replace table with a clean list. Each row: name + phone + current outcome badge + segmented outcome selector
+- Outcomes (one per guest, mutually exclusive in UI; map to existing boolean fields):
+  - **Tried Product** → attending=true, ordered=false, booked=false, interested=false
+  - **Ordered** → attending=true, ordered=true
+  - **Booked Next Event** → attending=true, booked=true
+  - **Career Interest** → attending=true, interested=true; auto-insert `prospects` row (`lead_source` field doesn't exist on prospects — use `booking_leads` semantics? Prospects table has no lead_source. **Assumption:** create a `prospects` row with `name`, `phone`, `opportunity_status='New Contact'`, `notes='From [event hostess]\'s party'`, `owner_user_id`. If a prospect already linked to this guest exists, skip.)
+  - **She Joined** → attending=true; inline mini-form (confirm name, phone) → insert into `team_consultants` (`status='Active'`, `join_date=today`, `relationship_type='Personal Recruit'`, `owner_user_id`)
+  - **No Show** → attending=false; inline "Save to Booking Leads" button → insert `booking_leads` row (`lead_source='Other'`, `notes='No-show from [hostess]\'s party'`)
+- Changing outcome is allowed (re-click). Outcome is derived from the guest's boolean flags so it persists with existing data.
+- Remove the existing "Attended Outcome" and "Did Not Attend" dialogs entirely.
 
----
+## 3. EventDetail.tsx — Referrals section
 
-## 2. Conversion logic (shared by both directions)
+- New collapsible card below the guest panel: "Referrals from this event"
+- Inline add form: Name, Phone, Referred By, Out of Town toggle
+- List rows show those fields + "Add to Booking Leads" button → creates `booking_leads` row (`lead_source='Referral'`, `notes='Referred by [referred_by] at [hostess]\'s party'`) and flips `added_to_leads=true`
+- Also: remove any in-event coaching/task checklist sections (per spec #5)
 
-A single edge function (or a transactional client-side mutation) `convertPerson({ fromType, fromId, toType })` that:
+## 4. Hostess coaching tasks — auto-create + Today page
 
-1. **Create the target record** in the destination table, copying every field 1:1 (contact info, address, birthday, notes, tags, beauty_notes, follow-up fields, customer-lifecycle fields, consultant-specific fields where applicable).
-2. **Re-point related rows** in a single transaction:
-   - `orders`: set `consultant_id = newId, customer_id = null` (or reverse).
-   - `customer_notes`: set the new id column, null the old.
-   - `notes`: update `person_type` + `person_id` (and `customer_id` ↔ keep one canonical).
-   - `daily_plan_items`, `catalog_campaign_customers`, `event_guests`, `booking_leads`: same pattern.
-   - `completed_birthdays`: update `person_type` + `person_id`.
-   - `events.hostess_converted_customer_id` ↔ new `hostess_converted_consultant_id`.
-3. **Verify counts** — for each table, assert the count of rows newly pointing at `toId` equals the count that previously pointed at `fromId`. If any mismatch, rollback and surface an error.
-4. **Delete the source row** only after verification passes.
-5. Return a summary `{ moved: { orders: N, notes: N, ... } }` shown in a toast.
+**Trigger:** When an event is created via AddEventDialog (status Booked), insert step-1 task immediately (due today).
 
-UI:
-- `CustomerDetail` already has "Convert to Consultant" — rewire it to this new flow with a confirmation dialog listing what will be moved.
-- `team_consultants` detail page gets a new **"Convert to Customer"** button using the same function in reverse.
+**Sequencing logic** (client-side helper invoked on task completion):
+- Complete step 1 → create step 2 (due today)
+- Complete step 2 → if event_date − today > 7 days, create step 3 (due event_date − 3 days). Else skip to step 4 (due event_date − 1 day).
+- Complete step 3 → create step 4 (due event_date − 1 day)
+- Hostess name placeholder: "your hostess" if missing
 
----
+**Today page rendering:** New `HostessCoachingCard` component shown on the Today page (above or near the 6MIT card). Lists all incomplete tasks where due_date ≤ today, with a checkbox to mark done; completing triggers next-step creation.
 
-## 3. Consultant orders
+**Assumption:** "Today page" = `/follow-ups` per project memory. I'll add the card there.
 
-- `AddOrder` / `EditOrder`: change the person picker from "Customer only" to a unified search across `customers` + `team_consultants`, with a small badge ("Customer" / "Consultant") in the dropdown. Selection sets either `customer_id` or `consultant_id` on the order.
-- `Orders` list, `CustomerDetail` order history, and consultant detail order history: read from the union (orders where `customer_id = X` OR `consultant_id = X`).
-- Financial reports and order log queries that filter/join on customer get a parallel branch for consultant orders. Specifically: `lib/queries.ts` order fetchers, `Orders.tsx`, `FinancialSnapshot.tsx`, monthly/MTD totals, payment status rollups.
-- `update_customer_last_order` trigger updated to branch on which FK is set.
+## 5. Events list / EventRow
+
+- Keep "Next Task" column; since coaching tasks moved out, it will show "—" (or any remaining non-coaching task if such a system exists — quick check; if EventRow's expandable task rows only show coaching items, remove the expand UI).
+
+## 6. Data preservation
+
+- No columns dropped. attending/ordered/booked/interested keep being written via the new outcome buttons. Existing events/guests/orders untouched. Existing event_tasks rows left alone (just no longer surfaced inside the event UI).
 
 ---
 
-## 4. Backfill: existing 16 duplicates
+## Files touched
 
-A one-time migration script (run via a temporary admin button or SQL) that for each detected duplicate `(customer, consultant)` pair:
-1. Runs the same `convertPerson(customer → consultant)` flow.
-2. Merges fields onto the **existing** consultant row (don't overwrite consultant data; only fill gaps and append notes/tags).
-3. Re-points all FK rows from `customer.id` to `consultant.id`.
-4. Verifies counts.
-5. Deletes the customer row.
+- **Migration** (new tables + RLS + grants)
+- `src/components/EventGuestPanel.tsx` — rewrite
+- `src/pages/EventDetail.tsx` — add Referrals section, remove coaching checklist sections
+- `src/components/AddEventDialog.tsx` — create step-1 hostess coaching task on event create
+- `src/components/EventRow` (within Events.tsx or its own file) — strip coaching expand UI
+- `src/components/HostessCoachingCard.tsx` — new
+- `src/pages/FollowUpDashboard.tsx` (Today page) — mount HostessCoachingCard
+- `src/lib/hostessCoaching.ts` — new helper: createNextStep, due-date math (local TZ via existing `toLocalDateKey`)
 
-Surfaced in **Admin Tools** as a new "Migrate Duplicate Customers → Consultants" panel that lists the 16 pairs, lets you preview the diff per pair, and runs them one-by-one or all-at-once. The old `MergeDuplicates` customer→consultant path is removed once this is done; customer↔customer merge stays.
+## Open assumptions to confirm
 
----
+1. **Career Interest target table:** prospects (no `lead_source` column) vs booking_leads (has `lead_source`). Spec says "Prospect record (in the prospects/leads table with lead_source = 'Party Guest'". I'll use **booking_leads** since it has `lead_source`, and set `lead_source='Other'` with `source_detail='Party Guest'` (BOOKING_LEAD_SOURCES doesn't include "Party Guest"). OR add "Party Guest" to allowed sources. **Proposing:** insert into `booking_leads` with `lead_source='Other'`, `source_detail='Party Guest'`, `notes='Career interest from [hostess]\'s party'`. Confirm or override.
+2. **Today page = `/follow-ups`** — correct?
+3. **Hostess coaching card placement** on Today page — top, or under 6MIT?
 
-## 5. Order of operations (so nothing breaks mid-flight)
-
-1. **Migration A**: add columns (`consultant_id` on orders + related tables, new fields on `team_consultants`, `last_order_date`, CHECK constraint). Update trigger. Update RLS.
-2. **Code**: update `convertPerson` logic + UI, add Convert to Customer, update order entry to support consultants, update order readers.
-3. **Backfill**: run the 16-pair migration through the new admin panel.
-4. **Cleanup migration B**: drop the legacy customer→consultant path from `MergeDuplicates.tsx`.
-
----
-
-## Technical notes
-
-- All re-pointing happens inside a Postgres function (`public.convert_person(from_type, from_id, to_type)`) called via RPC so it's a single transaction with verification, rather than 7+ sequential client-side updates that could partially fail.
-- Conversion preserves `created_at` of the target where possible (use the older of the two timestamps).
-- Existing RLS: any table getting `consultant_id` keeps the same `is_internal_user` / owner-scoped policies — new column doesn't change who can read/write.
-- `customers.relationship_status = 'Consultant'` becomes obsolete for this flow (no more "hidden customer that is actually a consultant"). I'll leave the column alone for now; just stop using it for this purpose.
-- No changes to auth/profiles — `team_consultants` is the team roster, separate from login profiles.
-
----
-
-## Open questions before I build
-
-1. **Order entry**: should the consultant badge be visible in the autocomplete (e.g. "Jane Smith · Consultant"), or do you want it indistinguishable from customer entries?
-2. **Convert to Customer** — what should happen to consultant-specific fields (commission level, recruitment data, unit role)? Drop, or store them in a `former_consultant_data` jsonb on the customer row for history?
-3. For the 16-pair backfill: do you want to **preview each pair** (approve one-by-one) or **run all 16 in one click** after spot-checking 2–3?
-
-Once you confirm those, I'll start with Migration A.
+Reply "go" to proceed with these assumptions, or correct any item first.
