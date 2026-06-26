@@ -762,6 +762,17 @@ export default function Events() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Scope</label>
+                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="Personal">Personal</SelectItem>
+                      <SelectItem value="Unit">Unit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
