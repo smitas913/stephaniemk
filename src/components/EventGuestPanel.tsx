@@ -386,6 +386,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
+                        g.thank_you_sent
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                      )}
+                    >
+                      {g.thank_you_sent ? "TY ✓" : "TY Note"}
+                    </button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
                       onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
                       <Trash2 className="w-3 h-3 text-destructive" />
