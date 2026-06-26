@@ -61,6 +61,7 @@ export interface Order {
   notes: string | null;
   parent_event_id: string | null;
   is_myshop_order?: boolean;
+  thank_you_sent?: boolean;
   created_at: string;
   updated_at: string;
 }
