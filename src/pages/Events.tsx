@@ -278,7 +278,11 @@ export default function Events() {
           </TableCell>
           <TableCell className="text-xs">
             {e.event_status === "Held" ? (
-              <span className="italic text-muted-foreground">Thank you notes sent</span>
+              (e as any).thank_you_sent ? (
+                <span className="text-green-700">Thank you sent ✓</span>
+              ) : (
+                <span className="text-amber-600">Send thank you note</span>
+              )
             ) : e.reschedule_status === "In Process of Rescheduling" ? (
               <span className="text-amber-600">Reschedule follow-up</span>
             ) : e.event_status === "Cancelled" ? (
