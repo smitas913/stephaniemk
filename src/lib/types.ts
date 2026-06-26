@@ -160,6 +160,7 @@ export interface EventGuest {
   ordered: boolean;
   interested: boolean;
   thank_you_sent: boolean;
+  party_rescheduled?: boolean;
 }
 
 export const RELATIONSHIP_STATUSES = ["Customer", "Former Consultant"] as const;
