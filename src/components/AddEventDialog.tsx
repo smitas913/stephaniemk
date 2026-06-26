@@ -40,6 +40,8 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
+  const [bookedFrom, setBookedFrom] = useState<string>("");
+
 
   const isLeadGen = eventType === "Lead Generating Event";
   const isVirtual = eventFormat === "Virtual";
