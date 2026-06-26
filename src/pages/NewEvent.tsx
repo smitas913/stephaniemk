@@ -170,8 +170,32 @@ export default function NewEvent() {
         }
       }
 
+      // Auto-add guest from "Booked Next Event" flow (any event type)
+      if (searchParams.get("addGuest") === "true") {
+        const guestName = searchParams.get("guestName");
+        const guestPhone = searchParams.get("guestPhone");
+        if (guestName) {
+          try {
+            const { supabase } = await import("@/integrations/supabase/client");
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            await supabase.from("event_guests" as any).insert({
+              event_id: eventId,
+              name: guestName,
+              phone: guestPhone || null,
+              owner_user_id: userId,
+              rsvp: "Yes",
+              attending: true,
+            } as any);
+          } catch (e) {
+            console.error("Failed to add booked guest", e);
+          }
+        }
+      }
+
       toast.success("Event created");
       if (eventType === 'Guest Event' && pendingGuestName) {
+        navigate(`/events/${eventId}?tab=guests`);
+      } else if (searchParams.get("addGuest") === "true") {
         navigate(`/events/${eventId}?tab=guests`);
       } else {
         navigate(fromPath, { state: { eventCreated: true } });

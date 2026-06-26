@@ -290,8 +290,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
 
   const createEventForBooking = () => {
     if (!bookForm) return;
-    const params = new URLSearchParams({ type: "Party", hostess: bookForm.name });
-    if (bookForm.phone) params.set("phone", bookForm.phone);
+    const params = new URLSearchParams({ type: "Party", hostess: bookForm.name, addGuest: "true", guestName: bookForm.name });
+    if (bookForm.phone) {
+      params.set("phone", bookForm.phone);
+      params.set("guestPhone", bookForm.phone);
+    }
     setBookForm(null);
     navigate(`/events/new?${params.toString()}`);
   };
