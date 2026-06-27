@@ -200,7 +200,15 @@ export default function EventDetail() {
   const updateField = (field: string, value: any) => {
     if (!event) return;
     eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
+    if (field === "hostess_name" && value) {
+      import("@/lib/queries").then(({ ensureHostessAsGuest }) =>
+        ensureHostessAsGuest(event.event_id, value as string, event.hostess_phone || null)
+          .then(() => queryClient.invalidateQueries({ queryKey: ["event-guests", event.event_id] }))
+          .catch((e) => console.error("ensureHostessAsGuest failed", e))
+      );
+    }
   };
+
 
 
   // Check if hostess is already a customer — by phone OR by name (case-insensitive)
