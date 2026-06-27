@@ -339,8 +339,41 @@ export const insertNewEvent = async (
   if (event.hostess_name) {
     const { autoProgressLeadFromEvent } = await import("./leadAutoStatus");
     await autoProgressLeadFromEvent({ hostessName: event.hostess_name as string });
+    await ensureHostessAsGuest(finalId, event.hostess_name as string, (event.hostess_phone as string) || null);
   }
   return data as any;
+};
+
+/**
+ * Ensure the hostess is in the event's guest list. Case-insensitive name match;
+ * no-op if a guest with the same name already exists for the event.
+ */
+export const ensureHostessAsGuest = async (
+  eventId: string,
+  hostessName: string | null | undefined,
+  hostessPhone?: string | null
+) => {
+  const name = (hostessName || "").trim();
+  if (!name) return;
+  const { data: existing, error: selErr } = await supabase
+    .from("event_guests")
+    .select("id, name")
+    .eq("event_id", eventId);
+  if (selErr) throw selErr;
+  const lower = name.toLowerCase();
+  if ((existing || []).some((g: any) => (g.name || "").trim().toLowerCase() === lower)) return;
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("event_guests")
+    .insert({
+      event_id: eventId,
+      name,
+      phone: hostessPhone || null,
+      rsvp: "Yes",
+      attending: true,
+      owner_user_id: userId,
+    } as any);
+  if (error) throw error;
 };
 
 export const updateEventGuest = async (id: string, updates: Partial<EventGuest>) => {
