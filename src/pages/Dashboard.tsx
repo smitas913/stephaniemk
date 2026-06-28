@@ -21,7 +21,7 @@ import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
-import TodoListCard from "@/components/TodoListCard";
+
 import HostessCoachingCard from "@/components/HostessCoachingCard";
 
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
@@ -213,28 +213,24 @@ export default function Dashboard() {
         </div>
 
         {/* DAILY SUCCESS DRIVERS + 6 MIT — side by side on desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-4 items-start">
-          <SixMostImportant
-            compact
-            autoCounts={focusAutoCounts}
-            rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
-            onDetailNavigate={(type, id) => {
-              if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
-              else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
-              else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
-              else if (type === "Lead") navigate("/booking-leads");
-              else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
-              else if (type === "Hostess") {
-                const evt = events.find((e: any) => e.id === id);
-                if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
-                else navigate("/events");
-              }
-            }}
-            suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
-          />
-          {/* MY 6 MOST IMPORTANT THINGS — sits beside Daily Success Drivers on desktop */}
-          <TodoListCard />
-        </div>
+        <SixMostImportant
+          compact
+          autoCounts={focusAutoCounts}
+          rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
+          onDetailNavigate={(type, id) => {
+            if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
+            else if (type === "Lead") navigate("/booking-leads");
+            else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
+            else if (type === "Hostess") {
+              const evt = events.find((e: any) => e.id === id);
+              if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
+              else navigate("/events");
+            }
+          }}
+          suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
+        />
 
         {/* HOSTESS COACHING REMINDERS (auto from events) */}
         <HostessCoachingCard />
