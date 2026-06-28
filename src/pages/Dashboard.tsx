@@ -21,7 +21,7 @@ import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
-import TodoListCard from "@/components/TodoListCard";
+
 import HostessCoachingCard from "@/components/HostessCoachingCard";
 
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
