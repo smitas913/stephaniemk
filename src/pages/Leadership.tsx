@@ -459,6 +459,17 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
               <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
             </div>
 
+            {duplicateMatch && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <p className="text-xs font-semibold text-destructive">
+                    A consultant already exists: {duplicateMatch.name}
+                    {duplicateMatch.phone ? ` · ${formatPhone(duplicateMatch.phone)}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
             <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={(!form.first_name.trim() && !form.last_name.trim()) || createMut.isPending || updateMut.isPending || !!duplicateMatch}>
               {(createMut.isPending || updateMut.isPending) ? "Saving..." : editId ? "Save Changes" : "Add Consultant"}
             </Button>
