@@ -200,6 +200,23 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     return cleaned;
   };
 
+  const duplicateMatch = useMemo(() => {
+    if (editId) return null;
+    const p = stripPhone(form.phone);
+    const e = normalizeEmail(form.email);
+    const fullName = [form.first_name.trim(), form.last_name.trim()].filter(Boolean).join(" ").toLowerCase();
+    if (!p && !e && !fullName) return null;
+    return consultants.find((c: TeamConsultant) => {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      const cn = (c.name || "").trim().toLowerCase();
+      if (p && p.length >= 7 && cp === p) return true;
+      if (e && ce && ce === e) return true;
+      if (fullName && cn && cn === fullName) return true;
+      return false;
+    }) || null;
+  }, [form.phone, form.email, form.first_name, form.last_name, consultants, editId]);
+
   const createMut = useMutation({
     mutationFn: () => createTeamConsultant(buildPayload() as any),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setShowAdd(false); resetForm(); toast.success("Consultant added!"); },
