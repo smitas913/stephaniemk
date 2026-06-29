@@ -21,8 +21,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft } from "lucide-react";
+import { formatPhone, phoneForLink, stripPhone, normalizeEmail } from "@/lib/phoneUtils";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -199,6 +199,23 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     if (!cleaned.status) cleaned.status = "Active";
     return cleaned;
   };
+
+  const duplicateMatch = useMemo(() => {
+    if (editId) return null;
+    const p = stripPhone(form.phone);
+    const e = normalizeEmail(form.email);
+    const fullName = [form.first_name.trim(), form.last_name.trim()].filter(Boolean).join(" ").toLowerCase();
+    if (!p && !e && !fullName) return null;
+    return consultants.find((c: TeamConsultant) => {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      const cn = (c.name || "").trim().toLowerCase();
+      if (p && p.length >= 7 && cp === p) return true;
+      if (e && ce && ce === e) return true;
+      if (fullName && cn && cn === fullName) return true;
+      return false;
+    }) || null;
+  }, [form.phone, form.email, form.first_name, form.last_name, consultants, editId]);
 
   const createMut = useMutation({
     mutationFn: () => createTeamConsultant(buildPayload() as any),
@@ -442,7 +459,18 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
               <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[60px]" />
             </div>
 
-            <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={(!form.first_name.trim() && !form.last_name.trim()) || createMut.isPending || updateMut.isPending}>
+            {duplicateMatch && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <p className="text-xs font-semibold text-destructive">
+                    A consultant already exists: {duplicateMatch.name}
+                    {duplicateMatch.phone ? ` · ${formatPhone(duplicateMatch.phone)}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
+            <Button className="w-full" onClick={() => editId ? updateMut.mutate() : createMut.mutate()} disabled={(!form.first_name.trim() && !form.last_name.trim()) || createMut.isPending || updateMut.isPending || !!duplicateMatch}>
               {(createMut.isPending || updateMut.isPending) ? "Saving..." : editId ? "Save Changes" : "Add Consultant"}
             </Button>
           </div>

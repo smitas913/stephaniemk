@@ -1623,6 +1623,26 @@ export const convertCustomerToConsultant = async (
   customer: Customer,
   _extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
 ): Promise<TeamConsultant> => {
+  // Guard against creating a duplicate consultant if one already exists for this person.
+  const { data: existing } = await supabase
+    .from("team_consultants")
+    .select("id, name, phone, email");
+  const p = stripPhone(customer.phone);
+  const e = normalizeEmail(customer.email);
+  const fullName = (customer.full_name || "").trim().toLowerCase();
+  const match = (existing || []).find((c: any) => {
+    const cp = stripPhone(c.phone);
+    const ce = normalizeEmail(c.email);
+    const cn = (c.name || "").trim().toLowerCase();
+    if (p && p.length >= 7 && cp === p) return true;
+    if (e && ce && ce === e) return true;
+    if (fullName && cn && cn === fullName) return true;
+    return false;
+  });
+  if (match) {
+    throw new Error(`A consultant named ${match.name} already exists. To merge this customer's data onto that consultant record, use Admin Tools → Merge Duplicates.`);
+  }
+
   const { data, error } = await supabase.rpc("convert_person" as any, {
     _from_type: "customer",
     _from_id: customer.id,
