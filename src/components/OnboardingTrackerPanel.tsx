@@ -87,15 +87,41 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
     "checklist_social_connected",
   ];
   const checklistDone = checklistKeys.filter((k) => !!tracker[k]).length;
+  const cpLogged = ["cp30_date", "cp60_date", "cp90_date"].filter((k) => !!tracker[k]).length;
 
   const [preOpen, setPreOpen] = useState(!debutDate);
   const [postOpen, setPostOpen] = useState(!!debutDate);
+  const [cpOpen, setCpOpen] = useState(false);
+  const [cp30Open, setCp30Open] = useState(false);
+  const [cp60Open, setCp60Open] = useState(false);
+  const [cp90Open, setCp90Open] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
 
   const powerFaces = Number(get("power_start_faces", 0));
   const powerParties = Number(get("power_start_parties", 0));
   const powerComplete = powerFaces >= 30 && powerParties >= 5;
   const pearlsCount = Number(get("pearls_sharing_count", 0));
+
+  useEffect(() => {
+    if (cp30Open && !tracker.cp30_date) {
+      saveTracker({ cp30_date: toLocalDateKey() });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cp30Open]);
+
+  useEffect(() => {
+    if (cp60Open && !tracker.cp60_date) {
+      saveTracker({ cp60_date: toLocalDateKey() });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cp60Open]);
+
+  useEffect(() => {
+    if (cp90Open && !tracker.cp90_date) {
+      saveTracker({ cp90_date: toLocalDateKey() });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cp90Open]);
 
   const handleExit = (status: "Personal Use" | "Exited") => {
     onUpdate({
@@ -226,6 +252,22 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
                 </Row>
               </div>
 
+              {/* Parties */}
+              <div>
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Parties</p>
+                <Row label="Next party">
+                  <Input
+                    type="date" className="h-7 text-xs w-[140px]"
+                    value={get("party_next_date", "") || ""}
+                    onChange={(e) => saveTracker({ party_next_date: e.target.value || null })}
+                  />
+                </Row>
+                <Row label="Parties held">
+                  <Counter value={Number(get("parties_held", 0))} max={20}
+                    onChange={(n) => saveTracker({ parties_held: n })} />
+                </Row>
+              </div>
+
               {/* Pearls */}
               <div>
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Pearls of Sharing</p>
@@ -348,6 +390,206 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
                   onChange={(e) => saveTracker({ launch_party_date: e.target.value || null })}
                 />
               </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </>
+      )}
+
+      {debutDate && (
+        <>
+          <Separator />
+          <Collapsible open={cpOpen} onOpenChange={setCpOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center justify-between w-full text-left">
+                <div className="flex items-center gap-2">
+                  {cpOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  <span className="text-xs font-semibold">📍 Coaching Checkpoints</span>
+                  <Badge variant="secondary" className="text-[10px] bg-pink-100 text-pink-700">
+                    {cpLogged}/3 logged
+                  </Badge>
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 space-y-2">
+              {/* Day 30 */}
+              <Collapsible open={cp30Open} onOpenChange={setCp30Open}>
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center gap-2 w-full text-left">
+                    {cp30Open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    <span className="text-xs font-semibold">Day 30</span>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-5 pt-1 space-y-2">
+                  <Row label="Faces to date">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp30_faces", "")}
+                      onChange={(e) => saveTracker({ cp30_faces: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <Row label="Parties held">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp30_parties", "")}
+                      onChange={(e) => saveTracker({ cp30_parties: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <Row label="Sharing appts">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp30_sharing", "")}
+                      onChange={(e) => saveTracker({ cp30_sharing: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <label className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <Checkbox
+                      checked={!!get("cp30_inventory")}
+                      onCheckedChange={(v) => saveTracker({ cp30_inventory: !!v })}
+                    />
+                    <span className="text-xs">Inventory on hand</span>
+                  </label>
+                  <Row label="Great Start status">
+                    <Input
+                      type="text" className="h-7 text-xs w-[140px]"
+                      value={get("cp30_great_start", "") || ""}
+                      onChange={(e) => saveTracker({ cp30_great_start: e.target.value || null })}
+                    />
+                  </Row>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Notes</label>
+                    <Textarea
+                      className="min-h-[40px] text-xs"
+                      value={get("cp30_notes", "") || ""}
+                      onChange={(e) => saveTracker({ cp30_notes: e.target.value || null })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Date logged</label>
+                    <Input
+                      type="date" className="h-7 text-xs w-[140px]"
+                      value={get("cp30_date", "") || ""}
+                      onChange={(e) => saveTracker({ cp30_date: e.target.value || null })}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Day 60 */}
+              <Collapsible open={cp60Open} onOpenChange={setCp60Open}>
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center gap-2 w-full text-left">
+                    {cp60Open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    <span className="text-xs font-semibold">Day 60</span>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-5 pt-1 space-y-2">
+                  <Row label="Faces to date">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp60_faces", "")}
+                      onChange={(e) => saveTracker({ cp60_faces: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <Row label="Parties held">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp60_parties", "")}
+                      onChange={(e) => saveTracker({ cp60_parties: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <Row label="Sharing appts">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp60_sharing", "")}
+                      onChange={(e) => saveTracker({ cp60_sharing: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <label className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <Checkbox
+                      checked={!!get("cp60_inventory")}
+                      onCheckedChange={(v) => saveTracker({ cp60_inventory: !!v })}
+                    />
+                    <span className="text-xs">Inventory on hand</span>
+                  </label>
+                  <Row label="Great Start status">
+                    <Input
+                      type="text" className="h-7 text-xs w-[140px]"
+                      value={get("cp60_great_start", "") || ""}
+                      onChange={(e) => saveTracker({ cp60_great_start: e.target.value || null })}
+                    />
+                  </Row>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Notes</label>
+                    <Textarea
+                      className="min-h-[40px] text-xs"
+                      value={get("cp60_notes", "") || ""}
+                      onChange={(e) => saveTracker({ cp60_notes: e.target.value || null })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Date logged</label>
+                    <Input
+                      type="date" className="h-7 text-xs w-[140px]"
+                      value={get("cp60_date", "") || ""}
+                      onChange={(e) => saveTracker({ cp60_date: e.target.value || null })}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Day 90 */}
+              <Collapsible open={cp90Open} onOpenChange={setCp90Open}>
+                <CollapsibleTrigger asChild>
+                  <button className="flex items-center gap-2 w-full text-left">
+                    {cp90Open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    <span className="text-xs font-semibold">Day 90</span>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-5 pt-1 space-y-2">
+                  <Row label="Faces to date">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp90_faces", "")}
+                      onChange={(e) => saveTracker({ cp90_faces: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <Row label="Parties held">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp90_parties", "")}
+                      onChange={(e) => saveTracker({ cp90_parties: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <Row label="Sharing appts">
+                    <Input type="number" className="h-7 text-xs w-[60px]" min={0}
+                      value={get("cp90_sharing", "")}
+                      onChange={(e) => saveTracker({ cp90_sharing: e.target.value === "" ? null : Number(e.target.value) })}
+                    />
+                  </Row>
+                  <label className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <Checkbox
+                      checked={!!get("cp90_inventory")}
+                      onCheckedChange={(v) => saveTracker({ cp90_inventory: !!v })}
+                    />
+                    <span className="text-xs">Inventory on hand</span>
+                  </label>
+                  <Row label="Great Start status">
+                    <Input
+                      type="text" className="h-7 text-xs w-[140px]"
+                      value={get("cp90_great_start", "") || ""}
+                      onChange={(e) => saveTracker({ cp90_great_start: e.target.value || null })}
+                    />
+                  </Row>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Notes</label>
+                    <Textarea
+                      className="min-h-[40px] text-xs"
+                      value={get("cp90_notes", "") || ""}
+                      onChange={(e) => saveTracker({ cp90_notes: e.target.value || null })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Date logged</label>
+                    <Input
+                      type="date" className="h-7 text-xs w-[140px]"
+                      value={get("cp90_date", "") || ""}
+                      onChange={(e) => saveTracker({ cp90_date: e.target.value || null })}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </CollapsibleContent>
           </Collapsible>
         </>
