@@ -91,10 +91,6 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
 
   const [preOpen, setPreOpen] = useState(!debutDate);
   const [postOpen, setPostOpen] = useState(!!debutDate);
-  const [cpOpen, setCpOpen] = useState(false);
-  const [cp30Open, setCp30Open] = useState(false);
-  const [cp60Open, setCp60Open] = useState(false);
-  const [cp90Open, setCp90Open] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
 
   const powerFaces = Number(get("power_start_faces", 0));
