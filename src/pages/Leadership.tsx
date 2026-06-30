@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { differenceInDays, parseISO } from "date-fns";
 import { formatPhone, phoneForLink, stripPhone, normalizeEmail } from "@/lib/phoneUtils";
 import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
@@ -28,6 +29,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
+import OnboardingTrackerPanel from "@/components/OnboardingTrackerPanel";
 import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
