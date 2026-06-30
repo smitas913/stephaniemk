@@ -21,6 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
+import { differenceInDays, parseISO } from "date-fns";
 import { formatPhone, phoneForLink, stripPhone, normalizeEmail } from "@/lib/phoneUtils";
 import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
@@ -28,6 +29,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
+import OnboardingTrackerPanel from "@/components/OnboardingTrackerPanel";
 import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
@@ -323,56 +325,86 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
         <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
       ) : filtered.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">{consultants.length === 0 ? "No consultants yet. Convert a prospect or add one manually." : "No consultants match this filter."}</p>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((c) => {
-            const overdue = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === -1;
-            const today = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === 0;
-            return (
-              <Card key={c.id} className={cn("border-border/50 shadow-sm cursor-pointer hover:shadow-md transition-shadow", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")} onClick={() => setViewConsultant(c)}>
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
-                      {c.consultant_id && <span className="text-[10px] text-muted-foreground">#{c.consultant_id}</span>}
-                      {c.onboarding_stage && (
-                        <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[c.onboarding_stage] || "")}>
-                          {c.onboarding_stage}
-                        </Badge>
-                      )}
-                      {c.focus_group && c.focus_group !== "General" && (
-                        <Badge variant="outline" className="text-[10px]">{c.focus_group}</Badge>
-                      )}
-                      <Badge variant="outline" className={cn("text-[10px]", (c.relationship_type ?? "Personal Recruit") === "Unit Member" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-pink-50 text-pink-700 border-pink-200")}>
-                        {(c.relationship_type ?? "Personal Recruit") === "Unit Member" ? "Unit" : "Personal"}
+      ) : (() => {
+        const newConsultants = filtered.filter(c => {
+          if (c.onboarding_exit_status) return false;
+          if (!c.join_date) return false;
+          const daysSinceJoin = differenceInDays(new Date(), parseISO(c.join_date));
+          return daysSinceJoin <= 90;
+        });
+        const newSet = new Set(newConsultants.map(c => c.id));
+        const otherConsultants = filtered.filter(c => !newSet.has(c.id));
+
+        const renderCard = (c: TeamConsultant) => {
+          const overdue = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === -1;
+          const today = c.next_coaching_date && compareDateOnly(c.next_coaching_date) === 0;
+          return (
+            <Card key={c.id} className={cn("border-border/50 shadow-sm cursor-pointer hover:shadow-md transition-shadow", overdue && "border-destructive/40 bg-destructive/5", today && "border-primary/40 bg-primary/5")} onClick={() => setViewConsultant(c)}>
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-foreground truncate">{c.name}</p>
+                    {c.consultant_id && <span className="text-[10px] text-muted-foreground">#{c.consultant_id}</span>}
+                    {c.onboarding_stage && (
+                      <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[c.onboarding_stage] || "")}>
+                        {c.onboarding_stage}
                       </Badge>
-                    </div>
-                    {c.coaching_focus && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Focus: {c.coaching_focus}
-                        {c.next_coaching_date && ` • ${formatDateOnly(c.next_coaching_date)}`}
-                        {overdue && <span className="text-destructive font-medium"> · Overdue</span>}
-                        {today && <span className="text-primary font-medium"> · Today</span>}
-                      </p>
                     )}
-                    {!c.coaching_focus && c.next_coaching_date && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <CalendarDays className="w-3 h-3 text-muted-foreground" />
-                        <span className={cn("text-xs", overdue ? "text-destructive font-medium" : today ? "text-primary font-medium" : "text-muted-foreground")}>
-                          Coaching: {formatDateOnly(c.next_coaching_date)}
-                          {overdue && " · Overdue"}
-                          {today && " · Today"}
-                        </span>
-                      </div>
+                    {c.focus_group && c.focus_group !== "General" && (
+                      <Badge variant="outline" className="text-[10px]">{c.focus_group}</Badge>
                     )}
-                    {c.join_date && <p className="text-[10px] text-muted-foreground mt-0.5">Joined {formatDateOnly(c.join_date)}</p>}
+                    <Badge variant="outline" className={cn("text-[10px]", (c.relationship_type ?? "Personal Recruit") === "Unit Member" ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-pink-50 text-pink-700 border-pink-200")}>
+                      {(c.relationship_type ?? "Personal Recruit") === "Unit Member" ? "Unit" : "Personal"}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  {c.coaching_focus && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Focus: {c.coaching_focus}
+                      {c.next_coaching_date && ` • ${formatDateOnly(c.next_coaching_date)}`}
+                      {overdue && <span className="text-destructive font-medium"> · Overdue</span>}
+                      {today && <span className="text-primary font-medium"> · Today</span>}
+                    </p>
+                  )}
+                  {!c.coaching_focus && c.next_coaching_date && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <CalendarDays className="w-3 h-3 text-muted-foreground" />
+                      <span className={cn("text-xs", overdue ? "text-destructive font-medium" : today ? "text-primary font-medium" : "text-muted-foreground")}>
+                        Coaching: {formatDateOnly(c.next_coaching_date)}
+                        {overdue && " · Overdue"}
+                        {today && " · Today"}
+                      </span>
+                    </div>
+                  )}
+                  {c.join_date && <p className="text-[10px] text-muted-foreground mt-0.5">Joined {formatDateOnly(c.join_date)}</p>}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        };
+
+        return (
+          <div className="space-y-4">
+            {newConsultants.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-[11px] font-semibold text-pink-700 uppercase tracking-wider">🌟 New Consultants (First 90 Days)</p>
+                  <Badge variant="secondary" className="text-[10px] bg-pink-100 text-pink-700">{newConsultants.length}</Badge>
+                </div>
+                <div className="space-y-2">{newConsultants.map(renderCard)}</div>
+              </div>
+            )}
+            {otherConsultants.length > 0 && (
+              <div className="space-y-2">
+                {newConsultants.length > 0 && (
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">All Consultants</p>
+                )}
+                <div className="space-y-2">{otherConsultants.map(renderCard)}</div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAdd || !!editId} onOpenChange={(open) => { if (!open) { setShowAdd(false); setEditId(null); resetForm(); } }}>
@@ -565,6 +597,33 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                 </div>
 
                 <Separator className="my-3" />
+
+                {/* Onboarding Tracker - only for active new consultants */}
+                {(() => {
+                  if (vc.onboarding_exit_status) return null;
+                  if (!vc.join_date) return null;
+                  const daysSinceJoin = differenceInDays(new Date(), parseISO(vc.join_date));
+                  if (daysSinceJoin > 90) return null;
+                  return (
+                    <>
+                      <OnboardingTrackerPanel
+                        consultant={vc}
+                        onUpdate={(fields) => {
+                          updateTeamConsultant(vc.id, fields)
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+                              setViewConsultant({ ...vc, ...fields } as TeamConsultant);
+                              if (fields.onboarding_exit_status) {
+                                toast.success(`Marked as ${fields.onboarding_exit_status}`);
+                              }
+                            })
+                            .catch((err) => toast.error(err.message || "Failed to save"));
+                        }}
+                      />
+                      <Separator className="my-3" />
+                    </>
+                  );
+                })()}
 
                 {/* Activity Logger - prioritized above contact info */}
                 <ConsultantActivityLogger consultantId={vc.id} consultantName={vc.name} />
