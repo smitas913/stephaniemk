@@ -598,6 +598,33 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
 
                 <Separator className="my-3" />
 
+                {/* Onboarding Tracker - only for active new consultants */}
+                {(() => {
+                  if (vc.onboarding_exit_status) return null;
+                  if (!vc.join_date) return null;
+                  const daysSinceJoin = differenceInDays(new Date(), parseISO(vc.join_date));
+                  if (daysSinceJoin > 90) return null;
+                  return (
+                    <>
+                      <OnboardingTrackerPanel
+                        consultant={vc}
+                        onUpdate={(fields) => {
+                          updateTeamConsultant(vc.id, fields)
+                            .then(() => {
+                              queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+                              setViewConsultant({ ...vc, ...fields } as TeamConsultant);
+                              if (fields.onboarding_exit_status) {
+                                toast.success(`Marked as ${fields.onboarding_exit_status}`);
+                              }
+                            })
+                            .catch((err) => toast.error(err.message || "Failed to save"));
+                        }}
+                      />
+                      <Separator className="my-3" />
+                    </>
+                  );
+                })()}
+
                 {/* Activity Logger - prioritized above contact info */}
                 <ConsultantActivityLogger consultantId={vc.id} consultantName={vc.name} />
 
