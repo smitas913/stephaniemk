@@ -1859,6 +1859,7 @@ export type Database = {
           created_at: string
           customer_source: string | null
           date_added: string | null
+          debut_date: string | null
           dormant_follow_up_stage: string | null
           email: string | null
           first_name: string | null
@@ -1882,7 +1883,10 @@ export type Database = {
           next_coaching_date: string | null
           next_follow_up_date: string | null
           notes: string | null
+          onboarding_exit_date: string | null
+          onboarding_exit_status: string | null
           onboarding_stage: string | null
+          onboarding_tracker: Json
           owner_user_id: string | null
           phone: string | null
           postal_code: string | null
@@ -1911,6 +1915,7 @@ export type Database = {
           created_at?: string
           customer_source?: string | null
           date_added?: string | null
+          debut_date?: string | null
           dormant_follow_up_stage?: string | null
           email?: string | null
           first_name?: string | null
@@ -1934,7 +1939,10 @@ export type Database = {
           next_coaching_date?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
+          onboarding_exit_date?: string | null
+          onboarding_exit_status?: string | null
           onboarding_stage?: string | null
+          onboarding_tracker?: Json
           owner_user_id?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -1963,6 +1971,7 @@ export type Database = {
           created_at?: string
           customer_source?: string | null
           date_added?: string | null
+          debut_date?: string | null
           dormant_follow_up_stage?: string | null
           email?: string | null
           first_name?: string | null
@@ -1986,7 +1995,10 @@ export type Database = {
           next_coaching_date?: string | null
           next_follow_up_date?: string | null
           notes?: string | null
+          onboarding_exit_date?: string | null
+          onboarding_exit_status?: string | null
           onboarding_stage?: string | null
+          onboarding_tracker?: Json
           owner_user_id?: string | null
           phone?: string | null
           postal_code?: string | null
