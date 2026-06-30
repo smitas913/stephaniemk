@@ -98,26 +98,6 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
   const powerComplete = powerFaces >= 30 && powerParties >= 5;
   const pearlsCount = Number(get("pearls_sharing_count", 0));
 
-  useEffect(() => {
-    if (cp30Open && !tracker.cp30_date) {
-      saveTracker({ cp30_date: toLocalDateKey() });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cp30Open]);
-
-  useEffect(() => {
-    if (cp60Open && !tracker.cp60_date) {
-      saveTracker({ cp60_date: toLocalDateKey() });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cp60Open]);
-
-  useEffect(() => {
-    if (cp90Open && !tracker.cp90_date) {
-      saveTracker({ cp90_date: toLocalDateKey() });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cp90Open]);
 
   const handleExit = (status: "Personal Use" | "Exited") => {
     onUpdate({
