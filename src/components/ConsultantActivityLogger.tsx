@@ -112,8 +112,8 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
     else if (nextOption === "60d") nextDate = format(addDays(new Date(), 60), "yyyy-MM-dd");
     else if (nextOption === "90d") nextDate = format(addDays(new Date(), 90), "yyyy-MM-dd");
     else if (nextOption === "schedule" && customDate) nextDate = customDate;
-    else if (!nextOption) {
-      // No What's Next chosen but real activity logged → default to long-term touch.
+    else {
+      // No What's Next chosen (or custom date selected without a date) but real activity logged → default to long-term touch.
       nextDate = resolveLongTermFollowUpDate(null);
     }
 
