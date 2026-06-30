@@ -31,22 +31,22 @@ export async function applyNewCustomerFollowUp(
 
   if (choice === "222") {
     const d2 = addDays(2);
-    const d2w = addDays(14);
-    const d2m = addDays(60);
+    const d4 = addDays(4);
+    const d6 = addDays(6);
     nextDate = d2;
     reason = "Product Check-In / Order Follow-Up";
-    stage = "2 Day";
+    stage = "Day 2";
     planNote =
       `2+2+2 follow-up sequence started${baseDate ? ` from order date ${baseDate}` : ""}:\n` +
-      `• Step 1 — ${d2}: 2 Day — Initial product experience check-in\n` +
-      `• Step 2 — ${d2w}: 2 Week — Reorder / appointment opportunity\n` +
-      `• Step 3 — ${d2m}: 2 Month / PCP — Transition to long-term care`;
+      `• Day 2 — ${d2}: Initial product experience check-in\n` +
+      `• Day 4 — ${d4}: Follow up on experience\n` +
+      `• Day 6 — ${d6}: Transition to 30-day cycle`;
   } else if (choice === "custom" && customDate) {
     nextDate = customDate;
     reason = "Custom follow-up";
   } else {
-    nextDate = addDays(75);
-    reason = "90-Day Care Cycle";
+    nextDate = addDays(30);
+    reason = "30-Day Follow-Up";
   }
 
   await updateCustomer(customerId, {
