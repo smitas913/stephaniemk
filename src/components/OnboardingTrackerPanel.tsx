@@ -87,7 +87,7 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
     "checklist_social_connected",
   ];
   const checklistDone = checklistKeys.filter((k) => !!tracker[k]).length;
-  const cpLogged = ["cp30_date", "cp60_date", "cp90_date"].filter((k) => !!tracker[k]).length;
+  
 
   const [preOpen, setPreOpen] = useState(!debutDate);
   const [postOpen, setPostOpen] = useState(!!debutDate);
