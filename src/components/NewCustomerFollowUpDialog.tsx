@@ -88,7 +88,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
               <Repeat className="w-4 h-4 shrink-0" />
               <div className="text-left">
                 <div className="text-sm font-semibold">Yes — Start 2+2+2</div>
-                <div className="text-[11px] opacity-90">+2 days · +2 weeks · +2 months</div>
+                <div className="text-[11px] opacity-90">Day 2 · Day 4 · Day 6 → then 30-day cycle</div>
               </div>
             </Button>
             <Button
@@ -99,8 +99,8 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
             >
               <CalendarClock className="w-4 h-4 text-primary shrink-0" />
               <div className="text-left">
-                <div className="text-sm font-semibold">Add to 90-Day Cycle Only</div>
-                <div className="text-[11px] text-muted-foreground">Long-term retention rhythm (~75 days)</div>
+                <div className="text-sm font-semibold">Skip to 30-Day Follow-Up</div>
+                <div className="text-[11px] text-muted-foreground">First touch in 30 days — then 3-month cadence</div>
               </div>
             </Button>
             <div className="rounded-md border p-2.5 space-y-2">
