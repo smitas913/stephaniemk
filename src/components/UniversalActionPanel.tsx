@@ -276,7 +276,7 @@ function UnifiedFlowPanel({ item, open, onClose, onLogAction, onSkip, onNavigate
     } else if (activity === "Recruiting Follow-Up") {
       days = 7; reason = "Recruiting follow-up";
     } else {
-      days = 7; reason = "Standard follow-up";
+      days = 90; reason = "3-month follow-up";
     }
 
     return { date: format(addDays(new Date(), days), "yyyy-MM-dd"), reason };

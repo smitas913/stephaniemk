@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarClock, Repeat, Calendar, X } from "lucide-react";
+import { CalendarClock, Repeat, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { applyNewCustomerFollowUp, type FollowUpChoice } from "@/lib/newCustomerFollowUp";
@@ -76,7 +76,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Pick a follow-up path for <span className="font-semibold text-foreground">{customerName}</span>.
-            Defaults to the 90-Day Care Cycle (~75 days) if you close without choosing — no customer falls through the cracks.
+            Defaults to a 30-day follow-up if you close without choosing — no customer falls through the cracks.
           </p>
           <div className="grid grid-cols-1 gap-2">
             <Button
@@ -88,7 +88,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
               <Repeat className="w-4 h-4 shrink-0" />
               <div className="text-left">
                 <div className="text-sm font-semibold">Yes — Start 2+2+2</div>
-                <div className="text-[11px] opacity-90">+2 days · +2 weeks · +2 months</div>
+                <div className="text-[11px] opacity-90">Day 2 · Day 4 · Day 6 → then 30-day cycle</div>
               </div>
             </Button>
             <Button
@@ -99,8 +99,8 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
             >
               <CalendarClock className="w-4 h-4 text-primary shrink-0" />
               <div className="text-left">
-                <div className="text-sm font-semibold">Add to 90-Day Cycle Only</div>
-                <div className="text-[11px] text-muted-foreground">Long-term retention rhythm (~75 days)</div>
+                <div className="text-sm font-semibold">Skip to 30-Day Follow-Up</div>
+                <div className="text-[11px] text-muted-foreground">First touch in 30 days — then 3-month cadence</div>
               </div>
             </Button>
             <div className="rounded-md border p-2.5 space-y-2">
@@ -128,17 +128,6 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
                 </Button>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              disabled={busy}
-              onClick={() => apply("default")}
-              title="Clears short-term follow-ups and adds the customer to the default 90-Day reorder cycle."
-            >
-              <X className="w-3.5 h-3.5 mr-1" />
-              No Follow-Up — use 90-Day default
-            </Button>
           </div>
         </div>
       </DialogContent>
