@@ -106,6 +106,62 @@ export default function OnboardingTrackerPanel({ consultant, onUpdate }: Props) 
     });
   };
 
+  const CheckpointSection = ({ prefix, label }: { prefix: string; label: string }) => {
+    const [open, setOpen] = useState(false);
+    const isLogged = !!get(`${prefix}_date`);
+
+    const handleOpen = (val: boolean) => {
+      setOpen(val);
+      if (val && !get(`${prefix}_date`)) {
+        saveTracker({ [`${prefix}_date`]: toLocalDateKey() });
+      }
+    };
+
+    return (
+      <Collapsible open={open} onOpenChange={handleOpen}>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center justify-between w-full text-left py-1">
+            <div className="flex items-center gap-2">
+              {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              <span className="text-xs font-medium">{label}</span>
+              {isLogged && <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700">Logged</Badge>}
+            </div>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-1 pl-4 space-y-2">
+          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 items-center text-xs">
+            <span className="text-muted-foreground">Date logged</span>
+            <Input type="date" className="h-7 text-xs w-[140px]"
+              value={get(`${prefix}_date`, "") || ""}
+              onChange={(e) => saveTracker({ [`${prefix}_date`]: e.target.value || null })} />
+            <span className="text-muted-foreground">Faces to date</span>
+            <input type="number" min={0} className="h-7 text-xs w-[60px] border rounded px-2 bg-background"
+              value={get(`${prefix}_faces`, "") || ""}
+              onChange={(e) => saveTracker({ [`${prefix}_faces`]: e.target.value ? Number(e.target.value) : null })} />
+            <span className="text-muted-foreground">Parties held</span>
+            <input type="number" min={0} className="h-7 text-xs w-[60px] border rounded px-2 bg-background"
+              value={get(`${prefix}_parties`, "") || ""}
+              onChange={(e) => saveTracker({ [`${prefix}_parties`]: e.target.value ? Number(e.target.value) : null })} />
+            <span className="text-muted-foreground">Sharing appts</span>
+            <input type="number" min={0} className="h-7 text-xs w-[60px] border rounded px-2 bg-background"
+              value={get(`${prefix}_sharing`, "") || ""}
+              onChange={(e) => saveTracker({ [`${prefix}_sharing`]: e.target.value ? Number(e.target.value) : null })} />
+            <span className="text-muted-foreground">Inventory on hand</span>
+            <Checkbox checked={!!get(`${prefix}_inventory`)}
+              onCheckedChange={(v) => saveTracker({ [`${prefix}_inventory`]: !!v })} />
+            <span className="text-muted-foreground">Great Start status</span>
+            <Input className="h-7 text-xs" placeholder="e.g. $420 of $600"
+              value={get(`${prefix}_great_start`, "") || ""}
+              onChange={(e) => saveTracker({ [`${prefix}_great_start`]: e.target.value || null })} />
+          </div>
+          <Textarea className="min-h-[40px] text-xs" placeholder="Notes..."
+            value={get(`${prefix}_notes`, "") || ""}
+            onChange={(e) => saveTracker({ [`${prefix}_notes`]: e.target.value || null })} />
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  };
+
   return (
     <div className="rounded-lg border border-pink-200 bg-pink-50/30 p-3 space-y-3">
       <div className="flex items-center justify-between">
