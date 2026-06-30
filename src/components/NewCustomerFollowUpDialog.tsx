@@ -128,17 +128,6 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
                 </Button>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              disabled={busy}
-              onClick={() => apply("default")}
-              title="Clears short-term follow-ups and adds the customer to the default 90-Day reorder cycle."
-            >
-              <X className="w-3.5 h-3.5 mr-1" />
-              No Follow-Up — use 90-Day default
-            </Button>
           </div>
         </div>
       </DialogContent>
