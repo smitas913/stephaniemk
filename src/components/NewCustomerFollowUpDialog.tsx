@@ -76,7 +76,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
             Pick a follow-up path for <span className="font-semibold text-foreground">{customerName}</span>.
-            Defaults to the 90-Day Care Cycle (~75 days) if you close without choosing — no customer falls through the cracks.
+            Defaults to a 30-day follow-up if you close without choosing — no customer falls through the cracks.
           </p>
           <div className="grid grid-cols-1 gap-2">
             <Button
