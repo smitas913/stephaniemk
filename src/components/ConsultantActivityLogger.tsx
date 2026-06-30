@@ -288,7 +288,6 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
           onClick={handleLog}
           disabled={
             logMutation.isPending ||
-            (nextOption === "schedule" && !customDate) ||
             (!selectedAction && !(nextOption === "schedule" && customDate))
           }
         >
