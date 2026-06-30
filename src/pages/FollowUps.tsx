@@ -636,18 +636,19 @@ export default function FollowUps() {
       id: item.id,
       personType: item.itemType,
       name: item.name,
-      phone: item.phone,
-      email: item.email,
-      statusLabel: item.activity_status || item.opportunity_status,
-      vip: item.vip,
-      followUpReason: item.followUpReason,
-      daysOverdue: item.daysOverdue,
-      followUpStatus: item.follow_up_status,
+      phone: item.phone ?? null,
+      email: item.email ?? null,
+      statusLabel: item.activity_status || item.opportunity_status || undefined,
+      vip: item.vip || undefined,
+      followUpReason: item.followUpReason || "Customer Follow-Up",
+      daysOverdue: item.daysOverdue ?? null,
+      followUpStatus: item.follow_up_status || undefined,
       nextFollowUpDate: item.next_follow_up || null,
       recentNotes: entityNotes,
-      leadAttempts: item._attempts,
-      leadStatus: item._leadStatus,
+      leadAttempts: item._attempts ?? 0,
+      leadStatus: item._leadStatus || undefined,
       lastContactDate: item.lastContacted ?? null,
+      tags: Array.isArray(item._tags) ? item._tags : [],
     });
     setUniversalPanelOpen(true);
   }, [unifiedNotes]);
@@ -1449,18 +1450,18 @@ export default function FollowUps() {
         // offset only when the user did not explicitly choose one.
         const currentStage = (item as any).new_follow_up_stage as string | null | undefined;
         let computedNextDate = nextDate || null;
-        if (currentStage === "2 Day") {
-          updates.new_follow_up_stage = "2 Week";
+        if (currentStage === "Day 2") {
+          updates.new_follow_up_stage = "Day 4";
           updates.follow_up_reason = "Product Check-In / Order Follow-Up";
-          if (!nextDate) computedNextDate = format(addDays(new Date(), 12), "yyyy-MM-dd");
-        } else if (currentStage === "2 Week") {
-          updates.new_follow_up_stage = "2 Month";
+          if (!nextDate) computedNextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        } else if (currentStage === "Day 4") {
+          updates.new_follow_up_stage = "Day 6";
           updates.follow_up_reason = "Product Check-In / Order Follow-Up";
-          if (!nextDate) computedNextDate = format(addDays(new Date(), 46), "yyyy-MM-dd");
-        } else if (currentStage === "2 Month") {
+          if (!nextDate) computedNextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
+        } else if (currentStage === "Day 6") {
           updates.new_follow_up_stage = "Complete";
-          updates.follow_up_reason = "90-Day Care Cycle";
-          if (!nextDate) computedNextDate = format(addDays(new Date(), 75), "yyyy-MM-dd");
+          updates.follow_up_reason = "30-Day Follow-Up";
+          if (!nextDate) computedNextDate = format(addDays(new Date(), 24), "yyyy-MM-dd");
         }
         // Always update next_follow_up_date: set it to the new date or clear it
         updates.next_follow_up_date = computedNextDate;
