@@ -852,6 +852,16 @@ function LeadershipTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Merge duplicate consultant */}
+      <MergePickerDialog
+        open={!!mergeTarget}
+        onOpenChange={(v) => { if (!v) setMergeTarget(null); }}
+        currentId={mergeTarget?.id || ""}
+        currentName={mergeTarget?.name || ""}
+        kind="consultant"
+        onMerged={(keepId) => { setMergeTarget(null); setViewConsultant(null); if (keepId) { /* refresh handled by invalidate */ } }}
+      />
     </div>
   );
 }
