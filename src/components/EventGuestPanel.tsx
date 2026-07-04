@@ -675,6 +675,147 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           </div>
         )
       )}
+
+      {/* Join → duplicate consultant guard */}
+      <DuplicateGuardDialog
+        open={!!joinDupCheck}
+        onOpenChange={(v) => { if (!v) setJoinDupCheck(null); }}
+        strong={joinDupCheck?.strong || null}
+        softName={joinDupCheck?.softName || null}
+        attemptedName={joinForm?.name || ""}
+        targetKind="consultant"
+        linkPending={joinInsertPending}
+        onLinkExisting={async (match) => {
+          if (match.kind === "consultant") {
+            await fillEmptyFieldsFromNew(match, { phone: joinForm?.phone || null });
+            await performJoinInsert(match.id);
+          } else {
+            // Existing customer — still need a consultant row; just create new but pre-linked to same person
+            await performJoinInsert();
+          }
+        }}
+        onCreateAnyway={async () => { await performJoinInsert(); }}
+      />
+
+      {/* Guest ordered → convert to customer */}
+      <ConvertGuestToCustomerDialog
+        prompt={convertGuestPrompt}
+        setPrompt={setConvertGuestPrompt}
+        allConsultants={allConsultants as any[]}
+        onCreated={async (customerId) => {
+          if (!convertGuestPrompt) return;
+          await updateMutation.mutateAsync({ id: convertGuestPrompt.guest.id, updates: { converted_customer_id: customerId } as any });
+          queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }}
+        dupCheck={convertGuestDup}
+        setDupCheck={setConvertGuestDup}
+      />
     </div>
   );
 }
+
+// Inline: prompt to add an ordered guest to the customer list, with duplicate guard + "assigned to" picker.
+function ConvertGuestToCustomerDialog({
+  prompt,
+  setPrompt,
+  allConsultants,
+  onCreated,
+  dupCheck,
+  setDupCheck,
+}: {
+  prompt: { guest: EventGuest; assign: string } | null;
+  setPrompt: (v: any) => void;
+  allConsultants: Array<{ id: string; name: string }>;
+  onCreated: (customerId: string) => Promise<void>;
+  dupCheck: { strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null;
+  setDupCheck: (v: any) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  if (!prompt) return null;
+  const g = prompt.guest;
+
+  const performCreate = async (linkExistingId?: string, linkKind?: "customer" | "consultant") => {
+    setPending(true);
+    try {
+      if (linkExistingId && linkKind === "customer") {
+        await fillEmptyFieldsFromNew(
+          { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: null, reason: "phone" },
+          { phone: g.phone }
+        );
+        await onCreated(linkExistingId);
+        toast.success(`Linked ${g.name} to existing customer`);
+      } else {
+        const created = await createCustomer({
+          full_name: g.name,
+          phone: g.phone || null,
+          relationship_status: "Customer",
+          assigned_consultant_id: prompt.assign === "__me__" ? null : prompt.assign,
+        } as any);
+        await onCreated(created.id);
+        toast.success(`${g.name} added to customer list`);
+      }
+      setPrompt(null);
+      setDupCheck(null);
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    const dup = await checkForDuplicatePerson({ fullName: g.name, phone: g.phone, kind: "customer" });
+    if (dup.strong || dup.softName) {
+      setDupCheck(dup);
+      return;
+    }
+    await performCreate();
+  };
+
+  return (
+    <>
+      <Dialog open={!!prompt && !dupCheck} onOpenChange={(v) => { if (!v) setPrompt(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Add {g.name} to your customer list?
+            </DialogTitle>
+            <DialogDescription>
+              They ordered at this event. Add them so you can track future follow-ups.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Assigned to</Label>
+            <Select value={prompt.assign} onValueChange={(v) => setPrompt({ ...prompt, assign: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__me__">Me (director)</SelectItem>
+                {allConsultants.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrompt(null)} disabled={pending}>Not now</Button>
+            <Button onClick={handleConfirm} disabled={pending}>Add customer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <DuplicateGuardDialog
+        open={!!dupCheck}
+        onOpenChange={(v) => { if (!v) setDupCheck(null); }}
+        strong={dupCheck?.strong || null}
+        softName={dupCheck?.softName || null}
+        attemptedName={g.name}
+        targetKind="customer"
+        linkPending={pending}
+        onLinkExisting={async (match) => { await performCreate(match.id, match.kind); }}
+        onCreateAnyway={async () => { await performCreate(); }}
+      />
+    </>
+  );
+}
+
