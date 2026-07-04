@@ -32,6 +32,7 @@ export interface Customer {
   date_added: string;
   became_customer_date: string | null;
   tags?: string[] | null;
+  assigned_consultant_id?: string | null;
   created_at: string;
   updated_at: string;
 }
