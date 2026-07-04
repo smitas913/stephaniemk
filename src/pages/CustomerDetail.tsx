@@ -1319,9 +1319,26 @@ export default function CustomerDetail() {
               >
                 <Trash2 className="w-3.5 h-3.5" />Delete
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setShowMergePicker(true)}
+              >
+                <GitMerge className="w-3.5 h-3.5" />Merge duplicate
+              </Button>
             </div>
           </CardContent>
         </Card>
+
+        <MergePickerDialog
+          open={showMergePicker}
+          onOpenChange={setShowMergePicker}
+          currentId={customer.id}
+          currentName={customer.full_name}
+          kind="customer"
+          onMerged={(keepId) => { if (keepId !== customer.id) navigate(`/customers/${keepId}`); }}
+        />
 
         {/* Archive Confirmation */}
         <AlertDialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
