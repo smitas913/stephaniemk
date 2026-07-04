@@ -277,25 +277,53 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
 
   const finalizeJoin = async () => {
     if (!joinForm) return;
-    const userId = (await supabase.auth.getUser()).data.user?.id;
     const trimmedName = joinForm.name.trim();
     if (!trimmedName) { toast.error("Name required"); return; }
-    const { data: inserted, error } = await supabase.from("team_consultants").insert({
-      name: trimmedName,
-      phone: joinForm.phone.trim() || null,
-      status: "Active",
-      join_date: new Date().toISOString().slice(0, 10),
-      relationship_type: "Personal Recruit",
-      owner_user_id: userId,
-    } as any).select("id").single();
-    if (error) { toast.error(error.message); return; }
-    if (inserted?.id) {
-      await updateMutation.mutateAsync({ id: joinForm.guestId, updates: { converted_consultant_id: inserted.id } as any });
+    // Duplicate guard — check before insert
+    const dup = await checkForDuplicatePerson({
+      fullName: trimmedName,
+      phone: joinForm.phone,
+      kind: "consultant",
+    });
+    if (dup.strong || dup.softName) {
+      setJoinDupCheck(dup);
+      return; // wait for user's dialog choice
     }
-    toast.success(`${trimmedName} added to your team!`);
-    setJoinForm(null);
-    queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+    await performJoinInsert();
   };
+
+  const performJoinInsert = async (linkExistingConsultantId?: string) => {
+    if (!joinForm) return;
+    setJoinInsertPending(true);
+    try {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const trimmedName = joinForm.name.trim();
+      let consultantId = linkExistingConsultantId;
+      if (!consultantId) {
+        const { data: inserted, error } = await supabase.from("team_consultants").insert({
+          name: trimmedName,
+          phone: joinForm.phone.trim() || null,
+          status: "Active",
+          join_date: new Date().toISOString().slice(0, 10),
+          relationship_type: "Personal Recruit",
+          owner_user_id: userId,
+        } as any).select("id").single();
+        if (error) { toast.error(error.message); return; }
+        consultantId = inserted?.id;
+      }
+      if (consultantId) {
+        await updateMutation.mutateAsync({ id: joinForm.guestId, updates: { converted_consultant_id: consultantId } as any });
+      }
+      toast.success(linkExistingConsultantId ? `Linked to existing consultant` : `${trimmedName} added to your team!`);
+      setJoinForm(null);
+      setJoinDupCheck(null);
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+    } finally {
+      setJoinInsertPending(false);
+    }
+  };
+
+
 
   const linkBookingToEvent = async () => {
     if (!bookForm || !bookForm.selectedEventId) return;
