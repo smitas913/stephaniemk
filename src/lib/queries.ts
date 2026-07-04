@@ -75,12 +75,50 @@ export const fetchCustomer = async (id: string): Promise<Customer> => {
   return data as unknown as Customer;
 };
 
-export const createCustomer = async (customer: Partial<Customer> & { full_name: string }) => {
+export class DuplicatePersonError extends Error {
+  match: { kind: "customer" | "consultant"; id: string; name: string; phone: string | null; email: string | null; reason: "phone" | "email" };
+  constructor(match: DuplicatePersonError["match"]) {
+    super(`A ${match.kind} with matching ${match.reason} already exists: ${match.name}`);
+    this.name = "DuplicatePersonError";
+    this.match = match;
+  }
+}
+
+async function findStrongDuplicate(phone: string | null | undefined, email: string | null | undefined) {
+  const p = stripPhone(phone);
+  const e = normalizeEmail(email);
+  if (!p && !e) return null;
+  const [{ data: customers }, { data: consultants }] = await Promise.all([
+    supabase.from("customers").select("id, full_name, phone, email").limit(5000),
+    supabase.from("team_consultants").select("id, name, phone, email").limit(5000),
+  ]);
+  for (const c of customers || []) {
+    const cp = stripPhone((c as any).phone);
+    const ce = normalizeEmail((c as any).email);
+    if (p && p.length >= 7 && cp === p) return { kind: "customer" as const, id: (c as any).id, name: (c as any).full_name, phone: (c as any).phone, email: (c as any).email, reason: "phone" as const };
+    if (e && ce && ce === e) return { kind: "customer" as const, id: (c as any).id, name: (c as any).full_name, phone: (c as any).phone, email: (c as any).email, reason: "email" as const };
+  }
+  for (const c of consultants || []) {
+    const cp = stripPhone((c as any).phone);
+    const ce = normalizeEmail((c as any).email);
+    if (p && p.length >= 7 && cp === p) return { kind: "consultant" as const, id: (c as any).id, name: (c as any).name, phone: (c as any).phone, email: (c as any).email, reason: "phone" as const };
+    if (e && ce && ce === e) return { kind: "consultant" as const, id: (c as any).id, name: (c as any).name, phone: (c as any).phone, email: (c as any).email, reason: "email" as const };
+  }
+  return null;
+}
+
+export const createCustomer = async (
+  customer: Partial<Customer> & { full_name: string },
+  opts?: { allowDuplicate?: boolean }
+) => {
   const userId = await getCurrentUserId();
-  // Always default date_added to the user's LOCAL today (not Postgres CURRENT_DATE which is UTC).
   const { toLocalDateKey } = await import("@/lib/dateOnly");
   const payload: any = withNormalizedPhone({ ...customer, owner_user_id: userId });
   if (!payload.date_added) payload.date_added = toLocalDateKey();
+  if (!opts?.allowDuplicate) {
+    const match = await findStrongDuplicate(payload.phone, payload.email);
+    if (match) throw new DuplicatePersonError(match);
+  }
   const { data, error } = await supabase.from("customers").insert(payload).select().single();
   if (error) throw error;
   return data;
@@ -1311,9 +1349,17 @@ export const fetchTeamConsultants = async (): Promise<TeamConsultant[]> => {
   return data as unknown as TeamConsultant[];
 };
 
-export const createTeamConsultant = async (consultant: Partial<TeamConsultant> & { name: string }): Promise<TeamConsultant> => {
+export const createTeamConsultant = async (
+  consultant: Partial<TeamConsultant> & { name: string },
+  opts?: { allowDuplicate?: boolean }
+): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("team_consultants").insert(withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any).select().single();
+  const payload = withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any;
+  if (!opts?.allowDuplicate) {
+    const match = await findStrongDuplicate(payload.phone, payload.email);
+    if (match) throw new DuplicatePersonError(match);
+  }
+  const { data, error } = await supabase.from("team_consultants").insert(payload).select().single();
   if (error) throw error;
   return data as unknown as TeamConsultant;
 };

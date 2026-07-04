@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createCustomer, fetchCustomers } from "@/lib/queries";
+import { createCustomer, fetchCustomers, fetchTeamConsultants } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
@@ -37,10 +37,12 @@ export default function AddCustomer() {
   const [nextFollowUp, setNextFollowUp] = useState(toLocalDateKey());
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
+  const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
 
   // Duplicate-name detection (never blocks creation — informational only)
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const nameMatches = useMemo(() => {
     const q = name.trim().toLowerCase();
     if (q.length < 2) return [];
@@ -49,19 +51,27 @@ export default function AddCustomer() {
       .slice(0, 5);
   }, [name, existingCustomers]);
 
-  // Hard duplicate match by normalized phone or email — block creation.
-  const contactDuplicate = useMemo(() => {
+  // Hard duplicate match by normalized phone or email — scans BOTH customers and consultants.
+  const contactDuplicate = useMemo<{ id: string; name: string; phone: string | null; email: string | null; kind: "customer" | "consultant" } | null>(() => {
     const p = stripPhone(phone);
     const e = normalizeEmail(email);
     if (!p && !e) return null;
-    return existingCustomers.find((c: any) => {
+    for (const c of existingCustomers as any[]) {
       const cp = stripPhone(c.phone);
       const ce = normalizeEmail(c.email);
-      if (p && p.length >= 7 && cp === p) return true;
-      if (e && ce && ce === e) return true;
-      return false;
-    }) || null;
-  }, [phone, email, existingCustomers]);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.full_name, phone: c.phone, email: c.email, kind: "customer" };
+      }
+    }
+    for (const c of consultants as any[]) {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.name, phone: c.phone, email: c.email, kind: "consultant" };
+      }
+    }
+    return null;
+  }, [phone, email, existingCustomers, consultants]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -80,13 +90,12 @@ export default function AddCustomer() {
         notes: notes.trim() || null,
         next_follow_up_date: nextFollowUp || null,
         date_added: dateAdded || toLocalDateKey(),
-        // Prefer user-entered dates (manual override > first order date). Leave null to let
-        // the DB trigger derive from the earliest related order/face date.
+        assigned_consultant_id: assignedConsultantId === "__me__" ? null : assignedConsultantId,
         became_customer_date:
           relationship === "Customer"
             ? (becameCustomerDate || firstOrderDate || null)
             : null,
-      }),
+      } as any, { allowDuplicate: true }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
@@ -177,17 +186,17 @@ export default function AddCustomer() {
                   <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-destructive">
-                      A customer with this {stripPhone(phone) ? "phone" : "email"} already exists
+                      A {contactDuplicate.kind} with this {stripPhone(phone) ? "phone" : "email"} already exists
                     </p>
                     <button
                       type="button"
-                      onClick={() => navigate(`/customers/${(contactDuplicate as any).id}`)}
+                      onClick={() => navigate(contactDuplicate.kind === "consultant" ? `/leadership` : `/customers/${contactDuplicate.id}`)}
                       className="mt-1 w-full text-left px-2 py-1.5 rounded bg-background hover:bg-muted border border-border flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-foreground truncate">{(contactDuplicate as any).full_name}</div>
+                        <div className="text-xs font-medium text-foreground truncate">{contactDuplicate.name}</div>
                         <div className="text-[10px] text-muted-foreground truncate">
-                          {[formatPhone((contactDuplicate as any).phone), (contactDuplicate as any).email].filter(Boolean).join(" · ")}
+                          {[formatPhone(contactDuplicate.phone), contactDuplicate.email].filter(Boolean).join(" · ")}
                         </div>
                       </div>
                       <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
@@ -267,6 +276,21 @@ export default function AddCustomer() {
                   <p className="text-xs text-muted-foreground mt-1">When they became a customer.</p>
                 </div>
               )}
+            </div>
+
+            {/* Assigned Consultant */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Assigned To</label>
+              <Select value={assignedConsultantId} onValueChange={setAssignedConsultantId}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__me__">Me (director)</SelectItem>
+                  {(consultants as any[]).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Who owns this customer relationship.</p>
             </div>
 
             {/* Notes */}

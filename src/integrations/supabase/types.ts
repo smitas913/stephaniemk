@@ -349,6 +349,7 @@ export type Database = {
           address_line_2: string | null
           allow_non_working_day: boolean
           archived_at: string | null
+          assigned_consultant_id: string | null
           attention_reason: string | null
           beauty_notes: Json
           became_customer_date: string | null
@@ -390,6 +391,7 @@ export type Database = {
           address_line_2?: string | null
           allow_non_working_day?: boolean
           archived_at?: string | null
+          assigned_consultant_id?: string | null
           attention_reason?: string | null
           beauty_notes?: Json
           became_customer_date?: string | null
@@ -431,6 +433,7 @@ export type Database = {
           address_line_2?: string | null
           allow_non_working_day?: boolean
           archived_at?: string | null
+          assigned_consultant_id?: string | null
           attention_reason?: string | null
           beauty_notes?: Json
           became_customer_date?: string | null
@@ -467,7 +470,15 @@ export type Database = {
           tags?: string[]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_assigned_consultant_id_fkey"
+            columns: ["assigned_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_focus_progress: {
         Row: {
@@ -2333,8 +2344,16 @@ export type Database = {
         Returns: boolean
       }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      merge_consultants: {
+        Args: { _dup_id: string; _keep_id: string }
+        Returns: Json
+      }
       merge_customer_into_consultant: {
         Args: { _consultant_id: string; _customer_id: string }
+        Returns: Json
+      }
+      merge_customers: {
+        Args: { _dup_id: string; _keep_id: string }
         Returns: Json
       }
       normalize_phone: { Args: { p: string }; Returns: string }

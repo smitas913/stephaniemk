@@ -38,6 +38,9 @@ import TextActionButton from "@/components/TextActionButton";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen, Sparkles } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
+import MergePickerDialog from "@/components/MergePickerDialog";
+import { GitMerge } from "lucide-react";
+import { fetchTeamConsultants } from "@/lib/queries";
 import BeautyNotesCard from "@/components/BeautyNotesCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
 import SkincareConversionDialog from "@/components/SkincareConversionDialog";
@@ -160,6 +163,7 @@ export default function CustomerDetail() {
         is_skincare_customer: (customer as any).is_skincare_customer ? "true" : "false",
         date_added: (customer as any).date_added || "",
         became_customer_date: (customer as any).became_customer_date || "",
+        assigned_consultant_id: (customer as any).assigned_consultant_id || "__me__",
       });
     }
   }, [customer]);
@@ -448,6 +452,8 @@ export default function CustomerDetail() {
         } else if (k === "state_territory") {
           const norm = normalizeStateAbbreviation(v);
           cleaned[k] = norm === "" ? null : norm;
+        } else if (k === "assigned_consultant_id") {
+          cleaned[k] = v === "__me__" || v === "" ? null : v;
         } else {
           cleaned[k] = v === "" ? null : v;
         }
@@ -515,6 +521,8 @@ export default function CustomerDetail() {
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showMergePicker, setShowMergePicker] = useState(false);
+  const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const [quickEditField, setQuickEditField] = useState<QuickEditField | null>(null);
 
   const convertToConsultantMut = useMutation({
@@ -785,6 +793,17 @@ export default function CustomerDetail() {
                       <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormField>
+                  <FormField label="Assigned To">
+                    <Select value={form.assigned_consultant_id || "__me__"} onValueChange={(v) => setForm({ ...form, assigned_consultant_id: v })}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__me__">Me (director)</SelectItem>
+                        {(allConsultants as any[]).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
                   </FormField>
@@ -913,6 +932,11 @@ export default function CustomerDetail() {
                 <SectionHeader title="Customer Status" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <InfoRow label="Relationship" value={customer.relationship_status} />
+                  <InfoRow label="Assigned To" value={
+                    (customer as any).assigned_consultant_id
+                      ? (allConsultants as any[]).find((c) => c.id === (customer as any).assigned_consultant_id)?.name || "—"
+                      : "Me (director)"
+                  } />
                   <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
                   <InfoRow label="Became Customer" value={formatDate((customer as any).became_customer_date) || "—"} />
                   <div className="flex flex-col gap-0.5 py-1.5">
@@ -1314,9 +1338,26 @@ export default function CustomerDetail() {
               >
                 <Trash2 className="w-3.5 h-3.5" />Delete
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setShowMergePicker(true)}
+              >
+                <GitMerge className="w-3.5 h-3.5" />Merge duplicate
+              </Button>
             </div>
           </CardContent>
         </Card>
+
+        <MergePickerDialog
+          open={showMergePicker}
+          onOpenChange={setShowMergePicker}
+          currentId={customer.id}
+          currentName={customer.full_name}
+          kind="customer"
+          onMerged={(keepId) => { if (keepId !== customer.id) navigate(`/customers/${keepId}`); }}
+        />
 
         {/* Archive Confirmation */}
         <AlertDialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>

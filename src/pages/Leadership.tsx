@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { differenceInDays, parseISO } from "date-fns";
 import { formatPhone, phoneForLink, stripPhone, normalizeEmail } from "@/lib/phoneUtils";
-import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, Users, Crown, UserPlus, Upload, Search, ArrowUpDown, Phone, MessageSquare, StickyNote, CheckCircle, X, MapPin, Mail, User, ArrowRightLeft, AlertTriangle, GitMerge } from "lucide-react";
 import { openEmail } from "@/lib/emailPreference";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -31,6 +31,7 @@ import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
 import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
 import OnboardingTrackerPanel from "@/components/OnboardingTrackerPanel";
 import TextActionButton from "@/components/TextActionButton";
+import MergePickerDialog from "@/components/MergePickerDialog";
 import { toast } from "sonner";
 
 
@@ -105,6 +106,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
   const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
   const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<TeamConsultant | null>(null);
 
   // Auto-open consultant panel when navigated from drill-down (only once)
   const autoOpenHandled = useRef(false);
@@ -222,6 +224,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const createMut = useMutation({
     mutationFn: () => createTeamConsultant(buildPayload() as any),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setShowAdd(false); resetForm(); toast.success("Consultant added!"); },
+    onError: (err: any) => toast.error(err.message || "Failed to add consultant"),
   });
 
   const updateMut = useMutation({
@@ -568,6 +571,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                   <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setConvertTarget(vc)}>
                     <ArrowRightLeft className="w-3 h-3" />Customer
                   </Button>
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => { setMergeTarget(vc); }}>
+                    <GitMerge className="w-3 h-3" />Merge
+                  </Button>
                 </div>
 
                 <Separator className="my-3" />
@@ -682,6 +688,16 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Merge duplicate consultant */}
+      <MergePickerDialog
+        open={!!mergeTarget}
+        onOpenChange={(v) => { if (!v) setMergeTarget(null); }}
+        currentId={mergeTarget?.id || ""}
+        currentName={mergeTarget?.name || ""}
+        kind="consultant"
+        onMerged={() => { setMergeTarget(null); setViewConsultant(null); }}
+      />
     </div>
   );
 }

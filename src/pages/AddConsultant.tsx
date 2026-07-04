@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
+import { createTeamConsultant, fetchTeamConsultants, fetchCustomers } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
@@ -71,18 +71,27 @@ export default function AddConsultant() {
   });
 
   const { data: existingConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
-  const contactDuplicate = useMemo(() => {
+  const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const contactDuplicate = useMemo<{ id: string; name: string; phone: string | null; email: string | null; kind: "customer" | "consultant" } | null>(() => {
     const p = stripPhone(phone);
     const e = normalizeEmail(email);
     if (!p && !e) return null;
-    return existingConsultants.find((c: any) => {
+    for (const c of existingConsultants as any[]) {
       const cp = stripPhone(c.phone);
       const ce = normalizeEmail(c.email);
-      if (p && p.length >= 7 && cp === p) return true;
-      if (e && ce && ce === e) return true;
-      return false;
-    }) || null;
-  }, [phone, email, existingConsultants]);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.name, phone: c.phone, email: c.email, kind: "consultant" };
+      }
+    }
+    for (const c of existingCustomers as any[]) {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.full_name, phone: c.phone, email: c.email, kind: "customer" };
+      }
+    }
+    return null;
+  }, [phone, email, existingConsultants, existingCustomers]);
 
   const hasContact = phone.trim() || email.trim();
   const canSubmit = fullName && hasContact && !contactDuplicate && !mutation.isPending;
@@ -134,8 +143,8 @@ export default function AddConsultant() {
                   <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-destructive">
-                      A consultant with this {stripPhone(phone) ? "phone" : "email"} already exists: {(contactDuplicate as any).name}
-                      {(contactDuplicate as any).phone ? ` · ${formatPhone((contactDuplicate as any).phone)}` : ""}
+                      A {contactDuplicate.kind} with this {stripPhone(phone) ? "phone" : "email"} already exists: {contactDuplicate.name}
+                      {contactDuplicate.phone ? ` · ${formatPhone(contactDuplicate.phone)}` : ""}
                     </p>
                   </div>
                 </div>

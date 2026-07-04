@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
@@ -48,6 +48,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
+  const [filterAssigned, setFilterAssigned] = useState<string>("all"); // "all" | "me" | consultantId
   const [missingOpen, setMissingOpen] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -111,6 +112,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   };
 
   const { data: customers = [], isLoading } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: teamConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
 
@@ -234,7 +236,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         }
       }
 
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing && matchTags;
+      const assignedId = (c as any).assigned_consultant_id || null;
+      const matchAssigned =
+        filterAssigned === "all" ? true
+          : filterAssigned === "me" ? !assignedId
+          : assignedId === filterAssigned;
+
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing && matchTags && matchAssigned;
     });
 
     if (sortByVip === "vip-first") {
@@ -263,7 +271,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterTags, filterAttention, attentionView]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterTags, filterAttention, attentionView, filterAssigned]);
 
   const availableTags = useMemo(() => {
     const s = new Set<string>();
@@ -378,6 +386,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               <SelectItem value="all">All Skincare</SelectItem>
               <SelectItem value="yes">Skincare: Yes</SelectItem>
               <SelectItem value="no">Skincare: No</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterAssigned} onValueChange={setFilterAssigned}>
+            <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue placeholder="Assigned to" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignments</SelectItem>
+              <SelectItem value="me">Me (director)</SelectItem>
+              {(teamConsultants as any[]).map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Popover open={missingOpen} onOpenChange={setMissingOpen}>

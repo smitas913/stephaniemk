@@ -1,16 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders } from "@/lib/queries";
+import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders, createCustomer, fetchTeamConsultants } from "@/lib/queries";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Trash2, Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { checkForDuplicatePerson, type DuplicateMatch, fillEmptyFieldsFromNew } from "@/lib/duplicateCheck";
+import DuplicateGuardDialog from "@/components/DuplicateGuardDialog";
 
 
 interface Props {
@@ -66,6 +71,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
   const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
+
+  // Duplicate guard for finalizeJoin (consultant insert)
+  const [joinDupCheck, setJoinDupCheck] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
+  const [joinInsertPending, setJoinInsertPending] = useState(false);
+
+  // Guest → customer conversion prompt when marking Ordered
+  const [convertGuestPrompt, setConvertGuestPrompt] = useState<{ guest: EventGuest; assign: string } | null>(null);
+  const [convertGuestDup, setConvertGuestDup] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
+
+  const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+
+
 
   // Upcoming events for the "Booked Next Event" linking panel
   const { data: upcomingEvents = [] } = useQuery({
@@ -207,6 +224,10 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "ordered":
         updates.ordered = willBeOn;
+        // On enable: if guest has no linked customer yet, prompt to convert to a customer
+        if (willBeOn && !g.converted_customer_id) {
+          setConvertGuestPrompt({ guest: g, assign: "__me__" });
+        }
         break;
       case "booked":
         updates.booked = willBeOn;
@@ -256,25 +277,53 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
 
   const finalizeJoin = async () => {
     if (!joinForm) return;
-    const userId = (await supabase.auth.getUser()).data.user?.id;
     const trimmedName = joinForm.name.trim();
     if (!trimmedName) { toast.error("Name required"); return; }
-    const { data: inserted, error } = await supabase.from("team_consultants").insert({
-      name: trimmedName,
-      phone: joinForm.phone.trim() || null,
-      status: "Active",
-      join_date: new Date().toISOString().slice(0, 10),
-      relationship_type: "Personal Recruit",
-      owner_user_id: userId,
-    } as any).select("id").single();
-    if (error) { toast.error(error.message); return; }
-    if (inserted?.id) {
-      await updateMutation.mutateAsync({ id: joinForm.guestId, updates: { converted_consultant_id: inserted.id } as any });
+    // Duplicate guard — check before insert
+    const dup = await checkForDuplicatePerson({
+      fullName: trimmedName,
+      phone: joinForm.phone,
+      kind: "consultant",
+    });
+    if (dup.strong || dup.softName) {
+      setJoinDupCheck(dup);
+      return; // wait for user's dialog choice
     }
-    toast.success(`${trimmedName} added to your team!`);
-    setJoinForm(null);
-    queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+    await performJoinInsert();
   };
+
+  const performJoinInsert = async (linkExistingConsultantId?: string) => {
+    if (!joinForm) return;
+    setJoinInsertPending(true);
+    try {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const trimmedName = joinForm.name.trim();
+      let consultantId = linkExistingConsultantId;
+      if (!consultantId) {
+        const { data: inserted, error } = await supabase.from("team_consultants").insert({
+          name: trimmedName,
+          phone: joinForm.phone.trim() || null,
+          status: "Active",
+          join_date: new Date().toISOString().slice(0, 10),
+          relationship_type: "Personal Recruit",
+          owner_user_id: userId,
+        } as any).select("id").single();
+        if (error) { toast.error(error.message); return; }
+        consultantId = inserted?.id;
+      }
+      if (consultantId) {
+        await updateMutation.mutateAsync({ id: joinForm.guestId, updates: { converted_consultant_id: consultantId } as any });
+      }
+      toast.success(linkExistingConsultantId ? `Linked to existing consultant` : `${trimmedName} added to your team!`);
+      setJoinForm(null);
+      setJoinDupCheck(null);
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+    } finally {
+      setJoinInsertPending(false);
+    }
+  };
+
+
 
   const linkBookingToEvent = async () => {
     if (!bookForm || !bookForm.selectedEventId) return;
@@ -626,6 +675,147 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           </div>
         )
       )}
+
+      {/* Join → duplicate consultant guard */}
+      <DuplicateGuardDialog
+        open={!!joinDupCheck}
+        onOpenChange={(v) => { if (!v) setJoinDupCheck(null); }}
+        strong={joinDupCheck?.strong || null}
+        softName={joinDupCheck?.softName || null}
+        attemptedName={joinForm?.name || ""}
+        targetKind="consultant"
+        linkPending={joinInsertPending}
+        onLinkExisting={async (match) => {
+          if (match.kind === "consultant") {
+            await fillEmptyFieldsFromNew(match, { phone: joinForm?.phone || null });
+            await performJoinInsert(match.id);
+          } else {
+            // Existing customer — still need a consultant row; just create new but pre-linked to same person
+            await performJoinInsert();
+          }
+        }}
+        onCreateAnyway={async () => { await performJoinInsert(); }}
+      />
+
+      {/* Guest ordered → convert to customer */}
+      <ConvertGuestToCustomerDialog
+        prompt={convertGuestPrompt}
+        setPrompt={setConvertGuestPrompt}
+        allConsultants={allConsultants as any[]}
+        onCreated={async (customerId) => {
+          if (!convertGuestPrompt) return;
+          await updateMutation.mutateAsync({ id: convertGuestPrompt.guest.id, updates: { converted_customer_id: customerId } as any });
+          queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }}
+        dupCheck={convertGuestDup}
+        setDupCheck={setConvertGuestDup}
+      />
     </div>
   );
 }
+
+// Inline: prompt to add an ordered guest to the customer list, with duplicate guard + "assigned to" picker.
+function ConvertGuestToCustomerDialog({
+  prompt,
+  setPrompt,
+  allConsultants,
+  onCreated,
+  dupCheck,
+  setDupCheck,
+}: {
+  prompt: { guest: EventGuest; assign: string } | null;
+  setPrompt: (v: any) => void;
+  allConsultants: Array<{ id: string; name: string }>;
+  onCreated: (customerId: string) => Promise<void>;
+  dupCheck: { strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null;
+  setDupCheck: (v: any) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  if (!prompt) return null;
+  const g = prompt.guest;
+
+  const performCreate = async (linkExistingId?: string, linkKind?: "customer" | "consultant") => {
+    setPending(true);
+    try {
+      if (linkExistingId && linkKind === "customer") {
+        await fillEmptyFieldsFromNew(
+          { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: null, reason: "phone" },
+          { phone: g.phone }
+        );
+        await onCreated(linkExistingId);
+        toast.success(`Linked ${g.name} to existing customer`);
+      } else {
+        const created = await createCustomer({
+          full_name: g.name,
+          phone: g.phone || null,
+          relationship_status: "Customer",
+          assigned_consultant_id: prompt.assign === "__me__" ? null : prompt.assign,
+        } as any, { allowDuplicate: true });
+        await onCreated(created.id);
+        toast.success(`${g.name} added to customer list`);
+      }
+      setPrompt(null);
+      setDupCheck(null);
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    const dup = await checkForDuplicatePerson({ fullName: g.name, phone: g.phone, kind: "customer" });
+    if (dup.strong || dup.softName) {
+      setDupCheck(dup);
+      return;
+    }
+    await performCreate();
+  };
+
+  return (
+    <>
+      <Dialog open={!!prompt && !dupCheck} onOpenChange={(v) => { if (!v) setPrompt(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Add {g.name} to your customer list?
+            </DialogTitle>
+            <DialogDescription>
+              They ordered at this event. Add them so you can track future follow-ups.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Assigned to</Label>
+            <Select value={prompt.assign} onValueChange={(v) => setPrompt({ ...prompt, assign: v })}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__me__">Me (director)</SelectItem>
+                {allConsultants.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPrompt(null)} disabled={pending}>Not now</Button>
+            <Button onClick={handleConfirm} disabled={pending}>Add customer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <DuplicateGuardDialog
+        open={!!dupCheck}
+        onOpenChange={(v) => { if (!v) setDupCheck(null); }}
+        strong={dupCheck?.strong || null}
+        softName={dupCheck?.softName || null}
+        attemptedName={g.name}
+        targetKind="customer"
+        linkPending={pending}
+        onLinkExisting={async (match) => { await performCreate(match.id, match.kind); }}
+        onCreateAnyway={async () => { await performCreate(); }}
+      />
+    </>
+  );
+}
+
