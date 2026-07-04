@@ -570,6 +570,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                   <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setConvertTarget(vc)}>
                     <ArrowRightLeft className="w-3 h-3" />Customer
                   </Button>
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => { setMergeTarget(vc); }}>
+                    <GitMerge className="w-3 h-3" />Merge
+                  </Button>
                 </div>
 
                 <Separator className="my-3" />
