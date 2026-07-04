@@ -143,8 +143,8 @@ export default function AddConsultant() {
                   <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-destructive">
-                      A consultant with this {stripPhone(phone) ? "phone" : "email"} already exists: {(contactDuplicate as any).name}
-                      {(contactDuplicate as any).phone ? ` · ${formatPhone((contactDuplicate as any).phone)}` : ""}
+                      A {contactDuplicate.kind} with this {stripPhone(phone) ? "phone" : "email"} already exists: {contactDuplicate.name}
+                      {contactDuplicate.phone ? ` · ${formatPhone(contactDuplicate.phone)}` : ""}
                     </p>
                   </div>
                 </div>
