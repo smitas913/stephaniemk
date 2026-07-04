@@ -224,6 +224,10 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "ordered":
         updates.ordered = willBeOn;
+        // On enable: if guest has no linked customer yet, prompt to convert to a customer
+        if (willBeOn && !g.converted_customer_id) {
+          setConvertGuestPrompt({ guest: g, assign: "__me__" });
+        }
         break;
       case "booked":
         updates.booked = willBeOn;
