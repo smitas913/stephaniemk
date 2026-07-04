@@ -224,6 +224,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const createMut = useMutation({
     mutationFn: () => createTeamConsultant(buildPayload() as any),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-consultants"] }); setShowAdd(false); resetForm(); toast.success("Consultant added!"); },
+    onError: (err: any) => toast.error(err.message || "Failed to add consultant"),
   });
 
   const updateMut = useMutation({
