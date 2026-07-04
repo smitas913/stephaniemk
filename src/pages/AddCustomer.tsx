@@ -42,6 +42,7 @@ export default function AddCustomer() {
 
   // Duplicate-name detection (never blocks creation — informational only)
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const nameMatches = useMemo(() => {
     const q = name.trim().toLowerCase();
     if (q.length < 2) return [];
@@ -50,19 +51,27 @@ export default function AddCustomer() {
       .slice(0, 5);
   }, [name, existingCustomers]);
 
-  // Hard duplicate match by normalized phone or email — block creation.
-  const contactDuplicate = useMemo(() => {
+  // Hard duplicate match by normalized phone or email — scans BOTH customers and consultants.
+  const contactDuplicate = useMemo<{ id: string; name: string; phone: string | null; email: string | null; kind: "customer" | "consultant" } | null>(() => {
     const p = stripPhone(phone);
     const e = normalizeEmail(email);
     if (!p && !e) return null;
-    return existingCustomers.find((c: any) => {
+    for (const c of existingCustomers as any[]) {
       const cp = stripPhone(c.phone);
       const ce = normalizeEmail(c.email);
-      if (p && p.length >= 7 && cp === p) return true;
-      if (e && ce && ce === e) return true;
-      return false;
-    }) || null;
-  }, [phone, email, existingCustomers]);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.full_name, phone: c.phone, email: c.email, kind: "customer" };
+      }
+    }
+    for (const c of consultants as any[]) {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.name, phone: c.phone, email: c.email, kind: "consultant" };
+      }
+    }
+    return null;
+  }, [phone, email, existingCustomers, consultants]);
 
   const mutation = useMutation({
     mutationFn: () =>
