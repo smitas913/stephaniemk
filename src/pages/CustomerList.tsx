@@ -270,7 +270,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     }
 
     return result;
-  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterTags, filterAttention, attentionView]);
+  }, [enriched, search, filterStatus, filterCategory, filterVip, filterFollowUp, filterArchive, filterDnc, filterSkincare, sortByVip, sortCol, sortDir, filterMissing, filterTags, filterAttention, attentionView, filterAssigned]);
 
   const availableTags = useMemo(() => {
     const s = new Set<string>();
