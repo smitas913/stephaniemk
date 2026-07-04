@@ -186,17 +186,17 @@ export default function AddCustomer() {
                   <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-destructive">
-                      A customer with this {stripPhone(phone) ? "phone" : "email"} already exists
+                      A {contactDuplicate.kind} with this {stripPhone(phone) ? "phone" : "email"} already exists
                     </p>
                     <button
                       type="button"
-                      onClick={() => navigate(`/customers/${(contactDuplicate as any).id}`)}
+                      onClick={() => navigate(contactDuplicate.kind === "consultant" ? `/leadership` : `/customers/${contactDuplicate.id}`)}
                       className="mt-1 w-full text-left px-2 py-1.5 rounded bg-background hover:bg-muted border border-border flex items-center justify-between gap-2"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-foreground truncate">{(contactDuplicate as any).full_name}</div>
+                        <div className="text-xs font-medium text-foreground truncate">{contactDuplicate.name}</div>
                         <div className="text-[10px] text-muted-foreground truncate">
-                          {[formatPhone((contactDuplicate as any).phone), (contactDuplicate as any).email].filter(Boolean).join(" · ")}
+                          {[formatPhone(contactDuplicate.phone), contactDuplicate.email].filter(Boolean).join(" · ")}
                         </div>
                       </div>
                       <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
