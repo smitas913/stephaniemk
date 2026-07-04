@@ -750,7 +750,7 @@ function ConvertGuestToCustomerDialog({
           phone: g.phone || null,
           relationship_status: "Customer",
           assigned_consultant_id: prompt.assign === "__me__" ? null : prompt.assign,
-        } as any);
+        } as any, { allowDuplicate: true });
         await onCreated(created.id);
         toast.success(`${g.name} added to customer list`);
       }
