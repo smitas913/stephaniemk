@@ -388,6 +388,16 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
               <SelectItem value="no">Skincare: No</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterAssigned} onValueChange={setFilterAssigned}>
+            <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue placeholder="Assigned to" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Assignments</SelectItem>
+              <SelectItem value="me">Me (director)</SelectItem>
+              {(teamConsultants as any[]).map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Popover open={missingOpen} onOpenChange={setMissingOpen}>
             <PopoverTrigger asChild>
               <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs max-w-full">
