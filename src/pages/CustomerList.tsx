@@ -48,6 +48,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [filterSkincare, setFilterSkincare] = useState<"all" | "yes" | "no">("all");
   const [filterMissing, setFilterMissing] = useState<string[]>([]);
+  const [filterAssigned, setFilterAssigned] = useState<string>("all"); // "all" | "me" | consultantId
   const [missingOpen, setMissingOpen] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [tagsOpen, setTagsOpen] = useState(false);
