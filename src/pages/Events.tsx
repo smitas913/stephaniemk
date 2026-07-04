@@ -357,6 +357,20 @@ export default function Events() {
           <TableCell className="text-right">
             <div className="flex items-center justify-end gap-1">
               <Button
+                variant="ghost" size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
+                title="Guest list"
+                onClick={(ev) => { ev.stopPropagation(); navigate(`/events/${e.event_id}?tab=guests`); }}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Guests</span>
+                {guestCount > 0 && (
+                  <span className="ml-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-1.5 py-0">
+                    {guestCount}
+                  </span>
+                )}
+              </Button>
+              <Button
                 variant="ghost" size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-primary"
                 title="Add order"
@@ -527,6 +541,15 @@ export default function Events() {
 
         {/* Row 4: Quick action buttons */}
         <div className="flex items-center gap-2 pt-1 border-t border-border/50" onClick={ev => ev.stopPropagation()}>
+          <Button variant="outline" size="sm" className="h-8 flex-1 text-xs gap-1"
+            onClick={() => navigate(`/events/${e.event_id}?tab=guests`)}>
+            <Users className="w-3.5 h-3.5" /> Guests
+            {(e.guest_count || 0) > 0 && (
+              <span className="ml-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-1.5 py-0">
+                {e.guest_count}
+              </span>
+            )}
+          </Button>
           <Button variant="outline" size="sm" className="h-8 flex-1 text-xs gap-1"
             onClick={() => navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`)}>
             <ShoppingBag className="w-3.5 h-3.5" /> Add Order
