@@ -72,6 +72,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
   const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
 
+  // Duplicate guard for finalizeJoin (consultant insert)
+  const [joinDupCheck, setJoinDupCheck] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
+  const [joinInsertPending, setJoinInsertPending] = useState(false);
+
+  // Guest → customer conversion prompt when marking Ordered
+  const [convertGuestPrompt, setConvertGuestPrompt] = useState<{ guest: EventGuest; assign: string } | null>(null);
+  const [convertGuestDup, setConvertGuestDup] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
+
+  const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+
+
+
   // Upcoming events for the "Booked Next Event" linking panel
   const { data: upcomingEvents = [] } = useQuery({
     queryKey: ["upcoming-events-for-booking"],
