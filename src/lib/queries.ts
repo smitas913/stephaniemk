@@ -1349,9 +1349,17 @@ export const fetchTeamConsultants = async (): Promise<TeamConsultant[]> => {
   return data as unknown as TeamConsultant[];
 };
 
-export const createTeamConsultant = async (consultant: Partial<TeamConsultant> & { name: string }): Promise<TeamConsultant> => {
+export const createTeamConsultant = async (
+  consultant: Partial<TeamConsultant> & { name: string },
+  opts?: { allowDuplicate?: boolean }
+): Promise<TeamConsultant> => {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("team_consultants").insert(withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any).select().single();
+  const payload = withNormalizedPhone({ ...consultant, owner_user_id: userId }) as any;
+  if (!opts?.allowDuplicate) {
+    const match = await findStrongDuplicate(payload.phone, payload.email);
+    if (match) throw new DuplicatePersonError(match);
+  }
+  const { data, error } = await supabase.from("team_consultants").insert(payload).select().single();
   if (error) throw error;
   return data as unknown as TeamConsultant;
 };
