@@ -452,6 +452,8 @@ export default function CustomerDetail() {
         } else if (k === "state_territory") {
           const norm = normalizeStateAbbreviation(v);
           cleaned[k] = norm === "" ? null : norm;
+        } else if (k === "assigned_consultant_id") {
+          cleaned[k] = v === "__me__" || v === "" ? null : v;
         } else {
           cleaned[k] = v === "" ? null : v;
         }
