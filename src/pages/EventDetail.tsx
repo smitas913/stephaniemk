@@ -375,14 +375,20 @@ export default function EventDetail() {
 
 
         {/* Tabs */}
-        <Tabs defaultValue="details">
+        <Tabs defaultValue={new URLSearchParams(location.search).get("tab") === "guests" ? "guests" : "details"}>
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details" className="flex-1 sm:flex-none">Details & Hostess</TabsTrigger>
-            <TabsTrigger value="guests" className="flex-1 sm:flex-none">
-              Guests & Orders
+            <TabsTrigger value="guests" className="flex-1 sm:flex-none gap-1.5">
+              <Users className="w-3.5 h-3.5" />
+              Guest List
+              {guestCount > 0 && (
+                <span className="ml-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-1.5 py-0">
+                  {guestCount}
+                </span>
+              )}
               {orderCount > 0 && (
-                <span className="ml-1.5 text-[10px] bg-muted text-muted-foreground font-bold rounded-full px-1.5">
-                  {orderCount}
+                <span className="ml-0.5 text-[10px] bg-muted text-muted-foreground font-bold rounded-full px-1.5 py-0">
+                  {orderCount} ord
                 </span>
               )}
             </TabsTrigger>
