@@ -687,6 +687,16 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Merge duplicate consultant */}
+      <MergePickerDialog
+        open={!!mergeTarget}
+        onOpenChange={(v) => { if (!v) setMergeTarget(null); }}
+        currentId={mergeTarget?.id || ""}
+        currentName={mergeTarget?.name || ""}
+        kind="consultant"
+        onMerged={() => { setMergeTarget(null); setViewConsultant(null); }}
+      />
     </div>
   );
 }
