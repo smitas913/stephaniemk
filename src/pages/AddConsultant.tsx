@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
+import { createTeamConsultant, fetchTeamConsultants, fetchCustomers } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
