@@ -106,6 +106,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
   const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
   const [viewConsultant, setViewConsultant] = useState<TeamConsultant | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<TeamConsultant | null>(null);
 
   // Auto-open consultant panel when navigated from drill-down (only once)
   const autoOpenHandled = useRef(false);
