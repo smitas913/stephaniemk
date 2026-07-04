@@ -193,7 +193,7 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
           if (error) throw error;
           updated++;
         } else {
-          await createTeamConsultant(payload as any);
+          await createTeamConsultant(payload as any, { allowDuplicate: true });
           imported++;
         }
       } catch {
