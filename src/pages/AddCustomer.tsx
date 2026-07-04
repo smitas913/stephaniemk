@@ -37,6 +37,7 @@ export default function AddCustomer() {
   const [nextFollowUp, setNextFollowUp] = useState(toLocalDateKey());
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
+  const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
 
   // Duplicate-name detection (never blocks creation — informational only)
