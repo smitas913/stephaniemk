@@ -71,18 +71,27 @@ export default function AddConsultant() {
   });
 
   const { data: existingConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
-  const contactDuplicate = useMemo(() => {
+  const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const contactDuplicate = useMemo<{ id: string; name: string; phone: string | null; email: string | null; kind: "customer" | "consultant" } | null>(() => {
     const p = stripPhone(phone);
     const e = normalizeEmail(email);
     if (!p && !e) return null;
-    return existingConsultants.find((c: any) => {
+    for (const c of existingConsultants as any[]) {
       const cp = stripPhone(c.phone);
       const ce = normalizeEmail(c.email);
-      if (p && p.length >= 7 && cp === p) return true;
-      if (e && ce && ce === e) return true;
-      return false;
-    }) || null;
-  }, [phone, email, existingConsultants]);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.name, phone: c.phone, email: c.email, kind: "consultant" };
+      }
+    }
+    for (const c of existingCustomers as any[]) {
+      const cp = stripPhone(c.phone);
+      const ce = normalizeEmail(c.email);
+      if ((p && p.length >= 7 && cp === p) || (e && ce && ce === e)) {
+        return { id: c.id, name: c.full_name, phone: c.phone, email: c.email, kind: "customer" };
+      }
+    }
+    return null;
+  }, [phone, email, existingConsultants, existingCustomers]);
 
   const hasContact = phone.trim() || email.trim();
   const canSubmit = fullName && hasContact && !contactDuplicate && !mutation.isPending;
