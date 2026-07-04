@@ -95,7 +95,7 @@ export default function AddCustomer() {
           relationship === "Customer"
             ? (becameCustomerDate || firstOrderDate || null)
             : null,
-      } as any),
+      } as any, { allowDuplicate: true }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
