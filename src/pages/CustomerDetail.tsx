@@ -163,6 +163,7 @@ export default function CustomerDetail() {
         is_skincare_customer: (customer as any).is_skincare_customer ? "true" : "false",
         date_added: (customer as any).date_added || "",
         became_customer_date: (customer as any).became_customer_date || "",
+        assigned_consultant_id: (customer as any).assigned_consultant_id || "__me__",
       });
     }
   }, [customer]);
