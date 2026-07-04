@@ -235,7 +235,13 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         }
       }
 
-      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing && matchTags;
+      const assignedId = (c as any).assigned_consultant_id || null;
+      const matchAssigned =
+        filterAssigned === "all" ? true
+          : filterAssigned === "me" ? !assignedId
+          : assignedId === filterAssigned;
+
+      return matchSearch && matchStatus && matchCat && matchVip && matchFU && matchSkincare && matchMissing && matchTags && matchAssigned;
     });
 
     if (sortByVip === "vip-first") {
