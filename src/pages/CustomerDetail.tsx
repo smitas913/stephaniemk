@@ -518,6 +518,8 @@ export default function CustomerDetail() {
   const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showMergePicker, setShowMergePicker] = useState(false);
+  const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const [quickEditField, setQuickEditField] = useState<QuickEditField | null>(null);
 
   const convertToConsultantMut = useMutation({
