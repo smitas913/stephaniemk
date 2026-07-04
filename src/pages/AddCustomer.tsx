@@ -90,13 +90,12 @@ export default function AddCustomer() {
         notes: notes.trim() || null,
         next_follow_up_date: nextFollowUp || null,
         date_added: dateAdded || toLocalDateKey(),
-        // Prefer user-entered dates (manual override > first order date). Leave null to let
-        // the DB trigger derive from the earliest related order/face date.
+        assigned_consultant_id: assignedConsultantId === "__me__" ? null : assignedConsultantId,
         became_customer_date:
           relationship === "Customer"
             ? (becameCustomerDate || firstOrderDate || null)
             : null,
-      }),
+      } as any),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
