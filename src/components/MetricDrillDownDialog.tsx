@@ -27,7 +27,7 @@ interface Props {
   notes: Note[];
   events: EventRecord[];
   customers: Customer[];
-  consultants: Array<{ id: string; created_at: string; relationship_type: string | null; name?: string | null }>;
+  consultants: Array<{ id: string; created_at: string; join_date?: string | null; relationship_type: string | null; name?: string | null }>;
 }
 
 interface Row {
