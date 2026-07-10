@@ -1856,6 +1856,7 @@ export type Database = {
       }
       team_consultants: {
         Row: {
+          activity_status_code: string | null
           address_line_1: string | null
           address_line_2: string | null
           allow_non_working_day: boolean
@@ -1912,6 +1913,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          activity_status_code?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           allow_non_working_day?: boolean
@@ -1968,6 +1970,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          activity_status_code?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
           allow_non_working_day?: boolean
