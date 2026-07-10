@@ -525,6 +525,7 @@ export default function CustomerDetail() {
   const [showMergePicker, setShowMergePicker] = useState(false);
   const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const [quickEditField, setQuickEditField] = useState<QuickEditField | null>(null);
+  const [showScanDialog, setShowScanDialog] = useState(false);
 
   const convertToConsultantMut = useMutation({
     mutationFn: () => convertCustomerToConsultant(customer!),
