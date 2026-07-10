@@ -2,7 +2,8 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchCustomer, fetchCustomerOrders, updateCustomer, deleteOrder, deleteCustomer, archiveCustomer, unarchiveCustomer, convertCustomerToConsultant, fetchOrders, createCustomerNote, createNote, fetchNotes, deleteNote, updateNote, deleteCustomerNote } from "@/lib/queries";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil } from "lucide-react";
+import { MoreVertical, Pencil, ScanLine } from "lucide-react";
+import ScanPhotoDialog from "@/components/ScanPhotoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
@@ -524,6 +525,7 @@ export default function CustomerDetail() {
   const [showMergePicker, setShowMergePicker] = useState(false);
   const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const [quickEditField, setQuickEditField] = useState<QuickEditField | null>(null);
+  const [showScanDialog, setShowScanDialog] = useState(false);
 
   const convertToConsultantMut = useMutation({
     mutationFn: () => convertCustomerToConsultant(customer!),
@@ -624,6 +626,10 @@ export default function CustomerDetail() {
                 </span>
               )}
             </div>
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowScanDialog(true)}>
+              <ScanLine className="w-4 h-4" />
+              <span className="hidden sm:inline">Scan Photo</span>
+            </Button>
           </div>
 
           {/* Row 2: Tag chips */}
@@ -715,6 +721,7 @@ export default function CustomerDetail() {
           field={quickEditField}
           onClose={() => setQuickEditField(null)}
         />
+        <ScanPhotoDialog open={showScanDialog} onOpenChange={setShowScanDialog} customer={customer as any} />
 
         {/* Customer Info Card */}
         <Card id="customer-info-card" className="border-border/50 shadow-sm scroll-mt-20">
