@@ -181,6 +181,10 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       toast.warning(`${duplicate.name} is already on the guest list.`);
       return;
     }
+    if (hostessName?.trim().toLowerCase() === trimmedName.toLowerCase()) {
+      toast.error("That's the event name, not a guest — add the actual guest's name.");
+      return;
+    }
     addMutation.mutate({
       event_id: eventId,
       name: trimmedName,
