@@ -74,7 +74,7 @@ function computeActuals(
       // Personal recruits only (defaults to Personal Recruit when null/legacy)
       return consultants.filter((c) => {
         const rt = c.relationship_type ?? 'Personal Recruit';
-        return rt === 'Personal Recruit' && inRange(c.created_at, start, end);
+        return rt === 'Personal Recruit' && inRange(c.join_date ?? c.created_at, start, end);
       }).length;
     case "new_skincare_customers":
       return customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).length;
