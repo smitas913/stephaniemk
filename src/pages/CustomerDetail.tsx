@@ -721,6 +721,7 @@ export default function CustomerDetail() {
           field={quickEditField}
           onClose={() => setQuickEditField(null)}
         />
+        <ScanPhotoDialog open={showScanDialog} onOpenChange={setShowScanDialog} customer={customer as any} />
 
         {/* Customer Info Card */}
         <Card id="customer-info-card" className="border-border/50 shadow-sm scroll-mt-20">
