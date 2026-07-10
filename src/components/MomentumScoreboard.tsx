@@ -23,10 +23,10 @@ import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 import MetricDrillDownDialog, { type DrillMetricKey } from "@/components/MetricDrillDownDialog";
 
-interface TeamConsultantRow { id: string; created_at: string; relationship_type: string | null; name: string | null }
+interface TeamConsultantRow { id: string; created_at: string; join_date: string | null; relationship_type: string | null; name: string | null }
 
 async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
-  const { data, error } = await supabase.from("team_consultants").select("id, created_at, relationship_type, name" as any);
+  const { data, error } = await supabase.from("team_consultants").select("id, created_at, join_date, relationship_type, name" as any);
   if (error) throw error;
   return ((data || []) as unknown) as TeamConsultantRow[];
 }
@@ -74,7 +74,7 @@ function computeActuals(
       // Personal recruits only (defaults to Personal Recruit when null/legacy)
       return consultants.filter((c) => {
         const rt = c.relationship_type ?? 'Personal Recruit';
-        return rt === 'Personal Recruit' && inRange(c.created_at, start, end);
+        return rt === 'Personal Recruit' && inRange(c.join_date ?? c.created_at, start, end);
       }).length;
     case "new_skincare_customers":
       return customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).length;
