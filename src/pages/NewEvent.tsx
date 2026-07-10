@@ -156,19 +156,21 @@ export default function NewEvent() {
 
       // Auto-add pending guest for Guest Events booked from lead/booking flow
       if (eventType === "Guest Event" && pendingGuestName) {
-        try {
-          const { supabase } = await import("@/integrations/supabase/client");
-          const userId = (await supabase.auth.getUser()).data.user?.id;
-          await supabase.from("event_guests" as any).insert({
-            event_id: eventId,
-            name: pendingGuestName,
-            phone: pendingGuestPhone || null,
-            owner_user_id: userId,
-            attending: false,
-          } as any);
-          toast.success(`${pendingGuestName} added as guest! 🎉`);
-        } catch (e) {
-          console.error("Failed to add pending guest", e);
+        if (pendingGuestName.trim().toLowerCase() !== (hostessName || "").trim().toLowerCase()) {
+          try {
+            const { supabase } = await import("@/integrations/supabase/client");
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            await supabase.from("event_guests" as any).insert({
+              event_id: eventId,
+              name: pendingGuestName,
+              phone: pendingGuestPhone || null,
+              owner_user_id: userId,
+              attending: false,
+            } as any);
+            toast.success(`${pendingGuestName} added as guest! 🎉`);
+          } catch (e) {
+            console.error("Failed to add pending guest", e);
+          }
         }
       }
 
@@ -176,7 +178,7 @@ export default function NewEvent() {
       if (searchParams.get("addGuest") === "true") {
         const guestName = searchParams.get("guestName");
         const guestPhone = searchParams.get("guestPhone");
-        if (guestName) {
+        if (guestName && guestName.trim().toLowerCase() !== (hostessName || "").trim().toLowerCase()) {
           try {
             const { supabase } = await import("@/integrations/supabase/client");
             const userId = (await supabase.auth.getUser()).data.user?.id;
