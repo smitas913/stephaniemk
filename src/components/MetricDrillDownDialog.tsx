@@ -107,12 +107,13 @@ export default function MetricDrillDownDialog({
     } else if (metricKey === "new_team_members") {
       consultants.filter((c) => {
         const rt = c.relationship_type ?? "Personal Recruit";
-        return rt === "Personal Recruit" && inRange(c.created_at, start, end);
+        return rt === "Personal Recruit" && inRange(c.join_date ?? c.created_at, start, end);
       }).forEach((c) => {
+        const date = c.join_date ?? c.created_at ?? "";
         out.push({
           id: `con-${c.id}`,
           source: "Consultant",
-          date: c.created_at ? `${new Date(c.created_at).getFullYear()}-${String(new Date(c.created_at).getMonth() + 1).padStart(2, "0")}-${String(new Date(c.created_at).getDate()).padStart(2, "0")}` : "",
+          date: date ? `${new Date(date).getFullYear()}-${String(new Date(date).getMonth() + 1).padStart(2, "0")}-${String(new Date(date).getDate()).padStart(2, "0")}` : "",
           personName: c.name || "Consultant",
           personId: c.id,
           personType: "consultant",
