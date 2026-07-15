@@ -1,87 +1,88 @@
-# Events Section Overhaul — Implementation Plan
 
-This is a large change touching ~5 files plus 2 new DB tables. Approving this plan greenlights the whole pass.
+# Faster "face → customer" logging — current state + recommendation
 
-## 1. Database changes (one migration)
+## 1. Dashboard Quick Add ("Face" flow) — current state
 
-**New table `event_referrals`** (per spec):
-- `id`, `event_id` (text FK → events.event_id), `name`, `phone`, `referred_by`, `out_of_town`, `added_to_leads`, `owner_user_id`, `created_at`
-- RLS scoped to owner_user_id; GRANTs for authenticated + service_role
+Component: `src/components/QuickAddPersonDialog.tsx` (~1000 lines), launched from `QuickAddBar` in `src/pages/Dashboard.tsx` via the "Face" / "Booking" / "Career Chat" tiles.
 
-**New table `hostess_coaching_tasks`** (separate from `todos` so we can track sequence + due date + event link cleanly without overloading the 6MIT todo system):
-- `id`, `user_id`, `event_id` (text), `hostess_name`, `step` (1-4), `text`, `due_date` (date, local), `done` (bool), `done_at`, `created_at`
-- RLS by user_id; GRANTs as above
-- These render on the Today page in a new "Hostess Coaching" card — they are NOT mixed into the 6MIT todos card (cleaner separation, and 6MIT is capped at 6).
+What "Face" does today (steps Stephanie sees):
 
-**Why a new task table not `todos`:** todos has no event link, no sequence step, and is user-facing free-text. Mixing system-generated coaching tasks would clutter the 6MIT card.
+1. **Search** — types name; dialog matches against customers, prospects, booking leads, consultants.
+2. **Select or create new** — if exact-match exists she must explicitly pick it (no silent merge). Brand-new name proceeds to step 3.
+3. **Face Outcome** — Customer vs Non-Customer prompt (`faceOutcomePrompt`).
+4. **Both branches immediately create a `customers` row** with `relationship_status = "Customer"` and log a `notes` row (`result_type = "Face"`, `person_type = customer`, dated today).
+5. **Follow-up path** (Customer branch): 2+2+2 / custom date / 90-Day Care Cycle default. Writes `customers.next_follow_up_date` + `follow_up_reason` and a Follow-Up note.
+6. **Non-Customer branch**: tag toggles (Lead / Prospect / DNC) + optional follow-up date → updates same customer row.
+7. **Flag prompt** (existing customers only): 1-tap "Finish later / Needs follow-up / Complete details later".
 
-## 2. EventGuestPanel.tsx — rewrite
+Data written: `customers` (always), `notes` (always), optional flag/tags/follow-up date. **No** phone/email/address capture in this flow — only name. **No** photo, no order, no event linkage (an optional "was this from an event?" check exists via `faceEventCheck`/`faceEventId` state, but nothing on-screen currently writes an event association from this dialog based on what I can see wired up).
 
-**Pre-event view (status ≠ "Held"):**
-- Stats chips at top: Faces, Sales, Bookings (live from current guest state)
-- Guest table: Name | Phone | RSVP only
-- Keep inline "Add Guest" form
-- Remove: attended/ordered/booked/interested checkboxes, task columns (📨/🎉/✉️)
+Practical result: after Quick Add "Face → Customer", she still has to open the new customer profile to fill in phone, email, address, tags, orders — which is the redundancy she's noticing.
 
-**Post-event view (status = "Held"):**
-- Same stats chips
-- Replace table with a clean list. Each row: name + phone + current outcome badge + segmented outcome selector
-- Outcomes (one per guest, mutually exclusive in UI; map to existing boolean fields):
-  - **Tried Product** → attending=true, ordered=false, booked=false, interested=false
-  - **Ordered** → attending=true, ordered=true
-  - **Booked Next Event** → attending=true, booked=true
-  - **Career Interest** → attending=true, interested=true; auto-insert `prospects` row (`lead_source` field doesn't exist on prospects — use `booking_leads` semantics? Prospects table has no lead_source. **Assumption:** create a `prospects` row with `name`, `phone`, `opportunity_status='New Contact'`, `notes='From [event hostess]\'s party'`, `owner_user_id`. If a prospect already linked to this guest exists, skip.)
-  - **She Joined** → attending=true; inline mini-form (confirm name, phone) → insert into `team_consultants` (`status='Active'`, `join_date=today`, `relationship_type='Personal Recruit'`, `owner_user_id`)
-  - **No Show** → attending=false; inline "Save to Booking Leads" button → insert `booking_leads` row (`lead_source='Other'`, `notes='No-show from [hostess]\'s party'`)
-- Changing outcome is allowed (re-click). Outcome is derived from the guest's boolean flags so it persists with existing data.
-- Remove the existing "Attended Outcome" and "Did Not Attend" dialogs entirely.
+## 2. Guest Event → Customer conversion — current state
 
-## 3. EventDetail.tsx — Referrals section
+Component: `src/components/EventGuestPanel.tsx`. Guest rows live in `event_guests` with `converted_customer_id` FK to `customers.id`.
 
-- New collapsible card below the guest panel: "Referrals from this event"
-- Inline add form: Name, Phone, Referred By, Out of Town toggle
-- List rows show those fields + "Add to Booking Leads" button → creates `booking_leads` row (`lead_source='Referral'`, `notes='Referred by [referred_by] at [hostess]\'s party'`) and flips `added_to_leads=true`
-- Also: remove any in-event coaching/task checklist sections (per spec #5)
+Two ways a guest becomes a customer today:
 
-## 4. Hostess coaching tasks — auto-create + Today page
+- **Implicit on Add Guest** — `handleAdd` (lines ~171-196): typing a guest name shows suggestions; picking an existing customer sets `linkedCustomerId`, which is written straight into `event_guests.converted_customer_id`. No customer is *created*, just linked.
+- **Explicit on outcome = "Ordered"** — `toggleOutcome` case `"ordered"` (line ~229): if the guest has no `converted_customer_id` yet, it opens `ConvertGuestToCustomerDialog` (lines 720-824).
 
-**Trigger:** When an event is created via AddEventDialog (status Booked), insert step-1 task immediately (due today).
+The `ConvertGuestToCustomerDialog` today asks for:
 
-**Sequencing logic** (client-side helper invoked on task completion):
-- Complete step 1 → create step 2 (due today)
-- Complete step 2 → if event_date − today > 7 days, create step 3 (due event_date − 3 days). Else skip to step 4 (due event_date − 1 day).
-- Complete step 3 → create step 4 (due event_date − 1 day)
-- Hostess name placeholder: "your hostess" if missing
+- "Assigned to" dropdown (Me / other consultant) — one field.
+- Confirm button → `checkForDuplicatePerson` (name+phone) → either link to an existing dup via `DuplicateGuardDialog`, or `createCustomer({ full_name, phone, relationship_status: "Customer", assigned_consultant_id })` and set `event_guests.converted_customer_id`.
 
-**Today page rendering:** New `HostessCoachingCard` component shown on the Today page (above or near the 6MIT card). Lists all incomplete tasks where due_date ≤ today, with a checkbox to mark done; completing triggers next-step creation.
+That's it — no email, address, birthday, tags, orders, or notes are captured at this step. She'd still need to open the profile to fill anything else in.
 
-**Assumption:** "Today page" = `/follow-ups` per project memory. I'll add the card there.
+There is also a separate "She Joined" outcome that goes to `team_consultants`, and "Career Interest" that creates a `booking_leads` row — those are unrelated to customer conversion.
 
-## 5. Events list / EventRow
+## 3. Existing Scan Photo flow (already built) — quick recap
 
-- Keep "Next Task" column; since coaching tasks moved out, it will show "—" (or any remaining non-coaching task if such a system exists — quick check; if EventRow's expandable task rows only show coaching items, remove the expand UI).
+- `src/components/ScanPhotoDialog.tsx` mounted on `CustomerDetail` header.
+- Upload image → `supabase/functions/scan-photo` (Gemini vision) returns structured `{ contact, orders[], raw_notes }`.
+- Editable review screen: side-by-side field conflicts (keep existing / replace / keep both in notes), toggleable order drafts.
+- On confirm: uploads scan to `customer-scans` bucket, updates customer fields, creates `orders` rows as Unpaid, logs a scan note.
+- Requires a customer to already exist (dialog takes an existing customer id).
 
-## 6. Data preservation
+## 4. Recommended approach
 
-- No columns dropped. attending/ordered/booked/interested keep being written via the new outcome buttons. Existing events/guests/orders untouched. Existing event_tasks rows left alone (just no longer surfaced inside the event UI).
+### 4a. Merge Scan Photo into the guest-to-customer conversion
 
----
+Turn `ConvertGuestToCustomerDialog` into a two-mode dialog:
 
-## Files touched
+- **Manual mode (default, unchanged)**: current "Assigned to" + Add customer button. Fast path for people she already has all info for.
+- **New "Scan card" mode**: a "📷 Scan profile card" button in the same dialog. Flow:
+  1. Upload/take a photo — same edge function call as `ScanPhotoDialog`.
+  2. Show the same editable review screen, but **pre-seeded with the guest's name + phone from `event_guests`** so those aren't blank.
+  3. Contact-conflicts UI is unnecessary here (no existing customer yet) — collapse it to a plain editable form.
+  4. On confirm:
+     - `createCustomer` with all reviewed contact fields + `assigned_consultant_id`.
+     - Set `event_guests.converted_customer_id` to the new customer (same as today).
+     - Upload scan to `customer-scans` bucket, create scan note, create any reviewed `orders` rows as Unpaid (reuse existing `ScanPhotoDialog` logic — extract to a shared helper, e.g. `src/lib/scanPhotoApply.ts`, so both CustomerDetail and the guest-convert dialog call it).
+     - Run `checkForDuplicatePerson` before create, same as today (so a scanned card for someone already in the system still routes through `DuplicateGuardDialog`).
 
-- **Migration** (new tables + RLS + grants)
-- `src/components/EventGuestPanel.tsx` — rewrite
-- `src/pages/EventDetail.tsx` — add Referrals section, remove coaching checklist sections
-- `src/components/AddEventDialog.tsx` — create step-1 hostess coaching task on event create
-- `src/components/EventRow` (within Events.tsx or its own file) — strip coaching expand UI
-- `src/components/HostessCoachingCard.tsx` — new
-- `src/pages/FollowUpDashboard.tsx` (Today page) — mount HostessCoachingCard
-- `src/lib/hostessCoaching.ts` — new helper: createNextStep, due-date math (local TZ via existing `toLocalDateKey`)
+Net effect: one pass = guest logged + customer created with full profile + first order captured, all from inside the event.
 
-## Open assumptions to confirm
+### 4b. Retire the Dashboard "Face" Quick Add tile
 
-1. **Career Interest target table:** prospects (no `lead_source` column) vs booking_leads (has `lead_source`). Spec says "Prospect record (in the prospects/leads table with lead_source = 'Party Guest'". I'll use **booking_leads** since it has `lead_source`, and set `lead_source='Other'` with `source_detail='Party Guest'` (BOOKING_LEAD_SOURCES doesn't include "Party Guest"). OR add "Party Guest" to allowed sources. **Proposing:** insert into `booking_leads` with `lead_source='Other'`, `source_detail='Party Guest'`, `notes='Career interest from [hostess]\'s party'`. Confirm or override.
-2. **Today page = `/follow-ups`** — correct?
-3. **Hostess coaching card placement** on Today page — top, or under 6MIT?
+Recommend **removing the "Face" tile** from `QuickAddBar` (keep "Booking", "Career Chat", "Order") because:
 
-Reply "go" to proceed with these assumptions, or correct any item first.
+- Every real "Face" now happens in one of two better places: the event guest list (party faces) or Customer/Prospect detail pages (walk-ups, referrals). The events pipeline already logs Faces automatically from the guest list via focusMetrics.
+- The Dashboard Quick Add "Face" path produces a bare customer row with only a name, which is the exact "then I still have to fill in everything" problem she's complaining about.
+- Keeping the other three tiles preserves the fast "I just had a booking conversation with someone not in the system" path, which does *not* have a natural home elsewhere.
+
+For walk-up / non-event faces where she still wants a fast entry, the existing "+ New Customer" button on the Customers list already exists, and it collects the fields the Quick Add skips — so nothing is actually lost.
+
+### 4c. Small cleanups that fall out
+
+- Extract shared scan-apply helper: move contact-merge + order-creation + scan-note logic from `ScanPhotoDialog.tsx` into `src/lib/scanPhotoApply.ts` so both callers stay in sync.
+- Delete `QuickAddPersonDialog`'s Face-specific state (`faceOutcomePrompt`, `faceEventCheck`, `faceEventId`, `nonCustomerPrompt`, `nonCustomerTags`, `nonCustomerFollowUpDate`) if we remove the Face tile — trims ~200 lines and one code path. Booking + Career Chat branches stay.
+
+## Open questions before I build
+
+1. **Confirm retiring the Dashboard "Face" tile** (vs. just leaving it as a fallback). My recommendation is remove; want to double-check before deletion.
+2. **Order creation from the scan** during guest convert — create the order tied to *this event* (`orders.event_id = event.event_id`) or leave it un-linked like `ScanPhotoDialog` does today? I'd suggest linking to the event since we know it.
+3. **Scan button placement** — inside the existing "Add customer" dialog as a second button, or a separate "📷 Scan card" action on each guest row? First is fewer surfaces; second is one-tap discoverability.
+
+Reply with answers (or just "go with your recommendations") and I'll implement.
