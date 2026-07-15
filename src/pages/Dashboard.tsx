@@ -14,7 +14,7 @@ import {
   fetchBookingLeads,
   fetchTeamConsultants,
 } from "@/lib/queries";
-import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
+
 import QuickBookingDialog from "@/components/QuickBookingDialog";
 import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
 import SixMostImportant from "@/components/SixMostImportant";
@@ -47,7 +47,6 @@ function getDailyQuote(): string {
 // ─── Quick Add ───
 function QuickAddBar({ onLogged }: { onLogged: () => void }) {
   const navigate = useNavigate();
-  const [faceOpen, setFaceOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [careerChatOpen, setCareerChatOpen] = useState(false);
   const [orderQuery, setOrderQuery] = useState("");
@@ -69,12 +68,7 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
             <span className="text-[11px] text-muted-foreground ml-auto">Tap to log</span>
           </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => setFaceOpen(true)}>
-            <span className="text-2xl">👤</span>
-            <span className="text-xs font-semibold">Face</span>
-          </Button>
+        <CardContent className="grid grid-cols-3 gap-2">
           <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
             onClick={() => setBookingOpen(true)}>
             <span className="text-2xl">📅</span>
@@ -130,12 +124,6 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
         )}
       </Card>
 
-      <QuickAddPersonDialog
-        open={faceOpen}
-        resultType="Face"
-        onOpenChange={setFaceOpen}
-        onLogged={onLogged}
-      />
       <QuickBookingDialog
         open={bookingOpen}
         onOpenChange={setBookingOpen}

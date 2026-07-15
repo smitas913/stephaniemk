@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders, createCustomer, fetchTeamConsultants } from "@/lib/queries";
@@ -701,11 +701,12 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         onCreateAnyway={async () => { await performJoinInsert(); }}
       />
 
-      {/* Guest ordered → convert to customer */}
+      {/* Guest ordered → convert to customer (with optional Scan Card path) */}
       <ConvertGuestToCustomerDialog
         prompt={convertGuestPrompt}
         setPrompt={setConvertGuestPrompt}
         allConsultants={allConsultants as any[]}
+        eventId={eventId}
         onCreated={async (customerId) => {
           if (!convertGuestPrompt) return;
           await updateMutation.mutateAsync({ id: convertGuestPrompt.guest.id, updates: { converted_customer_id: customerId } as any });
@@ -719,10 +720,12 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
 }
 
 // Inline: prompt to add an ordered guest to the customer list, with duplicate guard + "assigned to" picker.
+// Supports two modes: manual (name/phone only) and scan-card (photo → Gemini vision → editable review).
 function ConvertGuestToCustomerDialog({
   prompt,
   setPrompt,
   allConsultants,
+  eventId,
   onCreated,
   dupCheck,
   setDupCheck,
@@ -730,11 +733,28 @@ function ConvertGuestToCustomerDialog({
   prompt: { guest: EventGuest; assign: string } | null;
   setPrompt: (v: any) => void;
   allConsultants: Array<{ id: string; name: string }>;
+  eventId: string;
   onCreated: (customerId: string) => Promise<void>;
   dupCheck: { strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null;
   setDupCheck: (v: any) => void;
 }) {
   const [pending, setPending] = useState(false);
+  const [mode, setMode] = useState<"manual" | "scan">("manual");
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanExtracted, setScanExtracted] = useState<import("@/lib/scanPhoto").Extracted | null>(null);
+  const [scanFields, setScanFields] = useState<Record<string, string>>({});
+  const [scanOrders, setScanOrders] = useState<import("@/lib/scanPhoto").OrderDraft[]>([]);
+  const scanInputRef = useRef<HTMLInputElement>(null);
+
+  const resetScan = () => {
+    setScanFile(null); setScanPreview(null); setScanning(false);
+    setScanExtracted(null); setScanFields({}); setScanOrders([]);
+  };
+
+  const closeAll = () => { setPrompt(null); setDupCheck(null); resetScan(); setMode("manual"); };
+
   if (!prompt) return null;
   const g = prompt.guest;
 
@@ -742,6 +762,8 @@ function ConvertGuestToCustomerDialog({
     setPending(true);
     try {
       if (linkExistingId && linkKind === "customer") {
+        // Link existing customer path — reuse existing behavior (no scan applied to an existing record here;
+        // for that Stephanie can use Scan Photo on the customer's profile after linking).
         await fillEmptyFieldsFromNew(
           { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: null, reason: "phone" },
           { phone: g.phone }
@@ -749,17 +771,44 @@ function ConvertGuestToCustomerDialog({
         await onCreated(linkExistingId);
         toast.success(`Linked ${g.name} to existing customer`);
       } else {
+        // Build new customer payload from scan fields (if scan mode) merged with guest name/phone fallback.
+        const scanPayload = mode === "scan" ? scanFields : {};
         const created = await createCustomer({
-          full_name: g.name,
-          phone: g.phone || null,
+          full_name: scanPayload.full_name?.trim() || g.name,
+          phone: scanPayload.phone?.trim() || g.phone || null,
+          email: scanPayload.email?.trim() || null,
+          address_line_1: scanPayload.address_line_1?.trim() || null,
+          address_line_2: scanPayload.address_line_2?.trim() || null,
+          city: scanPayload.city?.trim() || null,
+          state_territory: scanPayload.state_territory?.trim() || null,
+          postal_code: scanPayload.postal_code?.trim() || null,
+          birthday: scanPayload.birthday?.trim() || null,
           relationship_status: "Customer",
           assigned_consultant_id: prompt.assign === "__me__" ? null : prompt.assign,
         } as any, { allowDuplicate: true });
+
+        // If we ran a scan, finalize: upload image + create orders + audit note.
+        if (mode === "scan" && scanExtracted) {
+          const { finalizeScanForNewCustomer } = await import("@/lib/scanPhoto");
+          try {
+            await finalizeScanForNewCustomer({
+              customerId: created.id,
+              customerName: (created as any).full_name || g.name,
+              file: scanFile,
+              extracted: scanExtracted,
+              orderDrafts: scanOrders,
+              eventId,
+            });
+          } catch (e: any) {
+            // Don't roll back the customer for a scan-finalize glitch — surface it.
+            toast.error(`Customer created, but scan finalize failed: ${e?.message || e}`);
+          }
+        }
+
         await onCreated(created.id);
-        toast.success(`${g.name} added to customer list`);
+        toast.success(`${(created as any).full_name || g.name} added to customer list`);
       }
-      setPrompt(null);
-      setDupCheck(null);
+      closeAll();
     } catch (e: any) {
       toast.error(e.message || "Failed");
     } finally {
@@ -768,7 +817,9 @@ function ConvertGuestToCustomerDialog({
   };
 
   const handleConfirm = async () => {
-    const dup = await checkForDuplicatePerson({ fullName: g.name, phone: g.phone, kind: "customer" });
+    const nameForCheck = (mode === "scan" ? scanFields.full_name?.trim() : "") || g.name;
+    const phoneForCheck = (mode === "scan" ? scanFields.phone?.trim() : "") || g.phone;
+    const dup = await checkForDuplicatePerson({ fullName: nameForCheck, phone: phoneForCheck, kind: "customer" });
     if (dup.strong || dup.softName) {
       setDupCheck(dup);
       return;
@@ -776,10 +827,41 @@ function ConvertGuestToCustomerDialog({
     await performCreate();
   };
 
+  const handleScanFile = (f: File) => {
+    setScanFile(f);
+    setScanPreview(URL.createObjectURL(f));
+    setScanExtracted(null); setScanFields({}); setScanOrders([]);
+  };
+
+  const runScan = async () => {
+    if (!scanFile) return;
+    setScanning(true);
+    try {
+      const { runScanExtract, orderDraftsFromExtracted, contactFieldsForNewCustomer } = await import("@/lib/scanPhoto");
+      const ex = await runScanExtract(scanFile);
+      setScanExtracted(ex);
+      // Seed editable fields: scanned values, falling back to guest name/phone for any that are missing.
+      const seeded = contactFieldsForNewCustomer(ex);
+      if (!seeded.full_name && g.name) seeded.full_name = g.name;
+      if (!seeded.phone && g.phone) seeded.phone = g.phone;
+      setScanFields(seeded);
+      setScanOrders(orderDraftsFromExtracted(ex));
+    } catch (e: any) {
+      toast.error(e?.message || "Scan failed");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const updateScanField = (k: string, v: string) => setScanFields((prev) => ({ ...prev, [k]: v }));
+  const updateScanOrder = (i: number, patch: Partial<import("@/lib/scanPhoto").OrderDraft>) =>
+    setScanOrders((prev) => prev.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
+  const removeScanOrder = (i: number) => setScanOrders((prev) => prev.filter((_, idx) => idx !== i));
+
   return (
     <>
-      <Dialog open={!!prompt && !dupCheck} onOpenChange={(v) => { if (!v) setPrompt(null); }}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={!!prompt && !dupCheck} onOpenChange={(v) => { if (!v) closeAll(); }}>
+        <DialogContent className={mode === "scan" ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-sm"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
@@ -789,21 +871,160 @@ function ConvertGuestToCustomerDialog({
               They ordered at this event. Add them so you can track future follow-ups.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label className="text-xs">Assigned to</Label>
-            <Select value={prompt.assign} onValueChange={(v) => setPrompt({ ...prompt, assign: v })}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__me__">Me (director)</SelectItem>
-                {allConsultants.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+          {/* Mode switcher */}
+          <div className="flex items-center gap-2 text-xs">
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "manual" ? "default" : "outline"}
+              onClick={() => { setMode("manual"); resetScan(); }}
+              disabled={pending || scanning}
+            >Quick add</Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "scan" ? "default" : "outline"}
+              onClick={() => setMode("scan")}
+              disabled={pending || scanning}
+              className="gap-1"
+            >📷 Scan profile card</Button>
           </div>
+
+          {mode === "manual" && (
+            <div className="space-y-2">
+              <Label className="text-xs">Assigned to</Label>
+              <Select value={prompt.assign} onValueChange={(v) => setPrompt({ ...prompt, assign: v })}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__me__">Me (director)</SelectItem>
+                  {allConsultants.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {mode === "scan" && (
+            <div className="space-y-3">
+              {!scanExtracted && (
+                <>
+                  <input
+                    ref={scanInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleScanFile(f); }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" onClick={() => scanInputRef.current?.click()} className="gap-2" disabled={scanning}>
+                      📷 {scanFile ? "Replace image" : "Choose image"}
+                    </Button>
+                    {scanFile && <span className="text-xs text-muted-foreground truncate">{scanFile.name}</span>}
+                  </div>
+                  {scanPreview && (
+                    <div className="border rounded-md overflow-hidden bg-muted/30">
+                      <img src={scanPreview} alt="Scan preview" className="w-full max-h-56 object-contain" />
+                    </div>
+                  )}
+                  <Button type="button" disabled={!scanFile || scanning} onClick={runScan} className="w-full">
+                    {scanning ? "Extracting…" : "Extract with AI"}
+                  </Button>
+                </>
+              )}
+
+              {scanExtracted && (
+                <div className="space-y-4">
+                  {/* Editable contact fields */}
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold">Contact info (edit anything before saving)</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <FieldInput label="Full name" value={scanFields.full_name || ""} onChange={(v) => updateScanField("full_name", v)} />
+                      <FieldInput label="Phone" value={scanFields.phone || ""} onChange={(v) => updateScanField("phone", v)} />
+                      <FieldInput label="Email" value={scanFields.email || ""} onChange={(v) => updateScanField("email", v)} />
+                      <FieldInput label="Birthday" value={scanFields.birthday || ""} onChange={(v) => updateScanField("birthday", v)} placeholder="YYYY-MM-DD" />
+                      <FieldInput label="Address line 1" value={scanFields.address_line_1 || ""} onChange={(v) => updateScanField("address_line_1", v)} className="col-span-2" />
+                      <FieldInput label="Address line 2" value={scanFields.address_line_2 || ""} onChange={(v) => updateScanField("address_line_2", v)} className="col-span-2" />
+                      <FieldInput label="City" value={scanFields.city || ""} onChange={(v) => updateScanField("city", v)} />
+                      <FieldInput label="State" value={scanFields.state_territory || ""} onChange={(v) => updateScanField("state_territory", v)} />
+                      <FieldInput label="ZIP" value={scanFields.postal_code || ""} onChange={(v) => updateScanField("postal_code", v)} />
+                    </div>
+                    <div className="pt-1">
+                      <Label className="text-xs">Assigned to</Label>
+                      <Select value={prompt.assign} onValueChange={(v) => setPrompt({ ...prompt, assign: v })}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__me__">Me (director)</SelectItem>
+                          {allConsultants.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Orders */}
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold">Orders (linked to this event, created as Unpaid)</h3>
+                    {scanOrders.length === 0 && <p className="text-xs text-muted-foreground italic">No orders detected.</p>}
+                    {scanOrders.map((o, i) => (
+                      <div key={i} className={cn("border rounded-md p-2 space-y-2", !o.include && "opacity-50")}>
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-2 text-xs">
+                            <input type="checkbox" checked={o.include} onChange={(e) => updateScanOrder(i, { include: e.target.checked })} />
+                            Include this order
+                          </label>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeScanOrder(i)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-xs">Date</Label>
+                            <Input type="date" value={o.order_date} onChange={(e) => updateScanOrder(i, { order_date: e.target.value })} className="h-8" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Total ($)</Label>
+                            <Input type="number" step="0.01" value={o.total} onChange={(e) => updateScanOrder(i, { total: e.target.value })} className="h-8" />
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Items</Label>
+                          <textarea
+                            value={o.itemsText}
+                            onChange={(e) => updateScanOrder(i, { itemsText: e.target.value })}
+                            rows={2}
+                            className="w-full text-xs border rounded p-2"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {scanExtracted.raw_notes && (
+                    <div className="text-xs">
+                      <div className="font-semibold mb-1">Other handwriting captured</div>
+                      <div className="p-2 rounded border bg-muted/30 whitespace-pre-wrap">{scanExtracted.raw_notes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPrompt(null)} disabled={pending}>Not now</Button>
-            <Button onClick={handleConfirm} disabled={pending}>Add customer</Button>
+            <Button variant="outline" onClick={closeAll} disabled={pending || scanning}>Not now</Button>
+            {mode === "scan" && scanExtracted && (
+              <Button variant="outline" onClick={resetScan} disabled={pending}>Start over</Button>
+            )}
+            <Button
+              onClick={handleConfirm}
+              disabled={pending || scanning || (mode === "scan" && !scanExtracted)}
+            >
+              {pending ? "Saving…" : mode === "scan" ? "Save customer + orders" : "Add customer"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -822,4 +1043,16 @@ function ConvertGuestToCustomerDialog({
     </>
   );
 }
+
+function FieldInput({ label, value, onChange, placeholder, className }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; className?: string;
+}) {
+  return (
+    <div className={className}>
+      <Label className="text-xs">{label}</Label>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-8" placeholder={placeholder} />
+    </div>
+  );
+}
+
 

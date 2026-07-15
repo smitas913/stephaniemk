@@ -205,13 +205,13 @@ function BusinessGoalEditor({ goal, onSave }: { goal: BusinessGoal; onSave: (u: 
 
 // ─── Quick Add ───
 const QUICK_ADD_OPTIONS = [
-  { key: "Face", label: "Face", icon: Users, emoji: "👤" },
   { key: "Career Chat", label: "Career Chat", icon: MessageSquare, emoji: "💬" },
   { key: "Booking Conversation", label: "Booking", icon: Calendar, emoji: "📅" },
 ] as const;
 
 function QuickAddBar({ onLogged }: { onLogged: () => void }) {
-  const [openType, setOpenType] = useState<"Face" | "Career Chat" | "Booking Conversation" | null>(null);
+  const [openType, setOpenType] = useState<"Career Chat" | "Booking Conversation" | null>(null);
+
 
   return (
     <>
