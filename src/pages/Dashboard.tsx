@@ -14,7 +14,7 @@ import {
   fetchBookingLeads,
   fetchTeamConsultants,
 } from "@/lib/queries";
-import QuickAddPersonDialog from "@/components/QuickAddPersonDialog";
+
 import QuickBookingDialog from "@/components/QuickBookingDialog";
 import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
 import SixMostImportant from "@/components/SixMostImportant";
