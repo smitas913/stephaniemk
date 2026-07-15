@@ -98,66 +98,13 @@ export default function ScanPhotoDialog({
     if (!extracted) return;
     setSaving(true);
     try {
-      // 1) Upload scan to storage for audit trail
-      let scanPath: string | null = null;
-      if (file) {
-        const { data: userData } = await supabase.auth.getUser();
-        const uid = userData?.user?.id;
-        if (uid) {
-          const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-          const path = `${uid}/${customer.id}/${Date.now()}.${ext}`;
-          const up = await supabase.storage.from("customer-scans").upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
-          if (!up.error) scanPath = path;
-        }
-      }
-
-      // 2) Apply contact updates and build notes append for "both"
-      const updates: Record<string, unknown> = {};
-      const conflictLines: string[] = [];
-      for (const f of CONTACT_FIELDS) {
-        const incomingRaw = extracted.contact?.[f.key];
-        if (!incomingRaw) continue;
-        const incoming = f.normalize ? f.normalize(String(incomingRaw)) : String(incomingRaw);
-        const r = resolutions[f.key] || "keep";
-        if (r === "replace") updates[f.key as string] = incoming;
-        else if (r === "both") {
-          const existing = ((customer as any)[f.key] ?? "") as string;
-          if (!existing) updates[f.key as string] = incoming;
-          conflictLines.push(`${f.label}: existing "${existing || "(empty)"}" | scanned "${incoming}"`);
-        }
-      }
-
-      if (Object.keys(updates).length > 0) {
-        await updateCustomer(customer.id, updates);
-      }
-
-      // 3) Create orders
-      let created = 0;
-      for (const o of orderDrafts) {
-        if (!o.include) continue;
-        const totalNum = parseFloat(o.total);
-        if (!isFinite(totalNum) || totalNum <= 0) continue;
-        const notes = [o.itemsText.trim(), o.notes.trim()].filter(Boolean).join("\n\n");
-        await createOrder({
-          customer_id: customer.id,
-          customer_name: customer.full_name,
-          order_date: o.order_date || todayISO(),
-          retail_amount: totalNum,
-          payment_status: "Unpaid",
-          notes: notes || undefined,
-        });
-        created += 1;
-      }
-
-      // 4) Audit note
-      const noteParts = [
-        "Scanned handwritten profile/order card.",
-        scanPath ? `Scan stored at: ${scanPath}` : null,
-        created > 0 ? `Created ${created} order(s) (Unpaid — please review).` : null,
-        conflictLines.length > 0 ? `Contact conflicts kept for review:\n- ${conflictLines.join("\n- ")}` : null,
-        extracted.raw_notes ? `Additional handwriting:\n${extracted.raw_notes}` : null,
-      ].filter(Boolean).join("\n\n");
-      await createCustomerNote({ customer_id: customer.id, note_text: noteParts, note_type: "Scan" });
+      await applyScanToExistingCustomer({
+        customer: customer as any,
+        file,
+        extracted,
+        resolutions,
+        orderDrafts,
+      });
 
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["customer", customer.id] }),
