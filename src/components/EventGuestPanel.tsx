@@ -701,11 +701,12 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         onCreateAnyway={async () => { await performJoinInsert(); }}
       />
 
-      {/* Guest ordered → convert to customer */}
+      {/* Guest ordered → convert to customer (with optional Scan Card path) */}
       <ConvertGuestToCustomerDialog
         prompt={convertGuestPrompt}
         setPrompt={setConvertGuestPrompt}
         allConsultants={allConsultants as any[]}
+        eventId={eventId}
         onCreated={async (customerId) => {
           if (!convertGuestPrompt) return;
           await updateMutation.mutateAsync({ id: convertGuestPrompt.guest.id, updates: { converted_customer_id: customerId } as any });
