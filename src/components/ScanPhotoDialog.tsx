@@ -63,36 +63,20 @@ export default function ScanPhotoDialog({
     if (!file) return;
     setScanning(true);
     try {
-      const base64 = await fileToBase64(file);
-      const { data, error } = await supabase.functions.invoke("scan-photo", {
-        body: { imageBase64: base64, mimeType: file.type || "image/jpeg" },
-      });
-      if (error) throw error;
-      const ex = (data?.extracted || {}) as Extracted;
+      const ex = await runScanExtract(file);
       setExtracted(ex);
 
-      // Seed contact resolutions: default replace when existing is empty, keep when it differs, both when conflict
+      // Seed contact resolutions: default replace when existing is empty, keep otherwise
       const nextRes: Record<string, Resolution> = {};
       for (const f of CONTACT_FIELDS) {
         const existing = ((customer as any)[f.key] ?? "") as string;
         const incoming = (ex.contact?.[f.key] ?? "") as string;
         if (!incoming) continue;
-        if (!existing) nextRes[f.key] = "replace";
-        else if (String(existing).trim().toLowerCase() === String(incoming).trim().toLowerCase()) nextRes[f.key] = "keep";
-        else nextRes[f.key] = "keep";
+        nextRes[f.key] = existing ? "keep" : "replace";
       }
       setResolutions(nextRes);
 
-      // Seed order drafts
-      setOrderDrafts(
-        (ex.orders ?? []).map((o) => ({
-          order_date: o.order_date || todayISO(),
-          itemsText: itemsToText(o.items),
-          total: o.total != null ? String(o.total) : (o.subtotal != null ? String(o.subtotal) : ""),
-          notes: o.notes || "",
-          include: true,
-        }))
-      );
+      setOrderDrafts(orderDraftsFromExtracted(ex));
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
     } finally {
