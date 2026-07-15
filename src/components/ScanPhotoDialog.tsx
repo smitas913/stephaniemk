@@ -8,85 +8,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Camera, Loader2, Trash2, Plus, ScanLine } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { updateCustomer, createOrder, createCustomerNote } from "@/lib/queries";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Customer } from "@/lib/types";
-import { normalizeStateAbbreviation } from "@/lib/usStates";
-
-type Extracted = {
-  contact?: {
-    full_name?: string | null;
-    phone?: string | null;
-    email?: string | null;
-    address_line_1?: string | null;
-    address_line_2?: string | null;
-    city?: string | null;
-    state_territory?: string | null;
-    postal_code?: string | null;
-    birthday?: string | null;
-  };
-  orders?: Array<{
-    order_date?: string | null;
-    items?: Array<{ description?: string; amount?: number | null }>;
-    subtotal?: number | null;
-    tax?: number | null;
-    total?: number | null;
-    notes?: string | null;
-  }>;
-  raw_notes?: string | null;
-};
-
-type Resolution = "keep" | "replace" | "both";
-
-const CONTACT_FIELDS: Array<{ key: keyof NonNullable<Extracted["contact"]>; label: string; normalize?: (v: string) => string }> = [
-  { key: "full_name", label: "Full name" },
-  { key: "phone", label: "Phone" },
-  { key: "email", label: "Email" },
-  { key: "address_line_1", label: "Address line 1" },
-  { key: "address_line_2", label: "Address line 2" },
-  { key: "city", label: "City" },
-  { key: "state_territory", label: "State", normalize: (v) => normalizeStateAbbreviation(v) || v },
-  { key: "postal_code", label: "ZIP" },
-  { key: "birthday", label: "Birthday" },
-];
-
-type OrderDraft = {
-  order_date: string;
-  itemsText: string;
-  total: string;
-  notes: string;
-  include: boolean;
-};
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || "");
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function itemsToText(items?: Array<{ description?: string; amount?: number | null }>) {
-  if (!items || items.length === 0) return "";
-  return items
-    .map((i) => {
-      const desc = (i.description || "").trim();
-      const amt = i.amount != null ? ` — $${Number(i.amount).toFixed(2)}` : "";
-      return desc ? `${desc}${amt}` : "";
-    })
-    .filter(Boolean)
-    .join("\n");
-}
+import {
+  CONTACT_FIELDS,
+  type Extracted,
+  type OrderDraft,
+  type Resolution,
+  runScanExtract,
+  orderDraftsFromExtracted,
+  todayISO,
+  applyScanToExistingCustomer,
+} from "@/lib/scanPhoto";
 
 export default function ScanPhotoDialog({
   open,
