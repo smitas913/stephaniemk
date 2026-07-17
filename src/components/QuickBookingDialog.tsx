@@ -36,7 +36,7 @@ export default function QuickBookingDialog({
   const [selectedName, setSelectedName] = useState("");
   const [selectedPhone, setSelectedPhone] = useState("");
   const [eventType, setEventType] = useState<string>("Party");
-  const [eventDate, setEventDate] = useState(format(addDays(new Date(), 7), "yyyy-MM-dd"));
+  const [eventDate, setEventDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [eventTime, setEventTime] = useState("6:30 PM");
   const [format_, setFormat_] = useState<"In-Person" | "Virtual">("In-Person");
   const [step, setStep] = useState<"who" | "when">("who");
