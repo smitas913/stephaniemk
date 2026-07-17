@@ -56,6 +56,7 @@ export default function QuickCareerChatDialog({
   const [interestLevel, setInterestLevel] = useState<number | null>(null);
   const [nextStep, setNextStep] = useState("none");
   const [notes, setNotes] = useState("");
+  const [chatDate, setChatDate] = useState(toLocalDateKey());
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: open });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects, enabled: open });
