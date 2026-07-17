@@ -246,6 +246,14 @@ export default function QuickCareerChatDialog({
             )}
           </div>
 
+          {/* Chat date */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" /> Date
+            </label>
+            <Input type="date" value={chatDate} onChange={e => setChatDate(e.target.value)} className="h-9" />
+          </div>
+
           {/* For consultant toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isForConsultant}
