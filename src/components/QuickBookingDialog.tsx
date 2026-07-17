@@ -101,7 +101,7 @@ export default function QuickBookingDialog({
 
   const reset = () => {
     setQuery(""); setSelectedName(""); setSelectedPhone("");
-    setEventType("Party"); setEventDate(format(addDays(new Date(), 7), "yyyy-MM-dd"));
+    setEventType("Party"); setEventDate(format(new Date(), "yyyy-MM-dd"));
     setEventTime("6:30 PM"); setFormat_("In-Person"); setStep("who");
   };
 
