@@ -11,7 +11,7 @@ import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Calendar } from "lucide-react";
 
 const INTEREST_LEVELS = [1,2,3,4,5,6,7,8,9,10].map(n => ({
   value: n,
@@ -56,6 +56,7 @@ export default function QuickCareerChatDialog({
   const [interestLevel, setInterestLevel] = useState<number | null>(null);
   const [nextStep, setNextStep] = useState("none");
   const [notes, setNotes] = useState("");
+  const [chatDate, setChatDate] = useState(toLocalDateKey());
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: open });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects, enabled: open });
@@ -84,7 +85,7 @@ export default function QuickCareerChatDialog({
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      const today = toLocalDateKey();
+      const today = chatDate;
       const interestLabel = interestLevel ? `Interest: ${interestLevel}/10` : "";
       const nextStepOptions = isForConsultant ? CONSULTANT_NEXT_STEPS : MY_NEXT_STEPS;
       const nextStepLabel = nextStepOptions.find(s => s.value === nextStep)?.label || "";
@@ -106,7 +107,7 @@ export default function QuickCareerChatDialog({
         if (level >= 4) return 10;
         return 30;
       };
-      const followUpDate = format(addDays(new Date(), getFollowUpDays(interestLevel)), "yyyy-MM-dd");
+      const followUpDate = format(addDays(new Date(chatDate + "T12:00"), getFollowUpDays(interestLevel)), "yyyy-MM-dd");
 
       const userId = (await supabase.auth.getUser()).data.user?.id;
 
@@ -207,6 +208,7 @@ export default function QuickCareerChatDialog({
     setQuery(""); setSelected(null); setIsForConsultant(false);
     setConsultantQuery(""); setSelectedConsultant(null);
     setInterestLevel(null); setNextStep("none"); setNotes("");
+    setChatDate(toLocalDateKey());
   };
 
   const canSave = (selected || query.trim()) && (!isForConsultant || selectedConsultant);
@@ -242,6 +244,14 @@ export default function QuickCareerChatDialog({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Chat date */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" /> Date
+            </label>
+            <Input type="date" value={chatDate} onChange={e => setChatDate(e.target.value)} className="h-9" />
           </div>
 
           {/* For consultant toggle */}
