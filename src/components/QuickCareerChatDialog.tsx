@@ -11,7 +11,7 @@ import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Calendar } from "lucide-react";
 
 const INTEREST_LEVELS = [1,2,3,4,5,6,7,8,9,10].map(n => ({
   value: n,
