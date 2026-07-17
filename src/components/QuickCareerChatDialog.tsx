@@ -107,7 +107,7 @@ export default function QuickCareerChatDialog({
         if (level >= 4) return 10;
         return 30;
       };
-      const followUpDate = format(addDays(new Date(), getFollowUpDays(interestLevel)), "yyyy-MM-dd");
+      const followUpDate = format(addDays(new Date(chatDate + "T12:00"), getFollowUpDays(interestLevel)), "yyyy-MM-dd");
 
       const userId = (await supabase.auth.getUser()).data.user?.id;
 
