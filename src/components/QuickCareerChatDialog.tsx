@@ -208,6 +208,7 @@ export default function QuickCareerChatDialog({
     setQuery(""); setSelected(null); setIsForConsultant(false);
     setConsultantQuery(""); setSelectedConsultant(null);
     setInterestLevel(null); setNextStep("none"); setNotes("");
+    setChatDate(toLocalDateKey());
   };
 
   const canSave = (selected || query.trim()) && (!isForConsultant || selectedConsultant);
