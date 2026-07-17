@@ -85,7 +85,7 @@ export default function QuickCareerChatDialog({
 
   const saveMut = useMutation({
     mutationFn: async () => {
-      const today = toLocalDateKey();
+      const today = chatDate;
       const interestLabel = interestLevel ? `Interest: ${interestLevel}/10` : "";
       const nextStepOptions = isForConsultant ? CONSULTANT_NEXT_STEPS : MY_NEXT_STEPS;
       const nextStepLabel = nextStepOptions.find(s => s.value === nextStep)?.label || "";
