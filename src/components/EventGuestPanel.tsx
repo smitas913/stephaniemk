@@ -398,6 +398,13 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     updateMutation.mutate({ id: g.id, updates: { referral_count: next } as any });
   };
 
+  const setReferrals = (g: EventGuest, value: number) => {
+    const current = Number((g as any).referral_count) || 0;
+    const next = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+    if (next === current) return;
+    updateMutation.mutate({ id: g.id, updates: { referral_count: next } as any });
+  };
+
   return (
     <div className="space-y-3">
       {/* Stat chips — Faces / Sales / Bookings / Referrals */}
