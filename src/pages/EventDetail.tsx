@@ -855,8 +855,6 @@ export default function EventDetail() {
               </CardContent>
             </Card>
 
-            {/* Referrals from this event */}
-            <EventReferralsCard eventId={eventId} hostessName={event?.hostess_name} />
 
             {/* Performance numbers */}
             {orderCount > 0 && (
