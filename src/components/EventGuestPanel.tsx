@@ -514,9 +514,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         disabled={(Number((g as any).referral_count) || 0) === 0}
                         aria-label="Decrease referrals"
                       >−</button>
-                      <span className="text-[10px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center">
-                        {Number((g as any).referral_count) || 0} ref
-                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={Number((g as any).referral_count) || 0}
+                        onChange={(e) => setReferrals(g, parseInt(e.target.value, 10))}
+                        className="w-12 h-5 text-[10px] font-medium tabular-nums text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                        aria-label="Referral count"
+                      />
                       <button
                         type="button"
                         onClick={() => bumpReferrals(g, 1)}
