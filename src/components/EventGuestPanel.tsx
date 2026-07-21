@@ -339,6 +339,26 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     setBookForm(null);
   };
 
+  const addBookingToGuestList = async () => {
+    if (!bookForm || !bookForm.selectedEventId) return;
+    const selected = upcomingEvents.find((e) => e.id === bookForm.selectedEventId);
+    if (!selected) return;
+    try {
+      await createEventGuest({
+        event_id: selected.event_id,
+        name: bookForm.name,
+        phone: bookForm.phone || null,
+        rsvp: "Yes",
+      } as any);
+      toast.success(`${bookForm.name} added to guest list`);
+      queryClient.invalidateQueries({ queryKey: ["event-guests", selected.event_id] });
+      setBookForm(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add guest");
+    }
+  };
+
+
   const createEventForBooking = () => {
     if (!bookForm) return;
     const params = new URLSearchParams({ type: "Party", hostess: bookForm.name, addGuest: "true", guestName: bookForm.name });
