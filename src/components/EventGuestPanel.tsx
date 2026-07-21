@@ -91,12 +91,13 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, event_id, event_date, hostess_name")
+        .select("id, event_id, event_date, hostess_name, event_type")
         .neq("event_id", eventId)
         .order("event_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null }>;
+      return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null; event_type: string | null }>;
+
     },
   });
 
@@ -337,6 +338,26 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryClient.invalidateQueries({ queryKey: ["events"] });
     setBookForm(null);
   };
+
+  const addBookingToGuestList = async () => {
+    if (!bookForm || !bookForm.selectedEventId) return;
+    const selected = upcomingEvents.find((e) => e.id === bookForm.selectedEventId);
+    if (!selected) return;
+    try {
+      await createEventGuest({
+        event_id: selected.event_id,
+        name: bookForm.name,
+        phone: bookForm.phone || null,
+        rsvp: "Yes",
+      } as any);
+      toast.success(`${bookForm.name} added to guest list`);
+      queryClient.invalidateQueries({ queryKey: ["event-guests", selected.event_id] });
+      setBookForm(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add guest");
+    }
+  };
+
 
   const createEventForBooking = () => {
     if (!bookForm) return;
@@ -636,10 +657,21 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2 items-center">
-                          <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={linkBookingToEvent}>
-                            Link as Hostess
-                          </Button>
+                          {(() => {
+                            const selected = upcomingEvents.find((e) => e.id === bookForm.selectedEventId);
+                            const isGuestEvent = selected?.event_type === "Guest Event";
+                            return isGuestEvent ? (
+                              <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={addBookingToGuestList}>
+                                Add to Guest List
+                              </Button>
+                            ) : (
+                              <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={linkBookingToEvent}>
+                                Link as Hostess
+                              </Button>
+                            );
+                          })()}
                           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={createEventForBooking}>
+
                             Create New Event
                           </Button>
                           <button
