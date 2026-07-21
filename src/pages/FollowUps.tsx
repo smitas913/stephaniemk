@@ -2304,22 +2304,11 @@ export default function FollowUps() {
       <div className={cn("pb-8", isMobile ? "space-y-2" : "space-y-4")}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>
-                {tab === "upcoming" ? "Upcoming" : "Today"}
-              </h2>
-              <Button
-                size="sm"
-                variant={tab === "upcoming" ? "default" : "outline"}
-                className="h-7 text-xs gap-1.5"
-                onClick={() => setTab(tab === "upcoming" ? "today" : "upcoming")}
-              >
-                <CalendarRange className="w-3.5 h-3.5" />
-                {tab === "upcoming" ? "Back to Today" : `Upcoming (${upcomingActions.length + upcomingEvents.length})`}
-              </Button>
-            </div>
+            <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>
+              Today
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
+              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
