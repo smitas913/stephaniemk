@@ -13,7 +13,7 @@ import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EventGuestPanel from "@/components/EventGuestPanel";
-import EventReferralsCard from "@/components/EventReferralsCard";
+
 import Layout from "@/components/Layout";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
@@ -855,8 +855,6 @@ export default function EventDetail() {
               </CardContent>
             </Card>
 
-            {/* Referrals from this event */}
-            <EventReferralsCard eventId={eventId} hostessName={event?.hostess_name} />
 
             {/* Performance numbers */}
             {orderCount > 0 && (

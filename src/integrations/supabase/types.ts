@@ -664,6 +664,7 @@ export type Database = {
           owner_user_id: string | null
           party_rescheduled: boolean
           phone: string | null
+          referral_count: number
           rsvp: string | null
           task_day_before_sent: boolean
           task_invite_sent: boolean
@@ -685,6 +686,7 @@ export type Database = {
           owner_user_id?: string | null
           party_rescheduled?: boolean
           phone?: string | null
+          referral_count?: number
           rsvp?: string | null
           task_day_before_sent?: boolean
           task_invite_sent?: boolean
@@ -706,6 +708,7 @@ export type Database = {
           owner_user_id?: string | null
           party_rescheduled?: boolean
           phone?: string | null
+          referral_count?: number
           rsvp?: string | null
           task_day_before_sent?: boolean
           task_invite_sent?: boolean
@@ -718,57 +721,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "team_consultants"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      event_referrals: {
-        Row: {
-          added_to_leads: boolean
-          created_at: string
-          event_id: string
-          id: string
-          name: string
-          out_of_town: boolean
-          owner_user_id: string
-          phone: string | null
-          referred_by: string | null
-        }
-        Insert: {
-          added_to_leads?: boolean
-          created_at?: string
-          event_id: string
-          id?: string
-          name: string
-          out_of_town?: boolean
-          owner_user_id?: string
-          phone?: string | null
-          referred_by?: string | null
-        }
-        Update: {
-          added_to_leads?: boolean
-          created_at?: string
-          event_id?: string
-          id?: string
-          name?: string
-          out_of_town?: boolean
-          owner_user_id?: string
-          phone?: string | null
-          referred_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_referrals_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "event_summary"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "event_referrals_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["event_id"]
           },
         ]
       }
