@@ -502,6 +502,24 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                     </div>
+                    <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => bumpReferrals(g, -1)}
+                        className="h-5 w-5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-40"
+                        disabled={(Number((g as any).referral_count) || 0) === 0}
+                        aria-label="Decrease referrals"
+                      >−</button>
+                      <span className="text-[10px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center">
+                        {Number((g as any).referral_count) || 0} ref
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => bumpReferrals(g, 1)}
+                        className="h-5 w-5 text-xs text-muted-foreground hover:text-foreground"
+                        aria-label="Increase referrals"
+                      >+</button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
