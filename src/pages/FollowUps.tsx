@@ -3157,28 +3157,6 @@ export default function FollowUps() {
                           );
                         })()}
 
-                        {/* Thoughtful Touches quick-log */}
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              <Heart className="w-3 h-3" /> Thoughtful Touches
-                            </p>
-                            {monthlyTouchCount > 0 && (
-                              <span className="text-[10px] text-muted-foreground">{monthlyTouchCount} this month</span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
-                              <FileText className="w-3.5 h-3.5" /> Card Sent
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
-                              <Gift className="w-3.5 h-3.5" /> Gift
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
-                              <Phone className="w-3.5 h-3.5" /> Check-in
-                            </Button>
-                          </div>
-                        </div>
                         {[...birthdaysToday, ...birthdaysOverdue].filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && (
                           <p className="text-sm text-muted-foreground py-3 text-center">No birthdays or anniversaries today</p>
                         )}
