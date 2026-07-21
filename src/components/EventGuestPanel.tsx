@@ -132,17 +132,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryFn: () => fetchOrders(),
   });
 
-  const RSVP_SORT_ORDER: Record<string, number> = { Yes: 0, Maybe: 1, Invited: 2, No: 3 };
   const guests = useMemo(() => {
-    return [...guestsRaw]
-      .map((g, i) => ({ g, i }))
-      .sort((a, b) => {
-        const ra = RSVP_SORT_ORDER[a.g.rsvp ?? "Invited"] ?? 99;
-        const rb = RSVP_SORT_ORDER[b.g.rsvp ?? "Invited"] ?? 99;
-        if (ra !== rb) return ra - rb;
-        return a.i - b.i;
-      })
-      .map((x) => x.g);
+    const firstToken = (n: string) => (n ?? "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+    return [...guestsRaw].sort((a, b) => {
+      const fa = firstToken(a.name);
+      const fb = firstToken(b.name);
+      if (fa !== fb) return fa.localeCompare(fb);
+      return (a.name ?? "").toLowerCase().localeCompare((b.name ?? "").toLowerCase());
+    });
   }, [guestsRaw]);
 
   const addMutation = useMutation({
