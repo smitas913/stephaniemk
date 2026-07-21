@@ -657,10 +657,21 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2 items-center">
-                          <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={linkBookingToEvent}>
-                            Link as Hostess
-                          </Button>
+                          {(() => {
+                            const selected = upcomingEvents.find((e) => e.id === bookForm.selectedEventId);
+                            const isGuestEvent = selected?.event_type === "Guest Event";
+                            return isGuestEvent ? (
+                              <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={addBookingToGuestList}>
+                                Add to Guest List
+                              </Button>
+                            ) : (
+                              <Button size="sm" className="h-8 text-xs" disabled={!bookForm.selectedEventId} onClick={linkBookingToEvent}>
+                                Link as Hostess
+                              </Button>
+                            );
+                          })()}
                           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={createEventForBooking}>
+
                             Create New Event
                           </Button>
                           <button
