@@ -3042,8 +3042,6 @@ export default function FollowUps() {
                   })()}
 
 
-                  {/* Client Cleanup — secondary, low-pressure maintenance card */}
-                  <ClientCleanupCard />
 
                   <TodaySectionWrapper
                     sectionKey="relationships"
