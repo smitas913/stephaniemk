@@ -2347,37 +2347,9 @@ export default function FollowUps() {
         ) : (
           <>
             <div>
-              {tab === "today" ? (
-                <div>
-                {isOOOActive && (
-                  <div className="mb-3 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 px-3 py-2 sm:flex sm:items-center sm:gap-3">
-                    {/* Mobile: stacked compact rows. Desktop (sm+): single row. */}
-                    <div className="flex items-center gap-2 sm:flex-1 sm:min-w-0">
-                      <Palmtree className="w-4 h-4 text-primary shrink-0" />
-                      <p className="text-sm font-semibold text-foreground leading-tight">Out of Office ON</p>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-tight mt-0.5 sm:mt-0 sm:text-xs sm:flex-1">
-                      Workflow paused • Birthdays still show{showFollowUpsOverride ? " • Revealed" : ""}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant={showFollowUpsOverride ? "secondary" : "default"}
-                      className="mt-2 sm:mt-0 h-7 w-full sm:w-auto text-xs gap-1.5"
-                      onClick={() => setShowFollowUpsOverride((v) => !v)}
-                    >
-                      {showFollowUpsOverride ? (<><EyeOff className="w-3.5 h-3.5" /> Hide Follow-Ups</>) : (<><Eye className="w-3.5 h-3.5" /> Show Follow-Ups</>)}
-                    </Button>
-                  </div>
-                )}
-
-                {isNonWorkday && !isOOOActive && (
-                  <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
-                    <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is a non-working day. Showing existing due/overdue items only — no new tasks will be generated.</p>
-                  </div>
-                )}
-
+              <div>
                 <div className={cn(isMobile ? "space-y-2" : "space-y-4")}>
+
 
                   {/* ═══ Daily Quote ═══ */}
                   {(() => {
