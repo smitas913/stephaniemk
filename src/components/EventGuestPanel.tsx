@@ -383,9 +383,10 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     }
   };
 
-  // ── Live stats: Faces / Sales / Bookings
+  // ── Live stats: Faces / Sales / Bookings / Referrals
   const facesCount = guests.filter((g) => g.attending === true).length;
   const bookingsCount = guests.filter((g: any) => g.booked).length;
+  const referralsTotal = guests.reduce((s, g: any) => s + (Number(g.referral_count) || 0), 0);
   const salesTotal = useMemo(() => {
     const linked = (allOrders as any[]).filter((o) => o.event_id === eventId || o.parent_event_id === eventId);
     return linked.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
@@ -393,9 +394,16 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
 
   const rsvpYes = guests.filter((g) => g.rsvp === "Yes").length;
 
+  const bumpReferrals = (g: EventGuest, delta: number) => {
+    const current = Number((g as any).referral_count) || 0;
+    const next = Math.max(0, current + delta);
+    if (next === current) return;
+    updateMutation.mutate({ id: g.id, updates: { referral_count: next } as any });
+  };
+
   return (
     <div className="space-y-3">
-      {/* Stat chips — Faces / Sales / Bookings */}
+      {/* Stat chips — Faces / Sales / Bookings / Referrals */}
       <div className="flex flex-wrap gap-2">
         <div className="px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 text-xs">
           <span className="font-semibold">{facesCount}</span> Faces
@@ -406,12 +414,16 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         <div className="px-3 py-1.5 rounded-md bg-amber-50 text-amber-700 text-xs">
           <span className="font-semibold">{bookingsCount}</span> Bookings
         </div>
+        <div className="px-3 py-1.5 rounded-md bg-purple-50 text-purple-700 text-xs">
+          <span className="font-semibold">{referralsTotal}</span> Referrals
+        </div>
         {guests.length > 0 && (
           <div className="px-3 py-1.5 rounded-md bg-muted text-muted-foreground text-xs ml-auto">
             {guests.length} guest{guests.length === 1 ? "" : "s"} · RSVP Yes: {rsvpYes}
           </div>
         )}
       </div>
+
 
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
