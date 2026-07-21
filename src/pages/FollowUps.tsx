@@ -2304,22 +2304,11 @@ export default function FollowUps() {
       <div className={cn("pb-8", isMobile ? "space-y-2" : "space-y-4")}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>
-                {tab === "upcoming" ? "Upcoming" : "Today"}
-              </h2>
-              <Button
-                size="sm"
-                variant={tab === "upcoming" ? "default" : "outline"}
-                className="h-7 text-xs gap-1.5"
-                onClick={() => setTab(tab === "upcoming" ? "today" : "upcoming")}
-              >
-                <CalendarRange className="w-3.5 h-3.5" />
-                {tab === "upcoming" ? "Back to Today" : `Upcoming (${upcomingActions.length + upcomingEvents.length})`}
-              </Button>
-            </div>
+            <h2 className={cn("font-bold tracking-tight text-foreground", isMobile ? "text-xl" : "text-2xl")}>
+              Today
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {todayEvents.length} event{todayEvents.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
+              {todayActions.length} action{todayActions.length !== 1 ? "s" : ""} · {birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length} touch{(birthdaysToday.filter(c => !isRelationshipDone(c)).length + birthdaysOverdue.filter(c => !isRelationshipDone(c)).length) !== 1 ? "es" : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -2358,37 +2347,9 @@ export default function FollowUps() {
         ) : (
           <>
             <div>
-              {tab === "today" ? (
-                <div>
-                {isOOOActive && (
-                  <div className="mb-3 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-accent/20 px-3 py-2 sm:flex sm:items-center sm:gap-3">
-                    {/* Mobile: stacked compact rows. Desktop (sm+): single row. */}
-                    <div className="flex items-center gap-2 sm:flex-1 sm:min-w-0">
-                      <Palmtree className="w-4 h-4 text-primary shrink-0" />
-                      <p className="text-sm font-semibold text-foreground leading-tight">Out of Office ON</p>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground leading-tight mt-0.5 sm:mt-0 sm:text-xs sm:flex-1">
-                      Workflow paused • Birthdays still show{showFollowUpsOverride ? " • Revealed" : ""}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant={showFollowUpsOverride ? "secondary" : "default"}
-                      className="mt-2 sm:mt-0 h-7 w-full sm:w-auto text-xs gap-1.5"
-                      onClick={() => setShowFollowUpsOverride((v) => !v)}
-                    >
-                      {showFollowUpsOverride ? (<><EyeOff className="w-3.5 h-3.5" /> Hide Follow-Ups</>) : (<><Eye className="w-3.5 h-3.5" /> Show Follow-Ups</>)}
-                    </Button>
-                  </div>
-                )}
-
-                {isNonWorkday && !isOOOActive && (
-                  <div className="mb-4 rounded-lg border border-border bg-muted/50 p-3 flex items-center gap-2">
-                    <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <p className="text-sm text-muted-foreground">Today is a non-working day. Showing existing due/overdue items only — no new tasks will be generated.</p>
-                  </div>
-                )}
-
+              <div>
                 <div className={cn(isMobile ? "space-y-2" : "space-y-4")}>
+
 
                   {/* ═══ Daily Quote ═══ */}
                   {(() => {
@@ -2709,8 +2670,8 @@ export default function FollowUps() {
                       );
 
                       return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Row 1: Booking Activity */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Booking Activity */}
                           <TodaySectionWrapper
                             sectionKey="booking"
                             title="Booking Activity"
@@ -2720,70 +2681,29 @@ export default function FollowUps() {
                             collapsed={!!collapsed["booking"]}
                             onToggleCollapsed={() => toggleCollapsed("booking")}
                             onMove={(d) => moveSection("booking", d)}
-                            className="md:col-span-2"
                           >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                {renderCategoryCard(
-                                  "Booking Activity",
-                                  showAllBooking ? leadVisible : leadVisible.slice(0, 3),
-                                  leadSorted.length,
-                                  leadLimit,
-                                  leadOverflow,
-                                  "bg-amber-50 dark:bg-amber-950/30",
-                                  "text-amber-600",
-                                )}
-                                {!showAllBooking && leadVisible.length > 3 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2 w-full"
-                                    onClick={() => setShowAllBooking(true)}
-                                  >
-                                    Show all {leadVisible.length}
-                                  </Button>
-                                )}
-                              </div>
-                              {(() => {
-                                const hostessItems = todayActions.filter(i => i.itemType === "hostess");
-                                return (
-                                  <Card className="border-border/50 shadow-sm">
-                                    <CardHeader className="pb-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-md bg-teal-50 dark:bg-teal-950/30">
-                                          <CalendarCheck className="w-4 h-4 text-teal-600" />
-                                        </div>
-                                        <CardTitle className="text-sm font-semibold text-foreground">Event Coaching</CardTitle>
-                                        <Badge variant="secondary" className="text-xs">{hostessItems.length}</Badge>
-                                      </div>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                      {hostessItems.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground py-6 text-center">No event coaching due today</p>
-                                      ) : (
-                                        <div className="divide-y divide-border/40">
-                                          {hostessItems.map((item) => (
-                                            <div
-                                              key={`${item.itemType}-${item.id}`}
-                                              className="py-2 px-2 hover:bg-muted/30 rounded-md cursor-pointer"
-                                              onClick={() => navigateToItem(item)}
-                                            >
-                                              <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                                              {item.followUpReason && (
-                                                <p className="text-xs text-muted-foreground mt-0.5">{item.followUpReason}</p>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </CardContent>
-                                  </Card>
-                                );
-                              })()}
-                            </div>
+                            {renderCategoryCard(
+                              "Booking Activity",
+                              showAllBooking ? leadVisible : leadVisible.slice(0, 3),
+                              leadSorted.length,
+                              leadLimit,
+                              leadOverflow,
+                              "bg-amber-50 dark:bg-amber-950/30",
+                              "text-amber-600",
+                            )}
+                            {!showAllBooking && leadVisible.length > 3 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 w-full"
+                                onClick={() => setShowAllBooking(true)}
+                              >
+                                Show all {leadVisible.length}
+                              </Button>
+                            )}
                           </TodaySectionWrapper>
 
-                          {/* Row 2: Customer Follow-Ups | Prospect Follow-Ups */}
+                          {/* Customer Follow-Ups */}
                           <TodaySectionWrapper
                             sectionKey="customer_followup"
                             title="Customer Follow-Ups"
@@ -2793,7 +2713,6 @@ export default function FollowUps() {
                             collapsed={!!collapsed["customer_followup"]}
                             onToggleCollapsed={() => toggleCollapsed("customer_followup")}
                             onMove={(d) => moveSection("customer_followup", d)}
-                            className="md:col-span-2"
                           >
                             <div className="mb-2 flex flex-wrap items-center gap-2">
                               <Button
@@ -2805,30 +2724,39 @@ export default function FollowUps() {
                                 New (30 days)
                               </Button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                {renderCategoryCard(
-                                  "Customer Follow-Ups",
-                                  showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
-                                  customerSorted.length,
-                                  customerLimit,
-                                  customerOverflow,
-                                  "bg-blue-50 dark:bg-blue-950/30",
-                                  "text-blue-600",
-                                )}
-                                {!showAllCustomers && customerVisible.length > 3 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2 w-full"
-                                    onClick={() => setShowAllCustomers(true)}
-                                  >
-                                    Show all {customerVisible.length}
-                                  </Button>
-                                )}
-                              </div>
-                              {renderProspectCard()}
-                            </div>
+                            {renderCategoryCard(
+                              "Customer Follow-Ups",
+                              showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
+                              customerSorted.length,
+                              customerLimit,
+                              customerOverflow,
+                              "bg-blue-50 dark:bg-blue-950/30",
+                              "text-blue-600",
+                            )}
+                            {!showAllCustomers && customerVisible.length > 3 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 w-full"
+                                onClick={() => setShowAllCustomers(true)}
+                              >
+                                Show all {customerVisible.length}
+                              </Button>
+                            )}
+                          </TodaySectionWrapper>
+
+                          {/* Prospect Follow-Ups */}
+                          <TodaySectionWrapper
+                            sectionKey="prospect_followup"
+                            title="Prospect Follow-Ups"
+                            count={prospectItems.length}
+                            order={order.indexOf("prospect_followup")}
+                            totalSections={5}
+                            collapsed={!!collapsed["prospect_followup"]}
+                            onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
+                            onMove={(d) => moveSection("prospect_followup", d)}
+                          >
+                            {renderProspectCard()}
                           </TodaySectionWrapper>
                         </div>
                       );
@@ -2836,253 +2764,8 @@ export default function FollowUps() {
 
 
 
-                  {/* ═══ SECTION 3: Coaching (Consultants) — hidden in OOO unless overridden ═══ */}
-                  {!hideWorkflow && (() => {
-                    const coachingActions = todayActions.filter(i => i.itemType === "consultant");
-                    if (coachingActions.length === 0) return null;
-
-                    if (isMobile) {
-                      const toTeamItem = (item: ActionItem): MobileTeamItem => ({
-                        id: item.id,
-                        itemType: item.itemType as MobileTeamItem["itemType"],
-                        name: item.name,
-                        phone: item.phone,
-                        follow_up_status: item.follow_up_status,
-                        daysOverdue: item.daysOverdue,
-                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
-                        followUpReason: item.followUpReason,
-                        actionLabel: item.actionLabel,
-                        focusGroup: (consultants.find(c => c.id === item.id)?.focus_group || undefined),
-                      });
-
-                      return (
-                        <TodaySectionWrapper
-                          sectionKey="coaching"
-                          title="Coaching"
-                          order={order.indexOf("coaching")}
-                          totalSections={5}
-                          collapsed={!!collapsed["coaching"]}
-                          onToggleCollapsed={() => toggleCollapsed("coaching")}
-                          onMove={(d) => moveSection("coaching", d)}
-                        >
-                          <MobileTeamAttention
-                            items={coachingActions.map(toTeamItem)}
-                            onSchedule={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
-                            onCall={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                            onText={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                            onNote={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                            onOpen={(mi) => { const o = coachingActions.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
-                          />
-                        </TodaySectionWrapper>
-                      );
-                    }
-
-                    return (
-                      <TodaySectionWrapper
-                        sectionKey="coaching"
-                        title="Coaching"
-                        order={order.indexOf("coaching")}
-                        totalSections={5}
-                        collapsed={!!collapsed["coaching"]}
-                        onToggleCollapsed={() => toggleCollapsed("coaching")}
-                        onMove={(d) => moveSection("coaching", d)}
-                      >
-                      <Card className="border-border/50 shadow-sm">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-violet-50 dark:bg-violet-950/30">
-                              <Crown className="w-4 h-4 text-violet-600" />
-                            </div>
-                            <CardTitle className="text-sm font-semibold text-foreground">Coaching</CardTitle>
-                            <Badge variant="secondary" className="text-xs">{coachingActions.length}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="divide-y divide-border/40">
-                            {coachingActions.map(item => (
-                              <ActionRow
-                                key={`${item.itemType}-${item.id}`}
-                                item={item}
-                                inlineNoteId={inlineNoteId}
-                                inlineNoteText={inlineNoteText}
-                                inlineNextStep={inlineNextStep}
-                                inlineNoteType={inlineNoteType}
-                                inlineFollowUpDate={inlineFollowUpDate}
-                                setInlineNoteText={setInlineNoteText}
-                                setInlineNextStep={setInlineNextStep}
-                                setInlineNoteType={setInlineNoteType}
-                                setInlineFollowUpDate={setInlineFollowUpDate}
-                                onToggleInline={() => toggleInlineNote(item)}
-                                onInlineSave={() => handleInlineSave(item)}
-                                onOpenDetail={() => openDetailSheet(item)}
-                                isPending={contactMutation.isPending}
-                                onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                                onQuickLog={(type) => handleQuickLog(item, type)}
-                                onOpenQuickAction={() => openUniversalPanel(item)}
-                              />
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                      </TodaySectionWrapper>
-                    );
-                  })()}
-
-                  {/* ═══ SECTION 3b: Event Tasks (DEDICATED) — hostess coaching + event prep ═══
-                      Shown as its own visually distinct card so event work never duplicates
-                      with general follow-ups or consultant coaching. */}
-                  {!hideWorkflow && (() => {
-                    const eventTaskActions = todayActions.filter(i => i.itemType === "hostess" || i.itemType === "event_task");
-                    if (eventTaskActions.length === 0) return null;
-
-                    // Group by person+event. Hostess items use their own id; event_task items use eventId.
-                    type Group = { key: string; personName: string; eventLabel: string; items: ActionItem[]; next: ActionItem; eventId?: string };
-                    const priority = (i: ActionItem) => {
-                      const s = i.follow_up_status;
-                      if (s === "OVERDUE") return 0;
-                      if (s === "TODAY") return 1;
-                      return 2;
-                    };
-                    const sortGroup = (a: ActionItem, b: ActionItem) => {
-                      const pa = priority(a), pb = priority(b);
-                      if (pa !== pb) return pa - pb;
-                      const ta = getDateOnlyTime(a.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
-                      const tb = getDateOnlyTime(b.next_follow_up) ?? Number.MAX_SAFE_INTEGER;
-                      return ta - tb;
-                    };
-                    const groupsMap = new Map<string, Group>();
-                    for (const it of eventTaskActions) {
-                      const key = it._eventId ? `evt:${it._eventId}:${it.name}` : `${it.itemType}:${it.id}`;
-                      const matchedEvent = it._eventId ? events.find(e => e.event_id === it._eventId) : null;
-                      const eventLabel = matchedEvent
-                        ? `${matchedEvent.event_type || "Event"}${matchedEvent.event_date ? ` • ${(() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth()+1}/${d.getDate()}` : ""; })()}` : ""}`
-                        : (it._eventId || "");
-                      const existing = groupsMap.get(key);
-                      if (existing) {
-                        existing.items.push(it);
-                      } else {
-                        groupsMap.set(key, { key, personName: it.name, eventLabel, items: [it], next: it, eventId: it._eventId });
-                      }
-                    }
-                    const groups = Array.from(groupsMap.values()).map(g => {
-                      g.items.sort(sortGroup);
-                      g.next = g.items[0];
-                      return g;
-                    }).sort((a, b) => sortGroup(a.next, b.next));
-
-                    if (isMobile) {
-                      const toTeamItem = (item: ActionItem): MobileTeamItem => ({
-                        id: item.id,
-                        itemType: item.itemType as MobileTeamItem["itemType"],
-                        name: item.name,
-                        phone: item.phone,
-                        follow_up_status: item.follow_up_status,
-                        daysOverdue: item.daysOverdue,
-                        lastContacted: item.lastContacted ? formatLastContacted(item.lastContacted) : undefined,
-                        followUpReason: item.followUpReason,
-                        actionLabel: item.actionLabel,
-                      });
-                      // Show only the next pending task per person on mobile
-                      const nextPerPerson = groups.map(g => g.next);
-                      return (
-                        <MobileTeamAttention
-                          items={nextPerPerson.map(toTeamItem)}
-                          onSchedule={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openDetailSheet(o); }}
-                          onCall={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onText={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onNote={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) openUniversalPanel(o); }}
-                          onOpen={(mi) => { const o = nextPerPerson.find(i => i.id === mi.id); if (o) navigateToItem(o); }}
-                        />
-                      );
-                    }
-
-                    const renderRow = (item: ActionItem) => (
-                      <ActionRow
-                        key={`${item.itemType}-${item.id}`}
-                        item={item}
-                        inlineNoteId={inlineNoteId}
-                        inlineNoteText={inlineNoteText}
-                        inlineNextStep={inlineNextStep}
-                        inlineNoteType={inlineNoteType}
-                        inlineFollowUpDate={inlineFollowUpDate}
-                        setInlineNoteText={setInlineNoteText}
-                        setInlineNextStep={setInlineNextStep}
-                        setInlineNoteType={setInlineNoteType}
-                        setInlineFollowUpDate={setInlineFollowUpDate}
-                        onToggleInline={() => toggleInlineNote(item)}
-                        onInlineSave={() => handleInlineSave(item)}
-                        onOpenDetail={() => openDetailSheet(item)}
-                        isPending={contactMutation.isPending}
-                        onToggleWorkdayOverride={(val) => toggleWorkdayOverrideMutation.mutate({ item, newValue: val })}
-                        onQuickLog={(type) => handleQuickLog(item, type)}
-                        onOpenQuickAction={() => openUniversalPanel(item)}
-                      />
-                    );
-
-                    return (
-                      <Card className="border-2 border-emerald-300/60 dark:border-emerald-800/60 shadow-sm bg-emerald-50/30 dark:bg-emerald-950/10">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40">
-                              <CalendarCheck className="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
-                            </div>
-                            <CardTitle className="text-base font-bold text-emerald-900 dark:text-emerald-100 tracking-tight">Event Tasks</CardTitle>
-                            <Badge className="text-xs bg-emerald-600 hover:bg-emerald-600 text-white">{groups.length}</Badge>
-                          </div>
-                          <p className="text-xs text-emerald-800/70 dark:text-emerald-200/70 mt-1 ml-9">
-                            Next step per hostess • {eventTaskActions.length} task{eventTaskActions.length === 1 ? "" : "s"} total
-                          </p>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="divide-y divide-emerald-200/50 dark:divide-emerald-900/40">
-                            {(showAllCoaching ? groups : groups.slice(0, 3)).map((g) => {
-                              const isExpanded = expandedEventGroups.has(g.key);
-                              const more = g.items.length - 1;
-                              return (
-                                <div key={g.key} className="py-1">
-                                  {g.eventLabel && (
-                                    <div className="px-2 pt-2 pb-0.5 text-[10px] uppercase tracking-wider text-emerald-700/70 dark:text-emerald-300/70 font-semibold flex items-center justify-between">
-                                      <span>{g.personName} • {g.eventLabel}</span>
-                                      {more > 0 && (
-                                        <button
-                                          type="button"
-                                          className="text-[10px] font-medium text-emerald-700 dark:text-emerald-300 hover:underline"
-                                          onClick={() => {
-                                            setExpandedEventGroups(prev => {
-                                              const next = new Set(prev);
-                                              if (next.has(g.key)) next.delete(g.key); else next.add(g.key);
-                                              return next;
-                                            });
-                                          }}
-                                        >
-                                          {isExpanded ? "Hide" : `+ ${more} more`}
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                  {(isExpanded ? g.items : [g.next]).map(renderRow)}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {!showAllCoaching && groups.length > 3 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-2 w-full"
-                              onClick={() => setShowAllCoaching(true)}
-                            >
-                              Show all {groups.length}
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })()}
 
 
-                  {/* Client Cleanup — secondary, low-pressure maintenance card */}
-                  <ClientCleanupCard />
 
                   <TodaySectionWrapper
                     sectionKey="relationships"
@@ -3196,28 +2879,6 @@ export default function FollowUps() {
                           );
                         })()}
 
-                        {/* Thoughtful Touches quick-log */}
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              <Heart className="w-3 h-3" /> Thoughtful Touches
-                            </p>
-                            {monthlyTouchCount > 0 && (
-                              <span className="text-[10px] text-muted-foreground">{monthlyTouchCount} this month</span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Card")}>
-                              <FileText className="w-3.5 h-3.5" /> Card Sent
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Gift")}>
-                              <Gift className="w-3.5 h-3.5" /> Gift
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setThoughtfulTouchType("Check-in")}>
-                              <Phone className="w-3.5 h-3.5" /> Check-in
-                            </Button>
-                          </div>
-                        </div>
                         {[...birthdaysToday, ...birthdaysOverdue].filter(c => !isRelationshipDone(c)).length === 0 && (!showUpcoming7 || birthdaysUpcoming.length === 0) && (
                           <p className="text-sm text-muted-foreground py-3 text-center">No birthdays or anniversaries today</p>
                         )}
@@ -3234,84 +2895,6 @@ export default function FollowUps() {
                   
                 </div>
                 </div>
-              ) : (
-              <div className="space-y-4 mt-4">
-                  {/* Upcoming Actions */}
-                  <Card className="border-border/50 shadow-sm">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950/30">
-                          <CalendarRange className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <CardTitle className="text-sm font-semibold text-foreground">Upcoming Actions (Next 7 Days)</CardTitle>
-                        <Badge variant="secondary" className="text-xs">{upcomingActions.length}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      {upcomingActions.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-6 text-center">No upcoming actions this week</p>
-                      ) : (
-                        <div className="divide-y divide-border/40">
-                          {upcomingActions.map((item) => (
-                            <div key={`${item.itemType}-${item.id}`} className="py-2.5 flex items-center gap-3 group">
-                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openDetailSheet(item)}>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
-                                  <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium", TYPE_BADGE[item.itemType].className)}>
-                                    {TYPE_BADGE[item.itemType].label}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                  <span>{item.actionLabel}</span>
-                                  <span>• {formatDateOnly(item.next_follow_up, "EEE, MMM d")}</span>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetailSheet(item)}>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Upcoming Events */}
-                  <Card className="border-border/50 shadow-sm">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30">
-                          <Calendar className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <CardTitle className="text-sm font-semibold text-foreground">Upcoming Events (Next 7 Days)</CardTitle>
-                        <Badge variant="secondary" className="text-xs">{upcomingEvents.length}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      {upcomingEvents.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-6 text-center">No upcoming events this week</p>
-                      ) : (
-                        <div className="divide-y divide-border/40">
-                          {upcomingEvents.map((evt) => (
-                            <div key={evt.id} className="py-2.5 flex items-center gap-3 cursor-pointer hover:bg-muted/30 transition-colors rounded-md px-1"
-                              onClick={() => navigate(`/events/${evt.event_id}`)}>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-foreground truncate">{evt.event_id}</p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                  {evt.event_type && <span>{evt.event_type}</span>}
-                                  {evt.hostess_name && <span>• Hostess: {evt.hostess_name}</span>}
-                                  <span>• {formatDateOnly(evt.event_date, "EEE, MMM d")}</span>
-                                </div>
-                              </div>
-                              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
             </div>
           </>
         )}
@@ -3537,10 +3120,6 @@ export default function FollowUps() {
           </SheetContent>
         </Sheet>
 
-        {/* Thank You Notes — bottom of Today page */}
-        <div className="mt-6">
-          <ThankYouRemindersCard />
-        </div>
 
 
 
@@ -3595,139 +3174,7 @@ export default function FollowUps() {
           </DialogContent>
         </Dialog>
 
-        {/* Distribute Dialog */}
-        <Dialog open={showDistribute} onOpenChange={(open) => { setShowDistribute(open); if (!open) { setDistributeStep("configure"); setDistributeSelectedIds(new Set()); } }}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="text-base">Distribute Follow-Ups</DialogTitle></DialogHeader>
-            {distributeStep === "configure" ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Select group</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {([
-                      { value: "overdue-today" as const, label: "Overdue + Today" },
-                      { value: "no-date" as const, label: "No follow-up date" },
-                      { value: "dormant-warm" as const, label: "Dormant + Warm" },
-                    ]).map((opt) => (
-                      <Button key={opt.value} variant={distributeFilter === opt.value ? "default" : "outline"} size="sm" className="h-7 text-xs"
-                        onClick={() => { setDistributeFilter(opt.value); setDistributeSelectedIds(new Set()); setDistributeStep("configure"); }}>
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Spread across how many days?</label>
-                  <Input type="number" min="1" max="365" value={distributeDays} onChange={(e) => setDistributeDays(e.target.value)} className="h-9 w-32" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground">{distributeCandidates.length} customers found · {distributeSelectedIds.size} selected</span>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setDistributeSelectedIds(new Set(distributeCandidates.map((c) => c.id)))}>Select All</Button>
-                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setDistributeSelectedIds(new Set())}>Clear</Button>
-                    </div>
-                  </div>
-                  <div className="border border-border rounded-md max-h-48 overflow-y-auto">
-                    {distributeCandidates.length === 0 ? (
-                      <p className="text-sm text-muted-foreground p-4 text-center">No customers match this filter</p>
-                    ) : distributeCandidates.map((c) => (
-                      <label key={c.id} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 cursor-pointer">
-                        <Checkbox checked={distributeSelectedIds.has(c.id)} onCheckedChange={() => {
-                          setDistributeSelectedIds((prev) => { const next = new Set(prev); if (next.has(c.id)) next.delete(c.id); else next.add(c.id); return next; });
-                        }} />
-                        <span className="text-sm text-foreground truncate">{c.full_name}</span>
-                        {c.activity_status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium ml-auto shrink-0">{c.activity_status}</span>}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                {distributeSelectedIds.size > 0 && (
-                  <div className="bg-muted/50 rounded-md p-3">
-                    <p className="text-sm text-foreground"><span className="font-semibold">{distributeSelectedIds.size}</span> customers across <span className="font-semibold">{distributeDays}</span> days = ~<span className="font-semibold">{perDay}</span> per day</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Starting tomorrow</p>
-                  </div>
-                )}
-                <Button className="w-full" disabled={distributeSelectedIds.size === 0} onClick={() => setDistributeStep("preview")}>Preview Distribution</Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-muted/50 rounded-md p-3">
-                  <p className="text-sm text-foreground"><span className="font-semibold">{distributePreview.length}</span> follow-ups across <span className="font-semibold">{distributeDays}</span> days (~{perDay}/day)</p>
-                </div>
-                <div className="border border-border rounded-md max-h-60 overflow-y-auto">
-                  {distributePreview.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between px-3 py-1.5 text-sm border-b border-border/50 last:border-b-0">
-                      <span className="text-foreground truncate">{p.name}</span>
-                      <span className="text-muted-foreground text-xs shrink-0 ml-2">{formatDateOnly(p.date)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => setDistributeStep("configure")}>Back</Button>
-                  <Button className="flex-1" onClick={() => distributeMutation.mutate()} disabled={distributeMutation.isPending}>
-                    {distributeMutation.isPending ? "Distributing..." : "Apply Distribution"}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
 
-        {/* Reschedule Activity Log Dialog */}
-        <Dialog open={!!rescheduleActivityEvent} onOpenChange={(open) => { if (!open) { setRescheduleActivityEvent(null); setRescheduleStep("log"); } }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {rescheduleStep === "log" ? "Log Reschedule Activity" : "Confirm Next Step"}
-              </DialogTitle>
-            </DialogHeader>
-            {rescheduleActivityEvent && rescheduleStep === "log" && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {rescheduleActivityEvent.hostess_name} — {rescheduleActivityEvent.event_type || "Event"} (Attempt #{(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1})
-                </p>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Activity Type</label>
-                  <Select value={rescheduleNoteType} onValueChange={setRescheduleNoteType}>
-                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["Call", "Text", "Email", "In Person"].map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
-                  <Textarea className="text-xs mt-1 min-h-[60px]" placeholder="Left voicemail, sent text..." value={rescheduleNoteText} onChange={(e) => setRescheduleNoteText(e.target.value)} />
-                </div>
-                <Button className="w-full" onClick={() => setRescheduleStep("confirm")}>Continue to Confirm</Button>
-              </div>
-            )}
-            {rescheduleActivityEvent && rescheduleStep === "confirm" && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Activity: <strong>{rescheduleNoteType}</strong> — Attempt #{(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1}
-                </p>
-                {(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1 >= 5 ? (
-                  <p className="text-sm text-destructive font-medium">This is attempt #5. No further auto-scheduling. You will need to choose a manual next step.</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Next follow-up will be auto-scheduled in {RESCHEDULE_CADENCE_DAYS[(rescheduleActivityEvent.reschedule_attempt_number || 0)]} day(s).
-                  </p>
-                )}
-                <Button
-                  className="w-full"
-                  disabled={rescheduleLogMutation.isPending}
-                  onClick={() => rescheduleLogMutation.mutate({ event: rescheduleActivityEvent, noteType: rescheduleNoteType, noteText: rescheduleNoteText })}
-                >
-                  {rescheduleLogMutation.isPending ? "Saving..." : "Confirm Next Step"}
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
 
         {/* Set New Date Dialog */}
         <Dialog open={!!setNewDateEvent} onOpenChange={(open) => { if (!open) setSetNewDateEvent(null); }}>
