@@ -132,17 +132,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryFn: () => fetchOrders(),
   });
 
-  const RSVP_SORT_ORDER: Record<string, number> = { Yes: 0, Maybe: 1, Invited: 2, No: 3 };
   const guests = useMemo(() => {
-    return [...guestsRaw]
-      .map((g, i) => ({ g, i }))
-      .sort((a, b) => {
-        const ra = RSVP_SORT_ORDER[a.g.rsvp ?? "Invited"] ?? 99;
-        const rb = RSVP_SORT_ORDER[b.g.rsvp ?? "Invited"] ?? 99;
-        if (ra !== rb) return ra - rb;
-        return a.i - b.i;
-      })
-      .map((x) => x.g);
+    const firstToken = (n: string) => (n ?? "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+    return [...guestsRaw].sort((a, b) => {
+      const fa = firstToken(a.name);
+      const fb = firstToken(b.name);
+      if (fa !== fb) return fa.localeCompare(fb);
+      return (a.name ?? "").toLowerCase().localeCompare((b.name ?? "").toLowerCase());
+    });
   }, [guestsRaw]);
 
   const addMutation = useMutation({
@@ -401,6 +398,13 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     updateMutation.mutate({ id: g.id, updates: { referral_count: next } as any });
   };
 
+  const setReferrals = (g: EventGuest, value: number) => {
+    const current = Number((g as any).referral_count) || 0;
+    const next = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+    if (next === current) return;
+    updateMutation.mutate({ id: g.id, updates: { referral_count: next } as any });
+  };
+
   return (
     <div className="space-y-3">
       {/* Stat chips — Faces / Sales / Bookings / Referrals */}
@@ -510,9 +514,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         disabled={(Number((g as any).referral_count) || 0) === 0}
                         aria-label="Decrease referrals"
                       >−</button>
-                      <span className="text-[10px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center">
-                        {Number((g as any).referral_count) || 0} ref
-                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={Number((g as any).referral_count) || 0}
+                        onChange={(e) => setReferrals(g, parseInt(e.target.value, 10))}
+                        className="w-12 h-5 text-[10px] font-medium tabular-nums text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                        aria-label="Referral count"
+                      />
                       <button
                         type="button"
                         onClick={() => bumpReferrals(g, 1)}
@@ -696,9 +705,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     disabled={(Number((g as any).referral_count) || 0) === 0}
                     aria-label="Decrease referrals"
                   >−</button>
-                  <span className="text-[10px] font-medium tabular-nums px-1 min-w-[2.5rem] text-center">
-                    {Number((g as any).referral_count) || 0} ref
-                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={Number((g as any).referral_count) || 0}
+                    onChange={(e) => setReferrals(g, parseInt(e.target.value, 10))}
+                    className="w-12 h-5 text-[10px] font-medium tabular-nums text-center bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                    aria-label="Referral count"
+                  />
                   <button
                     type="button"
                     onClick={() => bumpReferrals(g, 1)}
