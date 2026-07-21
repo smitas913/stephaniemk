@@ -3420,10 +3420,6 @@ export default function FollowUps() {
           </SheetContent>
         </Sheet>
 
-        {/* Thank You Notes — bottom of Today page */}
-        <div className="mt-6">
-          <ThankYouRemindersCard />
-        </div>
 
 
 
