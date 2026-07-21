@@ -2670,8 +2670,8 @@ export default function FollowUps() {
                       );
 
                       return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Row 1: Booking Activity */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Booking Activity */}
                           <TodaySectionWrapper
                             sectionKey="booking"
                             title="Booking Activity"
@@ -2681,70 +2681,29 @@ export default function FollowUps() {
                             collapsed={!!collapsed["booking"]}
                             onToggleCollapsed={() => toggleCollapsed("booking")}
                             onMove={(d) => moveSection("booking", d)}
-                            className="md:col-span-2"
                           >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                {renderCategoryCard(
-                                  "Booking Activity",
-                                  showAllBooking ? leadVisible : leadVisible.slice(0, 3),
-                                  leadSorted.length,
-                                  leadLimit,
-                                  leadOverflow,
-                                  "bg-amber-50 dark:bg-amber-950/30",
-                                  "text-amber-600",
-                                )}
-                                {!showAllBooking && leadVisible.length > 3 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2 w-full"
-                                    onClick={() => setShowAllBooking(true)}
-                                  >
-                                    Show all {leadVisible.length}
-                                  </Button>
-                                )}
-                              </div>
-                              {(() => {
-                                const hostessItems = todayActions.filter(i => i.itemType === "hostess");
-                                return (
-                                  <Card className="border-border/50 shadow-sm">
-                                    <CardHeader className="pb-2">
-                                      <div className="flex items-center gap-2">
-                                        <div className="p-1.5 rounded-md bg-teal-50 dark:bg-teal-950/30">
-                                          <CalendarCheck className="w-4 h-4 text-teal-600" />
-                                        </div>
-                                        <CardTitle className="text-sm font-semibold text-foreground">Event Coaching</CardTitle>
-                                        <Badge variant="secondary" className="text-xs">{hostessItems.length}</Badge>
-                                      </div>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                      {hostessItems.length === 0 ? (
-                                        <p className="text-sm text-muted-foreground py-6 text-center">No event coaching due today</p>
-                                      ) : (
-                                        <div className="divide-y divide-border/40">
-                                          {hostessItems.map((item) => (
-                                            <div
-                                              key={`${item.itemType}-${item.id}`}
-                                              className="py-2 px-2 hover:bg-muted/30 rounded-md cursor-pointer"
-                                              onClick={() => navigateToItem(item)}
-                                            >
-                                              <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                                              {item.followUpReason && (
-                                                <p className="text-xs text-muted-foreground mt-0.5">{item.followUpReason}</p>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </CardContent>
-                                  </Card>
-                                );
-                              })()}
-                            </div>
+                            {renderCategoryCard(
+                              "Booking Activity",
+                              showAllBooking ? leadVisible : leadVisible.slice(0, 3),
+                              leadSorted.length,
+                              leadLimit,
+                              leadOverflow,
+                              "bg-amber-50 dark:bg-amber-950/30",
+                              "text-amber-600",
+                            )}
+                            {!showAllBooking && leadVisible.length > 3 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 w-full"
+                                onClick={() => setShowAllBooking(true)}
+                              >
+                                Show all {leadVisible.length}
+                              </Button>
+                            )}
                           </TodaySectionWrapper>
 
-                          {/* Row 2: Customer Follow-Ups | Prospect Follow-Ups */}
+                          {/* Customer Follow-Ups */}
                           <TodaySectionWrapper
                             sectionKey="customer_followup"
                             title="Customer Follow-Ups"
@@ -2754,7 +2713,6 @@ export default function FollowUps() {
                             collapsed={!!collapsed["customer_followup"]}
                             onToggleCollapsed={() => toggleCollapsed("customer_followup")}
                             onMove={(d) => moveSection("customer_followup", d)}
-                            className="md:col-span-2"
                           >
                             <div className="mb-2 flex flex-wrap items-center gap-2">
                               <Button
@@ -2766,30 +2724,39 @@ export default function FollowUps() {
                                 New (30 days)
                               </Button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                {renderCategoryCard(
-                                  "Customer Follow-Ups",
-                                  showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
-                                  customerSorted.length,
-                                  customerLimit,
-                                  customerOverflow,
-                                  "bg-blue-50 dark:bg-blue-950/30",
-                                  "text-blue-600",
-                                )}
-                                {!showAllCustomers && customerVisible.length > 3 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2 w-full"
-                                    onClick={() => setShowAllCustomers(true)}
-                                  >
-                                    Show all {customerVisible.length}
-                                  </Button>
-                                )}
-                              </div>
-                              {renderProspectCard()}
-                            </div>
+                            {renderCategoryCard(
+                              "Customer Follow-Ups",
+                              showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
+                              customerSorted.length,
+                              customerLimit,
+                              customerOverflow,
+                              "bg-blue-50 dark:bg-blue-950/30",
+                              "text-blue-600",
+                            )}
+                            {!showAllCustomers && customerVisible.length > 3 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 w-full"
+                                onClick={() => setShowAllCustomers(true)}
+                              >
+                                Show all {customerVisible.length}
+                              </Button>
+                            )}
+                          </TodaySectionWrapper>
+
+                          {/* Prospect Follow-Ups */}
+                          <TodaySectionWrapper
+                            sectionKey="prospect_followup"
+                            title="Prospect Follow-Ups"
+                            count={prospectItems.length}
+                            order={order.indexOf("prospect_followup")}
+                            totalSections={5}
+                            collapsed={!!collapsed["prospect_followup"]}
+                            onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
+                            onMove={(d) => moveSection("prospect_followup", d)}
+                          >
+                            {renderProspectCard()}
                           </TodaySectionWrapper>
                         </div>
                       );
