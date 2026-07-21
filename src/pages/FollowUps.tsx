@@ -3557,60 +3557,6 @@ export default function FollowUps() {
           </DialogContent>
         </Dialog>
 
-        {/* Reschedule Activity Log Dialog */}
-        <Dialog open={!!rescheduleActivityEvent} onOpenChange={(open) => { if (!open) { setRescheduleActivityEvent(null); setRescheduleStep("log"); } }}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {rescheduleStep === "log" ? "Log Reschedule Activity" : "Confirm Next Step"}
-              </DialogTitle>
-            </DialogHeader>
-            {rescheduleActivityEvent && rescheduleStep === "log" && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {rescheduleActivityEvent.hostess_name} — {rescheduleActivityEvent.event_type || "Event"} (Attempt #{(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1})
-                </p>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Activity Type</label>
-                  <Select value={rescheduleNoteType} onValueChange={setRescheduleNoteType}>
-                    <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {["Call", "Text", "Email", "In Person"].map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
-                  <Textarea className="text-xs mt-1 min-h-[60px]" placeholder="Left voicemail, sent text..." value={rescheduleNoteText} onChange={(e) => setRescheduleNoteText(e.target.value)} />
-                </div>
-                <Button className="w-full" onClick={() => setRescheduleStep("confirm")}>Continue to Confirm</Button>
-              </div>
-            )}
-            {rescheduleActivityEvent && rescheduleStep === "confirm" && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Activity: <strong>{rescheduleNoteType}</strong> — Attempt #{(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1}
-                </p>
-                {(rescheduleActivityEvent.reschedule_attempt_number || 0) + 1 >= 5 ? (
-                  <p className="text-sm text-destructive font-medium">This is attempt #5. No further auto-scheduling. You will need to choose a manual next step.</p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Next follow-up will be auto-scheduled in {RESCHEDULE_CADENCE_DAYS[(rescheduleActivityEvent.reschedule_attempt_number || 0)]} day(s).
-                  </p>
-                )}
-                <Button
-                  className="w-full"
-                  disabled={rescheduleLogMutation.isPending}
-                  onClick={() => rescheduleLogMutation.mutate({ event: rescheduleActivityEvent, noteType: rescheduleNoteType, noteText: rescheduleNoteText })}
-                >
-                  {rescheduleLogMutation.isPending ? "Saving..." : "Confirm Next Step"}
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
 
         {/* Set New Date Dialog */}
         <Dialog open={!!setNewDateEvent} onOpenChange={(open) => { if (!open) setSetNewDateEvent(null); }}>
