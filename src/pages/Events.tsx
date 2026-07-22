@@ -433,13 +433,7 @@ export default function Events() {
             <span className="text-[11px] text-amber-600 truncate max-w-[140px]">Reschedule follow-up</span>
           ) : e.event_status === "Cancelled" ? (
             <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">Cancelled</span>
-          ) : taskInfo && (
-            <span className={cn(
-              "text-[11px] truncate max-w-[140px]",
-              taskInfo.next.due_date && taskInfo.next.due_date < taskToday ? "text-destructive font-medium" :
-              taskInfo.next.due_date === taskToday ? "text-amber-600 font-medium" : "text-muted-foreground"
-            )}>
-              {taskInfo.next.task_name}
+          ) : null}
             </span>
           )}
         </div>
