@@ -240,10 +240,8 @@ export default function SixMostImportant({
   };
 
   const saveDraft = async () => {
-    // Enforce lock: slots 0–4 keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
-    // Only slot 5 (Custom Focus) accepts user-renamed label.
-    // Use statically-imported DEFAULT_FOCUS_ITEMS
-    const sanitized = draft.slice(0, 5).map((item, idx) => {
+    // Enforce lock: all slots keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
+    const sanitized = draft.slice(0, 3).map((item, idx) => {
       const canonical = DEFAULT_FOCUS_ITEMS[idx];
       return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
     });
