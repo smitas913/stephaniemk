@@ -14,6 +14,7 @@ export type FollowUpIntent =
   | "reorder_30"
   | "reorder_60"
   | "reorder_90"
+  | "custom"
   | "booking"
   | "reschedule";
 
