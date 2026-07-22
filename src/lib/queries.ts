@@ -1395,73 +1395,7 @@ export const deleteLeadershipMember = async (id: string): Promise<void> => {
 };
 
 // Convert prospect to team consultant
-// Event Tasks
 
-export interface EventTask {
-  id: string;
-  event_id: string;
-  task_name: string;
-  task_type: string;
-  due_date: string | null;
-  is_completed: boolean;
-  completed_at: string | null;
-  owner_user_id: string | null;
-  created_at: string;
-}
-
-export const fetchEventTasks = async (): Promise<EventTask[]> => {
-  const { data, error } = await supabase
-    .from("event_tasks" as any)
-    .select("*")
-    .order("due_date", { ascending: true });
-  if (error) throw error;
-  return data as unknown as EventTask[];
-};
-
-export const fetchEventTasksByEventId = async (eventId: string): Promise<EventTask[]> => {
-  const { data, error } = await supabase
-    .from("event_tasks" as any)
-    .select("*")
-    .eq("event_id", eventId)
-    .order("due_date", { ascending: true });
-  if (error) throw error;
-  return data as unknown as EventTask[];
-};
-
-export const createEventTask = async (task: { event_id: string; task_name: string; task_type: string; due_date?: string | null }) => {
-  const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("event_tasks" as any)
-    .insert({ ...task, owner_user_id: userId } as any)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as unknown as EventTask;
-};
-
-export const updateEventTask = async (id: string, updates: Partial<EventTask>) => {
-  const { error } = await supabase
-    .from("event_tasks" as any)
-    .update(updates as any)
-    .eq("id", id);
-  if (error) throw error;
-};
-
-export const completeEventTask = async (id: string) => {
-  const { error } = await supabase
-    .from("event_tasks" as any)
-    .update({ is_completed: true, completed_at: new Date().toISOString() } as any)
-    .eq("id", id);
-  if (error) throw error;
-};
-
-export const deleteEventTasksByEventId = async (eventId: string) => {
-  const { error } = await supabase
-    .from("event_tasks" as any)
-    .delete()
-    .eq("event_id", eventId);
-  if (error) throw error;
-};
 
 
 
