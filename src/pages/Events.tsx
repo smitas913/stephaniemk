@@ -81,26 +81,6 @@ export default function Events() {
     setScopeFilter("all");
   };
 
-  const nextTaskByEvent = useMemo(() => {
-    const today = toLocalDateKey();
-    const grouped = new Map<string, EventTask[]>();
-    for (const t of allTasks) {
-      if (t.is_completed) continue;
-      if (!grouped.has(t.event_id)) grouped.set(t.event_id, []);
-      grouped.get(t.event_id)!.push(t);
-    }
-    const map = new Map<string, { next: EventTask; remaining: number; all: EventTask[] }>();
-    for (const [eid, tasks] of grouped.entries()) {
-      const sorted = [...tasks].sort((a, b) => {
-        const ad = a.due_date || "9999-12-31";
-        const bd = b.due_date || "9999-12-31";
-        return ad.localeCompare(bd);
-      });
-      map.set(eid, { next: sorted[0], remaining: sorted.length - 1, all: sorted });
-    }
-    return { map, today };
-  }, [allTasks]);
-
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
   const [actionPanelItem, setActionPanelItem] = useState<UniversalActionItem | null>(null);
 
