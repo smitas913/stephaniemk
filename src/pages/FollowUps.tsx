@@ -2173,7 +2173,7 @@ export default function FollowUps() {
             case "hostess":
               return updateEvent(u.id, { hostess_next_action_date: u.previousDate } as any);
             case "event_task":
-              return supabase.from("event_tasks").update({ due_date: u.previousDate }).eq("id", u.eventTaskId || u.id);
+              return supabase.from("event_tasks" as any).update({ due_date: u.previousDate }).eq("id", u.eventTaskId || u.id);
             default:
               return Promise.resolve();
           }
