@@ -371,8 +371,6 @@ export default function Events() {
     const sales = eventSales.get(e.event_id);
     const evTotalSales = sales?.total || 0;
     const orderCount = sales?.orderCount || 0;
-    const taskInfo = nextTaskByEvent.map.get(e.event_id);
-    const taskToday = nextTaskByEvent.today;
     const isHeld = e.event_status === "Held";
     const rStatus = e.reschedule_status || "None";
 
