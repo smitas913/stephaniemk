@@ -73,6 +73,13 @@ export const FOLLOW_UP_INTENT_OPTIONS: FollowUpIntentOption[] = [
     contexts: ["order", "customer"],
   },
   {
+    value: "custom",
+    label: "Custom Date…",
+    days: null,
+    reason: "Custom follow-up",
+    contexts: ["order", "customer"],
+  },
+  {
     value: "booking",
     label: "Booking Follow-Up (2 days)",
     days: 2,
