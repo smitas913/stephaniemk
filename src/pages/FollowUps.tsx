@@ -2128,7 +2128,7 @@ export default function FollowUps() {
             case "hostess":
               return updateEvent(item.id, { hostess_next_action_date: newDate } as any);
             case "event_task":
-              return supabase.from("event_tasks").update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
+              return supabase.from("event_tasks" as any).update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
             default:
               return Promise.resolve();
           }
