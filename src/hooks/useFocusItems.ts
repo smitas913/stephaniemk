@@ -28,16 +28,12 @@ const CANONICAL_AUTO_KEYS = [
   "customer_followup",
   "booking_activity",
   "bookings",
-  "sharing_personal",
-  "sharing_unit",
 ] as const;
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 0, label: "Customer Follow-Ups", default_target: 0, auto_track_key: "customer_followup" },
   { sort_order: 1, label: "Booking Activity", default_target: 0, auto_track_key: "booking_activity" },
   { sort_order: 2, label: "New Bookings", default_target: 0, auto_track_key: "bookings" },
-  { sort_order: 3, label: "Sharing (Personal)", default_target: 0, auto_track_key: "sharing_personal" },
-  { sort_order: 4, label: "Sharing (Unit)", default_target: 0, auto_track_key: "sharing_unit" },
 ];
 
 /** Returns true if saved configs match the canonical 4-slot structure. */
