@@ -1269,6 +1269,29 @@ export default function AddOrder() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+            {followUpIntent === "custom" && (
+              <div className="mt-2 space-y-2 rounded-md border p-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Follow-Up Date</label>
+                  <Input
+                    type="date"
+                    min={toLocalDateKey()}
+                    value={customFollowUpDate}
+                    onChange={(e) => setCustomFollowUpDate(e.target.value)}
+                    className="mt-1 h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Notes (shows on Today)</label>
+                  <Textarea
+                    value={customFollowUpNote}
+                    onChange={(e) => setCustomFollowUpNote(e.target.value)}
+                    placeholder="What's this follow-up about?"
+                    className="mt-1 h-16 resize-none"
+                  />
+                </div>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               {orderDate < toLocalDateKey()
                 ? "Follow-up calculated from order date. If that's already passed, it'll be set to tomorrow."
