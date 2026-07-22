@@ -298,7 +298,7 @@ export default function FollowUps() {
   const { data: consultants = [], isLoading: tcLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
-  const { data: eventTasksRaw = [], isLoading: etLoading } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const etLoading = false;
   const { data: scheduleSettings, isLoading: ssLoading } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
