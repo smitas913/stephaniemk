@@ -972,38 +972,8 @@ export default function FollowUps() {
         };
       });
 
-    // Event workflow tasks (incomplete, with due dates)
-    const eventTaskItems: ActionItem[] = (eventTasksRaw as EventTask[])
-      .filter((t) => !t.is_completed && t.due_date)
-      .map((t) => {
-        const matchedEvent = events.find((e) => e.event_id === t.event_id);
-        const effectiveDate = normalizeFollowUpDate(t.due_date);
-        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
-        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
-        // Build a clear display name: "Hostess Name — Task (Event Type M/D)"
-        const hostessName = matchedEvent?.event_type === "Guest Event" ? (matchedEvent?.hostess_name || "Guest Event") : (matchedEvent?.hostess_name || "Hostess");
-        const eventDateFormatted = matchedEvent?.event_date
-          ? (() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ""; })()
-          : "";
-        const eventTypeLabel = matchedEvent?.event_type || "Event";
-        const displayName = `${hostessName}`;
-        const taskDetail = eventDateFormatted
-          ? `${t.task_name} (${eventTypeLabel} ${eventDateFormatted})`
-          : t.task_name;
-        return {
-          id: t.id, itemType: "event_task" as const,
-          name: displayName,
-          phone: matchedEvent?.hostess_phone || null, email: matchedEvent?.hostess_email || null,
-          next_follow_up: effectiveDate, follow_up_status: status,
-          daysOverdue,
-          followUpReason: taskDetail,
-          lastContacted: null,
-          actionLabel: "Hostess Coaching",
-          allow_non_working_day: !!(t as any).allow_non_working_day,
-          _eventTaskId: t.id,
-          _eventId: t.event_id,
-        };
-      });
+    // Event workflow tasks removed — event_tasks feature retired
+    const eventTaskItems: ActionItem[] = [];
 
     const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
     // Note: event_tasks are shown in Event Coaching section, not the main follow-up list
