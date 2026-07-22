@@ -30,6 +30,7 @@ import SalesRevenueTile from "@/components/focus/SalesRevenueTile";
 interface AutoCounts {
   booking_attempts: number;
   booking_activity: number;
+  bookings: number;
   customer_followup: number;
   client_followup: number; // legacy combined; kept for back-compat
   hostess_coaching: number;
@@ -52,6 +53,7 @@ interface SixMostImportantProps {
 const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsForDate>> = {
   booking_attempts: "bookingAttemptDetails",
   booking_activity: "bookingActivityDetails",
+  bookings: "bookingDetails",
   customer_followup: "customerFollowUpDetails",
   lead_followup: "bookingActivityDetails", // legacy alias → Booking Activity
   client_followup: "clientFollowUpDetails",
@@ -67,6 +69,7 @@ function getEffectiveAutoTrackKey(
   if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
 
   const normalizedLabel = config.label.trim().toLowerCase();
+  if (normalizedLabel.includes("new booking") || normalizedLabel.includes("bookings")) return "bookings";
   if (normalizedLabel.includes("booking activity")) return "booking_activity";
   if (normalizedLabel.includes("booking attempt")) return "booking_attempts";
   if (normalizedLabel.includes("customer follow")) return "customer_followup";
@@ -169,11 +172,11 @@ export default function SixMostImportant({
   const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
 
   const winStatus = useMemo(() => {
-    if (completedCount >= 5)
+    if (completedCount >= 3)
       return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
-    if (completedCount >= 4)
+    if (completedCount >= 2)
       return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
-    if (completedCount >= 3) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
+    if (completedCount >= 1) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
     return null;
   }, [completedCount]);
 
@@ -237,10 +240,8 @@ export default function SixMostImportant({
   };
 
   const saveDraft = async () => {
-    // Enforce lock: slots 0–4 keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
-    // Only slot 5 (Custom Focus) accepts user-renamed label.
-    // Use statically-imported DEFAULT_FOCUS_ITEMS
-    const sanitized = draft.slice(0, 5).map((item, idx) => {
+    // Enforce lock: all slots keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
+    const sanitized = draft.slice(0, 3).map((item, idx) => {
       const canonical = DEFAULT_FOCUS_ITEMS[idx];
       return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
     });
@@ -272,6 +273,7 @@ export default function SixMostImportant({
     }
     // Fallback by label
     const label = config.label.toLowerCase();
+    if (label.includes("new booking") || label.includes("bookings")) return metrics.bookingDetails;
     if (label.includes("booking activity")) return metrics.bookingActivityDetails;
     if (label.includes("booking attempt")) return metrics.bookingAttemptDetails;
     if (label.includes("customer follow")) return metrics.customerFollowUpDetails;
@@ -326,7 +328,7 @@ export default function SixMostImportant({
               <Star className="w-5 h-5 text-primary shrink-0" />
               <CardTitle className="text-base font-semibold text-foreground">Daily Success Drivers</CardTitle>
               <Badge variant="secondary" className="text-xs">
-                {completedCount} / {items.length || 5} activities
+                {completedCount} / {items.length || 3} activities
               </Badge>
               {winStatus && (
                 <Badge

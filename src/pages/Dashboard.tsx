@@ -161,6 +161,7 @@ export default function Dashboard() {
     return {
       booking_attempts: metrics.bookingAttempts,
       booking_activity: metrics.bookingActivity,
+      bookings: metrics.bookings,
       customer_followup: metrics.customerFollowUpDetails.length,
       client_followup: metrics.clientFollowUpDetails.length,
       hostess_coaching: metrics.hostessCoachingDetails.length,

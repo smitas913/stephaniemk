@@ -31,25 +31,21 @@ export interface DayTypeTarget {
 // Canonical category auto_track_keys — used to detect stale/legacy configs.
 const CANONICAL_AUTO_KEYS = new Set([
   "customer_followup",
-  "booking_activity",
-  "hostess_coaching",
-  "consultant_coaching",
-  "relationship",
+  "booking_attempts",
+  "bookings",
 ]);
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
   { sort_order: 0, label: "Customer Follow-Ups", default_target: 10, auto_track_key: "customer_followup" },
-  { sort_order: 1, label: "Booking Activity", default_target: 10, auto_track_key: "booking_activity" },
-  { sort_order: 2, label: "Event Coaching", default_target: 3, auto_track_key: "hostess_coaching" },
-  { sort_order: 3, label: "Consultant Coaching", default_target: 2, auto_track_key: "consultant_coaching" },
-  { sort_order: 4, label: "Relationship Building", default_target: 3, auto_track_key: "relationship" },
+  { sort_order: 1, label: "Booking Attempts", default_target: 10, auto_track_key: "booking_attempts" },
+  { sort_order: 2, label: "New Bookings", default_target: 2, auto_track_key: "bookings" },
 ];
 
-/** Returns true if saved configs match the canonical 5-slot structure. */
+/** Returns true if saved configs match the canonical 3-slot structure. */
 export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
-  if (configs.length !== 5) return false;
-  const expected = ["customer_followup", "booking_activity", "hostess_coaching", "consultant_coaching", "relationship"];
-  for (let i = 0; i < 5; i++) {
+  if (configs.length !== 3) return false;
+  const expected = ["customer_followup", "booking_attempts", "bookings"];
+  for (let i = 0; i < 3; i++) {
     const c = configs.find((cfg) => cfg.sort_order === i);
     if (!c || c.auto_track_key !== expected[i]) return false;
   }
@@ -57,9 +53,9 @@ export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
 }
 
 export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
-  power: [10, 10, 3, 2, 3],
-  appointment: [6, 6, 2, 1, 2],
-  flex: [3, 3, 1, 1, 1],
+  power: [10, 10, 2],
+  appointment: [6, 6, 1],
+  flex: [3, 3, 1],
 };
 
 export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
