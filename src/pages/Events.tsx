@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, ClipboardList, SlidersHorizontal, MoreHorizontal, X, ChevronRight } from "lucide-react";
+import { Search, Calendar, Users, DollarSign, Plus, Trash2, MessageSquare, ShoppingBag, CheckCircle2, SlidersHorizontal, MoreHorizontal, X, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
