@@ -1946,8 +1946,6 @@ export default function FollowUps() {
       } else if (item.itemType === "lead") {
         const nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
         await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Working" } as any);
-      } else if (item.itemType === "event_task") {
-        await completeEventTask(item.id);
       }
     },
     onSuccess: () => {
