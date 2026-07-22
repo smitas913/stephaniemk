@@ -30,6 +30,7 @@ import SalesRevenueTile from "@/components/focus/SalesRevenueTile";
 interface AutoCounts {
   booking_attempts: number;
   booking_activity: number;
+  bookings: number;
   customer_followup: number;
   client_followup: number; // legacy combined; kept for back-compat
   hostess_coaching: number;
