@@ -1176,7 +1176,7 @@ export default function FollowUps() {
       birthdaysOverdue,
       birthdaysUpcoming,
     };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
 
   useEffect(() => {
     const activeStartDate = scheduleSettings?.ooo_start_date || null;
