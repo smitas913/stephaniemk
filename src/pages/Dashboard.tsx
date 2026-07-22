@@ -219,7 +219,7 @@ export default function Dashboard() {
               else navigate("/events");
             }
           }}
-          suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
+          />
         />
 
         {/* HOSTESS COACHING REMINDERS (auto from events) */}
