@@ -1,16 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Star, Pencil, Trophy, Flame, Crown } from "lucide-react";
+import { Star } from "lucide-react";
 import {
   useFocusItems,
-  DEFAULT_DAY_TYPE_TARGETS,
   DEFAULT_FOCUS_ITEMS,
   configsAreCanonical,
 } from "@/hooks/useFocusItems";
-import type { FocusItemConfig, DayType, DayTypeTarget } from "@/hooks/useFocusItems";
+import type { FocusItemConfig } from "@/hooks/useFocusItems";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
@@ -18,11 +15,9 @@ import { startOfWeek, addDays, format, subDays } from "date-fns";
 import { computeMetricsForDate, type FocusRawData, type FocusDetailItem } from "@/lib/focusMetrics";
 
 import FocusDateNav from "@/components/focus/FocusDateNav";
-import DayTypeSelector from "@/components/focus/DayTypeSelector";
 import FocusItemRow from "@/components/focus/FocusItemRow";
 import FocusItemCompact from "@/components/focus/FocusItemCompact";
 import type { FocusItemData } from "@/components/focus/FocusItemRow";
-import FocusEditView from "@/components/focus/FocusEditView";
 import FocusDrillDown from "@/components/focus/FocusDrillDown";
 import FocusWeeklyView from "@/components/focus/FocusWeeklyView";
 import SalesRevenueTile from "@/components/focus/SalesRevenueTile";
@@ -31,8 +26,9 @@ interface AutoCounts {
   booking_attempts: number;
   booking_activity: number;
   bookings: number;
+  sharing: number;
   customer_followup: number;
-  client_followup: number; // legacy combined; kept for back-compat
+  client_followup: number;
   hostess_coaching: number;
   recruiting_followup: number;
   consultant_coaching: number;
@@ -45,7 +41,6 @@ interface SixMostImportantProps {
   autoCounts?: AutoCounts;
   rawData?: FocusRawData;
   onDetailNavigate?: (type: string, id: string) => void;
-  suggestedDayType?: DayType | null;
   compact?: boolean;
 }
 
@@ -54,8 +49,9 @@ const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsF
   booking_attempts: "bookingAttemptDetails",
   booking_activity: "bookingActivityDetails",
   bookings: "bookingDetails",
+  sharing: "sharingDetails",
   customer_followup: "customerFollowUpDetails",
-  lead_followup: "bookingActivityDetails", // legacy alias → Booking Activity
+  lead_followup: "bookingActivityDetails",
   client_followup: "clientFollowUpDetails",
   hostess_coaching: "hostessCoachingDetails",
   recruiting_followup: "recruitingFollowUpDetails",
@@ -69,17 +65,11 @@ function getEffectiveAutoTrackKey(
   if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
 
   const normalizedLabel = config.label.trim().toLowerCase();
+  if (normalizedLabel.includes("sharing")) return "sharing";
   if (normalizedLabel.includes("new booking") || normalizedLabel.includes("bookings")) return "bookings";
   if (normalizedLabel.includes("booking activity")) return "booking_activity";
   if (normalizedLabel.includes("booking attempt")) return "booking_attempts";
   if (normalizedLabel.includes("customer follow")) return "customer_followup";
-  if (normalizedLabel.includes("lead follow")) return "booking_activity";
-  if (normalizedLabel.includes("client")) return "client_followup";
-  if (normalizedLabel.includes("hostess") || normalizedLabel.includes("event coach")) return "hostess_coaching";
-  if (normalizedLabel.includes("recruiting")) return "recruiting_followup";
-  if (normalizedLabel.includes("consultant") || normalizedLabel.includes("team building")) return "consultant_coaching";
-  if (normalizedLabel.includes("relationship")) return "relationship";
-
   return null;
 }
 
@@ -87,46 +77,27 @@ export default function SixMostImportant({
   autoCounts,
   rawData,
   onDetailNavigate,
-  suggestedDayType,
   compact,
 }: SixMostImportantProps) {
   const isMobile = useIsMobile();
   const todayKey = toLocalDateKey();
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
-  const [editMode, setEditMode] = useState(false);
-  const [draft, setDraft] = useState<Omit<FocusItemConfig, "id">[]>([]);
-  const [dayTypeTargetsDraft, setDayTypeTargetsDraft] = useState<Record<DayType, number[]>>(DEFAULT_DAY_TYPE_TARGETS);
   const [drillDownIndex, setDrillDownIndex] = useState<number | null>(null);
 
   const isToday = selectedDate === todayKey;
   const {
     configs,
     progress,
-    dayTypeTargets,
     isLoading,
     isOOO,
     isNonWorkday,
-    getTargetForItem,
     seedDefaults,
-    saveConfigs,
     upsertProgress,
-    saveDayTypeTargets,
     fetchWeekProgress,
     noHistoricalData,
-    progressFetching,
   } = useFocusItems(selectedDate);
   const isLightDay = isOOO || isNonWorkday;
-
-  // For past days, use the day_type saved in progress; for today use local state
-  const savedDayType: DayType = progress.length > 0 ? (progress[0].day_type as DayType) || "power" : "power";
-  const [dayType, setDayTypeLocal] = useState<DayType>(savedDayType);
-
-  useEffect(() => {
-    if (progress.length > 0) {
-      setDayTypeLocal((progress[0].day_type as DayType) || "power");
-    }
-  }, [progress, selectedDate]);
 
   // Seed defaults on first load OR when configs are legacy/stale
   useEffect(() => {
@@ -144,10 +115,10 @@ export default function SixMostImportant({
       const autoVal = autoCounts[autoKey] ?? 0;
       const existing = progress.find((p) => p.sort_order === config.sort_order);
       if (!existing || existing.auto_count !== autoVal) {
-        upsertProgress({ sort_order: config.sort_order, auto_count: autoVal, day_type: dayType });
+        upsertProgress({ sort_order: config.sort_order, auto_count: autoVal });
       }
     }
-  }, [autoCounts, configs, progress, upsertProgress, isToday, dayType]);
+  }, [autoCounts, configs, progress, upsertProgress, isToday]);
 
   // Historical metrics from rawData
   const historicalMetrics = useMemo(() => {
@@ -160,25 +131,10 @@ export default function SixMostImportant({
       const prog = progress.find((p) => p.sort_order === config.sort_order);
       const autoKey = getEffectiveAutoTrackKey(config);
       const autoCount = isToday && autoCounts && autoKey ? (autoCounts[autoKey] ?? 0) : (prog?.auto_count ?? 0);
-      // Manual +/- adjustment removed: counts now reflect only real logged activity.
       const current = Math.max(0, autoCount);
-      const target = isLightDay ? 0 : getTargetForItem(config.sort_order, dayType);
-      const isComplete = prog?.is_complete ?? false;
-      const isAutoTracked = !!autoKey;
-      return { sort_order: config.sort_order, label: config.label, current, target, isComplete, isAutoTracked };
+      return { sort_order: config.sort_order, label: config.label, current, isAutoTracked: !!autoKey };
     });
-  }, [configs, progress, dayType, getTargetForItem, isLightDay, isToday, autoCounts]);
-
-  const completedCount = items.filter((i) => i.isComplete || i.current >= i.target).length;
-
-  const winStatus = useMemo(() => {
-    if (completedCount >= 3)
-      return { label: "Perfect Day", icon: Crown, color: "text-yellow-500", bg: "bg-yellow-500/10" };
-    if (completedCount >= 2)
-      return { label: "Strong Day", icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" };
-    if (completedCount >= 1) return { label: "Win the Day", icon: Trophy, color: "text-primary", bg: "bg-primary/10" };
-    return null;
-  }, [completedCount]);
+  }, [configs, progress, isToday, autoCounts]);
 
   // Weekly data
   const currentWeekStart = useMemo(() => {
@@ -199,65 +155,6 @@ export default function SixMostImportant({
     placeholderData: (prev) => prev,
   });
 
-  // Handlers
-  const handleDayTypeChange = useCallback(
-    (type: DayType) => {
-      setDayTypeLocal(type);
-      if (isToday) {
-        // Update all progress rows with new day type
-        for (const config of configs) {
-          upsertProgress({ sort_order: config.sort_order, day_type: type });
-        }
-      }
-    },
-    [isToday, configs, upsertProgress],
-  );
-
-  // Manual +/- adjustment removed — counts come solely from logged activity.
-
-  const handleToggleComplete = useCallback(
-    (sortOrder: number) => {
-      const existing = progress.find((p) => p.sort_order === sortOrder);
-      upsertProgress({ sort_order: sortOrder, is_complete: !(existing?.is_complete ?? false), day_type: dayType });
-    },
-    [progress, upsertProgress, dayType],
-  );
-
-  // Edit mode
-  const startEdit = () => {
-    setDraft(configs.map(({ id, ...rest }) => rest));
-    // Build dayTypeTargetsDraft from existing
-    const dtt: Record<DayType, number[]> = { power: [], appointment: [], flex: [] };
-    for (const dt of ["power", "appointment", "flex"] as DayType[]) {
-      dtt[dt] = configs.map((c) => {
-        const custom = dayTypeTargets.find((t) => t.day_type === dt && t.sort_order === c.sort_order);
-        if (custom) return custom.target;
-        return DEFAULT_DAY_TYPE_TARGETS[dt]?.[c.sort_order] ?? c.default_target;
-      });
-    }
-    setDayTypeTargetsDraft(dtt);
-    setEditMode(true);
-  };
-
-  const saveDraft = async () => {
-    // Enforce lock: all slots keep canonical labels & auto_track_key from DEFAULT_FOCUS_ITEMS.
-    const sanitized = draft.slice(0, 3).map((item, idx) => {
-      const canonical = DEFAULT_FOCUS_ITEMS[idx];
-      return { ...item, sort_order: idx, label: canonical.label, auto_track_key: canonical.auto_track_key };
-    });
-    await saveConfigs(sanitized);
-    // Save day type targets
-    const targets: { day_type: DayType; sort_order: number; target: number }[] = [];
-    for (const dt of ["power", "appointment", "flex"] as DayType[]) {
-      const arr = dayTypeTargetsDraft[dt] || [];
-      arr.forEach((target, idx) => {
-        targets.push({ day_type: dt, sort_order: idx, target });
-      });
-    }
-    await saveDayTypeTargets(targets);
-    setEditMode(false);
-  };
-
   // Drill-down detail items
   const getDrillDownItems = (sortOrder: number): FocusDetailItem[] => {
     if (!rawData) return [];
@@ -266,24 +163,16 @@ export default function SixMostImportant({
     const config = configs.find((c) => c.sort_order === sortOrder);
     if (!config) return [];
     const autoKey = getEffectiveAutoTrackKey(config);
-    // Map by auto_track_key
     const detailKey = autoKey ? AUTO_KEY_TO_DETAIL[autoKey] : null;
     if (detailKey && detailKey in metrics) {
       return metrics[detailKey] as FocusDetailItem[];
     }
-    // Fallback by label
     const label = config.label.toLowerCase();
+    if (label.includes("sharing")) return metrics.sharingDetails;
     if (label.includes("new booking") || label.includes("bookings")) return metrics.bookingDetails;
     if (label.includes("booking activity")) return metrics.bookingActivityDetails;
     if (label.includes("booking attempt")) return metrics.bookingAttemptDetails;
     if (label.includes("customer follow")) return metrics.customerFollowUpDetails;
-    if (label.includes("lead follow")) return metrics.bookingActivityDetails;
-    if (label.includes("client")) return metrics.clientFollowUpDetails;
-    if (label.includes("event coaching") || label.includes("hostess")) return metrics.hostessCoachingDetails;
-    if (label.includes("recruiting") || label.includes("prospect")) return metrics.recruitingFollowUpDetails;
-    if (label.includes("consultant") || label.includes("team") || label.includes("coach"))
-      return metrics.coachingDetails;
-    if (label.includes("relationship")) return metrics.relationshipDetails;
     return [];
   };
 
@@ -323,28 +212,9 @@ export default function SixMostImportant({
     <>
       <Card className="border-border/50 shadow-sm">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Star className="w-5 h-5 text-primary shrink-0" />
-              <CardTitle className="text-base font-semibold text-foreground">Daily Success Drivers</CardTitle>
-              <Badge variant="secondary" className="text-xs">
-                {completedCount} / {items.length || 3} activities
-              </Badge>
-              {winStatus && (
-                <Badge
-                  variant="outline"
-                  className={cn("text-xs gap-1 font-semibold border-0", winStatus.color, winStatus.bg)}
-                >
-                  <winStatus.icon className="w-3 h-3" />
-                  {winStatus.label}
-                </Badge>
-              )}
-            </div>
-            {!editMode && isToday && (
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEdit}>
-                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-              </Button>
-            )}
+          <div className="flex items-center gap-2 min-w-0">
+            <Star className="w-5 h-5 text-primary shrink-0" />
+            <CardTitle className="text-base font-semibold text-foreground">Daily Success Drivers</CardTitle>
           </div>
 
           <FocusDateNav
@@ -360,28 +230,10 @@ export default function SixMostImportant({
             selectedWeekStart={selectedWeekStart}
             onWeekChange={setSelectedWeekStart}
           />
-
-          {viewMode === "daily" && (
-            <DayTypeSelector
-              value={dayType}
-              onChange={handleDayTypeChange}
-              suggestion={suggestedDayType}
-              disabled={!isToday}
-            />
-          )}
         </CardHeader>
 
         <CardContent className={cn(isMobile && "px-3")}>
-          {editMode ? (
-            <FocusEditView
-              draft={draft}
-              dayTypeTargetsDraft={dayTypeTargetsDraft}
-              setDraft={setDraft}
-              setDayTypeTargetsDraft={setDayTypeTargetsDraft}
-              onSave={saveDraft}
-              onCancel={() => setEditMode(false)}
-            />
-          ) : viewMode === "weekly" ? (
+          {viewMode === "weekly" ? (
             <FocusWeeklyView
               configs={configs}
               weekData={weekData}
@@ -395,7 +247,7 @@ export default function SixMostImportant({
             <div className={cn("space-y-3", isLightDay && !isOOO && "opacity-90")}>
               {isOOO && (
                 <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md px-2 py-1 font-medium">
-                  Out of Office — targets set to zero
+                  Out of Office
                 </p>
               )}
               {isNonWorkday && !isOOO && (
@@ -415,18 +267,14 @@ export default function SixMostImportant({
                         <FocusItemCompact
                           key={item.sort_order}
                           item={item}
-                          onToggleComplete={() => handleToggleComplete(item.sort_order)}
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
-                          readOnly={!isToday}
                           lightDay={isLightDay}
                         />
                       ) : (
                         <FocusItemRow
                           key={item.sort_order}
                           item={item}
-                          onToggleComplete={() => handleToggleComplete(item.sort_order)}
                           onDrillDown={() => setDrillDownIndex(item.sort_order)}
-                          readOnly={!isToday}
                           isMobile={isMobile}
                           lightDay={isLightDay}
                         />

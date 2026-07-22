@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toLocalDateKey } from "@/lib/dateOnly";
 
+// Kept for schema compat with existing daily_focus_progress.day_type column.
 export type DayType = "power" | "appointment" | "flex";
 
 export interface FocusItemConfig {
   id: string;
   sort_order: number;
   label: string;
-  default_target: number;
+  default_target: number; // legacy; no longer surfaced in UI
   auto_track_key: string | null;
 }
 
@@ -22,47 +23,30 @@ export interface DailyFocusProgress {
   day_type: DayType;
 }
 
-export interface DayTypeTarget {
-  day_type: DayType;
-  sort_order: number;
-  target: number;
-}
-
 // Canonical category auto_track_keys — used to detect stale/legacy configs.
-const CANONICAL_AUTO_KEYS = new Set([
+const CANONICAL_AUTO_KEYS = [
   "customer_followup",
-  "booking_attempts",
+  "booking_activity",
   "bookings",
-]);
+  "sharing",
+] as const;
 
 export const DEFAULT_FOCUS_ITEMS: Omit<FocusItemConfig, "id">[] = [
-  { sort_order: 0, label: "Customer Follow-Ups", default_target: 10, auto_track_key: "customer_followup" },
-  { sort_order: 1, label: "Booking Attempts", default_target: 10, auto_track_key: "booking_attempts" },
-  { sort_order: 2, label: "New Bookings", default_target: 2, auto_track_key: "bookings" },
+  { sort_order: 0, label: "Customer Follow-Ups", default_target: 0, auto_track_key: "customer_followup" },
+  { sort_order: 1, label: "Booking Activity", default_target: 0, auto_track_key: "booking_activity" },
+  { sort_order: 2, label: "New Bookings", default_target: 0, auto_track_key: "bookings" },
+  { sort_order: 3, label: "Sharing Appointments", default_target: 0, auto_track_key: "sharing" },
 ];
 
-/** Returns true if saved configs match the canonical 3-slot structure. */
+/** Returns true if saved configs match the canonical 4-slot structure. */
 export function configsAreCanonical(configs: FocusItemConfig[]): boolean {
-  if (configs.length !== 3) return false;
-  const expected = ["customer_followup", "booking_attempts", "bookings"];
-  for (let i = 0; i < 3; i++) {
+  if (configs.length !== CANONICAL_AUTO_KEYS.length) return false;
+  for (let i = 0; i < CANONICAL_AUTO_KEYS.length; i++) {
     const c = configs.find((cfg) => cfg.sort_order === i);
-    if (!c || c.auto_track_key !== expected[i]) return false;
+    if (!c || c.auto_track_key !== CANONICAL_AUTO_KEYS[i]) return false;
   }
   return true;
 }
-
-export const DEFAULT_DAY_TYPE_TARGETS: Record<DayType, number[]> = {
-  power: [10, 10, 2],
-  appointment: [6, 6, 1],
-  flex: [3, 3, 1],
-};
-
-export const DAY_TYPE_INFO: { value: DayType; label: string; description: string }[] = [
-  { value: "power", label: "Power Day", description: "Full reach-out focus" },
-  { value: "appointment", label: "Appointment Day", description: "Bookings from events" },
-  { value: "flex", label: "Flex Day", description: "Reduced activity" },
-];
 
 export function useFocusItems(dateKey?: string) {
   const { user } = useAuth();
@@ -123,24 +107,6 @@ export function useFocusItems(dateKey?: string) {
   const hasHistoricalData = !progressLoading && !progressFetching && progress.length > 0;
   const noHistoricalData = !progressLoading && !progressFetching && progress.length === 0 && !isToday;
 
-  const { data: dayTypeTargets = [] } = useQuery({
-    queryKey: ["day-type-targets", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      const { data, error } = await supabase
-        .from("day_type_targets" as any)
-        .select("*")
-        .eq("user_id", user.id);
-      if (error) throw error;
-      return (data as any[]).map((r: any) => ({
-        day_type: r.day_type as DayType,
-        sort_order: r.sort_order,
-        target: r.target,
-      })) as DayTypeTarget[];
-    },
-    enabled: !!user,
-  });
-
   // OOO check
   const { data: scheduleSettings } = useQuery({
     queryKey: ["schedule-settings-focus", user?.id],
@@ -178,16 +144,7 @@ export function useFocusItems(dateKey?: string) {
       scheduleSettings.workday_saturday,
     ];
     const flag = flags[dow];
-    return flag === false; // explicit false = non-workday
-  };
-
-  const getTargetForItem = (sortOrder: number, dayType: DayType): number => {
-    const custom = dayTypeTargets.find((t) => t.day_type === dayType && t.sort_order === sortOrder);
-    if (custom) return custom.target;
-    const defaults = DEFAULT_DAY_TYPE_TARGETS[dayType];
-    if (defaults && sortOrder < defaults.length) return defaults[sortOrder];
-    const config = configs.find((c) => c.sort_order === sortOrder);
-    return config?.default_target ?? 1;
+    return flag === false;
   };
 
   const seedDefaults = useMutation({
@@ -210,33 +167,12 @@ export function useFocusItems(dateKey?: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["focus-item-configs"] }),
   });
 
-  const saveConfigs = useMutation({
-    mutationFn: async (items: Omit<FocusItemConfig, "id">[]) => {
-      if (!user) return;
-      await supabase
-        .from("focus_item_configs" as any)
-        .delete()
-        .eq("user_id", user.id);
-      const rows = items.map((item) => ({
-        user_id: user.id,
-        sort_order: item.sort_order,
-        label: item.label,
-        default_target: item.default_target,
-        auto_track_key: item.auto_track_key,
-      }));
-      const { error } = await supabase.from("focus_item_configs" as any).insert(rows as any);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["focus-item-configs"] }),
-  });
-
   const upsertProgress = useMutation({
     mutationFn: async (item: {
       sort_order: number;
       auto_count?: number;
       manual_adjustment?: number;
       is_complete?: boolean;
-      day_type?: DayType;
     }) => {
       if (!user) return;
       const existing = progress.find((p) => p.sort_order === item.sort_order);
@@ -247,7 +183,7 @@ export function useFocusItems(dateKey?: string) {
         auto_count: item.auto_count ?? existing?.auto_count ?? 0,
         manual_adjustment: item.manual_adjustment ?? existing?.manual_adjustment ?? 0,
         is_complete: item.is_complete ?? existing?.is_complete ?? false,
-        day_type: item.day_type ?? existing?.day_type ?? "power",
+        day_type: existing?.day_type ?? "power",
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -256,23 +192,6 @@ export function useFocusItems(dateKey?: string) {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["daily-focus-progress"] }),
-  });
-
-  const saveDayTypeTargets = useMutation({
-    mutationFn: async (targets: { day_type: DayType; sort_order: number; target: number }[]) => {
-      if (!user) return;
-      // Delete all for this user, re-insert
-      await supabase
-        .from("day_type_targets" as any)
-        .delete()
-        .eq("user_id", user.id);
-      if (targets.length > 0) {
-        const rows = targets.map((t) => ({ user_id: user.id, ...t }));
-        const { error } = await supabase.from("day_type_targets" as any).insert(rows as any);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["day-type-targets"] }),
   });
 
   // Fetch progress for a week range
@@ -292,18 +211,13 @@ export function useFocusItems(dateKey?: string) {
   return {
     configs,
     progress,
-    dayTypeTargets,
     isLoading: configsLoading || progressLoading,
     isToday,
     isOOO: isOOO(selectedDate),
     isNonWorkday: isNonWorkday(selectedDate),
-    getTargetForItem,
     seedDefaults: seedDefaults.mutateAsync,
-    saveConfigs: saveConfigs.mutateAsync,
     upsertProgress: upsertProgress.mutateAsync,
-    saveDayTypeTargets: saveDayTypeTargets.mutateAsync,
     fetchWeekProgress,
-    isSaving: saveConfigs.isPending,
     hasHistoricalData,
     noHistoricalData,
     progressFetching,

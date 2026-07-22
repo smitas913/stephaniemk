@@ -162,6 +162,7 @@ export default function Dashboard() {
       booking_attempts: metrics.bookingAttempts,
       booking_activity: metrics.bookingActivity,
       bookings: metrics.bookings,
+      sharing: metrics.sharing,
       customer_followup: metrics.customerFollowUpDetails.length,
       client_followup: metrics.clientFollowUpDetails.length,
       hostess_coaching: metrics.hostessCoachingDetails.length,
@@ -218,8 +219,8 @@ export default function Dashboard() {
               else navigate("/events");
             }
           }}
-          suggestedDayType={events.some((e: any) => e.event_date === toLocalDateKey() && e.event_status === "Booked") ? "appointment" : null}
         />
+
 
         {/* HOSTESS COACHING REMINDERS (auto from events) */}
         <HostessCoachingCard />
