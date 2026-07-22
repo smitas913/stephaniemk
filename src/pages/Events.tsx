@@ -60,12 +60,10 @@ export default function Events() {
   const [categoryTab, setCategoryTab] = useState<"product" | "business">("product");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
-  const [expandedTasksFor, setExpandedTasksFor] = useState<string | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
-  const { data: allTasks = [] } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
 
   const activeFilterCount = [
     typeFilter !== "all",
