@@ -234,204 +234,135 @@ export default function Events() {
     const evTotalSales = sales?.total || 0;
     const guestCount = e.guest_count || 0;
     const rStatus = e.reschedule_status || "None";
-    const taskInfo = nextTaskByEvent.map.get(e.event_id);
-    const isExpanded = expandedTasksFor === e.event_id;
-    const taskToday = nextTaskByEvent.today;
     const isHeld = e.event_status === "Held";
 
     return (
-      <Fragment>
-        <TableRow
-          className="hover:bg-muted/50 cursor-pointer transition-colors"
-          onClick={() => navigate(`/events/${e.event_id}`)}
-        >
-          <TableCell className="text-xs whitespace-nowrap font-medium">
-            {formatDateOnly(e.event_date)}
-          </TableCell>
-          <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
-          <TableCell className="text-xs">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span>{e.event_type || "—"}</span>
-              {(e.event_format && e.event_format !== "In-Person") && (
-                <span className="text-muted-foreground">• {e.event_format}</span>
-              )}
-              <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 font-medium", scopeChipClasses((e as any).event_scope || "Personal"))}>
-                {(e as any).event_scope || "Personal"}
-              </Badge>
-            </div>
-          </TableCell>
-          <TableCell>
-            <div className="flex flex-wrap gap-1">
-              {rStatus === "In Process of Rescheduling" ? (
-                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
-                  Rescheduling
-                </Badge>
-              ) : (
-                <>
-                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(e.event_status))}>
-                    {e.event_status}
-                  </Badge>
-                  {rStatus !== "None" && (
-                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
-                      {rStatus}
-                    </Badge>
-                  )}
-                </>
-              )}
-            </div>
-          </TableCell>
-          {!isBusiness && (
-            <>
-              <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
-              <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
-              <TableCell className="text-right text-sm font-semibold">
-                {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
-              </TableCell>
-            </>
-          )}
-          {isBusiness && (
-            <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate">
-              {e.notes || (e as any).hostess_next_action || "—"}
-            </TableCell>
-          )}
-          <TableCell className="text-xs">
-            {e.event_status === "Held" ? (
-              (e as any).thank_you_sent ? (
-                <span className="text-green-700">Thank you sent ✓</span>
-              ) : (
-                <span className="text-amber-600">Send thank you note</span>
-              )
-            ) : e.reschedule_status === "In Process of Rescheduling" ? (
-              <span className="text-amber-600">Reschedule follow-up</span>
-            ) : e.event_status === "Cancelled" ? (
-              <span className="text-muted-foreground">Cancelled</span>
-            ) : taskInfo ? (
-              <button
-                type="button"
-                onClick={(ev) => { ev.stopPropagation(); setExpandedTasksFor(isExpanded ? null : e.event_id); }}
-                className="text-left hover:underline"
-              >
-                <div className={cn(
-                  "font-medium",
-                  taskInfo.next.due_date && taskInfo.next.due_date < taskToday && "text-destructive",
-                  taskInfo.next.due_date === taskToday && "text-amber-600",
-                )}>
-                  {taskInfo.next.task_name}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {taskInfo.next.due_date ? formatDateOnly(taskInfo.next.due_date) : "no due date"}
-                  {taskInfo.remaining > 0 && ` • +${taskInfo.remaining} more`}
-                </div>
-              </button>
-            ) : (
-              <span className="text-muted-foreground">—</span>
+      <TableRow
+        className="hover:bg-muted/50 cursor-pointer transition-colors"
+        onClick={() => navigate(`/events/${e.event_id}`)}
+      >
+        <TableCell className="text-xs whitespace-nowrap font-medium">
+          {formatDateOnly(e.event_date)}
+        </TableCell>
+        <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
+        <TableCell className="text-xs">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span>{e.event_type || "—"}</span>
+            {(e.event_format && e.event_format !== "In-Person") && (
+              <span className="text-muted-foreground">• {e.event_format}</span>
             )}
-          </TableCell>
-
-
-          {/* ── Simplified Actions ── */}
-          <TableCell className="text-right">
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost" size="sm"
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
-                title="Guest list"
-                onClick={(ev) => { ev.stopPropagation(); navigate(`/events/${e.event_id}?tab=guests`); }}
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Guests</span>
-                {guestCount > 0 && (
-                  <span className="ml-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-1.5 py-0">
-                    {guestCount}
-                  </span>
+            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 font-medium", scopeChipClasses((e as any).event_scope || "Personal"))}>
+              {(e as any).event_scope || "Personal"}
+            </Badge>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-1">
+            {rStatus === "In Process of Rescheduling" ? (
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
+                Rescheduling
+              </Badge>
+            ) : (
+              <>
+                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(e.event_status))}>
+                  {e.event_status}
+                </Badge>
+                {rStatus !== "None" && (
+                  <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
+                    {rStatus}
+                  </Badge>
                 )}
-              </Button>
+              </>
+            )}
+          </div>
+        </TableCell>
+        {!isBusiness && (
+          <>
+            <TableCell className="text-center text-sm">{guestCount || "—"}</TableCell>
+            <TableCell className="text-center text-sm">{orderCount || "—"}</TableCell>
+            <TableCell className="text-right text-sm font-semibold">
+              {evTotalSales > 0 ? `$${evTotalSales.toFixed(2)}` : "—"}
+            </TableCell>
+          </>
+        )}
+        {isBusiness && (
+          <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate">
+            {e.notes || (e as any).hostess_next_action || "—"}
+          </TableCell>
+        )}
+
+        {/* ── Simplified Actions ── */}
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost" size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
+              title="Guest list"
+              onClick={(ev) => { ev.stopPropagation(); navigate(`/events/${e.event_id}?tab=guests`); }}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Guests</span>
+              {guestCount > 0 && (
+                <span className="ml-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full px-1.5 py-0">
+                  {guestCount}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant="ghost" size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-primary"
+              title="Add order"
+              onClick={(ev) => { ev.stopPropagation(); navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`); }}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+            </Button>
+            {e.hostess_name && (
               <Button
                 variant="ghost" size="icon"
                 className="h-7 w-7 text-muted-foreground hover:text-primary"
-                title="Add order"
-                onClick={(ev) => { ev.stopPropagation(); navigate(`/orders/new?eventId=${e.event_id}&type=${e.event_type || "Party"}`); }}
+                title="Log hostess activity"
+                onClick={(ev) => { ev.stopPropagation(); openHostessPanel(e); }}
               >
-                <ShoppingBag className="w-3.5 h-3.5" />
+                <MessageSquare className="w-3.5 h-3.5" />
               </Button>
-              {e.hostess_name && (
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost" size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-primary"
-                  title="Log hostess activity"
-                  onClick={(ev) => { ev.stopPropagation(); openHostessPanel(e); }}
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={(ev) => ev.stopPropagation()}
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
+                  <MoreHorizontal className="w-3.5 h-3.5" />
                 </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost" size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                    onClick={(ev) => ev.stopPropagation()}
-                  >
-                    <MoreHorizontal className="w-3.5 h-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44" onClick={(ev) => ev.stopPropagation()}>
-                  <DropdownMenuItem onClick={() => navigate(`/events/${e.event_id}?addGuest=1`)}>
-                    <Users className="w-3.5 h-3.5 mr-2" /> Add guest
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/events/${e.event_id}?reschedule=1`)}>
-                    <Calendar className="w-3.5 h-3.5 mr-2" /> Reschedule
-                  </DropdownMenuItem>
-                  {!isHeld && (
-                    <DropdownMenuItem
-                      disabled={markHeldMutation.isPending}
-                      onClick={() => markHeldMutation.mutate(e)}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Mark complete
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44" onClick={(ev) => ev.stopPropagation()}>
+                <DropdownMenuItem onClick={() => navigate(`/events/${e.event_id}?addGuest=1`)}>
+                  <Users className="w-3.5 h-3.5 mr-2" /> Add guest
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate(`/events/${e.event_id}?reschedule=1`)}>
+                  <Calendar className="w-3.5 h-3.5 mr-2" /> Reschedule
+                </DropdownMenuItem>
+                {!isHeld && (
                   <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => setDeleteTarget(e)}
+                    disabled={markHeldMutation.isPending}
+                    onClick={() => markHeldMutation.mutate(e)}
                   >
-                    <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete event
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-2" /> Mark complete
                   </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </TableCell>
-        </TableRow>
-
-        {isExpanded && taskInfo && (
-          <TableRow className="bg-muted/20">
-            <TableCell colSpan={isBusiness ? 7 : 9} className="py-2">
-              <div className="pl-6 space-y-1">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
-                  <ClipboardList className="w-3 h-3" /> All pending tasks
-                </div>
-                {taskInfo.all.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 text-xs py-1">
-                    <Checkbox
-                      checked={!!t.is_completed}
-                      onCheckedChange={() => completeTaskMutation.mutate(t.id)}
-                      className="shrink-0"
-                    />
-                    <span className={cn(
-                      "flex-1",
-                      t.is_completed && "line-through text-muted-foreground",
-                      !t.is_completed && t.due_date && t.due_date < taskToday && "text-destructive",
-                      !t.is_completed && t.due_date === taskToday && "text-amber-600",
-                    )}>{t.task_name}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {t.due_date ? formatDateOnly(t.due_date) : "no due date"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </TableCell>
-          </TableRow>
-        )}
-      </Fragment>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => setDeleteTarget(e)}
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Delete event
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </TableCell>
+      </TableRow>
     );
   };
 
