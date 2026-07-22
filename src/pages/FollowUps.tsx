@@ -1656,7 +1656,7 @@ export default function FollowUps() {
       } else if (item.itemType === "event_task") {
         // Event tasks: just push the due date out (no separate activity log)
         if (computed) {
-          const { error } = await supabase.from("event_tasks").update({ due_date: computed }).eq("id", item.id);
+          const { error } = await supabase.from("event_tasks" as any).update({ due_date: computed }).eq("id", item.id);
           if (error) throw error;
         }
       }
