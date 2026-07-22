@@ -434,9 +434,8 @@ export default function Events() {
           ) : e.event_status === "Cancelled" ? (
             <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">Cancelled</span>
           ) : null}
-            </span>
-          )}
         </div>
+
 
         {/* Row 4: Quick action buttons */}
         <div className="flex items-center gap-2 pt-1 border-t border-border/50" onClick={ev => ev.stopPropagation()}>
