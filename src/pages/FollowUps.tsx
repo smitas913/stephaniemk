@@ -1400,7 +1400,7 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc, followUpReason }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean; followUpReason?: string | null }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         // DNC outcome: append 'DNC' tag (trigger clears follow-ups & cancels plan items).
