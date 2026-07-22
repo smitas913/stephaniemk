@@ -95,6 +95,8 @@ export default function AddOrder() {
   const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
   const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
   const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
+  const [customFollowUpDate, setCustomFollowUpDate] = useState("");
+  const [customFollowUpNote, setCustomFollowUpNote] = useState("");
   const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
@@ -550,7 +552,27 @@ export default function AddOrder() {
       // Backdated orders default the intent to "none" via the form UI.
       if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && followUpIntent !== "none") {
         try {
-          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
+          if (followUpIntent === "custom" && customFollowUpDate) {
+            const trimmedNote = customFollowUpNote.trim();
+            const reason = (trimmedNote || "Custom follow-up").slice(0, 100);
+            await updateCustomer(resolvedCustomerId, {
+              next_follow_up_date: customFollowUpDate,
+              follow_up_reason: reason,
+            } as any);
+            await createNote({
+              entity_type: "Customer",
+              customer_id: resolvedCustomerId,
+              person_id: resolvedCustomerId,
+              person_type: "customer",
+              note_body: trimmedNote || "Custom follow-up scheduled",
+              note_type: "Follow-Up Scheduled",
+              next_follow_up_date: customFollowUpDate,
+              is_booking_attempt: false,
+              is_follow_up: true,
+            });
+          } else if (followUpIntent !== "custom") {
+            await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
+          }
         } catch (e) { console.error("Post-order follow-up failed", e); }
       }
 
