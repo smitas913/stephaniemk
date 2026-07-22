@@ -1233,7 +1233,7 @@ export default function AddOrder() {
 
 
         {/* Follow-Up Intent — only when creating an order for a real customer */}
-        {!isEditMode && !isNonCustomer && (
+        {!isEditMode && !isNonCustomer && !isNewCustomer && (
           <div>
             <label className="text-sm font-medium text-foreground">
               Follow-Up Intent <span className="text-muted-foreground font-normal">(optional)</span>
