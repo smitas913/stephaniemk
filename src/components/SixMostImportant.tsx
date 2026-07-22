@@ -26,7 +26,8 @@ interface AutoCounts {
   booking_attempts: number;
   booking_activity: number;
   bookings: number;
-  sharing: number;
+  sharing_personal: number;
+  sharing_unit: number;
   customer_followup: number;
   client_followup: number;
   hostess_coaching: number;
@@ -49,7 +50,8 @@ const AUTO_KEY_TO_DETAIL: Record<string, keyof ReturnType<typeof computeMetricsF
   booking_attempts: "bookingAttemptDetails",
   booking_activity: "bookingActivityDetails",
   bookings: "bookingDetails",
-  sharing: "sharingDetails",
+  sharing_personal: "sharingPersonalDetails",
+  sharing_unit: "sharingUnitDetails",
   customer_followup: "customerFollowUpDetails",
   lead_followup: "bookingActivityDetails",
   client_followup: "clientFollowUpDetails",
@@ -65,7 +67,9 @@ function getEffectiveAutoTrackKey(
   if (config.auto_track_key) return config.auto_track_key as AutoCountKey;
 
   const normalizedLabel = config.label.trim().toLowerCase();
-  if (normalizedLabel.includes("sharing")) return "sharing";
+  if (normalizedLabel.includes("personal")) return "sharing_personal";
+  if (normalizedLabel.includes("unit")) return "sharing_unit";
+  if (normalizedLabel.includes("sharing")) return "sharing_personal";
   if (normalizedLabel.includes("new booking") || normalizedLabel.includes("bookings")) return "bookings";
   if (normalizedLabel.includes("booking activity")) return "booking_activity";
   if (normalizedLabel.includes("booking attempt")) return "booking_attempts";
@@ -168,7 +172,9 @@ export default function SixMostImportant({
       return metrics[detailKey] as FocusDetailItem[];
     }
     const label = config.label.toLowerCase();
-    if (label.includes("sharing")) return metrics.sharingDetails;
+    if (label.includes("personal")) return metrics.sharingPersonalDetails;
+    if (label.includes("unit")) return metrics.sharingUnitDetails;
+    if (label.includes("sharing")) return metrics.sharingPersonalDetails;
     if (label.includes("new booking") || label.includes("bookings")) return metrics.bookingDetails;
     if (label.includes("booking activity")) return metrics.bookingActivityDetails;
     if (label.includes("booking attempt")) return metrics.bookingAttemptDetails;

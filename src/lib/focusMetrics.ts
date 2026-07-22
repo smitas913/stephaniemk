@@ -84,13 +84,15 @@ function resolveNoteIdentity(
 export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   reachOuts: number;
   bookings: number;
-  sharing: number;
+  sharingPersonal: number;
+  sharingUnit: number;
   bookingAttempts: number;
   bookingActivity: number;
   bookingConversionRate: number;
   reachOutDetails: FocusDetailItem[];
   bookingDetails: FocusDetailItem[];
-  sharingDetails: FocusDetailItem[];
+  sharingPersonalDetails: FocusDetailItem[];
+  sharingUnitDetails: FocusDetailItem[];
   bookingAttemptDetails: FocusDetailItem[];
   bookingActivityDetails: FocusDetailItem[];
   coachingDetails: FocusDetailItem[];
@@ -245,12 +247,40 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   }
 
   // ─── Sharing items ───
-  const sharingItems: FocusDetailItem[] = [
-    ...prospects
-      .filter((p: any) => p.opportunity_status === "Shared" && getTimestampDateKey(p.updated_at) === dateKey)
-      .map((p: any) => ({ id: p.id, name: p.name, type: "Prospect" as const, detail: "Shared Opportunity" })),
-  ];
-  const sharingFromEvents = 0;
+  // Personal: prospects marked Shared today + Career Chat notes on Prospect entity today (deduped by prospect id).
+  const sharingPersonalMap = new Map<string, FocusDetailItem>();
+  for (const p of prospects as any[]) {
+    if (p.opportunity_status === "Shared" && getTimestampDateKey(p.updated_at) === dateKey) {
+      sharingPersonalMap.set(p.id, { id: p.id, name: p.name, type: "Prospect", detail: "Shared Opportunity" });
+    }
+  }
+  for (const n of unifiedNotes as any[]) {
+    if (n.entity_type !== "Prospect") continue;
+    if (n.note_type !== "Career Chat") continue;
+    const noteDay = getTimestampDateKey(n.created_at) || n.note_date;
+    if (noteDay !== dateKey) continue;
+    const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
+    if (!resolved || resolved.type !== "Prospect") continue;
+    if (!sharingPersonalMap.has(resolved.id)) {
+      sharingPersonalMap.set(resolved.id, { id: resolved.id, name: resolved.name, type: "Prospect", method: "Career Chat", detail: "Career Chat" });
+    }
+  }
+  const sharingPersonalItems: FocusDetailItem[] = Array.from(sharingPersonalMap.values());
+
+  // Unit: Career Chat notes on Consultant entity today (deduped by consultant id).
+  const sharingUnitMap = new Map<string, FocusDetailItem>();
+  for (const n of unifiedNotes as any[]) {
+    if (n.entity_type !== "Consultant") continue;
+    if (n.note_type !== "Career Chat") continue;
+    const noteDay = getTimestampDateKey(n.created_at) || n.note_date;
+    if (noteDay !== dateKey) continue;
+    const resolved = resolveNoteIdentity(n, customers, prospects, bookingLeads, consultants, events);
+    if (!resolved || resolved.type !== "Consultant") continue;
+    if (!sharingUnitMap.has(resolved.id)) {
+      sharingUnitMap.set(resolved.id, { id: resolved.id, name: resolved.name, type: "Consultant", method: "Career Chat", detail: "Career Chat" });
+    }
+  }
+  const sharingUnitItems: FocusDetailItem[] = Array.from(sharingUnitMap.values());
 
   // ─── Client/Lead Follow-Up details (customer + lead activities, deduplicated) ───
   const clientFollowUpItems: FocusDetailItem[] = allReachOutItems.filter(
@@ -384,13 +414,15 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   return {
     reachOuts: allReachOutItems.length,
     bookings: bookingsCount,
-    sharing: sharingItems.filter(s => s.type === "Prospect").length + sharingFromEvents,
+    sharingPersonal: sharingPersonalItems.length,
+    sharingUnit: sharingUnitItems.length,
     bookingAttempts: bookingAttemptsCount,
     bookingActivity: bookingActivityItems.length,
     bookingConversionRate: conversionRate,
     reachOutDetails: allReachOutItems,
     bookingDetails: bookingItems,
-    sharingDetails: sharingItems,
+    sharingPersonalDetails: sharingPersonalItems,
+    sharingUnitDetails: sharingUnitItems,
     bookingAttemptDetails: allBookingAttemptItems,
     bookingActivityDetails: bookingActivityItems,
     coachingDetails: consultantCoachingItems,
