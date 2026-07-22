@@ -1511,8 +1511,6 @@ export default function FollowUps() {
           is_booking_attempt: isBookingAttempt ?? false,
           is_follow_up: dnc ? false : (isFollowUp ?? true),
         });
-      } else if (item.itemType === "event_task") {
-        await completeEventTask(item.id);
       }
     },
     onSuccess: () => {
