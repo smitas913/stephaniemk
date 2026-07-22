@@ -14,6 +14,7 @@ export type FollowUpIntent =
   | "reorder_30"
   | "reorder_60"
   | "reorder_90"
+  | "custom"
   | "booking"
   | "reschedule";
 
@@ -69,6 +70,13 @@ export const FOLLOW_UP_INTENT_OPTIONS: FollowUpIntentOption[] = [
     label: "Reorder Cycle (90 days)",
     days: 90,
     reason: "Reorder Cycle",
+    contexts: ["order", "customer"],
+  },
+  {
+    value: "custom",
+    label: "Custom Date…",
+    days: null,
+    reason: "Custom follow-up",
     contexts: ["order", "customer"],
   },
   {

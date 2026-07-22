@@ -1400,7 +1400,7 @@ export default function FollowUps() {
   });
 
   const contactMutation = useMutation({
-    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean }) => {
+    mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc, followUpReason }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean; followUpReason?: string | null }) => {
       const today = toLocalDateKey();
       if (item.itemType === "customer") {
         // DNC outcome: append 'DNC' tag (trigger clears follow-ups & cancels plan items).
@@ -1418,6 +1418,7 @@ export default function FollowUps() {
         // advance to the next step on completion. Auto-set the date to the step
         // offset only when the user did not explicitly choose one.
         const currentStage = (item as any).new_follow_up_stage as string | null | undefined;
+        const isAutoStage = currentStage === "Day 2" || currentStage === "Day 4" || currentStage === "Day 6";
         let computedNextDate = nextDate || null;
         if (currentStage === "Day 2") {
           updates.new_follow_up_stage = "Day 4";
@@ -1434,6 +1435,18 @@ export default function FollowUps() {
         }
         // Always update next_follow_up_date: set it to the new date or clear it
         updates.next_follow_up_date = computedNextDate;
+        // For manual/custom actions (not the automated 2+2+2 stage advancement),
+        // derive follow_up_reason from her typed Next Step / note so it shows on
+        // the Today row when this date comes due.
+        if (!isAutoStage && computedNextDate) {
+          const nextStepFromNote = note.match(/Next Step:\s*([\s\S]+)$/i)?.[1]?.trim();
+          const freeText = note
+            .replace(/Next Step:[\s\S]*$/i, "")
+            .replace(/\[[^\]]+\]/g, "")
+            .trim();
+          const derived = (nextStep?.trim() || nextStepFromNote || freeText || followUpReason || "").trim();
+          if (derived) updates.follow_up_reason = derived.slice(0, 100);
+        }
         await updateCustomer(item.id, updates as any);
         await logCustomerActivity({ customerId: item.id, noteType: type, noteText: note, nextStep, nextFollowUpDate: computedNextDate ?? null, isBookingAttempt: isBookingAttempt ?? false, isFollowUp: isFollowUp ?? true });
       } else if (item.itemType === "prospect") {
@@ -1745,7 +1758,7 @@ export default function FollowUps() {
   const rescheduleLogRef = useRef<((args: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => void) | null>(null);
 
   // Universal Action Panel handler (placed after contactMutation)
-  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
+  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc, followUpReason }: {
     item: UniversalActionItem;
     actionType: string;
     note: string;
@@ -1753,6 +1766,7 @@ export default function FollowUps() {
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
     dnc?: boolean;
+    followUpReason?: string | null;
   }) => {
     if (universalRescheduleEvent) {
       rescheduleLogRef.current?.({
@@ -1779,6 +1793,7 @@ export default function FollowUps() {
       isBookingAttempt,
       isFollowUp,
       dnc,
+      followUpReason,
     });
   }, [contactMutation, universalRescheduleEvent]);
 

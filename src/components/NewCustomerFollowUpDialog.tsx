@@ -35,12 +35,13 @@ interface Props {
 export default function NewCustomerFollowUpDialog({ customerId, customerName, open, onClose, baseDate }: Props) {
   const [busy, setBusy] = useState(false);
   const [customDate, setCustomDate] = useState("");
+  const [customNote, setCustomNote] = useState("");
 
-  const apply = async (choice: FollowUpChoice, date?: string) => {
+  const apply = async (choice: FollowUpChoice, date?: string, note?: string) => {
     if (!customerId) return;
     setBusy(true);
     try {
-      const result = await applyNewCustomerFollowUp(customerId, choice, date, baseDate);
+      const result = await applyNewCustomerFollowUp(customerId, choice, date, baseDate, note);
       toast.success(`Follow-up set: ${result.reason}`);
       onClose({ choice, reason: result.reason });
     } catch (e: any) {
@@ -48,6 +49,7 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
     } finally {
       setBusy(false);
       setCustomDate("");
+      setCustomNote("");
     }
   };
 
@@ -122,11 +124,19 @@ export default function NewCustomerFollowUpDialog({ customerId, customerName, op
                   className="h-9"
                   variant="outline"
                   disabled={busy || !customDate}
-                  onClick={() => apply("custom", customDate)}
+                  onClick={() => apply("custom", customDate, customNote)}
                 >
                   Set
                 </Button>
               </div>
+              <textarea
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
+                placeholder="Notes (shows on Today when this date comes due)"
+                disabled={busy}
+                rows={2}
+                className="w-full text-xs rounded-md border border-input bg-background px-2 py-1.5 resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
-import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder, createBookingLead, unarchiveCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder, createBookingLead, unarchiveCustomer, updateCustomer, createNote } from "@/lib/queries";
 import { applyPostOrderFollowUp, getFollowUpIntentOptions, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
@@ -95,6 +95,8 @@ export default function AddOrder() {
   const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
   const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
   const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
+  const [customFollowUpDate, setCustomFollowUpDate] = useState("");
+  const [customFollowUpNote, setCustomFollowUpNote] = useState("");
   const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
@@ -550,7 +552,27 @@ export default function AddOrder() {
       // Backdated orders default the intent to "none" via the form UI.
       if (!isEditMode && !isNonCustomer && !dncSuppressFollowUp && followUpIntent !== "none") {
         try {
-          await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
+          if (followUpIntent === "custom" && customFollowUpDate) {
+            const trimmedNote = customFollowUpNote.trim();
+            const reason = (trimmedNote || "Custom follow-up").slice(0, 100);
+            await updateCustomer(resolvedCustomerId, {
+              next_follow_up_date: customFollowUpDate,
+              follow_up_reason: reason,
+            } as any);
+            await createNote({
+              entity_type: "Customer",
+              customer_id: resolvedCustomerId,
+              person_id: resolvedCustomerId,
+              person_type: "customer",
+              note_body: trimmedNote || "Custom follow-up scheduled",
+              note_type: "Follow-Up Scheduled",
+              next_follow_up_date: customFollowUpDate,
+              is_booking_attempt: false,
+              is_follow_up: true,
+            });
+          } else if (followUpIntent !== "custom") {
+            await applyPostOrderFollowUp({ customerId: resolvedCustomerId, orderDate, intent: followUpIntent });
+          }
         } catch (e) { console.error("Post-order follow-up failed", e); }
       }
 
@@ -1247,6 +1269,29 @@ export default function AddOrder() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+            {followUpIntent === "custom" && (
+              <div className="mt-2 space-y-2 rounded-md border p-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Follow-Up Date</label>
+                  <Input
+                    type="date"
+                    min={toLocalDateKey()}
+                    value={customFollowUpDate}
+                    onChange={(e) => setCustomFollowUpDate(e.target.value)}
+                    className="mt-1 h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-foreground">Notes (shows on Today)</label>
+                  <Textarea
+                    value={customFollowUpNote}
+                    onChange={(e) => setCustomFollowUpNote(e.target.value)}
+                    placeholder="What's this follow-up about?"
+                    className="mt-1 h-16 resize-none"
+                  />
+                </div>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               {orderDate < toLocalDateKey()
                 ? "Follow-up calculated from order date. If that's already passed, it'll be set to tomorrow."

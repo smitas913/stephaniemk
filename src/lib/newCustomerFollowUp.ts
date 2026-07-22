@@ -16,6 +16,7 @@ export async function applyNewCustomerFollowUp(
   choice: FollowUpChoice,
   customDate?: string,
   baseDate?: string,
+  customNote?: string,
 ): Promise<{ nextDate: string; reason: string }> {
   const anchor = baseDate ? parseLocalDate(baseDate) : new Date();
   const addDays = (n: number) => {
@@ -28,6 +29,7 @@ export async function applyNewCustomerFollowUp(
   let reason: string;
   let planNote: string | null = null;
   let stage: string | null = null;
+  let planNoteType = "Follow-Up";
 
   if (choice === "222") {
     const d2 = addDays(2);
@@ -43,7 +45,10 @@ export async function applyNewCustomerFollowUp(
       `• Day 6 — ${d6}: Transition to 30-day cycle`;
   } else if (choice === "custom" && customDate) {
     nextDate = customDate;
-    reason = "Custom follow-up";
+    const trimmed = (customNote || "").trim();
+    reason = trimmed ? trimmed.slice(0, 100) : "Custom follow-up";
+    planNote = trimmed || "Custom follow-up scheduled";
+    planNoteType = "Follow-Up Scheduled";
   } else {
     nextDate = addDays(30);
     reason = "30-Day Follow-Up";
@@ -62,7 +67,7 @@ export async function applyNewCustomerFollowUp(
       person_id: customerId,
       person_type: "customer",
       note_body: planNote,
-      note_type: "Follow-Up",
+      note_type: planNoteType,
       next_follow_up_date: nextDate,
       is_booking_attempt: false,
       is_follow_up: true,
