@@ -522,7 +522,7 @@ export default function Events() {
                   {!isBusiness && <TableHead className="text-xs text-center">Orders</TableHead>}
                   {!isBusiness && <TableHead className="text-xs text-right">Sales</TableHead>}
                   {isBusiness && <TableHead className="text-xs">Notes</TableHead>}
-                  <TableHead className="text-xs">Next Task</TableHead>
+                  
                   <TableHead className="text-xs w-[110px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
