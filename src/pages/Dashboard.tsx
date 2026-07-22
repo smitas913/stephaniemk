@@ -219,8 +219,8 @@ export default function Dashboard() {
               else navigate("/events");
             }
           }}
-          />
         />
+
 
         {/* HOSTESS COACHING REMINDERS (auto from events) */}
         <HostessCoachingCard />
