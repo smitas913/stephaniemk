@@ -724,51 +724,6 @@ export type Database = {
           },
         ]
       }
-      event_tasks: {
-        Row: {
-          allow_non_working_day: boolean
-          canceled_at: string | null
-          completed_at: string | null
-          created_at: string
-          due_date: string | null
-          event_id: string
-          id: string
-          is_canceled: boolean
-          is_completed: boolean
-          owner_user_id: string | null
-          task_name: string
-          task_type: string
-        }
-        Insert: {
-          allow_non_working_day?: boolean
-          canceled_at?: string | null
-          completed_at?: string | null
-          created_at?: string
-          due_date?: string | null
-          event_id: string
-          id?: string
-          is_canceled?: boolean
-          is_completed?: boolean
-          owner_user_id?: string | null
-          task_name: string
-          task_type: string
-        }
-        Update: {
-          allow_non_working_day?: boolean
-          canceled_at?: string | null
-          completed_at?: string | null
-          created_at?: string
-          due_date?: string | null
-          event_id?: string
-          id?: string
-          is_canceled?: boolean
-          is_completed?: boolean
-          owner_user_id?: string | null
-          task_name?: string
-          task_type?: string
-        }
-        Relationships: []
-      }
       events: {
         Row: {
           allow_non_working_day: boolean

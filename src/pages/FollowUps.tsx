@@ -7,9 +7,8 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings, upsertScheduleSettings,
+  fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings,
 } from "@/lib/queries";
-import type { EventTask } from "@/lib/queries";
 import { buildWorkdayFlags, isTodayNonWorkday, spreadTasks } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
@@ -299,7 +298,7 @@ export default function FollowUps() {
   const { data: consultants = [], isLoading: tcLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
-  const { data: eventTasksRaw = [], isLoading: etLoading } = useQuery({ queryKey: ["event-tasks"], queryFn: fetchEventTasks });
+  const etLoading = false;
   const { data: scheduleSettings, isLoading: ssLoading } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
@@ -973,38 +972,8 @@ export default function FollowUps() {
         };
       });
 
-    // Event workflow tasks (incomplete, with due dates)
-    const eventTaskItems: ActionItem[] = (eventTasksRaw as EventTask[])
-      .filter((t) => !t.is_completed && t.due_date)
-      .map((t) => {
-        const matchedEvent = events.find((e) => e.event_id === t.event_id);
-        const effectiveDate = normalizeFollowUpDate(t.due_date);
-        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
-        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
-        // Build a clear display name: "Hostess Name — Task (Event Type M/D)"
-        const hostessName = matchedEvent?.event_type === "Guest Event" ? (matchedEvent?.hostess_name || "Guest Event") : (matchedEvent?.hostess_name || "Hostess");
-        const eventDateFormatted = matchedEvent?.event_date
-          ? (() => { const d = parseLocalDate(matchedEvent.event_date); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ""; })()
-          : "";
-        const eventTypeLabel = matchedEvent?.event_type || "Event";
-        const displayName = `${hostessName}`;
-        const taskDetail = eventDateFormatted
-          ? `${t.task_name} (${eventTypeLabel} ${eventDateFormatted})`
-          : t.task_name;
-        return {
-          id: t.id, itemType: "event_task" as const,
-          name: displayName,
-          phone: matchedEvent?.hostess_phone || null, email: matchedEvent?.hostess_email || null,
-          next_follow_up: effectiveDate, follow_up_status: status,
-          daysOverdue,
-          followUpReason: taskDetail,
-          lastContacted: null,
-          actionLabel: "Hostess Coaching",
-          allow_non_working_day: !!(t as any).allow_non_working_day,
-          _eventTaskId: t.id,
-          _eventId: t.event_id,
-        };
-      });
+    // Event workflow tasks removed — event_tasks feature retired
+    const eventTaskItems: ActionItem[] = [];
 
     const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
     // Note: event_tasks are shown in Event Coaching section, not the main follow-up list
@@ -1207,7 +1176,7 @@ export default function FollowUps() {
       birthdaysOverdue,
       birthdaysUpcoming,
     };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, eventTasksRaw, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
 
   useEffect(() => {
     const activeStartDate = scheduleSettings?.ooo_start_date || null;
@@ -1279,7 +1248,7 @@ export default function FollowUps() {
                 case "hostess":
                   return updateEvent(item.id, { hostess_next_action_date: newDate } as any);
                 case "event_task":
-                  return supabase.from("event_tasks").update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
+                  return supabase.from("event_tasks" as any).update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
                 default:
                   return Promise.resolve();
               }
@@ -1542,8 +1511,6 @@ export default function FollowUps() {
           is_booking_attempt: isBookingAttempt ?? false,
           is_follow_up: dnc ? false : (isFollowUp ?? true),
         });
-      } else if (item.itemType === "event_task") {
-        await completeEventTask(item.id);
       }
     },
     onSuccess: () => {
@@ -1689,7 +1656,7 @@ export default function FollowUps() {
       } else if (item.itemType === "event_task") {
         // Event tasks: just push the due date out (no separate activity log)
         if (computed) {
-          const { error } = await supabase.from("event_tasks").update({ due_date: computed }).eq("id", item.id);
+          const { error } = await supabase.from("event_tasks" as any).update({ due_date: computed }).eq("id", item.id);
           if (error) throw error;
         }
       }
@@ -1979,8 +1946,6 @@ export default function FollowUps() {
       } else if (item.itemType === "lead") {
         const nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
         await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Working" } as any);
-      } else if (item.itemType === "event_task") {
-        await completeEventTask(item.id);
       }
     },
     onSuccess: () => {
@@ -2163,7 +2128,7 @@ export default function FollowUps() {
             case "hostess":
               return updateEvent(item.id, { hostess_next_action_date: newDate } as any);
             case "event_task":
-              return supabase.from("event_tasks").update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
+              return supabase.from("event_tasks" as any).update({ due_date: newDate }).eq("id", item._eventTaskId || item.id);
             default:
               return Promise.resolve();
           }
@@ -2208,7 +2173,7 @@ export default function FollowUps() {
             case "hostess":
               return updateEvent(u.id, { hostess_next_action_date: u.previousDate } as any);
             case "event_task":
-              return supabase.from("event_tasks").update({ due_date: u.previousDate }).eq("id", u.eventTaskId || u.id);
+              return supabase.from("event_tasks" as any).update({ due_date: u.previousDate }).eq("id", u.eventTaskId || u.id);
             default:
               return Promise.resolve();
           }
