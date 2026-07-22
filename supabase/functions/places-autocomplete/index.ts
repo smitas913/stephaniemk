@@ -1,9 +1,17 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const PLACES_API_BASE = "https://places.googleapis.com/v1/places";
+
+const emptyAddress = {
+  formatted: "",
+  street_address: "",
+  city: "",
+  state: "",
+  zip_code: "",
+};
+
+const isPermissionDenied = (status: number, body: string) =>
+  status === 403 || body.includes("PERMISSION_DENIED") || body.includes("The caller does not have permission");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -44,6 +52,16 @@ Deno.serve(async (req) => {
 
       if (!resp.ok) {
         const errText = await resp.text();
+        if (isPermissionDenied(resp.status, errText)) {
+          console.error(`Places autocomplete unavailable [${resp.status}]: ${errText}`);
+          return new Response(
+            JSON.stringify({
+              suggestions: [],
+              warning: "Google Places autocomplete is unavailable because the API key lacks permission.",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         throw new Error(`Places autocomplete failed [${resp.status}]: ${errText}`);
       }
 
@@ -81,6 +99,16 @@ Deno.serve(async (req) => {
 
       if (!resp.ok) {
         const errText = await resp.text();
+        if (isPermissionDenied(resp.status, errText)) {
+          console.error(`Places details unavailable [${resp.status}]: ${errText}`);
+          return new Response(
+            JSON.stringify({
+              ...emptyAddress,
+              warning: "Google Places details are unavailable because the API key lacks permission.",
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         throw new Error(`Places details failed [${resp.status}]: ${errText}`);
       }
 
