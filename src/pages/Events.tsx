@@ -154,10 +154,8 @@ export default function Events() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const completeTaskMutation = useMutation({
-    mutationFn: (taskId: string) => completeEventTask(taskId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["event-tasks"] }),
-  });
+
+
 
   const markHeldMutation = useMutation({
     mutationFn: (e: EventRecord) => upsertEvent({ event_id: e.event_id, event_status: "Held" } as any),
