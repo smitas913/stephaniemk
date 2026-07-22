@@ -1758,7 +1758,7 @@ export default function FollowUps() {
   const rescheduleLogRef = useRef<((args: { event: EventRecord; noteType: string; noteText: string; overrideNextDate?: string | null }) => void) | null>(null);
 
   // Universal Action Panel handler (placed after contactMutation)
-  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc }: {
+  const handleUniversalAction = useCallback(({ item: uItem, actionType, note, isBookingAttempt, isFollowUp, nextFollowUpDate, dnc, followUpReason }: {
     item: UniversalActionItem;
     actionType: string;
     note: string;
@@ -1766,6 +1766,7 @@ export default function FollowUps() {
     isFollowUp: boolean;
     nextFollowUpDate?: string | null;
     dnc?: boolean;
+    followUpReason?: string | null;
   }) => {
     if (universalRescheduleEvent) {
       rescheduleLogRef.current?.({
@@ -1792,6 +1793,7 @@ export default function FollowUps() {
       isBookingAttempt,
       isFollowUp,
       dnc,
+      followUpReason,
     });
   }, [contactMutation, universalRescheduleEvent]);
 
