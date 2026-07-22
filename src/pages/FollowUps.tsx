@@ -7,9 +7,8 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, fetchEventTasks, completeEventTask, createNote, fetchScheduleSettings, upsertScheduleSettings,
+  fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings,
 } from "@/lib/queries";
-import type { EventTask } from "@/lib/queries";
 import { buildWorkdayFlags, isTodayNonWorkday, spreadTasks } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
