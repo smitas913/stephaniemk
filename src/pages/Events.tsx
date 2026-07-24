@@ -421,6 +421,11 @@ export default function Events() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+            {(e as any).hostess_converted_customer_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
+            ) : (e as any).hostess_lead_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
+            ) : null}
             <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 shrink-0", scopeChipClasses((e as any).event_scope || "Personal"))}>
               {(e as any).event_scope || "Personal"}
             </Badge>
