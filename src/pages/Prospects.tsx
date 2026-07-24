@@ -285,102 +285,130 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">No prospects found</p>
-        ) : (
-          <div className="space-y-2">
-            {filtered.map((p) => {
-              const overdue = p.next_step_date && compareDateOnly(p.next_step_date) === -1;
-              const today = p.next_step_date && compareDateOnly(p.next_step_date) === 0;
-              const ownershipType = p.ownership_type || "personal";
-              const assignedName = p.assigned_consultant_id ? consultantMap[p.assigned_consultant_id] : null;
+        ) : (() => {
+          const renderCard = (p: Prospect) => {
+            const overdue = p.next_step_date && compareDateOnly(p.next_step_date) === -1;
+            const today = p.next_step_date && compareDateOnly(p.next_step_date) === 0;
+            const assignedName = p.assigned_consultant_id ? consultantMap[p.assigned_consultant_id] : null;
+            const followUpLabel = subTab === "unit" ? "Coach check-in:" : "Follow-up:";
 
-              return (
-                <Card
-                  key={p.id}
-                  className={cn(
-                    "border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-colors",
-                    overdue && "border-destructive/40 bg-destructive/5",
-                    today && "border-primary/40 bg-primary/5",
-                    (p as any).is_archived && "opacity-60"
+            return (
+              <Card
+                key={p.id}
+                className={cn(
+                  "border-border/50 shadow-sm cursor-pointer hover:bg-muted/30 transition-colors",
+                  overdue && "border-destructive/40 bg-destructive/5",
+                  today && "border-primary/40 bg-primary/5",
+                  (p as any).is_archived && "opacity-60"
+                )}
+                onClick={() => navigate(`/prospects/${p.id}`)}
+              >
+                <CardContent className="p-3 flex items-center gap-3">
+                  {/* Interest level indicator */}
+                  {(p as any).interest_level && (
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                      (p as any).interest_level >= 7 ? "bg-green-100 text-green-700" :
+                      (p as any).interest_level >= 4 ? "bg-amber-100 text-amber-700" :
+                      "bg-blue-100 text-blue-700"
+                    )}>
+                      {(p as any).interest_level}
+                    </div>
                   )}
-                  onClick={() => navigate(`/prospects/${p.id}`)}
-                >
-                  <CardContent className="p-3 flex items-center gap-3">
-                    {/* Interest level indicator */}
-                    {(p as any).interest_level && (
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
-                        (p as any).interest_level >= 7 ? "bg-green-100 text-green-700" :
-                        (p as any).interest_level >= 4 ? "bg-amber-100 text-amber-700" :
-                        "bg-blue-100 text-blue-700"
-                      )}>
-                        {(p as any).interest_level}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                        {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
-                        <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
-                          {p.opportunity_status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        {p.last_contact_date && (
-                          <span className="text-xs text-muted-foreground">Last contact: {formatDateOnly(p.last_contact_date, "MMM d")}</span>
-                        )}
-                        {p.next_follow_up_date && (() => {
-                          const todayKey = toLocalDateKey();
-                          const cls = p.next_follow_up_date < todayKey
-                            ? "text-destructive font-medium"
-                            : p.next_follow_up_date === todayKey
-                              ? "text-primary font-medium"
-                              : "text-muted-foreground";
-                          return (
-                            <span className={cn("text-xs", cls)}>
-                              Follow-up: {formatDateOnly(p.next_follow_up_date, "MMM d")}
-                            </span>
-                          );
-                        })()}
-                        {assignedName && (
-                          <span className="text-xs text-muted-foreground">→ {assignedName}</span>
-                        )}
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
+                      {p.customer_id && <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />}
+                      <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
+                        {p.opportunity_status}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        title="Edit"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/prospects/${p.id}`); }}
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        title={(p as any).is_archived ? "Restore" : "Remove from active list"}
-                        onClick={(e) => { e.stopPropagation(); archiveMut.mutate(p.id); }}
-                      >
-                        <span className="text-xs text-muted-foreground">{(p as any).is_archived ? "↩" : "✕"}</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        title="Delete permanently"
-                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
+                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                      {p.last_contact_date && (
+                        <span className="text-xs text-muted-foreground">Last contact: {formatDateOnly(p.last_contact_date, "MMM d")}</span>
+                      )}
+                      {p.next_follow_up_date && (() => {
+                        const todayKey = toLocalDateKey();
+                        const cls = p.next_follow_up_date < todayKey
+                          ? "text-destructive font-medium"
+                          : p.next_follow_up_date === todayKey
+                            ? "text-primary font-medium"
+                            : "text-muted-foreground";
+                        return (
+                          <span className={cn("text-xs", cls)}>
+                            {followUpLabel} {formatDateOnly(p.next_follow_up_date, "MMM d")}
+                          </span>
+                        );
+                      })()}
+                      {subTab !== "unit" && assignedName && (
+                        <span className="text-xs text-muted-foreground">→ {assignedName}</span>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Edit"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/prospects/${p.id}`); }}
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title={(p as any).is_archived ? "Restore" : "Remove from active list"}
+                      onClick={(e) => { e.stopPropagation(); archiveMut.mutate(p.id); }}
+                    >
+                      <span className="text-xs text-muted-foreground">{(p as any).is_archived ? "↩" : "✕"}</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="Delete permanently"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(p); }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          };
+
+          if (subTab === "unit") {
+            const groups: Record<string, Prospect[]> = {};
+            for (const p of filtered) {
+              const key = p.assigned_consultant_id
+                ? (consultantMap[p.assigned_consultant_id] || "Unassigned")
+                : "Unassigned";
+              (groups[key] = groups[key] || []).push(p);
+            }
+            const keys = Object.keys(groups).sort((a, b) => {
+              if (a === "Unassigned") return 1;
+              if (b === "Unassigned") return -1;
+              return a.localeCompare(b);
+            });
+            return (
+              <div className="space-y-5">
+                {keys.map((name) => (
+                  <div key={name} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-foreground border-b border-border/40 pb-1">
+                      {name}{" "}
+                      <span className="text-xs text-muted-foreground font-normal">({groups[name].length})</span>
+                    </h3>
+                    {groups[name].map(renderCard)}
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          return <div className="space-y-2">{filtered.map(renderCard)}</div>;
+        })()}
 
         {/* Delete Confirmation */}
         <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
