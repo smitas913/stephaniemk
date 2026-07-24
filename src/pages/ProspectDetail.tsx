@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck, CalendarDays } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Phone, MessageSquare, Mail, FileText, CheckCircle2, UserCheck, CalendarDays, Sparkles } from "lucide-react";
+import QuickBookingDialog from "@/components/QuickBookingDialog";
 import { openEmail } from "@/lib/emailPreference";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { useState, useEffect } from "react";
@@ -52,6 +53,7 @@ export default function ProspectDetail() {
   const [showConvert, setShowConvert] = useState(false);
   const [convertCoachingDate, setConvertCoachingDate] = useState("");
   const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
+  const [showBooking, setShowBooking] = useState(false);
 
   useEffect(() => {
     if (prospect) {
@@ -236,6 +238,50 @@ export default function ProspectDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Suggested Next Step nudge — Unit prospects whose follow-up date has passed */}
+        {(() => {
+          const isUnit = (prospect.ownership_type || "personal") === "unit";
+          const status = prospect.opportunity_status;
+          const closedStatuses = ["Converted", "Joined"];
+          const overdue = prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1;
+          if (!isUnit || !overdue || closedStatuses.includes(status)) return null;
+          const nudge = async (type: "Book for a party" | "Book for a facial") => {
+            await updateProspect(id!, { next_step_type: type } as any);
+            queryClient.invalidateQueries({ queryKey: ["prospect", id] });
+            queryClient.invalidateQueries({ queryKey: ["prospects"] });
+            setShowBooking(true);
+          };
+          return (
+            <Card className="border-amber-300/60 bg-amber-50/60 dark:bg-amber-950/20 shadow-sm">
+              <CardContent className="p-4 flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Didn't join? Book her for a party or facial</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Keep the relationship warm — turn this prospect into a booking.</p>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={() => nudge("Book for a party")}>
+                      Book for a party
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => nudge("Book for a facial")}>
+                      Book for a facial
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        <QuickBookingDialog
+          open={showBooking}
+          onOpenChange={setShowBooking}
+          onBooked={() => {
+            setShowBooking(false);
+            queryClient.invalidateQueries({ queryKey: ["prospect", id] });
+            queryClient.invalidateQueries({ queryKey: ["prospects"] });
+          }}
+        />
 
         {/* Info card */}
         <Card className="border-border/50 shadow-sm">
