@@ -2,11 +2,10 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
-  fetchLeadershipMembers, createLeadershipMember, updateLeadershipMember, deleteLeadershipMember,
   convertConsultantToCustomer,
 } from "@/lib/queries";
-import { LEADERSHIP_GOALS, ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, RELATIONSHIP_TYPES } from "@/lib/types";
-import type { TeamConsultant, LeadershipMember } from "@/lib/types";
+import { ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, RELATIONSHIP_TYPES } from "@/lib/types";
+import type { TeamConsultant } from "@/lib/types";
 import Prospects from "./Prospects";
 import Layout from "@/components/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +47,7 @@ export default function Leadership() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as any;
-  const [tab, setTab] = useState(locationState?.tab || "prospects");
+  const [tab, setTab] = useState(locationState?.tab || "consultants");
 
   // Auto-navigate to consultant tab if directed from drill-down
   useEffect(() => {
@@ -67,27 +66,20 @@ export default function Leadership() {
 
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
-            <TabsTrigger value="prospects" className="gap-1.5">
-              <UserPlus className="w-3.5 h-3.5" />Prospects
-            </TabsTrigger>
             <TabsTrigger value="consultants" className="gap-1.5">
               <Users className="w-3.5 h-3.5" />Consultants
             </TabsTrigger>
-            <TabsTrigger value="leadership" className="gap-1.5">
-              <Crown className="w-3.5 h-3.5" />Leadership
+            <TabsTrigger value="prospects" className="gap-1.5">
+              <UserPlus className="w-3.5 h-3.5" />Prospects
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="prospects" className="mt-4">
-            <Prospects embedded />
-          </TabsContent>
 
           <TabsContent value="consultants" className="mt-4">
             <ConsultantsTab autoOpenId={locationState?.consultantId || null} />
           </TabsContent>
 
-          <TabsContent value="leadership" className="mt-4">
-            <LeadershipTab />
+          <TabsContent value="prospects" className="mt-4">
+            <Prospects embedded />
           </TabsContent>
         </Tabs>
       </div>
