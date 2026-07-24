@@ -45,7 +45,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterOwnership, setFilterOwnership] = useState<string>("all");
+  const [subTab, setSubTab] = useState<"personal" | "unit">("personal");
   const [filterConsultant, setFilterConsultant] = useState<string>("all");
   const [filterDnc, setFilterDnc] = useState<"active" | "dnc">("active");
   const [search, setSearch] = useState("");
@@ -100,7 +100,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       return filterDnc === "dnc" ? isDnc : !isDnc;
     });
     if (filterStatus !== "all") list = list.filter((p) => p.opportunity_status === filterStatus);
-    if (filterOwnership !== "all") list = list.filter((p) => (p.ownership_type || "personal") === filterOwnership);
+    list = list.filter((p) => (p.ownership_type || "personal") === subTab);
     if (filterConsultant !== "all") list = list.filter((p) => p.assigned_consultant_id === filterConsultant);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -115,7 +115,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       return 0;
     });
     return list;
-  }, [prospects, filterStatus, filterOwnership, filterConsultant, filterDnc, customerDncSet, search, sortBy, showArchived]);
+  }, [prospects, filterStatus, subTab, filterConsultant, filterDnc, customerDncSet, search, sortBy, showArchived]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -228,32 +228,38 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           ))}
         </div>
 
-        {/* Ownership + consultant filters (directors only) */}
-        {isDirector && (
+        {/* Personal / Unit sub-tabs */}
+        <div className="flex gap-1 border-b border-border/50">
+          {(["personal", "unit"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setSubTab(t)}
+              className={cn(
+                "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                subTab === t
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t === "personal" ? "Personal" : "Unit"}
+            </button>
+          ))}
+        </div>
+
+        {/* Assigned-to filter (Unit sub-tab only) */}
+        {subTab === "unit" && consultants.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            <Select value={filterOwnership} onValueChange={setFilterOwnership}>
-              <SelectTrigger className="h-8 w-[140px] text-xs">
-                <SelectValue placeholder="Ownership" />
+            <Select value={filterConsultant} onValueChange={setFilterConsultant}>
+              <SelectTrigger className="h-8 w-[180px] text-xs">
+                <SelectValue placeholder="Assigned To" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Ownership</SelectItem>
-                <SelectItem value="personal">Personal</SelectItem>
-                <SelectItem value="unit">Unit</SelectItem>
+                <SelectItem value="all">All Consultants</SelectItem>
+                {consultants.filter(c => c.status === "Active").map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {filterOwnership === "unit" && consultants.length > 0 && (
-              <Select value={filterConsultant} onValueChange={setFilterConsultant}>
-                <SelectTrigger className="h-8 w-[180px] text-xs">
-                  <SelectValue placeholder="Assigned To" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Consultants</SelectItem>
-                  {consultants.filter(c => c.status === "Active").map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
           </div>
         )}
 
