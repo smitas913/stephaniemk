@@ -250,7 +250,16 @@ export default function Events() {
         <TableCell className="text-xs whitespace-nowrap font-medium">
           {formatDateOnly(e.event_date)}
         </TableCell>
-        <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
+        <TableCell className="text-sm font-medium">
+          <div className="flex items-center gap-1.5">
+            <span>{e.hostess_name || "—"}</span>
+            {(e as any).hostess_converted_customer_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
+            ) : (e as any).hostess_lead_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
+            ) : null}
+          </div>
+        </TableCell>
         <TableCell className="text-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span>{e.event_type || "—"}</span>
