@@ -267,6 +267,7 @@ export default function EventDetail() {
         event_id: event!.event_id,
         reschedule_attempt_number: nextAttempt,
         reschedule_next_follow_up_date: nextDate,
+        reschedule_last_contact_date: toLocalDateKey(),
       } as any);
       await createNote({
         entity_type: "Hostess",
@@ -289,11 +290,12 @@ export default function EventDetail() {
         event_id: event!.event_id,
         rebook_not_interested: true,
         reschedule_next_follow_up_date: null,
+        reschedule_status: "None",
       } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Marked not interested — event stays in your hold rate stats");
+      toast.success("Marked not interested — event cleared from reschedule tracking");
     },
   });
 
