@@ -132,7 +132,7 @@ export default function QuickBookingDialog({
                 autoFocus
                 placeholder="Search or type a name..."
                 value={query}
-                onChange={e => { setQuery(e.target.value); setSelectedName(e.target.value); }}
+                onChange={e => { setQuery(e.target.value); setSelectedName(e.target.value); setSelectedLeadId(null); }}
                 className="h-9"
               />
               {matches.length > 0 && (
