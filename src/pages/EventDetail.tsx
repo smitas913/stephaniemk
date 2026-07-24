@@ -105,8 +105,12 @@ export default function EventDetail() {
       item: UniversalActionItem; actionType: string; note: string;
       isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
     }) => {
-      const updates: Record<string, string | null> = {};
+      const updates: Record<string, any> = {};
       if (nextFollowUpDate) updates.hostess_next_action_date = nextFollowUpDate;
+      if ((event as any)?.reschedule_status === "In Process of Rescheduling") {
+        updates.reschedule_attempt_number = ((event as any).reschedule_attempt_number || 0) + 1;
+        updates.reschedule_last_contact_date = toLocalDateKey();
+      }
       if (Object.keys(updates).length > 0) {
         await upsertEvent({ event_id: event!.event_id, ...updates } as any);
       }
@@ -267,6 +271,7 @@ export default function EventDetail() {
         event_id: event!.event_id,
         reschedule_attempt_number: nextAttempt,
         reschedule_next_follow_up_date: nextDate,
+        reschedule_last_contact_date: toLocalDateKey(),
       } as any);
       await createNote({
         entity_type: "Hostess",
@@ -289,11 +294,12 @@ export default function EventDetail() {
         event_id: event!.event_id,
         rebook_not_interested: true,
         reschedule_next_follow_up_date: null,
+        reschedule_status: "None",
       } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Marked not interested — event stays in your hold rate stats");
+      toast.success("Marked not interested — event cleared from reschedule tracking");
     },
   });
 
@@ -709,7 +715,14 @@ export default function EventDetail() {
                 {event?.event_type !== "Guest Event" && (
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Hostess</CardTitle>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      Hostess
+                      {(event as any).hostess_converted_customer_id ? (
+                        <Badge variant="outline" className="text-[10px] bg-green-50 border-green-200 text-green-700">Customer</Badge>
+                      ) : (event as any).hostess_lead_id ? (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
+                      ) : null}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

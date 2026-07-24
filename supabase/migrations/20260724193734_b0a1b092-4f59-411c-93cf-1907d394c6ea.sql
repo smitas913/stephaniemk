@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS hostess_lead_id uuid REFERENCES public.booking_leads(id) ON DELETE SET NULL;

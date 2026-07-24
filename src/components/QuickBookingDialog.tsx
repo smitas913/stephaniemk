@@ -35,6 +35,7 @@ export default function QuickBookingDialog({
   const [query, setQuery] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [selectedPhone, setSelectedPhone] = useState("");
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [eventType, setEventType] = useState<string>("Party");
   const [eventDate, setEventDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [eventTime, setEventTime] = useState("6:30 PM");
@@ -48,10 +49,10 @@ export default function QuickBookingDialog({
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults, enabled: open });
 
   const allPeople = useMemo(() => {
-    const list: { name: string; phone: string; kind: string }[] = [];
-    customers.forEach((c: any) => list.push({ name: c.full_name, phone: c.phone || "", kind: "customer" }));
-    leads.forEach((l: any) => list.push({ name: l.name, phone: l.phone || "", kind: "lead" }));
-    prospects.forEach((p: any) => list.push({ name: p.name, phone: p.phone || "", kind: "prospect" }));
+    const list: { id: string; name: string; phone: string; kind: string }[] = [];
+    customers.forEach((c: any) => list.push({ id: c.id, name: c.full_name, phone: c.phone || "", kind: "customer" }));
+    leads.forEach((l: any) => list.push({ id: l.id, name: l.name, phone: l.phone || "", kind: "lead" }));
+    prospects.forEach((p: any) => list.push({ id: p.id, name: p.name, phone: p.phone || "", kind: "prospect" }));
     return list;
   }, [customers, leads, prospects]);
 
@@ -68,6 +69,14 @@ export default function QuickBookingDialog({
       const hour24 = eventTime.includes("PM") && h !== 12 ? h + 12 : eventTime.includes("AM") && h === 12 ? 0 : h;
       const time24 = `${String(hour24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
+      // If no lead was explicitly selected but the typed name matches a lead, link it.
+      let leadIdToLink = selectedLeadId;
+      if (!leadIdToLink) {
+        const nameLc = selectedName.trim().toLowerCase();
+        const matchLead = leads.find((l: any) => (l.name || "").toLowerCase() === nameLc);
+        if (matchLead) leadIdToLink = (matchLead as any).id;
+      }
+
       const eventId = generateEventId(eventType, eventDate, selectedName || "Event", events.map((e: any) => e.event_id));
       const payload: any = {
         event_id: eventId,
@@ -77,6 +86,7 @@ export default function QuickBookingDialog({
         event_time: time24,
         hostess_name: selectedName.trim() || null,
         hostess_phone: selectedPhone.trim() || null,
+        hostess_lead_id: leadIdToLink || null,
         guest_count: 0,
         event_status: "Booked",
       };
@@ -100,7 +110,7 @@ export default function QuickBookingDialog({
   });
 
   const reset = () => {
-    setQuery(""); setSelectedName(""); setSelectedPhone("");
+    setQuery(""); setSelectedName(""); setSelectedPhone(""); setSelectedLeadId(null);
     setEventType("Party"); setEventDate(format(new Date(), "yyyy-MM-dd"));
     setEventTime("6:30 PM"); setFormat_("In-Person"); setStep("who");
   };
@@ -122,14 +132,19 @@ export default function QuickBookingDialog({
                 autoFocus
                 placeholder="Search or type a name..."
                 value={query}
-                onChange={e => { setQuery(e.target.value); setSelectedName(e.target.value); }}
+                onChange={e => { setQuery(e.target.value); setSelectedName(e.target.value); setSelectedLeadId(null); }}
                 className="h-9"
               />
               {matches.length > 0 && (
                 <div className="border border-border rounded-lg mt-1 divide-y divide-border/40 max-h-40 overflow-y-auto">
                   {matches.map((p, i) => (
                     <button key={i} className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
-                      onClick={() => { setSelectedName(p.name); setSelectedPhone(p.phone); setQuery(p.name); }}>
+                      onClick={() => {
+                        setSelectedName(p.name);
+                        setSelectedPhone(p.phone);
+                        setSelectedLeadId(p.kind === "lead" ? p.id : null);
+                        setQuery(p.name);
+                      }}>
                       <p className="text-sm font-medium text-foreground">{p.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">{p.kind}{p.phone ? ` · ${p.phone}` : ""}</p>
                     </button>

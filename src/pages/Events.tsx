@@ -114,8 +114,14 @@ export default function Events() {
       isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
     }) => {
       const ev = events.find((e) => e.id === uItem.id);
-      if (ev && nextFollowUpDate) {
-        await upsertEvent({ event_id: ev.event_id, hostess_next_action_date: nextFollowUpDate } as any);
+      const updates: Record<string, any> = {};
+      if (ev && nextFollowUpDate) updates.hostess_next_action_date = nextFollowUpDate;
+      if (ev && (ev as any).reschedule_status === "In Process of Rescheduling") {
+        updates.reschedule_attempt_number = ((ev as any).reschedule_attempt_number || 0) + 1;
+        updates.reschedule_last_contact_date = new Date().toISOString().slice(0, 10);
+      }
+      if (ev && Object.keys(updates).length > 0) {
+        await upsertEvent({ event_id: ev.event_id, ...updates } as any);
       }
       await createNote({
         entity_type: "Hostess",
@@ -244,7 +250,16 @@ export default function Events() {
         <TableCell className="text-xs whitespace-nowrap font-medium">
           {formatDateOnly(e.event_date)}
         </TableCell>
-        <TableCell className="text-sm font-medium">{e.hostess_name || "—"}</TableCell>
+        <TableCell className="text-sm font-medium">
+          <div className="flex items-center gap-1.5">
+            <span>{e.hostess_name || "—"}</span>
+            {(e as any).hostess_converted_customer_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
+            ) : (e as any).hostess_lead_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
+            ) : null}
+          </div>
+        </TableCell>
         <TableCell className="text-xs">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span>{e.event_type || "—"}</span>
@@ -406,6 +421,11 @@ export default function Events() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+            {(e as any).hostess_converted_customer_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
+            ) : (e as any).hostess_lead_id ? (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
+            ) : null}
             <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 shrink-0", scopeChipClasses((e as any).event_scope || "Personal"))}>
               {(e as any).event_scope || "Personal"}
             </Badge>
