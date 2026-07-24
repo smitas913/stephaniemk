@@ -105,8 +105,12 @@ export default function EventDetail() {
       item: UniversalActionItem; actionType: string; note: string;
       isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
     }) => {
-      const updates: Record<string, string | null> = {};
+      const updates: Record<string, any> = {};
       if (nextFollowUpDate) updates.hostess_next_action_date = nextFollowUpDate;
+      if ((event as any)?.reschedule_status === "In Process of Rescheduling") {
+        updates.reschedule_attempt_number = ((event as any).reschedule_attempt_number || 0) + 1;
+        updates.reschedule_last_contact_date = toLocalDateKey();
+      }
       if (Object.keys(updates).length > 0) {
         await upsertEvent({ event_id: event!.event_id, ...updates } as any);
       }
