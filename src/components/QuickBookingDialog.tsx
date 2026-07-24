@@ -139,7 +139,12 @@ export default function QuickBookingDialog({
                 <div className="border border-border rounded-lg mt-1 divide-y divide-border/40 max-h-40 overflow-y-auto">
                   {matches.map((p, i) => (
                     <button key={i} className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors"
-                      onClick={() => { setSelectedName(p.name); setSelectedPhone(p.phone); setQuery(p.name); }}>
+                      onClick={() => {
+                        setSelectedName(p.name);
+                        setSelectedPhone(p.phone);
+                        setSelectedLeadId(p.kind === "lead" ? p.id : null);
+                        setQuery(p.name);
+                      }}>
                       <p className="text-sm font-medium text-foreground">{p.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">{p.kind}{p.phone ? ` · ${p.phone}` : ""}</p>
                     </button>
