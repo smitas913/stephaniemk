@@ -753,6 +753,7 @@ export type Database = {
           hostess_converted_consultant_id: string | null
           hostess_converted_customer_id: string | null
           hostess_email: string | null
+          hostess_lead_id: string | null
           hostess_name: string | null
           hostess_next_action: string | null
           hostess_next_action_date: string | null
@@ -807,6 +808,7 @@ export type Database = {
           hostess_converted_consultant_id?: string | null
           hostess_converted_customer_id?: string | null
           hostess_email?: string | null
+          hostess_lead_id?: string | null
           hostess_name?: string | null
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
@@ -861,6 +863,7 @@ export type Database = {
           hostess_converted_consultant_id?: string | null
           hostess_converted_customer_id?: string | null
           hostess_email?: string | null
+          hostess_lead_id?: string | null
           hostess_name?: string | null
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
@@ -907,6 +910,13 @@ export type Database = {
             columns: ["hostess_converted_customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_hostess_lead_id_fkey"
+            columns: ["hostess_lead_id"]
+            isOneToOne: false
+            referencedRelation: "booking_leads"
             referencedColumns: ["id"]
           },
         ]
