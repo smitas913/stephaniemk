@@ -715,7 +715,14 @@ export default function EventDetail() {
                 {event?.event_type !== "Guest Event" && (
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Hostess</CardTitle>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      Hostess
+                      {(event as any).hostess_converted_customer_id ? (
+                        <Badge variant="outline" className="text-[10px] bg-green-50 border-green-200 text-green-700">Customer</Badge>
+                      ) : (event as any).hostess_lead_id ? (
+                        <Badge variant="outline" className="text-[10px] bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
+                      ) : null}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
