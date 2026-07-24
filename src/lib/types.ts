@@ -138,6 +138,8 @@ export interface EventRecord {
   virtual_platform_link: string | null;
   virtual_notes: string | null;
   thank_you_sent?: boolean;
+  hostess_lead_id?: string | null;
+  hostess_converted_customer_id?: string | null;
 }
 
 export interface ZoomDefaults {
