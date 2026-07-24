@@ -100,17 +100,97 @@ export default function QuickCareerChatDialog({
 
       const personName = selected?.name || query.trim();
 
-      // Smart follow-up based on interest level
+      // Follow-up date: Unit career chats always get a 2-day coach check-in;
+      // personal chats scale by interest level.
       const getFollowUpDays = (level: number | null) => {
         if (!level) return 14;
         if (level >= 7) return 3;
         if (level >= 4) return 10;
         return 30;
       };
-      const followUpDate = format(addDays(new Date(chatDate + "T12:00"), getFollowUpDays(interestLevel)), "yyyy-MM-dd");
+      const followUpDays = isForConsultant ? 2 : getFollowUpDays(interestLevel);
+      const followUpDate = format(addDays(new Date(chatDate + "T12:00"), followUpDays), "yyyy-MM-dd");
 
       const userId = (await supabase.auth.getUser()).data.user?.id;
+      const oppStatus = interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up";
 
+      // Find or create the prospect record for this person (personal + unit).
+      let prospectId: string | null = null;
+
+      if (selected?.kind === "prospect") {
+        prospectId = selected.id;
+        await supabase.from("prospects" as any).update({
+          interest_level: interestLevel,
+          last_contact_date: today,
+          next_follow_up_date: followUpDate,
+          opportunity_status: oppStatus,
+          ...(isForConsultant && selectedConsultant ? {
+            ownership_type: "unit",
+            assigned_consultant_id: selectedConsultant.id,
+          } : {}),
+          updated_at: new Date().toISOString(),
+        } as any).eq("id", selected.id);
+      } else {
+        // De-dupe for unit chats: match by name within this consultant's assigned prospects.
+        let existing: any = null;
+        if (isForConsultant && selectedConsultant && personName) {
+          const { data } = await supabase.from("prospects" as any)
+            .select("id")
+            .eq("assigned_consultant_id", selectedConsultant.id)
+            .ilike("name", personName)
+            .limit(1)
+            .maybeSingle();
+          existing = data;
+        }
+
+        if (existing?.id) {
+          prospectId = existing.id;
+          await supabase.from("prospects" as any).update({
+            interest_level: interestLevel,
+            last_contact_date: today,
+            next_follow_up_date: followUpDate,
+            opportunity_status: oppStatus,
+            ownership_type: "unit",
+            assigned_consultant_id: selectedConsultant!.id,
+            updated_at: new Date().toISOString(),
+          } as any).eq("id", existing.id);
+        } else {
+          const { data: newProspect, error } = await supabase
+            .from("prospects" as any)
+            .insert({
+              name: personName,
+              customer_id: selected?.kind === "customer" ? selected.id : null,
+              opportunity_status: oppStatus,
+              interest_level: interestLevel,
+              date_shared: today,
+              last_contact_date: today,
+              next_follow_up_date: followUpDate,
+              owner_user_id: userId,
+              ownership_type: isForConsultant ? "unit" : "personal",
+              assigned_consultant_id: isForConsultant && selectedConsultant ? selectedConsultant.id : null,
+            } as any)
+            .select()
+            .single();
+          if (error) throw error;
+          prospectId = (newProspect as any).id;
+        }
+      }
+
+      // Log career-chat note under the prospect (personal + unit).
+      if (prospectId) {
+        await createNote({
+          entity_type: "Prospect",
+          person_type: "prospect",
+          person_id: prospectId,
+          prospect_id: prospectId,
+          note_body: noteBody,
+          note_type: "Career Chat",
+          note_date: today,
+          result_type: "Career Chat",
+        });
+      }
+
+      // Unit path: keep the coach-side note + optional coaching reminder.
       if (isForConsultant && selectedConsultant) {
         await createNote({
           entity_type: "Consultant",
@@ -129,55 +209,7 @@ export default function QuickCareerChatDialog({
         return;
       }
 
-      // Always create or find a Prospect record for career chats
-      let prospectId: string | null = null;
-
-      if (selected?.kind === "prospect") {
-        // Update existing prospect
-        prospectId = selected.id;
-        await supabase.from("prospects" as any).update({
-          interest_level: interestLevel,
-          last_contact_date: today,
-          next_follow_up_date: followUpDate,
-          opportunity_status: interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up",
-          updated_at: new Date().toISOString(),
-        } as any).eq("id", selected.id);
-      } else {
-        // Create new prospect — even if they're an existing customer
-        const { data: newProspect, error } = await supabase
-          .from("prospects" as any)
-          .insert({
-            name: personName,
-            customer_id: selected?.kind === "customer" ? selected.id : null,
-            opportunity_status: interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up",
-            interest_level: interestLevel,
-            date_shared: today,
-            last_contact_date: today,
-            next_follow_up_date: followUpDate,
-            owner_user_id: userId,
-            ownership_type: "personal",
-          } as any)
-          .select()
-          .single();
-        if (error) throw error;
-        prospectId = (newProspect as any).id;
-      }
-
-      // Log note under prospect
-      if (prospectId) {
-        await createNote({
-          entity_type: "Prospect",
-          person_type: "prospect",
-          person_id: prospectId,
-          prospect_id: prospectId,
-          note_body: noteBody,
-          note_type: "Career Chat",
-          note_date: today,
-          result_type: "Career Chat",
-        });
-      }
-
-      // Also log on customer profile if they're an existing customer
+      // Personal path: mirror to customer profile when linked.
       if (selected?.kind === "customer") {
         await createNote({
           entity_type: "Customer",

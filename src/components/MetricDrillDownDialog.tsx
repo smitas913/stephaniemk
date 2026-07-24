@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Trash2, ExternalLink, CalendarIcon, Sparkles, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import type { EventRecord, Note, Customer } from "@/lib/types";
+import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 
 export type DrillMetricKey = "faces" | "career_chats" | "new_team_members" | "new_skincare_customers";
 
@@ -27,6 +27,7 @@ interface Props {
   notes: Note[];
   events: EventRecord[];
   customers: Customer[];
+  prospects?: Prospect[];
   consultants: Array<{ id: string; created_at: string; join_date?: string | null; relationship_type: string | null; name?: string | null }>;
 }
 
@@ -44,6 +45,8 @@ interface Row {
   href?: string;
   // For events: include guest count
   count?: number;
+  // Ownership badge (career chats)
+  ownership?: "Personal" | "Unit";
 }
 
 function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
@@ -53,7 +56,7 @@ function inRange(dateStr: string | null | undefined, start: Date, end: Date): bo
 
 export default function MetricDrillDownDialog({
   open, onOpenChange, metricKey, metricLabel, period,
-  notes, events, customers, consultants,
+  notes, events, customers, consultants, prospects = [],
 }: Props) {
   const qc = useQueryClient();
   const now = new Date();
@@ -72,6 +75,7 @@ export default function MetricDrillDownDialog({
   }, [rangeMode, customStart, customEnd]);
 
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
+  const prospectById = useMemo(() => new Map(prospects.map((p) => [p.id, p])), [prospects]);
 
   // Edit dialog state — only for note-backed rows
   const [editing, setEditing] = useState<{ noteId: string; date: string; body: string } | null>(null);
@@ -98,11 +102,11 @@ export default function MetricDrillDownDialog({
       });
       // Quick Add Face notes
       notes.filter((n) => n.result_type === "Face" && inRange(n.note_date, start, end)).forEach((n) => {
-        out.push(noteRow(n, customerById));
+        out.push(noteRow(n, customerById, prospectById));
       });
     } else if (metricKey === "career_chats") {
       notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).forEach((n) => {
-        out.push(noteRow(n, customerById));
+        out.push(noteRow(n, customerById, prospectById));
       });
     } else if (metricKey === "new_team_members") {
       consultants.filter((c) => {
@@ -138,7 +142,7 @@ export default function MetricDrillDownDialog({
     }
     out.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     return out;
-  }, [metricKey, notes, events, customers, consultants, start, end, customerById]);
+  }, [metricKey, notes, events, customers, consultants, start, end, customerById, prospectById]);
 
   const handleDelete = async (row: Row) => {
     try {
@@ -275,6 +279,19 @@ export default function MetricDrillDownDialog({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm text-foreground truncate">{row.personName}</span>
                       <Badge variant="outline" className="text-[10px] py-0">{row.source}</Badge>
+                      {metricKey === "career_chats" && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] py-0",
+                            (row.ownership ?? "Personal") === "Unit"
+                              ? "bg-purple-50 text-purple-700 border-purple-200"
+                              : "bg-pink-50 text-pink-700 border-pink-200",
+                          )}
+                        >
+                          {row.ownership ?? "Personal"}
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">{row.date ? format(parseISO(row.date), "MMM d") : ""}</span>
                     </div>
                     {row.notes && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{row.notes}</p>}
@@ -394,10 +411,21 @@ export default function MetricDrillDownDialog({
   );
 }
 
-function noteRow(n: Note, customerById: Map<string, Customer>): Row {
+function noteRow(n: Note, customerById: Map<string, Customer>, prospectById: Map<string, Prospect>): Row {
   const cust = n.customer_id ? customerById.get(n.customer_id) : undefined;
-  const personName = cust?.full_name || (n as any).person_name || "(unknown)";
-  const href = cust?.id ? `/customers/${cust.id}` : (n.prospect_id ? `/prospects/${n.prospect_id}` : undefined);
+  const prospect = n.prospect_id ? prospectById.get(n.prospect_id) : undefined;
+  const personName =
+    cust?.full_name ||
+    prospect?.name ||
+    (n as any).person_name ||
+    "(unknown)";
+  const href = cust?.id
+    ? `/customers/${cust.id}`
+    : n.prospect_id
+    ? `/prospects/${n.prospect_id}`
+    : undefined;
+  const ownership: "Personal" | "Unit" =
+    (prospect?.ownership_type || "personal") === "unit" ? "Unit" : "Personal";
   return {
     id: `note-${n.id}`,
     source: "Quick Add",
@@ -408,5 +436,6 @@ function noteRow(n: Note, customerById: Map<string, Customer>): Row {
     notes: n.note_body,
     table: "notes",
     href,
+    ownership,
   };
 }

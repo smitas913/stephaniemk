@@ -265,6 +265,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
           notes={notes}
           events={events}
           customers={customers}
+          prospects={prospects}
           consultants={consultants}
         />
       )}
