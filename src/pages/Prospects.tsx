@@ -100,7 +100,9 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       return filterDnc === "dnc" ? isDnc : !isDnc;
     });
     if (filterStatus !== "all") list = list.filter((p) => p.opportunity_status === filterStatus);
-    list = list.filter((p) => (p.ownership_type || "personal") === subTab);
+    if (isDirector) {
+      list = list.filter((p) => (p.ownership_type || "personal") === subTab);
+    }
     if (filterConsultant !== "all") list = list.filter((p) => p.assigned_consultant_id === filterConsultant);
     if (search.trim()) {
       const q = search.toLowerCase();
