@@ -110,7 +110,7 @@ export default function QuickBookingDialog({
   });
 
   const reset = () => {
-    setQuery(""); setSelectedName(""); setSelectedPhone("");
+    setQuery(""); setSelectedName(""); setSelectedPhone(""); setSelectedLeadId(null);
     setEventType("Party"); setEventDate(format(new Date(), "yyyy-MM-dd"));
     setEventTime("6:30 PM"); setFormat_("In-Person"); setStep("who");
   };
