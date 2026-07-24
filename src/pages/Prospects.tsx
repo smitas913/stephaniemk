@@ -100,7 +100,9 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       return filterDnc === "dnc" ? isDnc : !isDnc;
     });
     if (filterStatus !== "all") list = list.filter((p) => p.opportunity_status === filterStatus);
-    list = list.filter((p) => (p.ownership_type || "personal") === subTab);
+    if (isDirector) {
+      list = list.filter((p) => (p.ownership_type || "personal") === subTab);
+    }
     if (filterConsultant !== "all") list = list.filter((p) => p.assigned_consultant_id === filterConsultant);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -228,39 +230,42 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           ))}
         </div>
 
-        {/* Personal / Unit sub-tabs */}
-        <div className="flex gap-1 border-b border-border/50">
-          {(["personal", "unit"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setSubTab(t)}
-              className={cn(
-                "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
-                subTab === t
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t === "personal" ? "Personal" : "Unit"}
-            </button>
-          ))}
-        </div>
+        {/* Personal / Unit sub-tabs + Assigned-to filter (directors/admins only) */}
+        {isDirector && (
+          <>
+            <div className="flex gap-1 border-b border-border/50">
+              {(["personal", "unit"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setSubTab(t)}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                    subTab === t
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t === "personal" ? "Personal" : "Unit"}
+                </button>
+              ))}
+            </div>
 
-        {/* Assigned-to filter (Unit sub-tab only) */}
-        {subTab === "unit" && consultants.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <Select value={filterConsultant} onValueChange={setFilterConsultant}>
-              <SelectTrigger className="h-8 w-[180px] text-xs">
-                <SelectValue placeholder="Assigned To" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Consultants</SelectItem>
-                {consultants.filter(c => c.status === "Active").map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {subTab === "unit" && consultants.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <Select value={filterConsultant} onValueChange={setFilterConsultant}>
+                  <SelectTrigger className="h-8 w-[180px] text-xs">
+                    <SelectValue placeholder="Assigned To" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Consultants</SelectItem>
+                    {consultants.filter(c => c.status === "Active").map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
         )}
 
         {/* Search + Active/DNC */}
