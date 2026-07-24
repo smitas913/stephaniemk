@@ -114,8 +114,14 @@ export default function Events() {
       isBookingAttempt: boolean; isFollowUp: boolean; nextFollowUpDate?: string | null;
     }) => {
       const ev = events.find((e) => e.id === uItem.id);
-      if (ev && nextFollowUpDate) {
-        await upsertEvent({ event_id: ev.event_id, hostess_next_action_date: nextFollowUpDate } as any);
+      const updates: Record<string, any> = {};
+      if (ev && nextFollowUpDate) updates.hostess_next_action_date = nextFollowUpDate;
+      if (ev && (ev as any).reschedule_status === "In Process of Rescheduling") {
+        updates.reschedule_attempt_number = ((ev as any).reschedule_attempt_number || 0) + 1;
+        updates.reschedule_last_contact_date = new Date().toISOString().slice(0, 10);
+      }
+      if (ev && Object.keys(updates).length > 0) {
+        await upsertEvent({ event_id: ev.event_id, ...updates } as any);
       }
       await createNote({
         entity_type: "Hostess",
