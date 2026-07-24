@@ -404,7 +404,7 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
       bookingActivityItems.push({
         id: e.id,
         name: e.hostess_name || e.event_id,
-        type: "Lead" as any,
+        type: "Hostess",
         method: "Reschedule",
         detail: `Rescheduling · was ${(e as any).event_type || "Event"}`,
       });
