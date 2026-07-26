@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, updateCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, updateCustomer, createProspectNote } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
