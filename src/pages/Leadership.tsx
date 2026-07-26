@@ -699,3 +699,90 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     </div>
   );
 }
+
+/* ─── Career Chat Prospects (in Consultant sheet) ─── */
+function CareerChatProspectsSection({ consultantId, allProspects }: { consultantId: string; allProspects: any[] }) {
+  const navigate = useNavigate();
+  const prospects = useMemo(
+    () => allProspects.filter((p) => p.assigned_consultant_id === consultantId && p.ownership_type === "unit"),
+    [allProspects, consultantId],
+  );
+  const prospectIds = useMemo(() => prospects.map((p) => p.id), [prospects]);
+
+  const { data: latestNotes = {} } = useQuery({
+    queryKey: ["prospect-notes-latest", consultantId, prospectIds.join(",")],
+    enabled: prospectIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("prospect_notes" as any)
+        .select("prospect_id, note_text, created_at")
+        .in("prospect_id", prospectIds)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const map: Record<string, { note_text: string; created_at: string }> = {};
+      for (const n of (data || []) as any[]) {
+        if (!map[n.prospect_id]) map[n.prospect_id] = { note_text: n.note_text, created_at: n.created_at };
+      }
+      return map;
+    },
+  });
+
+  if (prospects.length === 0) return null;
+
+  return (
+    <>
+      <Separator className="my-3" />
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Career Chat Prospects</p>
+          <Badge variant="secondary" className="text-[10px]">{prospects.length}</Badge>
+        </div>
+        <div className="space-y-2">
+          {prospects.map((p) => {
+            const followUp = p.next_step_date || p.next_follow_up_date;
+            const isOverdue = followUp && compareDateOnly(followUp) === -1;
+            const isToday = followUp && compareDateOnly(followUp) === 0;
+            const preview = latestNotes[p.id]?.note_text;
+            return (
+              <div key={p.id} className="rounded-md border border-border/60 p-2 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium truncate">{p.name}</p>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {p.opportunity_status && (
+                      <Badge variant="outline" className="text-[10px]">{p.opportunity_status}</Badge>
+                    )}
+                    {typeof p.interest_level === "number" && (
+                      <Badge variant="secondary" className="text-[10px]">{p.interest_level}/10</Badge>
+                    )}
+                  </div>
+                </div>
+                {followUp && (
+                  <p className={cn(
+                    "text-[11px]",
+                    isOverdue ? "text-destructive font-medium" : isToday ? "text-primary font-medium" : "text-muted-foreground",
+                  )}>
+                    Coach check-in: {formatDateOnly(followUp)}
+                    {isOverdue && " · Overdue"}
+                    {isToday && " · Today"}
+                  </p>
+                )}
+                {preview && (
+                  <p className="text-xs text-muted-foreground line-clamp-1 italic">"{preview}"</p>
+                )}
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={() => navigate(`/prospects/${p.id}`, { state: { from: "/leadership" } })}
+                >
+                  Open full record →
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
