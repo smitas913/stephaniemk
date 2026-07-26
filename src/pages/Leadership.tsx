@@ -628,6 +628,10 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                 {/* Activity Logger - prioritized above contact info */}
                 <ConsultantActivityLogger consultantId={vc.id} consultantName={vc.name} />
 
+                {/* Career Chat Prospects — unit-owned prospects assigned to this consultant */}
+                <CareerChatProspectsSection consultantId={vc.id} allProspects={allProspects as any[]} />
+
+
                 {/* Contact & address details - condensed at bottom */}
                 {(vc.phone || vc.email || address) && (
                   <>
