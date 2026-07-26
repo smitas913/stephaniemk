@@ -179,17 +179,28 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
               />
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                Next Follow-Up Date <span className="font-normal">(optional)</span>
-              </label>
-              <Input
-                type="date"
-                value={nextFollowUp}
-                min={toLocalDateKey()}
-                onChange={(e) => setNextFollowUp(e.target.value)}
-                className="h-9 max-w-[200px]"
-              />
+            <div className="flex flex-wrap gap-2">
+              <div className="flex-1 min-w-[140px]">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Date Logged</label>
+                <Input
+                  type="date"
+                  value={noteDate}
+                  onChange={(e) => setNoteDate(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                  Next Follow-Up <span className="font-normal">(optional)</span>
+                </label>
+                <Input
+                  type="date"
+                  value={nextFollowUp}
+                  min={toLocalDateKey()}
+                  onChange={(e) => setNextFollowUp(e.target.value)}
+                  className="h-9"
+                />
+              </div>
             </div>
 
             <Button size="sm" onClick={handleSubmit} disabled={addMutation.isPending || !noteText.trim()}>
