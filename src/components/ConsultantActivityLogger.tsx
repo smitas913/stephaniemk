@@ -74,6 +74,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
         tags: ["consultant_coaching"],
         note_body: consultantNoteBody,
         note_type: action,
+        note_date: logDate || toLocalDateKey(),
         next_follow_up_date: nextFollowUpDate,
         is_booking_attempt: false,
         is_follow_up: false, // consultant activity counts under coaching, not follow-ups
