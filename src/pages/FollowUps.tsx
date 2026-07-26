@@ -2426,8 +2426,9 @@ export default function FollowUps() {
                         .filter((p: any) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
                         .map((p: any): CareerChatItem => {
                           const fu = normalizeFollowUpDate(p.next_step_date) || normalizeFollowUpDate(p.next_follow_up_date) || "";
-                          const status = (getFollowUpStatus(fu, todayKey) || "UPCOMING") as CareerChatItem["follow_up_status"];
-                          const daysOverdue = status === "OVERDUE" ? getDaysOverdue(fu, todayDate) : null;
+                          const cchatToday = toLocalDateKey();
+                          const status = (getFollowUpStatus(fu, cchatToday) || "UPCOMING") as CareerChatItem["follow_up_status"];
+                          const daysOverdue = status === "OVERDUE" ? getDaysOverdue(fu, new Date()) : null;
                           const c = p.assigned_consultant_id ? consultantById.get(p.assigned_consultant_id) : null;
                           return {
                             prospectId: p.id,
