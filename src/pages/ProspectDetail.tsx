@@ -509,7 +509,27 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
   );
 }
 
-function NoteItem({ note, onDelete, isLatest = false }: { note: ProspectNote; onDelete: () => void; isLatest?: boolean }) {
+function NoteItem({
+  note,
+  onDelete,
+  onSaveEdit,
+  isSaving,
+  isLatest = false,
+}: {
+  note: ProspectNote;
+  onDelete: () => void;
+  onSaveEdit: (updates: { note_text?: string; note_date?: string }) => void;
+  isSaving?: boolean;
+  isLatest?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [body, setBody] = useState(note.note_text || "");
+  const [date, setDate] = useState(note.note_date || toLocalDateKey());
+
+  const displayDate = note.note_date
+    ? formatDateOnly(note.note_date, "MMM d, yyyy")
+    : new Date(note.created_at).toLocaleDateString();
+
   return (
     <div className={cn(
       "flex items-start gap-3 p-3 rounded-lg border group",
@@ -517,16 +537,49 @@ function NoteItem({ note, onDelete, isLatest = false }: { note: ProspectNote; on
     )}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="text-[11px] text-muted-foreground">{new Date(note.created_at).toLocaleString()}</p>
+          <p className="text-[11px] text-muted-foreground">{displayDate}</p>
           {isLatest && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
           )}
         </div>
-        <p className="text-sm text-foreground mt-0.5">{note.note_text}</p>
+        {editing ? (
+          <div className="space-y-2 mt-1">
+            <Textarea value={body} onChange={(e) => setBody(e.target.value)} className="min-h-[60px] text-sm" autoFocus />
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[140px]">
+                <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Date Logged</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  className="h-8 text-xs"
+                  disabled={isSaving || !body.trim()}
+                  onClick={() => { onSaveEdit({ note_text: body.trim(), note_date: date }); setEditing(false); }}
+                >Save</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => { setEditing(false); setBody(note.note_text || ""); setDate(note.note_date || toLocalDateKey()); }}
+                >Cancel</Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-foreground mt-0.5 whitespace-pre-wrap">{note.note_text}</p>
+        )}
       </div>
-      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0" onClick={onDelete}>
-        <Trash2 className="w-3 h-3 text-destructive" />
-      </Button>
+      {!editing && (
+        <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditing(true)} title="Edit">
+            <FileText className="w-3 h-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onDelete} title="Delete">
+            <Trash2 className="w-3 h-3 text-destructive" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
