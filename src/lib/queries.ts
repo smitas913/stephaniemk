@@ -663,16 +663,24 @@ export const fetchProspectNotes = async (prospectId: string): Promise<ProspectNo
     .from("prospect_notes")
     .select("*")
     .eq("prospect_id", prospectId)
+    .order("note_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as ProspectNote[];
 };
 
-export const createProspectNote = async (note: { prospect_id: string; note_text: string }) => {
+export const createProspectNote = async (note: { prospect_id: string; note_text: string; note_date?: string }) => {
   const userId = await getCurrentUserId();
+  const payload: any = { ...note, owner_user_id: userId };
+  if (!payload.note_date) delete payload.note_date;
   const { error } = await supabase
     .from("prospect_notes")
-    .insert({ ...note, owner_user_id: userId } as any);
+    .insert(payload);
+  if (error) throw error;
+};
+
+export const updateProspectNote = async (id: string, updates: { note_text?: string; note_date?: string }) => {
+  const { error } = await supabase.from("prospect_notes").update(updates as any).eq("id", id);
   if (error) throw error;
 };
 
