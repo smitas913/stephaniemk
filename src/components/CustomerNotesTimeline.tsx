@@ -316,7 +316,7 @@ function NoteItem({
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>
               )}
               <span className="text-[11px] text-muted-foreground">
-                {note.created_at ? format(new Date(note.created_at), "MMM d, yyyy") : ""}
+                {note.note_date ? format(new Date(note.note_date + "T12:00"), "MMM d, yyyy") : (note.created_at ? format(new Date(note.created_at), "MMM d, yyyy") : "")}
               </span>
               {note.next_follow_up_date && !editing && (
                 <span className="text-[11px] text-primary font-medium">
