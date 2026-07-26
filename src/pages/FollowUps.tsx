@@ -871,8 +871,11 @@ export default function FollowUps() {
       };
     });
 
-    // Prospect items
+    // Prospect items — personal only. Unit-owned prospects (career chats logged
+    // on behalf of a consultant) surface in the separate "Career Chat Follow-Ups"
+    // card and route to the consultant's Leadership profile instead.
     const prospectItems: ActionItem[] = prospects
+      .filter((p) => (p as any).ownership_type !== "unit")
       .filter((p) => !(p.customer_id && customerDncSet.has(p.customer_id)))
       .filter((p) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
       .map((p) => {
