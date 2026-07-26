@@ -233,6 +233,17 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
           </div>
         </div>
 
+        {/* Date Logged */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Date Logged</label>
+          <Input
+            type="date"
+            value={logDate}
+            onChange={(e) => setLogDate(e.target.value)}
+            className="h-9 max-w-[200px]"
+          />
+        </div>
+
         {/* Note Input */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Note (optional)</label>
