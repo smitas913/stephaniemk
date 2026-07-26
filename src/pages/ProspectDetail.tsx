@@ -406,18 +406,36 @@ export default function ProspectDetail() {
             <CardTitle className="text-base">Notes ({notes.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <Textarea placeholder="Add a note..." value={noteText} onChange={(e) => setNoteText(e.target.value)} className="min-h-[60px]" />
-              <Button size="sm" className="shrink-0 self-end" onClick={() => noteText.trim() && addNoteMut.mutate(noteText.trim())} disabled={!noteText.trim() || addNoteMut.isPending}>
-                <FileText className="w-3.5 h-3.5 mr-1" />Save
-              </Button>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[160px]">
+                  <label className="text-[11px] font-medium text-muted-foreground block mb-0.5">Date Logged</label>
+                  <Input type="date" value={noteDate} onChange={(e) => setNoteDate(e.target.value)} className="h-9" />
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => noteText.trim() && addNoteMut.mutate({ text: noteText.trim(), date: noteDate })}
+                  disabled={!noteText.trim() || addNoteMut.isPending}
+                >
+                  <FileText className="w-3.5 h-3.5 mr-1" />Save
+                </Button>
+              </div>
             </div>
             {notes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
             ) : (
               <div className="space-y-2">
                 {notes.map((n, idx) => (
-                  <NoteItem key={n.id} note={n} isLatest={idx === 0} onDelete={() => deleteNoteMut.mutate(n.id)} />
+                  <NoteItem
+                    key={n.id}
+                    note={n}
+                    isLatest={idx === 0}
+                    onDelete={() => deleteNoteMut.mutate(n.id)}
+                    onSaveEdit={(updates) => editNoteMut.mutate({ noteId: n.id, ...updates })}
+                    isSaving={editNoteMut.isPending}
+                  />
                 ))}
               </div>
             )}
