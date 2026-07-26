@@ -2,8 +2,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchTeamConsultants, createTeamConsultant, updateTeamConsultant, deleteTeamConsultant,
-  convertConsultantToCustomer,
+  convertConsultantToCustomer, fetchProspects,
 } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 import { ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, RELATIONSHIP_TYPES } from "@/lib/types";
 import type { TeamConsultant } from "@/lib/types";
 import Prospects from "./Prospects";
