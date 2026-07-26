@@ -190,6 +190,12 @@ export default function QuickCareerChatDialog({
         });
       }
 
+      // Mirror the free-text notes onto the Prospect's Notes timeline so it's
+      // visible from their profile page (separate from the Career Chat activity log).
+      if (prospectId && notes.trim()) {
+        await createProspectNote({ prospect_id: prospectId, note_text: notes.trim() });
+      }
+
       // Unit path: keep the coach-side note + optional coaching reminder.
       if (isForConsultant && selectedConsultant) {
         await createNote({
