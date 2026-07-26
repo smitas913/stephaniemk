@@ -92,6 +92,7 @@ export default function Leadership() {
 function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
   const queryClient = useQueryClient();
   const { data: consultants = [], isLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const { data: allProspects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
 
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
