@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, updateCustomer } from "@/lib/queries";
+import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, updateCustomer, createProspectNote } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
@@ -188,6 +188,12 @@ export default function QuickCareerChatDialog({
           note_date: today,
           result_type: "Career Chat",
         });
+      }
+
+      // Mirror the free-text notes onto the Prospect's Notes timeline so it's
+      // visible from their profile page (separate from the Career Chat activity log).
+      if (prospectId && notes.trim()) {
+        await createProspectNote({ prospect_id: prospectId, note_text: notes.trim() });
       }
 
       // Unit path: keep the coach-side note + optional coaching reminder.
