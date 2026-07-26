@@ -297,6 +297,7 @@ export type Database = {
           created_at: string
           customer_id: string | null
           id: string
+          note_date: string
           note_text: string
           note_type: string
           owner_user_id: string | null
@@ -306,6 +307,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           id?: string
+          note_date?: string
           note_text: string
           note_type?: string
           owner_user_id?: string | null
@@ -315,6 +317,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           id?: string
+          note_date?: string
           note_text?: string
           note_type?: string
           owner_user_id?: string | null
@@ -1598,6 +1601,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          note_date: string
           note_text: string
           owner_user_id: string | null
           prospect_id: string
@@ -1605,6 +1609,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          note_date?: string
           note_text: string
           owner_user_id?: string | null
           prospect_id: string
@@ -1612,6 +1617,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          note_date?: string
           note_text?: string
           owner_user_id?: string | null
           prospect_id?: string
