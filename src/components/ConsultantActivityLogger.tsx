@@ -45,6 +45,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
   const [nextOption, setNextOption] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [logDate, setLogDate] = useState(toLocalDateKey());
   // Fetch recent activity for this consultant
   const { data: unifiedNotes = [] } = useQuery({
     queryKey: ["unified-notes"],
@@ -73,6 +74,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
         tags: ["consultant_coaching"],
         note_body: consultantNoteBody,
         note_type: action,
+        note_date: logDate || toLocalDateKey(),
         next_follow_up_date: nextFollowUpDate,
         is_booking_attempt: false,
         is_follow_up: false, // consultant activity counts under coaching, not follow-ups
@@ -93,6 +95,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
       setNextOption(null);
       setCustomDate("");
       setSelectedReason(null);
+      setLogDate(toLocalDateKey());
       toast.success("Activity logged!");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -228,6 +231,17 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Date Logged */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Date Logged</label>
+          <Input
+            type="date"
+            value={logDate}
+            onChange={(e) => setLogDate(e.target.value)}
+            className="h-9 max-w-[200px]"
+          />
         </div>
 
         {/* Note Input */}

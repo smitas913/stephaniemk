@@ -181,6 +181,7 @@ export interface CustomerNote {
   customer_id: string;
   note_text: string;
   note_type: string;
+  note_date: string;
   created_at: string;
   owner_user_id: string | null;
 }
@@ -248,6 +249,7 @@ export interface ProspectNote {
   id: string;
   prospect_id: string;
   note_text: string;
+  note_date: string;
   created_at: string;
   owner_user_id: string | null;
 }

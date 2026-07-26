@@ -563,6 +563,7 @@ export const fetchCustomerNotes = async (customerId: string): Promise<CustomerNo
     .from("customer_notes")
     .select("*")
     .eq("customer_id", customerId)
+    .order("note_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as CustomerNote[];
@@ -572,20 +573,28 @@ export const fetchLatestNotes = async (): Promise<CustomerNote[]> => {
   const { data, error } = await supabase
     .from("customer_notes")
     .select("*")
+    .order("note_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as CustomerNote[];
 };
 
-export const createCustomerNote = async (note: { customer_id: string; note_text: string; note_type: string }) => {
+export const createCustomerNote = async (note: { customer_id: string; note_text: string; note_type: string; note_date?: string }) => {
   const userId = await getCurrentUserId();
+  const payload: any = { ...note, owner_user_id: userId };
+  if (!payload.note_date) delete payload.note_date;
   const { data, error } = await supabase
     .from("customer_notes")
-    .insert({ ...note, owner_user_id: userId } as any)
+    .insert(payload)
     .select()
     .single();
   if (error) throw error;
   return data;
+};
+
+export const updateCustomerNote = async (id: string, updates: { note_text?: string; note_date?: string }) => {
+  const { error } = await supabase.from("customer_notes").update(updates as any).eq("id", id);
+  if (error) throw error;
 };
 
 export const deleteCustomerNote = async (id: string) => {
@@ -654,16 +663,24 @@ export const fetchProspectNotes = async (prospectId: string): Promise<ProspectNo
     .from("prospect_notes")
     .select("*")
     .eq("prospect_id", prospectId)
+    .order("note_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data as unknown as ProspectNote[];
 };
 
-export const createProspectNote = async (note: { prospect_id: string; note_text: string }) => {
+export const createProspectNote = async (note: { prospect_id: string; note_text: string; note_date?: string }) => {
   const userId = await getCurrentUserId();
+  const payload: any = { ...note, owner_user_id: userId };
+  if (!payload.note_date) delete payload.note_date;
   const { error } = await supabase
     .from("prospect_notes")
-    .insert({ ...note, owner_user_id: userId } as any);
+    .insert(payload);
+  if (error) throw error;
+};
+
+export const updateProspectNote = async (id: string, updates: { note_text?: string; note_date?: string }) => {
+  const { error } = await supabase.from("prospect_notes").update(updates as any).eq("id", id);
   if (error) throw error;
 };
 
