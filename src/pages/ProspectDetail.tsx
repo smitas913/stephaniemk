@@ -99,12 +99,24 @@ export default function ProspectDetail() {
   });
 
   const addNoteMut = useMutation({
-    mutationFn: (text: string) => createProspectNote({ prospect_id: id!, note_text: text }),
+    mutationFn: (payload: { text: string; date: string }) =>
+      createProspectNote({ prospect_id: id!, note_text: payload.text, note_date: payload.date || toLocalDateKey() }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prospect-notes", id] });
       setNoteText("");
+      setNoteDate(toLocalDateKey());
       toast.success("Note added");
     },
+  });
+
+  const editNoteMut = useMutation({
+    mutationFn: ({ noteId, ...updates }: { noteId: string; note_text?: string; note_date?: string }) =>
+      updateProspectNote(noteId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prospect-notes", id] });
+      toast.success("Note updated");
+    },
+    onError: (err: any) => toast.error(`Failed to update: ${err.message || "Unknown error"}`),
   });
 
   const deleteNoteMut = useMutation({
