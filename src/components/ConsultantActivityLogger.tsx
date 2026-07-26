@@ -45,6 +45,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
   const [nextOption, setNextOption] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [logDate, setLogDate] = useState(toLocalDateKey());
   // Fetch recent activity for this consultant
   const { data: unifiedNotes = [] } = useQuery({
     queryKey: ["unified-notes"],
