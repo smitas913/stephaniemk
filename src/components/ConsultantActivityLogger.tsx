@@ -95,6 +95,7 @@ export default function ConsultantActivityLogger({ consultantId, consultantName 
       setNextOption(null);
       setCustomDate("");
       setSelectedReason(null);
+      setLogDate(toLocalDateKey());
       toast.success("Activity logged!");
     },
     onError: (err: Error) => toast.error(err.message),
