@@ -49,17 +49,17 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
   const [noteText, setNoteText] = useState("");
   const [noteType, setNoteType] = useState<string>("Call");
   const [nextFollowUp, setNextFollowUp] = useState("");
+  const [noteDate, setNoteDate] = useState(toLocalDateKey());
 
   const { data: rawNotes = [] } = useQuery({
     queryKey: ["customer-notes-unified", customerId],
     queryFn: () => fetchNotes("Customer", customerId),
   });
 
-  // Always show newest first. Sort by created_at desc (most reliable timestamp),
-  // falling back to note_date for legacy rows that lack created_at.
+  // Newest first, sorted by the user-editable note_date (falling back to created_at).
   const notes = [...rawNotes].sort((a: any, b: any) => {
-    const aKey = a.created_at || a.note_date || "";
-    const bKey = b.created_at || b.note_date || "";
+    const aKey = (a.note_date || "") + "T" + (a.created_at || "");
+    const bKey = (b.note_date || "") + "T" + (b.created_at || "");
     return bKey.localeCompare(aKey);
   });
 
@@ -79,6 +79,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
         customer_id: customerId,
         note_body: noteText.trim(),
         note_type: noteType,
+        note_date: noteDate || toLocalDateKey(),
         next_follow_up_date: resolvedFollowUp,
       });
     },
@@ -90,6 +91,7 @@ export default function CustomerNotesTimeline({ customerId }: { customerId: stri
       setNoteText("");
       setNoteType("Call");
       setNextFollowUp("");
+      setNoteDate(toLocalDateKey());
       setShowForm(false);
       toast.success("Note saved — Last Contacted updated");
     },
