@@ -50,6 +50,7 @@ export default function ProspectDetail() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [noteText, setNoteText] = useState("");
+  const [noteDate, setNoteDate] = useState(toLocalDateKey());
   const [showConvert, setShowConvert] = useState(false);
   const [convertCoachingDate, setConvertCoachingDate] = useState("");
   const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
