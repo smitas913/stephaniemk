@@ -14,9 +14,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User } from "lucide-react";
+import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import CareerChatsTab from "@/components/CareerChatsTab";
 
 const STATUS_COLORS: Record<string, string> = {
   "New Contact": "bg-muted text-muted-foreground",
