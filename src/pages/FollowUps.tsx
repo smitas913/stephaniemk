@@ -2421,7 +2421,8 @@ export default function FollowUps() {
                        });
                      };
 
-                     const customerSorted = prioritySort(allCustomerItems);
+                      const customerSorted = prioritySort(allCustomerItems);
+                      const newSequenceSorted = prioritySort(newSequenceItems);
                      const leadSorted = prioritySort(allLeadItems);
                      const customerVisible = customerSorted.slice(0, customerLimit);
                      const leadVisible = leadSorted.slice(0, leadLimit);
