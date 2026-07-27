@@ -14,9 +14,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User } from "lucide-react";
+import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import CareerChatsTab from "@/components/CareerChatsTab";
 
 const STATUS_COLORS: Record<string, string> = {
   "New Contact": "bg-muted text-muted-foreground",
@@ -175,6 +176,8 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
     }
   };
 
+  const [topTab, setTopTab] = useState<"list" | "career_chats">("career_chats");
+
   const content = (
       <div className="space-y-5 pb-8">
         <div className="flex items-center justify-between">
@@ -182,8 +185,36 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Prospects</h2>}
             <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} active career chats</p>
           </div>
-          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Prospect</Button>
+          {topTab === "list" && (
+            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Prospect</Button>
+          )}
         </div>
+
+        {/* Top tabs — Career Chats vs. full list */}
+        <div className="flex gap-1 border-b border-border/50">
+          <button
+            onClick={() => setTopTab("career_chats")}
+            className={cn(
+              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5",
+              topTab === "career_chats" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <MessageSquare className="w-4 h-4" /> Career Chats
+          </button>
+          <button
+            onClick={() => setTopTab("list")}
+            className={cn(
+              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+              topTab === "list" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            All Prospects
+          </button>
+        </div>
+
+        {topTab === "career_chats" && <CareerChatsTab />}
+        {topTab === "list" && <>
+
 
         {/* Sort + Archive controls */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -508,8 +539,10 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
             </div>
           </DialogContent>
         </Dialog>
+        </>}
       </div>
   );
+
 
   if (embedded) return content;
   return <Layout>{content}</Layout>;

@@ -871,28 +871,10 @@ export default function FollowUps() {
       };
     });
 
-    // Prospect items — personal only. Unit-owned prospects (career chats logged
-    // on behalf of a consultant) surface in the separate "Career Chat Follow-Ups"
-    // card and route to the consultant's Leadership profile instead.
-    const prospectItems: ActionItem[] = prospects
-      .filter((p) => (p as any).ownership_type !== "unit")
-      .filter((p) => !(p.customer_id && customerDncSet.has(p.customer_id)))
-      .filter((p) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
-      .map((p) => {
-        const effectiveFollowUp = normalizeFollowUpDate(p.next_step_date) || normalizeFollowUpDate(p.next_follow_up_date);
-        const status = getFollowUpStatus(effectiveFollowUp, todayKey) || "UPCOMING";
-        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveFollowUp, todayDate) : null;
-        return {
-          id: p.id, itemType: "prospect" as const, name: p.name,
-          phone: p.phone, email: p.email,
-          next_follow_up: effectiveFollowUp, follow_up_status: status,
-          opportunity_status: p.opportunity_status, daysOverdue,
-          followUpReason: p.next_step_type || `Prospect - ${p.opportunity_status}`,
-          lastContacted: p.last_contact_date,
-          actionLabel: p.next_step_type || "Next Step",
-          allow_non_working_day: !!(p as any).allow_non_working_day,
-        };
-      });
+    // Prospect items removed from Today — career chats now live entirely on the
+    // /prospects "Career Chats" tab.
+    const prospectItems: ActionItem[] = [];
+
 
     // Consultant items
     const consultantItems: ActionItem[] = consultants
@@ -2406,46 +2388,11 @@ export default function FollowUps() {
                            _isRescheduleEvent: true,
                          }));
                       const allLeadItems = [...followUpItems.filter(i => i.itemType === "lead"), ...rescheduleLeadItems];
-                      const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
+                      // Prospect + career-chat follow-ups moved to /prospects "Career Chats" tab.
+                      const prospectItems: ActionItem[] = [];
+                      const careerChatItems: any[] = [];
 
-                      // Unit-owned prospects (career chats logged for a consultant).
-                      // Rendered in a separate card and routed to Leadership.
-                      const consultantById = new Map((consultants as any[]).map((c: any) => [c.id, c]));
-                      type CareerChatItem = {
-                        prospectId: string;
-                        prospectName: string;
-                        consultantId: string | null;
-                        consultantName: string;
-                        followUp: string;
-                        follow_up_status: "OVERDUE" | "TODAY" | "UPCOMING";
-                        daysOverdue: number | null;
-                      };
-                      const careerChatItems: CareerChatItem[] = (prospects as any[])
-                        .filter((p: any) => p.ownership_type === "unit")
-                        .filter((p: any) => !(p.customer_id && customerDncSet.has(p.customer_id)))
-                        .filter((p: any) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
-                        .map((p: any): CareerChatItem => {
-                          const fu = normalizeFollowUpDate(p.next_step_date) || normalizeFollowUpDate(p.next_follow_up_date) || "";
-                          const cchatToday = toLocalDateKey();
-                          const status = (getFollowUpStatus(fu, cchatToday) || "UPCOMING") as CareerChatItem["follow_up_status"];
-                          const daysOverdue = status === "OVERDUE" ? getDaysOverdue(fu, new Date()) : null;
-                          const c = p.assigned_consultant_id ? consultantById.get(p.assigned_consultant_id) : null;
-                          return {
-                            prospectId: p.id,
-                            prospectName: p.name,
-                            consultantId: p.assigned_consultant_id || null,
-                            consultantName: c?.name || "Unassigned",
-                            followUp: fu,
-                            follow_up_status: status,
-                            daysOverdue,
-                          };
-                        })
-                        .sort((a, b) => {
-                          const s = (x: CareerChatItem) => x.follow_up_status === "OVERDUE" ? 0 : x.follow_up_status === "TODAY" ? 1 : 2;
-                          const sa = s(a), sb = s(b);
-                          if (sa !== sb) return sa - sb;
-                          return a.followUp.localeCompare(b.followUp);
-                        });
+
 
                      // Priority sort within a category: most overdue first, then due-today, then general.
                      // PCP customers are pinned to the top of each status bucket, ordered by most
@@ -2646,56 +2593,12 @@ export default function FollowUps() {
                        );
                      };
 
-                       // Prospect Follow-Ups card (always rendered for grid balance).
-                      const renderProspectCard = () => (
-                        <Card className="border-border/50 shadow-sm">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30">
-                                <Users className="w-4 h-4 text-purple-600" />
-                              </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Prospect Follow-Ups</CardTitle>
-                              <Badge variant="secondary" className="text-xs">{prospectItems.length}</Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            {prospectItems.length === 0 ? (
-                              <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
-                            ) : (
-                              <div className="space-y-4">
-                                {(() => {
-                                  const sorted = prioritySort(prospectItems);
-                                  const visible = showAllProspects ? sorted : sorted.slice(0, 3);
-                                  const buckets = splitBuckets(visible);
-                                  return (
-                                    <>
-                                      {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
-                                      {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
-                                      {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
-                                      {!showAllProspects && sorted.length > 3 && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="mt-2 w-full"
-                                          onClick={() => setShowAllProspects(true)}
-                                        >
-                                          Show all {sorted.length}
-                                        </Button>
-                                      )}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-
                       return (
                         <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Booking Activity */}
                           <TodaySectionWrapper
+
                             sectionKey="booking"
                             title="Booking Activity"
                             count={todayActions.filter((i) => i.itemType === "lead").length}
@@ -2767,61 +2670,8 @@ export default function FollowUps() {
                               </Button>
                             )}
                           </TodaySectionWrapper>
-
-                          {/* Prospect Follow-Ups */}
-                          <TodaySectionWrapper
-                            sectionKey="prospect_followup"
-                            title="Prospect Follow-Ups"
-                            count={prospectItems.length}
-                            order={order.indexOf("prospect_followup")}
-                            totalSections={5}
-                            collapsed={!!collapsed["prospect_followup"]}
-                            onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
-                            onMove={(d) => moveSection("prospect_followup", d)}
-                          >
-                            {renderProspectCard()}
-
-                            {/* Career Chat Follow-Ups (unit prospects → Leadership) */}
-                            {careerChatItems.length > 0 && (
-                              <Card className="border-border/50 shadow-sm mt-3">
-                                <CardHeader className="pb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="p-1.5 rounded-md bg-indigo-50 dark:bg-indigo-950/30">
-                                      <MessageSquare className="w-4 h-4 text-indigo-600" />
-                                    </div>
-                                    <CardTitle className="text-sm font-semibold text-foreground">Career Chat Follow-Ups</CardTitle>
-                                    <Badge variant="secondary" className="text-xs">{careerChatItems.length}</Badge>
-                                  </div>
-                                </CardHeader>
-                                <CardContent className="pt-0">
-                                  <div className="divide-y divide-border/40">
-                                    {careerChatItems.map((ci) => (
-                                      <button
-                                        key={ci.prospectId}
-                                        onClick={() => navigate("/leadership", { state: { from: "/follow-ups", tab: "consultants", consultantId: ci.consultantId } })}
-                                        className="w-full text-left py-2 px-1 hover:bg-muted/40 rounded transition-colors flex items-center justify-between gap-3"
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <p className="text-sm font-medium text-foreground truncate">
-                                            Career Chat Follow-up: {ci.consultantName} — {ci.prospectName}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {ci.follow_up_status === "OVERDUE" && ci.daysOverdue
-                                              ? `Overdue ${ci.daysOverdue}d · ${formatDateOnly(ci.followUp)}`
-                                              : ci.follow_up_status === "TODAY"
-                                                ? `Due today · ${formatDateOnly(ci.followUp)}`
-                                                : formatDateOnly(ci.followUp)}
-                                          </p>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                                      </button>
-                                    ))}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            )}
-                          </TodaySectionWrapper>
                         </div>
+
                         </>
 
                       );

@@ -243,6 +243,8 @@ export interface Prospect {
   assigned_consultant_id: string | null;
   interest_level: number | null;
   is_archived: boolean | null;
+  last_touch_layer?: string | null;
+  next_touch_layer?: string | null;
 }
 
 export interface ProspectNote {
