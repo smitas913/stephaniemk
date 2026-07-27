@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { MessageSquare, User, Users, Clock, MoreHorizontal } from "lucide-react";
 import { addDays, format, differenceInCalendarDays, parseISO } from "date-fns";
 import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
-import { BOLD_ASK } from "@/lib/careerChatLayers";
+import { useNavigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
 export default function CareerChatsTab() {
