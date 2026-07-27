@@ -2606,7 +2606,7 @@ export default function FollowUps() {
                             title="Booking Activity"
                             count={todayActions.filter((i) => i.itemType === "lead").length}
                             order={order.indexOf("booking")}
-                            totalSections={5}
+                            totalSections={6}
                             collapsed={!!collapsed["booking"]}
                             onToggleCollapsed={() => toggleCollapsed("booking")}
                             onMove={(d) => moveSection("booking", d)}
@@ -2632,27 +2632,46 @@ export default function FollowUps() {
                             )}
                           </TodaySectionWrapper>
 
+                          {/* New Customer Follow-Ups (2+2+2) */}
+                          <TodaySectionWrapper
+                            sectionKey="new_customer_followup"
+                            title="New Customer Follow-Ups (2+2+2)"
+                            count={newSequenceSorted.length}
+                            order={order.indexOf("new_customer_followup")}
+                            totalSections={6}
+                            collapsed={!!collapsed["new_customer_followup"]}
+                            onToggleCollapsed={() => toggleCollapsed("new_customer_followup")}
+                            onMove={(d) => moveSection("new_customer_followup", d)}
+                          >
+                            {(() => {
+                              const stageLabeled = newSequenceSorted.map((i) => {
+                                const stage = (i as any).new_follow_up_stage as string | null | undefined;
+                                const suffix = stage ? ` · ${stage}` : "";
+                                return { ...i, name: `${i.name}${suffix}` } as ActionItem;
+                              });
+                              return renderCategoryCard(
+                                "New Customer Follow-Ups (2+2+2)",
+                                stageLabeled,
+                                stageLabeled.length,
+                                stageLabeled.length,
+                                0,
+                                "bg-emerald-50 dark:bg-emerald-950/30",
+                                "text-emerald-600",
+                              );
+                            })()}
+                          </TodaySectionWrapper>
+
                           {/* Customer Follow-Ups */}
                           <TodaySectionWrapper
                             sectionKey="customer_followup"
                             title="Customer Follow-Ups"
-                            count={todayActions.filter((i) => i.itemType === "customer").length}
+                            count={customerSorted.length}
                             order={order.indexOf("customer_followup")}
-                            totalSections={5}
+                            totalSections={6}
                             collapsed={!!collapsed["customer_followup"]}
                             onToggleCollapsed={() => toggleCollapsed("customer_followup")}
                             onMove={(d) => moveSection("customer_followup", d)}
                           >
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <Button
-                                variant={newOnlyFilter ? "default" : "outline"}
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={() => setNewOnlyFilter((v) => !v)}
-                              >
-                                New (30 days)
-                              </Button>
-                            </div>
                             {renderCategoryCard(
                               "Customer Follow-Ups",
                               showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
