@@ -2707,7 +2707,7 @@ export default function FollowUps() {
                                 title="Career Chats"
                                 count={dueChats.length}
                                 order={order.indexOf("prospect_followup")}
-                                totalSections={5}
+                                totalSections={6}
                                 collapsed={!!collapsed["prospect_followup"]}
                                 onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
                                 onMove={(d) => moveSection("prospect_followup", d)}
