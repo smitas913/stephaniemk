@@ -1645,6 +1645,7 @@ export type Database = {
           id: string
           interest_level: number | null
           is_archived: boolean | null
+          is_career_chat: boolean
           last_contact_date: string | null
           last_touch_layer: string | null
           name: string
@@ -1674,6 +1675,7 @@ export type Database = {
           id?: string
           interest_level?: number | null
           is_archived?: boolean | null
+          is_career_chat?: boolean
           last_contact_date?: string | null
           last_touch_layer?: string | null
           name: string
@@ -1703,6 +1705,7 @@ export type Database = {
           id?: string
           interest_level?: number | null
           is_archived?: boolean | null
+          is_career_chat?: boolean
           last_contact_date?: string | null
           last_touch_layer?: string | null
           name?: string
