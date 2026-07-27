@@ -2593,56 +2593,12 @@ export default function FollowUps() {
                        );
                      };
 
-                       // Prospect Follow-Ups card (always rendered for grid balance).
-                      const renderProspectCard = () => (
-                        <Card className="border-border/50 shadow-sm">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30">
-                                <Users className="w-4 h-4 text-purple-600" />
-                              </div>
-                              <CardTitle className="text-sm font-semibold text-foreground">Prospect Follow-Ups</CardTitle>
-                              <Badge variant="secondary" className="text-xs">{prospectItems.length}</Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            {prospectItems.length === 0 ? (
-                              <p className="text-sm text-muted-foreground py-6 text-center">All caught up! 🎉</p>
-                            ) : (
-                              <div className="space-y-4">
-                                {(() => {
-                                  const sorted = prioritySort(prospectItems);
-                                  const visible = showAllProspects ? sorted : sorted.slice(0, 3);
-                                  const buckets = splitBuckets(visible);
-                                  return (
-                                    <>
-                                      {renderUnifiedSection("Overdue", Clock, buckets.overdue, "text-destructive")}
-                                      {renderUnifiedSection("Due Today", CalendarCheck, buckets.dueToday, "text-primary")}
-                                      {buckets.general.length > 0 && renderUnifiedSection("General", Users, buckets.general, "text-muted-foreground")}
-                                      {!showAllProspects && sorted.length > 3 && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="mt-2 w-full"
-                                          onClick={() => setShowAllProspects(true)}
-                                        >
-                                          Show all {sorted.length}
-                                        </Button>
-                                      )}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-
                       return (
                         <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Booking Activity */}
                           <TodaySectionWrapper
+
                             sectionKey="booking"
                             title="Booking Activity"
                             count={todayActions.filter((i) => i.itemType === "lead").length}
