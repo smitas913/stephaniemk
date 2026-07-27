@@ -55,6 +55,10 @@ export default function ProspectDetail() {
   const [convertCoachingDate, setConvertCoachingDate] = useState("");
   const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
   const [showBooking, setShowBooking] = useState(false);
+  const [nudgeAction, setNudgeAction] = useState<null | "followup" | "referral">(null);
+  const [nudgeFollowUpDate, setNudgeFollowUpDate] = useState<string>(toLocalDateKey());
+  const [nudgeReferralName, setNudgeReferralName] = useState("");
+  const [nudgeBusy, setNudgeBusy] = useState(false);
 
   useEffect(() => {
     if (prospect) {
@@ -259,12 +263,95 @@ export default function ProspectDetail() {
           const closedStatuses = ["Converted", "Joined"];
           const overdue = prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1;
           if (!isUnit || !overdue || closedStatuses.includes(status)) return null;
-          const nudge = async (type: "Book for a party" | "Book for a facial") => {
-            await updateProspect(id!, { next_step_type: type } as any);
+
+          const invalidate = () => {
             queryClient.invalidateQueries({ queryKey: ["prospect", id] });
             queryClient.invalidateQueries({ queryKey: ["prospects"] });
+            queryClient.invalidateQueries({ queryKey: ["prospect-notes", id] });
+          };
+
+          const nudge = async (type: "Book for a party" | "Book for a facial") => {
+            await updateProspect(id!, { next_step_type: type } as any);
+            invalidate();
             setShowBooking(true);
           };
+
+          const logNote = (text: string) =>
+            createProspectNote({ prospect_id: id!, note_text: text, note_date: toLocalDateKey() });
+
+          const stillWorking = async () => {
+            setNudgeBusy(true);
+            try {
+              const d = new Date();
+              d.setDate(d.getDate() + 7);
+              const next = toLocalDateKey(d);
+              await updateProspect(id!, { next_follow_up_date: next } as any);
+              await logNote("Still working on it");
+              invalidate();
+              toast.success("Pushed out 7 days");
+            } finally {
+              setNudgeBusy(false);
+            }
+          };
+
+          const confirmFollowUp = async () => {
+            if (!nudgeFollowUpDate) return;
+            setNudgeBusy(true);
+            try {
+              await updateProspect(id!, {
+                next_step_type: "Follow Up",
+                next_step_date: nudgeFollowUpDate,
+                next_follow_up_date: nudgeFollowUpDate,
+              } as any);
+              await logNote(`Follow-up scheduled for ${formatDateOnly(nudgeFollowUpDate)}`);
+              invalidate();
+              setNudgeAction(null);
+              toast.success("Follow-up scheduled");
+            } finally {
+              setNudgeBusy(false);
+            }
+          };
+
+          const referralUnit = async () => {
+            setNudgeBusy(true);
+            try {
+              await logNote("Referral given");
+              invalidate();
+              toast.success("Referral logged");
+            } finally {
+              setNudgeBusy(false);
+            }
+          };
+
+          const confirmReferralPersonal = async () => {
+            const name = nudgeReferralName.trim();
+            if (!name) return;
+            setNudgeBusy(true);
+            try {
+              await logNote(`Referral given: ${name}`);
+              invalidate();
+              setNudgeReferralName("");
+              setNudgeAction(null);
+              toast.success("Referral logged");
+            } finally {
+              setNudgeBusy(false);
+            }
+          };
+
+          const invitedToEvent = async () => {
+            setNudgeBusy(true);
+            try {
+              await updateProspect(id!, { next_step_type: "Invite to Event" } as any);
+              await logNote("Invited to an event");
+              invalidate();
+              toast.success("Logged invite");
+            } finally {
+              setNudgeBusy(false);
+            }
+          };
+
+          const isPersonal = (prospect.ownership_type || "personal") === "personal";
+
           return (
             <Card className="border-amber-300/60 bg-amber-50/60 dark:bg-amber-950/20 shadow-sm">
               <CardContent className="p-4 flex items-start gap-3">
@@ -273,13 +360,75 @@ export default function ProspectDetail() {
                   <p className="text-sm font-semibold text-foreground">Didn't join? Book her for a party or facial</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Keep the relationship warm — turn this prospect into a booking.</p>
                   <div className="flex gap-2 mt-2 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => nudge("Book for a party")}>
+                    <Button size="sm" variant="outline" disabled={nudgeBusy} onClick={() => nudge("Book for a party")}>
                       Book for a party
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => nudge("Book for a facial")}>
+                    <Button size="sm" variant="outline" disabled={nudgeBusy} onClick={() => nudge("Book for a facial")}>
                       Book for a facial
                     </Button>
+                    <Button size="sm" variant="outline" disabled={nudgeBusy} onClick={stillWorking}>
+                      Still working on it
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={nudgeBusy}
+                      onClick={() => setNudgeAction(nudgeAction === "followup" ? null : "followup")}
+                    >
+                      Follow-up scheduled
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={nudgeBusy}
+                      onClick={() => {
+                        if (isPersonal) {
+                          setNudgeAction(nudgeAction === "referral" ? null : "referral");
+                        } else {
+                          referralUnit();
+                        }
+                      }}
+                    >
+                      Referral given
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={nudgeBusy} onClick={invitedToEvent}>
+                      Invited to an event
+                    </Button>
                   </div>
+
+                  {nudgeAction === "followup" && (
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <Input
+                        type="date"
+                        value={nudgeFollowUpDate}
+                        onChange={(e) => setNudgeFollowUpDate(e.target.value)}
+                        className="h-8 w-auto"
+                      />
+                      <Button size="sm" onClick={confirmFollowUp} disabled={nudgeBusy || !nudgeFollowUpDate}>
+                        Confirm
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setNudgeAction(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+
+                  {nudgeAction === "referral" && isPersonal && (
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <Input
+                        placeholder="Referred person's name"
+                        value={nudgeReferralName}
+                        onChange={(e) => setNudgeReferralName(e.target.value)}
+                        className="h-8 w-56"
+                      />
+                      <Button size="sm" onClick={confirmReferralPersonal} disabled={nudgeBusy || !nudgeReferralName.trim()}>
+                        Save
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setNudgeAction(null); setNudgeReferralName(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
