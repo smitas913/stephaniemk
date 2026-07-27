@@ -55,6 +55,10 @@ export default function ProspectDetail() {
   const [convertCoachingDate, setConvertCoachingDate] = useState("");
   const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
   const [showBooking, setShowBooking] = useState(false);
+  const [nudgeAction, setNudgeAction] = useState<null | "followup" | "referral">(null);
+  const [nudgeFollowUpDate, setNudgeFollowUpDate] = useState<string>(toLocalDateKey());
+  const [nudgeReferralName, setNudgeReferralName] = useState("");
+  const [nudgeBusy, setNudgeBusy] = useState(false);
 
   useEffect(() => {
     if (prospect) {
