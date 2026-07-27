@@ -57,6 +57,8 @@ import { resolveIntentCategory, categoryTag } from "@/lib/intentCategory";
 import TextActionButton from "@/components/TextActionButton";
 import ThankYouRemindersCard from "@/components/ThankYouRemindersCard";
 import { useTodaySections, TodaySectionWrapper } from "@/components/TodaySectionWrapper";
+import { nextLayerAfter } from "@/lib/careerChatLayers";
+
 import {
   formatDateOnly,
   getDateOnlyTime,
@@ -2595,7 +2597,7 @@ export default function FollowUps() {
 
                       return (
                         <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                           {/* Booking Activity */}
                           <TodaySectionWrapper
 
@@ -2670,7 +2672,88 @@ export default function FollowUps() {
                               </Button>
                             )}
                           </TodaySectionWrapper>
+
+                          {/* Career Chats due today — compact pointer to /prospects Career Chats tab */}
+                          {(() => {
+                            const todayK = frozenTodayKey;
+                            const dueChats = (prospects || [])
+                              .filter((p: any) => !p.is_archived && p.next_follow_up_date && p.next_follow_up_date <= todayK)
+                              .sort((a: any, b: any) => (a.next_follow_up_date || "").localeCompare(b.next_follow_up_date || ""));
+                            const consultantName = (id: string | null | undefined) =>
+                              id ? (consultants.find((c: any) => c.id === id)?.name || "") : "";
+                            return (
+                              <TodaySectionWrapper
+                                sectionKey="prospect_followup"
+                                title="Career Chats"
+                                count={dueChats.length}
+                                order={order.indexOf("prospect_followup")}
+                                totalSections={5}
+                                collapsed={!!collapsed["prospect_followup"]}
+                                onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
+                                onMove={(d) => moveSection("prospect_followup", d)}
+                              >
+                                <Card className="border-border/50 shadow-sm">
+                                  <CardHeader className="pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="p-1.5 rounded-md bg-purple-50 dark:bg-purple-950/30">
+                                        <MessageSquare className="w-4 h-4 text-purple-600" />
+                                      </div>
+                                      <CardTitle className="text-sm font-semibold text-foreground">Career Chats</CardTitle>
+                                      <Badge variant="secondary" className="text-xs">{dueChats.length}</Badge>
+                                    </div>
+                                  </CardHeader>
+                                  <CardContent className="pt-0">
+                                    {dueChats.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground py-6 text-center">No career chats due today.</p>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        {dueChats.slice(0, 8).map((p: any) => {
+                                          const overdue = (p.next_follow_up_date || "") < todayK;
+                                          const suggested = p.next_touch_layer || nextLayerAfter(p.last_touch_layer);
+                                          const cName = consultantName(p.assigned_consultant_id);
+                                          return (
+                                            <button
+                                              key={p.id}
+                                              onClick={() => navigate(`/prospects/${p.id}`, { state: { from: "/follow-ups" } })}
+                                              className="w-full text-left px-2 py-2 rounded-md hover:bg-muted/60 flex items-center gap-2 border border-transparent hover:border-border/50 transition-colors"
+                                            >
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-medium text-foreground truncate">{p.name}</span>
+                                                  {p.ownership_type === "unit" && cName && (
+                                                    <Badge variant="outline" className="text-[10px] px-1 py-0">Unit · {cName}</Badge>
+                                                  )}
+                                                  {overdue && (
+                                                    <Badge variant="destructive" className="text-[10px] px-1 py-0">Overdue</Badge>
+                                                  )}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                  Next touch: <span className="text-foreground">{suggested}</span>
+                                                </div>
+                                              </div>
+                                              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                                            </button>
+                                          );
+                                        })}
+                                        {dueChats.length > 8 && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2 w-full"
+                                            onClick={() => navigate("/prospects")}
+                                          >
+                                            View all {dueChats.length} in Career Chats
+                                          </Button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              </TodaySectionWrapper>
+                            );
+                          })()}
                         </div>
+
 
                         </>
 
