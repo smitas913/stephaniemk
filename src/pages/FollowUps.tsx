@@ -676,7 +676,7 @@ export default function FollowUps() {
   const [distributeFilter, setDistributeFilter] = useState<"overdue-today" | "no-date" | "dormant-warm">("overdue-today");
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
-  const [newOnlyFilter, setNewOnlyFilter] = useState(false);
+  
 
   // ─── Fresh Start (manual backlog reset) ───
   // Reschedules ALL current Today/Overdue follow-ups forward and staggers them across
