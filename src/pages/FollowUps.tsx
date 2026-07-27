@@ -2595,7 +2595,7 @@ export default function FollowUps() {
 
                       return (
                         <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                           {/* Booking Activity */}
                           <TodaySectionWrapper
 
