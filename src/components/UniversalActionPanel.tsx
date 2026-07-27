@@ -109,7 +109,10 @@ const ALLOWED_CATEGORIES_BY_PERSON: Record<PersonType, IntentCategory[]> = {
   lead: ["Follow-Up", "Booking"],
   hostess: ["Coaching", "Booking", "Follow-Up"],
   event_task: ["Coaching", "Booking"],
-  prospect: ["Recruiting", "Follow-Up"],
+  // Prospects = Career Chats. Layer selection (Last touch / Next touch) on the
+  // Career Chats tab replaces the old Recruiting reason chips here.
+  prospect: ["Follow-Up"],
+
   consultant: ["Coaching", "Team Building"],
 };
 
