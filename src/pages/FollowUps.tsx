@@ -2358,10 +2358,10 @@ export default function FollowUps() {
                      // Split into the three categories. Customers and leads are capped
                      // independently; prospects (recruiting) are unlimited per spec.
                       const allCustomerItemsRaw = followUpItems.filter(i => i.itemType === "customer");
-                      const newCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
-                      const allCustomerItems = newOnlyFilter
-                        ? allCustomerItemsRaw.filter(i => i._createdAt && new Date(i._createdAt).getTime() >= newCutoffMs)
-                        : allCustomerItemsRaw;
+                      const isNewSequenceStage = (s: any) => s === "Day 2" || s === "Day 4" || s === "Day 6";
+                      const newSequenceItems = allCustomerItemsRaw.filter(i => isNewSequenceStage((i as any).new_follow_up_stage));
+                      const regularCustomerItems = allCustomerItemsRaw.filter(i => !isNewSequenceStage((i as any).new_follow_up_stage));
+                      const allCustomerItems = regularCustomerItems;
                        const todayKeyForReschedule = toLocalDateKey();
                        const rescheduleLeadItems: ActionItem[] = events
                          .filter((e) => {
