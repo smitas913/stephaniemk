@@ -1,17 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, updateCustomer, createProspectNote } from "@/lib/queries";
+import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, createProspectNote } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MessageSquare, Calendar } from "lucide-react";
+import { CAREER_CHAT_LAYERS, nextLayerAfter } from "@/lib/careerChatLayers";
 
 const INTEREST_LEVELS = [1,2,3,4,5,6,7,8,9,10].map(n => ({
   value: n,
@@ -22,30 +23,18 @@ const INTEREST_LEVELS = [1,2,3,4,5,6,7,8,9,10].map(n => ({
     : "border-green-200 text-green-600 bg-green-50 dark:bg-green-950/30",
 }));
 
-const MY_NEXT_STEPS = [
-  { value: "book_party", label: "Book for a party" },
-  { value: "book_facial", label: "Book for a facial" },
-  { value: "invite_event", label: "Invite to upcoming event" },
-  { value: "follow_up", label: "Add to follow-up system" },
-  { value: "not_interested", label: "Not interested — no follow-up" },
-  { value: "none", label: "No next step yet" },
-];
-
-const CONSULTANT_NEXT_STEPS = [
-  { value: "coach_followup", label: "Remind me to coach consultant on this prospect" },
-  { value: "book_party", label: "Help consultant book a party with this prospect" },
-  { value: "book_facial", label: "Help consultant book a facial" },
-  { value: "none", label: "No next step yet" },
-];
-
 export default function QuickCareerChatDialog({
   open,
   onOpenChange,
   onLogged,
+  initialProspectId,
+  initialLastTouch,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onLogged: () => void;
+  initialProspectId?: string | null;
+  initialLastTouch?: string | null;
 }) {
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
@@ -54,7 +43,9 @@ export default function QuickCareerChatDialog({
   const [consultantQuery, setConsultantQuery] = useState("");
   const [selectedConsultant, setSelectedConsultant] = useState<{ id: string; name: string } | null>(null);
   const [interestLevel, setInterestLevel] = useState<number | null>(null);
-  const [nextStep, setNextStep] = useState("none");
+  const [lastTouch, setLastTouch] = useState<string>(CAREER_CHAT_LAYERS[0]);
+  const [nextTouch, setNextTouch] = useState<string>(nextLayerAfter(CAREER_CHAT_LAYERS[0]));
+  const [nextTouchDirty, setNextTouchDirty] = useState(false);
   const [notes, setNotes] = useState("");
   const [chatDate, setChatDate] = useState(toLocalDateKey());
 
@@ -62,6 +53,38 @@ export default function QuickCareerChatDialog({
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects, enabled: open });
   const { data: leads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads, enabled: open });
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants, enabled: open });
+
+  // Prefill from an existing prospect when caller passes one (e.g. Career Chats tab "Log touch").
+  useEffect(() => {
+    if (!open) return;
+    if (initialProspectId && prospects.length) {
+      const p: any = (prospects as any[]).find((x: any) => x.id === initialProspectId);
+      if (p) {
+        setSelected({ id: p.id, name: p.name, kind: "prospect" });
+        setQuery(p.name);
+        if (p.ownership_type === "unit" && p.assigned_consultant_id) {
+          const c: any = (consultants as any[]).find((x: any) => x.id === p.assigned_consultant_id);
+          if (c) {
+            setIsForConsultant(true);
+            setSelectedConsultant({ id: c.id, name: c.name });
+            setConsultantQuery(c.name);
+          }
+        }
+        const seed = initialLastTouch || p.last_touch_layer || CAREER_CHAT_LAYERS[0];
+        setLastTouch(seed);
+        setNextTouch(p.next_touch_layer || nextLayerAfter(seed));
+      }
+    } else if (initialLastTouch) {
+      setLastTouch(initialLastTouch);
+      setNextTouch(nextLayerAfter(initialLastTouch));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialProspectId, prospects.length]);
+
+  // Auto-advance the next-touch suggestion whenever last touch changes (unless user manually overrode it).
+  useEffect(() => {
+    if (!nextTouchDirty) setNextTouch(nextLayerAfter(lastTouch));
+  }, [lastTouch, nextTouchDirty]);
 
   const allPeople = useMemo(() => {
     const list: { id: string; name: string; phone: string; kind: string }[] = [];
@@ -87,21 +110,19 @@ export default function QuickCareerChatDialog({
     mutationFn: async () => {
       const today = chatDate;
       const interestLabel = interestLevel ? `Interest: ${interestLevel}/10` : "";
-      const nextStepOptions = isForConsultant ? CONSULTANT_NEXT_STEPS : MY_NEXT_STEPS;
-      const nextStepLabel = nextStepOptions.find(s => s.value === nextStep)?.label || "";
 
       const noteBody = [
         isForConsultant && selectedConsultant ? `Career chat coached with ${selectedConsultant.name}` : "Career chat",
         selected ? `— ${selected.name}` : query.trim() ? `— ${query.trim()}` : "",
         interestLabel ? `· ${interestLabel}` : "",
-        nextStep !== "none" ? `· Next: ${nextStepLabel}` : "",
+        `· Last: ${lastTouch}`,
+        `· Next: ${nextTouch}`,
         notes.trim() ? `\n${notes.trim()}` : "",
       ].filter(Boolean).join(" ");
 
       const personName = selected?.name || query.trim();
 
-      // Follow-up date: Unit career chats always get a 2-day coach check-in;
-      // personal chats scale by interest level.
+      // Follow-up date: unit chats fixed 2-day coach check-in; personal scale by interest level.
       const getFollowUpDays = (level: number | null) => {
         if (!level) return 14;
         if (level >= 7) return 3;
@@ -114,8 +135,12 @@ export default function QuickCareerChatDialog({
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const oppStatus = interestLevel && interestLevel >= 7 ? "Interested" : "Follow-Up";
 
-      // Find or create the prospect record for this person (personal + unit).
       let prospectId: string | null = null;
+
+      const layerFields = {
+        last_touch_layer: lastTouch,
+        next_touch_layer: nextTouch,
+      };
 
       if (selected?.kind === "prospect") {
         prospectId = selected.id;
@@ -124,6 +149,7 @@ export default function QuickCareerChatDialog({
           last_contact_date: today,
           next_follow_up_date: followUpDate,
           opportunity_status: oppStatus,
+          ...layerFields,
           ...(isForConsultant && selectedConsultant ? {
             ownership_type: "unit",
             assigned_consultant_id: selectedConsultant.id,
@@ -131,7 +157,6 @@ export default function QuickCareerChatDialog({
           updated_at: new Date().toISOString(),
         } as any).eq("id", selected.id);
       } else {
-        // De-dupe for unit chats: match by name within this consultant's assigned prospects.
         let existing: any = null;
         if (isForConsultant && selectedConsultant && personName) {
           const { data } = await supabase.from("prospects" as any)
@@ -152,6 +177,7 @@ export default function QuickCareerChatDialog({
             opportunity_status: oppStatus,
             ownership_type: "unit",
             assigned_consultant_id: selectedConsultant!.id,
+            ...layerFields,
             updated_at: new Date().toISOString(),
           } as any).eq("id", existing.id);
         } else {
@@ -168,6 +194,7 @@ export default function QuickCareerChatDialog({
               owner_user_id: userId,
               ownership_type: isForConsultant ? "unit" : "personal",
               assigned_consultant_id: isForConsultant && selectedConsultant ? selectedConsultant.id : null,
+              ...layerFields,
             } as any)
             .select()
             .single();
@@ -176,7 +203,6 @@ export default function QuickCareerChatDialog({
         }
       }
 
-      // Log career-chat note under the prospect (personal + unit).
       if (prospectId) {
         await createNote({
           entity_type: "Prospect",
@@ -190,13 +216,10 @@ export default function QuickCareerChatDialog({
         });
       }
 
-      // Mirror the free-text notes onto the Prospect's Notes timeline so it's
-      // visible from their profile page (separate from the Career Chat activity log).
       if (prospectId && notes.trim()) {
         await createProspectNote({ prospect_id: prospectId, note_text: notes.trim(), note_date: today });
       }
 
-      // Unit path: keep the coach-side note + optional coaching reminder.
       if (isForConsultant && selectedConsultant) {
         await createNote({
           entity_type: "Consultant",
@@ -207,15 +230,9 @@ export default function QuickCareerChatDialog({
           note_date: today,
           result_type: "Career Chat",
         });
-        if (nextStep === "coach_followup") {
-          await supabase.from("team_consultants" as any)
-            .update({ next_follow_up_date: followUpDate, follow_up_notes: `Coach on prospect: ${personName}` } as any)
-            .eq("id", selectedConsultant.id);
-        }
         return;
       }
 
-      // Personal path: mirror to customer profile when linked.
       if (selected?.kind === "customer") {
         await createNote({
           entity_type: "Customer",
@@ -245,7 +262,11 @@ export default function QuickCareerChatDialog({
   const reset = () => {
     setQuery(""); setSelected(null); setIsForConsultant(false);
     setConsultantQuery(""); setSelectedConsultant(null);
-    setInterestLevel(null); setNextStep("none"); setNotes("");
+    setInterestLevel(null);
+    setLastTouch(CAREER_CHAT_LAYERS[0]);
+    setNextTouch(nextLayerAfter(CAREER_CHAT_LAYERS[0]));
+    setNextTouchDirty(false);
+    setNotes("");
     setChatDate(toLocalDateKey());
   };
 
@@ -261,7 +282,6 @@ export default function QuickCareerChatDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          {/* Person name */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Who did you chat with?</label>
             <Input
@@ -284,7 +304,6 @@ export default function QuickCareerChatDialog({
             )}
           </div>
 
-          {/* Chat date */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" /> Date
@@ -292,15 +311,13 @@ export default function QuickCareerChatDialog({
             <Input type="date" value={chatDate} onChange={e => setChatDate(e.target.value)} className="h-9" />
           </div>
 
-          {/* For consultant toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={isForConsultant}
-              onChange={e => { setIsForConsultant(e.target.checked); setSelectedConsultant(null); setConsultantQuery(""); setNextStep("none"); }}
+              onChange={e => { setIsForConsultant(e.target.checked); setSelectedConsultant(null); setConsultantQuery(""); }}
               className="rounded border-border" />
             <span className="text-xs font-medium text-foreground">This is for one of my consultants</span>
           </label>
 
-          {/* Consultant picker */}
           {isForConsultant && (
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Which consultant?</label>
@@ -323,7 +340,6 @@ export default function QuickCareerChatDialog({
             </div>
           )}
 
-          {/* Interest level 1-10 */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
               Interest level <span className="font-normal">(1 = not interested · 10 = joined)</span>
@@ -341,20 +357,27 @@ export default function QuickCareerChatDialog({
             </div>
           </div>
 
-          {/* Next step */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Next step</label>
-            <Select value={nextStep} onValueChange={setNextStep}>
-              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(isForConsultant ? CONSULTANT_NEXT_STEPS : MY_NEXT_STEPS).map(s => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Last touch</label>
+              <Select value={lastTouch} onValueChange={(v) => { setLastTouch(v); setNextTouchDirty(false); }}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CAREER_CHAT_LAYERS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Next touch</label>
+              <Select value={nextTouch} onValueChange={(v) => { setNextTouch(v); setNextTouchDirty(true); }}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CAREER_CHAT_LAYERS.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Notes */}
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Notes (optional)</label>
             <Textarea
