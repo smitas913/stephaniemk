@@ -2785,7 +2785,7 @@ export default function FollowUps() {
                     sectionKey="relationships"
                     title="Relationships"
                     order={order.indexOf("relationships")}
-                    totalSections={5}
+                    totalSections={6}
                     collapsed={!!collapsed["relationships"]}
                     onToggleCollapsed={() => toggleCollapsed("relationships")}
                     onMove={(d) => moveSection("relationships", d)}
