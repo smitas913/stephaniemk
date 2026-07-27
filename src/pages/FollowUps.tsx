@@ -57,7 +57,7 @@ import { resolveIntentCategory, categoryTag } from "@/lib/intentCategory";
 import TextActionButton from "@/components/TextActionButton";
 import ThankYouRemindersCard from "@/components/ThankYouRemindersCard";
 import { useTodaySections, TodaySectionWrapper } from "@/components/TodaySectionWrapper";
-import { nextLayerAfter } from "@/lib/careerChatLayers";
+
 
 import {
   formatDateOnly,
@@ -2677,7 +2677,7 @@ export default function FollowUps() {
                           {(() => {
                             const todayK = frozenTodayKey;
                             const dueChats = (prospects || [])
-                              .filter((p: any) => !p.is_archived && p.last_touch_layer && p.next_follow_up_date && p.next_follow_up_date <= todayK)
+                              .filter((p: any) => !p.is_archived && p.is_career_chat === true && p.next_follow_up_date && p.next_follow_up_date <= todayK)
                               .sort((a: any, b: any) => (a.next_follow_up_date || "").localeCompare(b.next_follow_up_date || ""));
                             const consultantName = (id: string | null | undefined) =>
                               id ? (consultants.find((c: any) => c.id === id)?.name || "") : "";
@@ -2709,7 +2709,6 @@ export default function FollowUps() {
                                       <div className="space-y-1">
                                         {dueChats.slice(0, 8).map((p: any) => {
                                           const overdue = (p.next_follow_up_date || "") < todayK;
-                                          const suggested = p.next_touch_layer || nextLayerAfter(p.last_touch_layer);
                                           const cName = consultantName(p.assigned_consultant_id);
                                           return (
                                             <button
@@ -2726,9 +2725,6 @@ export default function FollowUps() {
                                                   {overdue && (
                                                     <Badge variant="destructive" className="text-[10px] px-1 py-0">Overdue</Badge>
                                                   )}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground truncate">
-                                                  Next touch: <span className="text-foreground">{suggested}</span>
                                                 </div>
                                               </div>
                                               <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
