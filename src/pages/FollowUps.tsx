@@ -2388,46 +2388,8 @@ export default function FollowUps() {
                            _isRescheduleEvent: true,
                          }));
                       const allLeadItems = [...followUpItems.filter(i => i.itemType === "lead"), ...rescheduleLeadItems];
-                      const prospectItems = followUpItems.filter(i => i.itemType === "prospect");
+                      // Prospect + career-chat follow-ups moved to /prospects "Career Chats" tab.
 
-                      // Unit-owned prospects (career chats logged for a consultant).
-                      // Rendered in a separate card and routed to Leadership.
-                      const consultantById = new Map((consultants as any[]).map((c: any) => [c.id, c]));
-                      type CareerChatItem = {
-                        prospectId: string;
-                        prospectName: string;
-                        consultantId: string | null;
-                        consultantName: string;
-                        followUp: string;
-                        follow_up_status: "OVERDUE" | "TODAY" | "UPCOMING";
-                        daysOverdue: number | null;
-                      };
-                      const careerChatItems: CareerChatItem[] = (prospects as any[])
-                        .filter((p: any) => p.ownership_type === "unit")
-                        .filter((p: any) => !(p.customer_id && customerDncSet.has(p.customer_id)))
-                        .filter((p: any) => normalizeFollowUpDate(p.next_step_date || p.next_follow_up_date) && !["Not Interested", "Joined", "Converted", "Closed"].includes(p.opportunity_status))
-                        .map((p: any): CareerChatItem => {
-                          const fu = normalizeFollowUpDate(p.next_step_date) || normalizeFollowUpDate(p.next_follow_up_date) || "";
-                          const cchatToday = toLocalDateKey();
-                          const status = (getFollowUpStatus(fu, cchatToday) || "UPCOMING") as CareerChatItem["follow_up_status"];
-                          const daysOverdue = status === "OVERDUE" ? getDaysOverdue(fu, new Date()) : null;
-                          const c = p.assigned_consultant_id ? consultantById.get(p.assigned_consultant_id) : null;
-                          return {
-                            prospectId: p.id,
-                            prospectName: p.name,
-                            consultantId: p.assigned_consultant_id || null,
-                            consultantName: c?.name || "Unassigned",
-                            followUp: fu,
-                            follow_up_status: status,
-                            daysOverdue,
-                          };
-                        })
-                        .sort((a, b) => {
-                          const s = (x: CareerChatItem) => x.follow_up_status === "OVERDUE" ? 0 : x.follow_up_status === "TODAY" ? 1 : 2;
-                          const sa = s(a), sb = s(b);
-                          if (sa !== sb) return sa - sb;
-                          return a.followUp.localeCompare(b.followUp);
-                        });
 
                      // Priority sort within a category: most overdue first, then due-today, then general.
                      // PCP customers are pinned to the top of each status bucket, ordered by most
