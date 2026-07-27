@@ -103,9 +103,6 @@ export default function CareerChatsTab() {
           {items.map(({ p, fu, days, parked }) => {
             const isUnit = (p as any).ownership_type === "unit";
             const consultantName = p.assigned_consultant_id ? consultantMap[p.assigned_consultant_id] : null;
-            const lastLayer = (p as any).last_touch_layer as string | null | undefined;
-            const nextLayer = (p as any).next_touch_layer as string | null | undefined;
-            const isBoldAsk = lastLayer === BOLD_ASK;
 
             return (
               <Card
@@ -145,16 +142,6 @@ export default function CareerChatsTab() {
                       </div>
 
                       <div className="flex items-center gap-3 mt-1 flex-wrap text-xs">
-                        {lastLayer && (
-                          <span className="text-muted-foreground">
-                            Last: <span className="text-foreground font-medium">{lastLayer}</span>
-                          </span>
-                        )}
-                        {nextLayer && (
-                          <span className="text-muted-foreground">
-                            Next: <span className="text-foreground font-medium">{nextLayer}</span>
-                          </span>
-                        )}
                         {fu && (
                           <span className={cn(
                             "flex items-center gap-1",
@@ -175,40 +162,36 @@ export default function CareerChatsTab() {
                           className="h-7 text-xs"
                           onClick={() => setDialogState({ open: true, prospectId: p.id })}
                         >
-                          Log touch
+                          Log conversation
                         </Button>
-                        {isBoldAsk ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                              disabled={joinedMut.isPending}
-                              onClick={() => joinedMut.mutate(p)}
-                            >
-                              Joined
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              disabled={archiveMut.isPending}
-                              onClick={() => archiveMut.mutate(p.id)}
-                            >
-                              Not interested
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs"
-                            disabled={notNowMut.isPending}
-                            onClick={() => notNowMut.mutate(p.id)}
-                          >
-                            Not now (+90d)
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          disabled={notNowMut.isPending}
+                          onClick={() => notNowMut.mutate(p.id)}
+                        >
+                          Not now (+90d)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          disabled={joinedMut.isPending}
+                          onClick={() => joinedMut.mutate(p)}
+                        >
+                          Joined
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={archiveMut.isPending}
+                          onClick={() => archiveMut.mutate(p.id)}
+                        >
+                          Not interested
+                        </Button>
+
                         <Button
                           size="sm"
                           variant="ghost"
