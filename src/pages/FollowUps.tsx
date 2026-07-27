@@ -2677,7 +2677,7 @@ export default function FollowUps() {
                           {(() => {
                             const todayK = frozenTodayKey;
                             const dueChats = (prospects || [])
-                              .filter((p: any) => !p.is_archived && p.next_follow_up_date && p.next_follow_up_date <= todayK)
+                              .filter((p: any) => !p.is_archived && p.last_touch_layer && p.next_follow_up_date && p.next_follow_up_date <= todayK)
                               .sort((a: any, b: any) => (a.next_follow_up_date || "").localeCompare(b.next_follow_up_date || ""));
                             const consultantName = (id: string | null | undefined) =>
                               id ? (consultants.find((c: any) => c.id === id)?.name || "") : "";
