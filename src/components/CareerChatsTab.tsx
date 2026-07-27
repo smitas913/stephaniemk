@@ -32,7 +32,7 @@ export default function CareerChatsTab() {
   const todayKey = toLocalDateKey();
 
   const items = useMemo(() => {
-    const list = (prospects as Prospect[]).filter((p) => !p.is_archived);
+    const list = (prospects as Prospect[]).filter((p) => !p.is_archived && (p as any).last_touch_layer);
     const scored = list.map((p) => {
       const fu = p.next_follow_up_date || p.next_step_date || null;
       const days = fu ? differenceInCalendarDays(parseISO(fu), parseISO(todayKey)) : null;
