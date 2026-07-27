@@ -258,11 +258,10 @@ export default function ProspectDetail() {
 
         {/* Suggested Next Step nudge — Unit prospects whose follow-up date has passed */}
         {(() => {
-          const isUnit = (prospect.ownership_type || "personal") === "unit";
           const status = prospect.opportunity_status;
           const closedStatuses = ["Converted", "Joined"];
           const overdue = prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1;
-          if (!isUnit || !overdue || closedStatuses.includes(status)) return null;
+          if (!overdue || closedStatuses.includes(status)) return null;
 
           const invalidate = () => {
             queryClient.invalidateQueries({ queryKey: ["prospect", id] });
