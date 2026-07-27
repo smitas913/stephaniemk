@@ -57,6 +57,8 @@ import { resolveIntentCategory, categoryTag } from "@/lib/intentCategory";
 import TextActionButton from "@/components/TextActionButton";
 import ThankYouRemindersCard from "@/components/ThankYouRemindersCard";
 import { useTodaySections, TodaySectionWrapper } from "@/components/TodaySectionWrapper";
+import { nextLayerAfter } from "@/lib/careerChatLayers";
+
 import {
   formatDateOnly,
   getDateOnlyTime,
