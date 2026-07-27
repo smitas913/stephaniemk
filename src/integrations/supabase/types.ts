@@ -1646,11 +1646,13 @@ export type Database = {
           interest_level: number | null
           is_archived: boolean | null
           last_contact_date: string | null
+          last_touch_layer: string | null
           name: string
           next_follow_up_date: string | null
           next_step_date: string | null
           next_step_notes: string | null
           next_step_type: string | null
+          next_touch_layer: string | null
           notes: string | null
           opportunity_status: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id: string | null
@@ -1673,11 +1675,13 @@ export type Database = {
           interest_level?: number | null
           is_archived?: boolean | null
           last_contact_date?: string | null
+          last_touch_layer?: string | null
           name: string
           next_follow_up_date?: string | null
           next_step_date?: string | null
           next_step_notes?: string | null
           next_step_type?: string | null
+          next_touch_layer?: string | null
           notes?: string | null
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
@@ -1700,11 +1704,13 @@ export type Database = {
           interest_level?: number | null
           is_archived?: boolean | null
           last_contact_date?: string | null
+          last_touch_layer?: string | null
           name?: string
           next_follow_up_date?: string | null
           next_step_date?: string | null
           next_step_notes?: string | null
           next_step_type?: string | null
+          next_touch_layer?: string | null
           notes?: string | null
           opportunity_status?: Database["public"]["Enums"]["opportunity_status"]
           owner_user_id?: string | null
