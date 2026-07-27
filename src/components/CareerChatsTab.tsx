@@ -4,6 +4,7 @@ import { fetchProspects, fetchTeamConsultants, convertProspectToConsultant } fro
 import type { Prospect } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
