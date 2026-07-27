@@ -2389,6 +2389,9 @@ export default function FollowUps() {
                          }));
                       const allLeadItems = [...followUpItems.filter(i => i.itemType === "lead"), ...rescheduleLeadItems];
                       // Prospect + career-chat follow-ups moved to /prospects "Career Chats" tab.
+                      const prospectItems: ActionItem[] = [];
+                      const careerChatItems: any[] = [];
+
 
 
                      // Priority sort within a category: most overdue first, then due-today, then general.
