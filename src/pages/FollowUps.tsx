@@ -2670,61 +2670,8 @@ export default function FollowUps() {
                               </Button>
                             )}
                           </TodaySectionWrapper>
-
-                          {/* Prospect Follow-Ups */}
-                          <TodaySectionWrapper
-                            sectionKey="prospect_followup"
-                            title="Prospect Follow-Ups"
-                            count={prospectItems.length}
-                            order={order.indexOf("prospect_followup")}
-                            totalSections={5}
-                            collapsed={!!collapsed["prospect_followup"]}
-                            onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
-                            onMove={(d) => moveSection("prospect_followup", d)}
-                          >
-                            {renderProspectCard()}
-
-                            {/* Career Chat Follow-Ups (unit prospects → Leadership) */}
-                            {careerChatItems.length > 0 && (
-                              <Card className="border-border/50 shadow-sm mt-3">
-                                <CardHeader className="pb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="p-1.5 rounded-md bg-indigo-50 dark:bg-indigo-950/30">
-                                      <MessageSquare className="w-4 h-4 text-indigo-600" />
-                                    </div>
-                                    <CardTitle className="text-sm font-semibold text-foreground">Career Chat Follow-Ups</CardTitle>
-                                    <Badge variant="secondary" className="text-xs">{careerChatItems.length}</Badge>
-                                  </div>
-                                </CardHeader>
-                                <CardContent className="pt-0">
-                                  <div className="divide-y divide-border/40">
-                                    {careerChatItems.map((ci) => (
-                                      <button
-                                        key={ci.prospectId}
-                                        onClick={() => navigate("/leadership", { state: { from: "/follow-ups", tab: "consultants", consultantId: ci.consultantId } })}
-                                        className="w-full text-left py-2 px-1 hover:bg-muted/40 rounded transition-colors flex items-center justify-between gap-3"
-                                      >
-                                        <div className="min-w-0 flex-1">
-                                          <p className="text-sm font-medium text-foreground truncate">
-                                            Career Chat Follow-up: {ci.consultantName} — {ci.prospectName}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground">
-                                            {ci.follow_up_status === "OVERDUE" && ci.daysOverdue
-                                              ? `Overdue ${ci.daysOverdue}d · ${formatDateOnly(ci.followUp)}`
-                                              : ci.follow_up_status === "TODAY"
-                                                ? `Due today · ${formatDateOnly(ci.followUp)}`
-                                                : formatDateOnly(ci.followUp)}
-                                          </p>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                                      </button>
-                                    ))}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            )}
-                          </TodaySectionWrapper>
                         </div>
+
                         </>
 
                       );
