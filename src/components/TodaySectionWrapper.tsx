@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 export type SectionKey =
   | "booking"
+  | "new_customer_followup"
   | "customer_followup"
   | "prospect_followup"
   | "coaching"
@@ -12,6 +13,7 @@ export type SectionKey =
 
 const DEFAULT_ORDER: SectionKey[] = [
   "booking",
+  "new_customer_followup",
   "customer_followup",
   "prospect_followup",
   "coaching",

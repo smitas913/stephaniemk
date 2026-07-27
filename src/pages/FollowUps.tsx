@@ -676,7 +676,7 @@ export default function FollowUps() {
   const [distributeFilter, setDistributeFilter] = useState<"overdue-today" | "no-date" | "dormant-warm">("overdue-today");
   const [distributeSelectedIds, setDistributeSelectedIds] = useState<Set<string>>(new Set());
   const [distributeStep, setDistributeStep] = useState<"configure" | "preview">("configure");
-  const [newOnlyFilter, setNewOnlyFilter] = useState(false);
+  
 
   // ─── Fresh Start (manual backlog reset) ───
   // Reschedules ALL current Today/Overdue follow-ups forward and staggers them across
@@ -2358,10 +2358,10 @@ export default function FollowUps() {
                      // Split into the three categories. Customers and leads are capped
                      // independently; prospects (recruiting) are unlimited per spec.
                       const allCustomerItemsRaw = followUpItems.filter(i => i.itemType === "customer");
-                      const newCutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
-                      const allCustomerItems = newOnlyFilter
-                        ? allCustomerItemsRaw.filter(i => i._createdAt && new Date(i._createdAt).getTime() >= newCutoffMs)
-                        : allCustomerItemsRaw;
+                      const isNewSequenceStage = (s: any) => s === "Day 2" || s === "Day 4" || s === "Day 6";
+                      const newSequenceItems = allCustomerItemsRaw.filter(i => isNewSequenceStage((i as any).new_follow_up_stage));
+                      const regularCustomerItems = allCustomerItemsRaw.filter(i => !isNewSequenceStage((i as any).new_follow_up_stage));
+                      const allCustomerItems = regularCustomerItems;
                        const todayKeyForReschedule = toLocalDateKey();
                        const rescheduleLeadItems: ActionItem[] = events
                          .filter((e) => {
@@ -2421,7 +2421,8 @@ export default function FollowUps() {
                        });
                      };
 
-                     const customerSorted = prioritySort(allCustomerItems);
+                      const customerSorted = prioritySort(allCustomerItems);
+                      const newSequenceSorted = prioritySort(newSequenceItems);
                      const leadSorted = prioritySort(allLeadItems);
                      const customerVisible = customerSorted.slice(0, customerLimit);
                      const leadVisible = leadSorted.slice(0, leadLimit);
@@ -2605,7 +2606,7 @@ export default function FollowUps() {
                             title="Booking Activity"
                             count={todayActions.filter((i) => i.itemType === "lead").length}
                             order={order.indexOf("booking")}
-                            totalSections={5}
+                            totalSections={6}
                             collapsed={!!collapsed["booking"]}
                             onToggleCollapsed={() => toggleCollapsed("booking")}
                             onMove={(d) => moveSection("booking", d)}
@@ -2631,27 +2632,46 @@ export default function FollowUps() {
                             )}
                           </TodaySectionWrapper>
 
+                          {/* New Customer Follow-Ups (2+2+2) */}
+                          <TodaySectionWrapper
+                            sectionKey="new_customer_followup"
+                            title="New Customer Follow-Ups (2+2+2)"
+                            count={newSequenceSorted.length}
+                            order={order.indexOf("new_customer_followup")}
+                            totalSections={6}
+                            collapsed={!!collapsed["new_customer_followup"]}
+                            onToggleCollapsed={() => toggleCollapsed("new_customer_followup")}
+                            onMove={(d) => moveSection("new_customer_followup", d)}
+                          >
+                            {(() => {
+                              const stageLabeled = newSequenceSorted.map((i) => {
+                                const stage = (i as any).new_follow_up_stage as string | null | undefined;
+                                const suffix = stage ? ` · ${stage}` : "";
+                                return { ...i, name: `${i.name}${suffix}` } as ActionItem;
+                              });
+                              return renderCategoryCard(
+                                "New Customer Follow-Ups (2+2+2)",
+                                stageLabeled,
+                                stageLabeled.length,
+                                stageLabeled.length,
+                                0,
+                                "bg-emerald-50 dark:bg-emerald-950/30",
+                                "text-emerald-600",
+                              );
+                            })()}
+                          </TodaySectionWrapper>
+
                           {/* Customer Follow-Ups */}
                           <TodaySectionWrapper
                             sectionKey="customer_followup"
                             title="Customer Follow-Ups"
-                            count={todayActions.filter((i) => i.itemType === "customer").length}
+                            count={customerSorted.length}
                             order={order.indexOf("customer_followup")}
-                            totalSections={5}
+                            totalSections={6}
                             collapsed={!!collapsed["customer_followup"]}
                             onToggleCollapsed={() => toggleCollapsed("customer_followup")}
                             onMove={(d) => moveSection("customer_followup", d)}
                           >
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <Button
-                                variant={newOnlyFilter ? "default" : "outline"}
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={() => setNewOnlyFilter((v) => !v)}
-                              >
-                                New (30 days)
-                              </Button>
-                            </div>
                             {renderCategoryCard(
                               "Customer Follow-Ups",
                               showAllCustomers ? customerVisible : customerVisible.slice(0, 3),
@@ -2687,7 +2707,7 @@ export default function FollowUps() {
                                 title="Career Chats"
                                 count={dueChats.length}
                                 order={order.indexOf("prospect_followup")}
-                                totalSections={5}
+                                totalSections={6}
                                 collapsed={!!collapsed["prospect_followup"]}
                                 onToggleCollapsed={() => toggleCollapsed("prospect_followup")}
                                 onMove={(d) => moveSection("prospect_followup", d)}
@@ -2765,7 +2785,7 @@ export default function FollowUps() {
                     sectionKey="relationships"
                     title="Relationships"
                     order={order.indexOf("relationships")}
-                    totalSections={5}
+                    totalSections={6}
                     collapsed={!!collapsed["relationships"]}
                     onToggleCollapsed={() => toggleCollapsed("relationships")}
                     onMove={(d) => moveSection("relationships", d)}
