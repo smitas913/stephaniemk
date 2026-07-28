@@ -26,7 +26,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Users, TrendingUp, CalendarIcon, Phone, Mail, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Users, TrendingUp, CalendarIcon, Phone, Mail, ExternalLink, MessageSquare, Plus, UserPlus, CheckCircle2, RefreshCw, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { openEmail } from "@/lib/emailPreference";
 import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
@@ -240,6 +242,37 @@ export default function EventDetail() {
   const [reactivateDate, setReactivateDate] = useState("");
   const [resolveAction, setResolveAction] = useState<null | "booked" | "no_longer" | "still_working">(null);
   const [stillWorkingOpen, setStillWorkingOpen] = useState(false);
+
+  // Order reassignment state
+  const [moveOrderId, setMoveOrderId] = useState<string | null>(null);
+  const [moveTargetEventId, setMoveTargetEventId] = useState<string>("");
+  const [unlinkOrderId, setUnlinkOrderId] = useState<string | null>(null);
+
+  const reassignOrderMutation = useMutation({
+    mutationFn: async ({ orderId, newEventId }: { orderId: string; newEventId: string | null }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ event_id: newEventId, parent_event_id: newEventId })
+        .eq("id", orderId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success(vars.newEventId ? "Order moved to selected event" : "Order unlinked from event");
+      setMoveOrderId(null);
+      setMoveTargetEventId("");
+      setUnlinkOrderId(null);
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update order"),
+  });
+
+  const otherEvents = useMemo(
+    () => events
+      .filter((e) => e.event_id !== eventId && !e.is_archived)
+      .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || "")),
+    [events, eventId]
+  );
 
   const isReschedulingOrCancelled = event &&
     (event.event_status === "Cancelled" || (event as any).reschedule_status === "In Process of Rescheduling");
@@ -929,7 +962,7 @@ export default function EventDetail() {
                         <TableHead className="text-xs">Type</TableHead>
                         <TableHead className="text-xs">Payment</TableHead>
                         <TableHead className="text-xs">Notes</TableHead>
-                        
+                        <TableHead className="text-xs w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -949,6 +982,26 @@ export default function EventDetail() {
                           </TableCell>
                           <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[150px] truncate">{o.notes || ""}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setMoveOrderId(o.id); setMoveTargetEventId(""); }}>
+                                  Move to event…
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate(`/orders/${o.id}/edit`)}>
+                                  Edit order
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setUnlinkOrderId(o.id)}>
+                                  Unlink from this event
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1029,6 +1082,59 @@ export default function EventDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Move Order to Event Dialog */}
+      <Dialog open={!!moveOrderId} onOpenChange={(open) => { if (!open) { setMoveOrderId(null); setMoveTargetEventId(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Move order to another event</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Select value={moveTargetEventId} onValueChange={setMoveTargetEventId}>
+              <SelectTrigger><SelectValue placeholder="Select an event…" /></SelectTrigger>
+              <SelectContent>
+                {otherEvents.length === 0 ? (
+                  <div className="px-2 py-2 text-sm text-muted-foreground">No other events available</div>
+                ) : otherEvents.map((e) => (
+                  <SelectItem key={e.id} value={e.event_id}>
+                    {(e.event_date ? formatDateOnly(e.event_date, "MMM d, yyyy") : "No date")} · {e.hostess_name || e.event_type || "Event"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setMoveOrderId(null); setMoveTargetEventId(""); }}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={!moveTargetEventId || reassignOrderMutation.isPending}
+                onClick={() => moveOrderId && reassignOrderMutation.mutate({ orderId: moveOrderId, newEventId: moveTargetEventId })}
+              >
+                Move order
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unlink Order Confirmation */}
+      <AlertDialog open={!!unlinkOrderId} onOpenChange={(open) => { if (!open) setUnlinkOrderId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink this order from the event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The order will remain in your records but will no longer be associated with this event. You can reassign it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => unlinkOrderId && reassignOrderMutation.mutate({ orderId: unlinkOrderId, newEventId: null })}
+            >
+              Unlink
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </Layout>
   );
