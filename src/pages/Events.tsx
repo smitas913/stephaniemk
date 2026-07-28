@@ -27,10 +27,6 @@ import type { EventRecord } from "@/lib/types";
 const BUSINESS_EVENT_TYPES = new Set(["Career Chat", "Pearl Appointment"]);
 const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
 
-const scopeChipClasses = (scope: string) =>
-  scope === "Unit"
-    ? "bg-teal-100 text-teal-700 border-teal-200"
-    : "bg-muted text-muted-foreground border-border";
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -56,7 +52,6 @@ export default function Events() {
   const [formatFilter, setFormatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rescheduleFilter, setRescheduleFilter] = useState("all");
-  const [scopeFilter, setScopeFilter] = useState("all");
   const [categoryTab, setCategoryTab] = useState<"product" | "business">("product");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
@@ -70,7 +65,6 @@ export default function Events() {
     formatFilter !== "all",
     statusFilter !== "all",
     rescheduleFilter !== "all",
-    scopeFilter !== "all",
   ].filter(Boolean).length;
 
   const clearFilters = () => {
@@ -78,7 +72,6 @@ export default function Events() {
     setFormatFilter("all");
     setStatusFilter("all");
     setRescheduleFilter("all");
-    setScopeFilter("all");
   };
 
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
@@ -191,7 +184,6 @@ export default function Events() {
       if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
       if (statusFilter !== "all" && e.event_status !== statusFilter) return false;
       if (rescheduleFilter !== "all" && (e.reschedule_status || "None") !== rescheduleFilter) return false;
-      if (scopeFilter !== "all" && ((e as any).event_scope || "Personal") !== scopeFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -202,7 +194,7 @@ export default function Events() {
       }
       return true;
     });
-  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter, scopeFilter]);
+  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
 
   // Split by category (Product vs Business)
   const { productEvents, businessEvents } = useMemo(() => {
@@ -266,9 +258,6 @@ export default function Events() {
             {(e.event_format && e.event_format !== "In-Person") && (
               <span className="text-muted-foreground">• {e.event_format}</span>
             )}
-            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 font-medium", scopeChipClasses((e as any).event_scope || "Personal"))}>
-              {(e as any).event_scope || "Personal"}
-            </Badge>
           </div>
         </TableCell>
         <TableCell>
@@ -426,9 +415,6 @@ export default function Events() {
             ) : (e as any).hostess_lead_id ? (
               <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
             ) : null}
-            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 shrink-0", scopeChipClasses((e as any).event_scope || "Personal"))}>
-              {(e as any).event_scope || "Personal"}
-            </Badge>
           </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {e.event_type || "—"}{e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
@@ -700,17 +686,6 @@ export default function Events() {
                       <SelectItem value="None">None</SelectItem>
                       <SelectItem value="In Process of Rescheduling">In Process</SelectItem>
                       <SelectItem value="Rescheduled">Rescheduled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Scope</label>
-                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
-                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="Personal">Personal</SelectItem>
-                      <SelectItem value="Unit">Unit</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
