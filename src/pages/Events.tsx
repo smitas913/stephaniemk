@@ -266,9 +266,6 @@ export default function Events() {
             {(e.event_format && e.event_format !== "In-Person") && (
               <span className="text-muted-foreground">• {e.event_format}</span>
             )}
-            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 font-medium", scopeChipClasses((e as any).event_scope || "Personal"))}>
-              {(e as any).event_scope || "Personal"}
-            </Badge>
           </div>
         </TableCell>
         <TableCell>
