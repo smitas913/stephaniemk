@@ -426,9 +426,6 @@ export default function Events() {
             ) : (e as any).hostess_lead_id ? (
               <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-amber-50 border-amber-200 text-amber-700">Lead</Badge>
             ) : null}
-            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 shrink-0", scopeChipClasses((e as any).event_scope || "Personal"))}>
-              {(e as any).event_scope || "Personal"}
-            </Badge>
           </div>
           <span className="text-xs text-muted-foreground shrink-0">
             {e.event_type || "—"}{e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
