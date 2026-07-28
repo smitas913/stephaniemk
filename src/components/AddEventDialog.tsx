@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PartyPopper, Sparkles, Megaphone, MapPin, Monitor, Briefcase, Gem } from "lucide-react";
+import { PartyPopper, Sparkles, Megaphone, MapPin, Monitor, Briefcase, Gem, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 const EVENT_TYPES = [
@@ -18,6 +18,7 @@ const EVENT_TYPES = [
   { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
   { value: "Career Chat", label: "Career Chat", icon: Briefcase },
   { value: "Pearl Appointment", label: "Pearl Appt", icon: Gem },
+  { value: "On-the-Go", label: "On-the-Go", icon: Zap },
 ] as const;
 
 const LEAD_GEN_SUBTYPES = ["Networking Event", "Vendor Event"] as const;
