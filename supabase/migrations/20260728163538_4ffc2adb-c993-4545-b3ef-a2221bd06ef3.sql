@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN unit_guest_count integer;
