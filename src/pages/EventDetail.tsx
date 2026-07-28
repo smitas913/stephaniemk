@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import TextActionButton from "@/components/TextActionButton";
 import { toast } from "sonner";
 
-const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Pearl Appointment", "Career Chat", "Networking Event", "Vendor Event"] as const;
+const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Pearl Appointment", "Career Chat", "Networking Event", "Vendor Event", "On-the-Go"] as const;
 const EVENT_SCOPES = ["Personal", "Unit"] as const;
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
 const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "David's Bridal", "Warm Chatter", "Networking Event", "Vendor Event", "Facial Box", "Referral", "Current Customer", "Other"] as const;
