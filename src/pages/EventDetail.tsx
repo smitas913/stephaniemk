@@ -627,9 +627,9 @@ export default function EventDetail() {
                       {/* Results — Guests, Bookings */}
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Results</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <div>
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Guests / Faces</label>
+                            <label className="text-[10px] text-muted-foreground mb-1 block">Personal guests</label>
                             <Input type="number" min={0} className="h-8 text-xs"
                               defaultValue={(event as any).guest_count || ""}
                               key={`gc-${(event as any).guest_count}`}
@@ -637,6 +637,18 @@ export default function EventDetail() {
                               onBlur={(e) => {
                                 const val = parseInt(e.target.value) || 0;
                                 if (val !== ((event as any).guest_count || 0)) updateField("guest_count", val);
+                              }} />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground mb-1 block">Unit guests</label>
+                            <Input type="number" min={0} className="h-8 text-xs"
+                              defaultValue={(event as any).unit_guest_count ?? ""}
+                              key={`ug-${(event as any).unit_guest_count ?? ""}`}
+                              placeholder="0"
+                              onBlur={(e) => {
+                                const raw = e.target.value;
+                                const val = raw === "" ? null : (parseInt(raw) || 0);
+                                if (val !== ((event as any).unit_guest_count ?? null)) updateField("unit_guest_count", val);
                               }} />
                           </div>
                           <div>
@@ -652,6 +664,7 @@ export default function EventDetail() {
                           </div>
                         </div>
                       </div>
+
 
                       {/* Location — smart based on format */}
                       {(event.event_format || "In-Person") === "Virtual" ? (
