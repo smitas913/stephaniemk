@@ -27,10 +27,6 @@ import type { EventRecord } from "@/lib/types";
 const BUSINESS_EVENT_TYPES = new Set(["Career Chat", "Pearl Appointment"]);
 const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
 
-const scopeChipClasses = (scope: string) =>
-  scope === "Unit"
-    ? "bg-teal-100 text-teal-700 border-teal-200"
-    : "bg-muted text-muted-foreground border-border";
 
 const statusColor = (s: string) => {
   switch (s) {
