@@ -191,7 +191,6 @@ export default function Events() {
       if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
       if (statusFilter !== "all" && e.event_status !== statusFilter) return false;
       if (rescheduleFilter !== "all" && (e.reschedule_status || "None") !== rescheduleFilter) return false;
-      if (scopeFilter !== "all" && ((e as any).event_scope || "Personal") !== scopeFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -202,7 +201,7 @@ export default function Events() {
       }
       return true;
     });
-  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter, scopeFilter]);
+  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
 
   // Split by category (Product vs Business)
   const { productEvents, businessEvents } = useMemo(() => {
