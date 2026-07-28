@@ -48,7 +48,7 @@ export default function AddOrder() {
   const { id: editOrderId } = useParams<{ id: string }>();
   const isEditMode = !!editOrderId;
   const preselectedCustomer = params.get("customer") || "";
-  const preselectedEvent = params.get("event") || "";
+  const preselectedEvent = params.get("eventId") || params.get("event") || "";
   const preselectedType = params.get("type") || "";
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
