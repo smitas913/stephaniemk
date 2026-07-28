@@ -1083,6 +1083,59 @@ export default function EventDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Move Order to Event Dialog */}
+      <Dialog open={!!moveOrderId} onOpenChange={(open) => { if (!open) { setMoveOrderId(null); setMoveTargetEventId(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Move order to another event</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Select value={moveTargetEventId} onValueChange={setMoveTargetEventId}>
+              <SelectTrigger><SelectValue placeholder="Select an event…" /></SelectTrigger>
+              <SelectContent>
+                {otherEvents.length === 0 ? (
+                  <div className="px-2 py-2 text-sm text-muted-foreground">No other events available</div>
+                ) : otherEvents.map((e) => (
+                  <SelectItem key={e.id} value={e.event_id}>
+                    {(e.event_date ? formatDateOnly(e.event_date, "MMM d, yyyy") : "No date")} · {e.hostess_name || e.event_type || "Event"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setMoveOrderId(null); setMoveTargetEventId(""); }}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={!moveTargetEventId || reassignOrderMutation.isPending}
+                onClick={() => moveOrderId && reassignOrderMutation.mutate({ orderId: moveOrderId, newEventId: moveTargetEventId })}
+              >
+                Move order
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unlink Order Confirmation */}
+      <AlertDialog open={!!unlinkOrderId} onOpenChange={(open) => { if (!open) setUnlinkOrderId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink this order from the event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The order will remain in your records but will no longer be associated with this event. You can reassign it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => unlinkOrderId && reassignOrderMutation.mutate({ orderId: unlinkOrderId, newEventId: null })}
+            >
+              Unlink
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Layout>
   );
 }
