@@ -243,6 +243,37 @@ export default function EventDetail() {
   const [resolveAction, setResolveAction] = useState<null | "booked" | "no_longer" | "still_working">(null);
   const [stillWorkingOpen, setStillWorkingOpen] = useState(false);
 
+  // Order reassignment state
+  const [moveOrderId, setMoveOrderId] = useState<string | null>(null);
+  const [moveTargetEventId, setMoveTargetEventId] = useState<string>("");
+  const [unlinkOrderId, setUnlinkOrderId] = useState<string | null>(null);
+
+  const reassignOrderMutation = useMutation({
+    mutationFn: async ({ orderId, newEventId }: { orderId: string; newEventId: string | null }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ event_id: newEventId, parent_event_id: newEventId })
+        .eq("id", orderId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast.success(vars.newEventId ? "Order moved to selected event" : "Order unlinked from event");
+      setMoveOrderId(null);
+      setMoveTargetEventId("");
+      setUnlinkOrderId(null);
+    },
+    onError: (e: any) => toast.error(e?.message || "Failed to update order"),
+  });
+
+  const otherEvents = useMemo(
+    () => events
+      .filter((e) => e.event_id !== eventId && !e.is_archived)
+      .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || "")),
+    [events, eventId]
+  );
+
   const isReschedulingOrCancelled = event &&
     (event.event_status === "Cancelled" || (event as any).reschedule_status === "In Process of Rescheduling");
 
