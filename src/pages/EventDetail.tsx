@@ -962,7 +962,7 @@ export default function EventDetail() {
                         <TableHead className="text-xs">Type</TableHead>
                         <TableHead className="text-xs">Payment</TableHead>
                         <TableHead className="text-xs">Notes</TableHead>
-                        
+                        <TableHead className="text-xs w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -982,6 +982,26 @@ export default function EventDetail() {
                           </TableCell>
                           <TableCell className="text-xs">{o.payment_type || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[150px] truncate">{o.notes || ""}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setMoveOrderId(o.id); setMoveTargetEventId(""); }}>
+                                  Move to event…
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate(`/orders/${o.id}/edit`)}>
+                                  Edit order
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setUnlinkOrderId(o.id)}>
+                                  Unlink from this event
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
