@@ -286,7 +286,7 @@ export default function Analytics() {
         ) : (
           <div className="space-y-5">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Total Sales</p>
