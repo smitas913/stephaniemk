@@ -313,6 +313,13 @@ export default function Analytics() {
               </Card>
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Unit Guests</p>
+                  <p className="text-xl font-bold text-foreground mt-1">{analytics.unitGuestsTotal}</p>
+                  <p className="text-[10px] text-muted-foreground">downline-brought</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 shadow-sm">
+                <CardContent className="p-4 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Reorder Rate</p>
                   <p className="text-xl font-bold text-foreground mt-1">{analytics.reorderRate}%</p>
                   <p className="text-[10px] text-muted-foreground">{analytics.repeatCustomers} / {analytics.eligibleCount}</p>
