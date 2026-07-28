@@ -565,33 +565,6 @@ export default function EventDetail() {
                           <SelectContent>{EVENT_FORMATS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
-                      {/* Scope: Personal vs Unit */}
-                      <div className="space-y-1 sm:col-span-2">
-                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">This event is</label>
-                        <div className="flex gap-2">
-                          {EVENT_SCOPES.map((scope) => {
-                            const current = (event as any).event_scope || "Personal";
-                            const active = current === scope;
-                            return (
-                              <button
-                                key={scope}
-                                type="button"
-                                onClick={() => { if (!active) updateField("event_scope", scope); }}
-                                className={cn(
-                                  "flex-1 h-8 rounded-md border-2 text-xs font-medium transition-colors",
-                                  active
-                                    ? scope === "Unit"
-                                      ? "border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950/30 dark:text-teal-300"
-                                      : "border-primary bg-primary/10 text-primary"
-                                    : "border-border bg-background text-muted-foreground hover:bg-muted"
-                                )}
-                              >
-                                {scope}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
                       {/* Unified Status */}
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
