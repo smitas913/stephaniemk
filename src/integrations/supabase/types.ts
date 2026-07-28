@@ -775,6 +775,7 @@ export type Database = {
           reschedule_status: string | null
           sharing_appointments_count: number | null
           thank_you_sent: boolean
+          unit_guest_count: number | null
           updated_at: string | null
           virtual_notes: string | null
           virtual_platform: string | null
@@ -830,6 +831,7 @@ export type Database = {
           reschedule_status?: string | null
           sharing_appointments_count?: number | null
           thank_you_sent?: boolean
+          unit_guest_count?: number | null
           updated_at?: string | null
           virtual_notes?: string | null
           virtual_platform?: string | null
@@ -885,6 +887,7 @@ export type Database = {
           reschedule_status?: string | null
           sharing_appointments_count?: number | null
           thank_you_sent?: boolean
+          unit_guest_count?: number | null
           updated_at?: string | null
           virtual_notes?: string | null
           virtual_platform?: string | null

@@ -9,6 +9,7 @@ export function generateEventId(
     "Facial": "F",
     "Sharing Appointment": "S",
     "Pearl Appointment": "PA",
+    "On-the-Go": "OTG",
 
     "Lead Generating Event": "L",
     "Reorder": "R",

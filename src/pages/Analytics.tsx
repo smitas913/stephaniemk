@@ -148,6 +148,16 @@ export default function Analytics() {
       sales: months.reduce((s, r) => s + r.sales, 0),
     };
 
+    const unitGuestsTotal = events
+      .filter((e) => (e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey())))
+      .filter((e) => {
+        if (timeView === "all-time") return true;
+        const rs = timeView === "this-month" ? startOfMonth(now) : startOfYear(now);
+        return inRange(e.event_date, rs, endOfMonth(now));
+      })
+      .reduce((s, e: any) => s + Number(e.unit_guest_count || 0), 0);
+
+
     // Reorder rate: customers who ordered in selected period with 2+ lifetime orders / total unique customers in period
     // Determine date range for selected view
     let rangeStart: Date;
@@ -184,7 +194,7 @@ export default function Analytics() {
     const repeatCustomers = eligibleIds.filter((id) => (allOrdersByCustomer[id] || 0) >= 2).length;
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
-    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd };
+    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd, unitGuestsTotal };
   }, [events, orders, prospects, customers, timeView]);
 
   // ── Sales by Source breakdown for selected time view ──
@@ -276,7 +286,7 @@ export default function Analytics() {
         ) : (
           <div className="space-y-5">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <Card className="border-border/50 shadow-sm">
                 <CardContent className="p-4 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Total Sales</p>
@@ -299,6 +309,13 @@ export default function Analytics() {
                 <CardContent className="p-4 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Facials</p>
                   <p className="text-xl font-bold text-foreground mt-1">{analytics.totals.facials}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 shadow-sm">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-muted-foreground font-medium">Unit Guests</p>
+                  <p className="text-xl font-bold text-foreground mt-1">{analytics.unitGuestsTotal}</p>
+                  <p className="text-[10px] text-muted-foreground">downline-brought</p>
                 </CardContent>
               </Card>
               <Card className="border-border/50 shadow-sm">
