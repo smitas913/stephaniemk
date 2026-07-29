@@ -863,8 +863,8 @@ function ConvertGuestToCustomerDialog({
         // Link existing customer path — reuse existing behavior (no scan applied to an existing record here;
         // for that Stephanie can use Scan Photo on the customer's profile after linking).
         await fillEmptyFieldsFromNew(
-          { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: null, reason: "phone" },
-          { phone: g.phone }
+          { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: g.email, reason: "phone" },
+          { phone: g.phone, email: g.email }
         );
         await onCreated(linkExistingId);
         toast.success(`Linked ${g.name} to existing customer`);
@@ -874,7 +874,7 @@ function ConvertGuestToCustomerDialog({
         const created = await createCustomer({
           full_name: scanPayload.full_name?.trim() || g.name,
           phone: scanPayload.phone?.trim() || g.phone || null,
-          email: scanPayload.email?.trim() || null,
+          email: scanPayload.email?.trim() || g.email || null,
           address_line_1: scanPayload.address_line_1?.trim() || null,
           address_line_2: scanPayload.address_line_2?.trim() || null,
           city: scanPayload.city?.trim() || null,
