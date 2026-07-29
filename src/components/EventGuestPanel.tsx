@@ -308,6 +308,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         const { data: inserted, error } = await supabase.from("team_consultants").insert({
           name: trimmedName,
           phone: joinForm.phone.trim() || null,
+          email: joinForm.email.trim() || null,
           status: "Active",
           join_date: new Date().toISOString().slice(0, 10),
           relationship_type: "Personal Recruit",
