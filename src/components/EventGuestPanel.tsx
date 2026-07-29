@@ -198,6 +198,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const handleSelectSuggestion = (s: GuestSuggestion) => {
     setName(s.name);
     if (s.phone) setPhone(s.phone);
+    if (s.email) setEmail(s.email);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
     setLinkedConsultantId(s.kind === "consultant" ? s.id : null);
     setSuggestions([]);
