@@ -532,6 +532,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         )}
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
+                      {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
                       <button
