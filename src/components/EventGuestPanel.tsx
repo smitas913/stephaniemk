@@ -262,7 +262,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "joined":
         if (willBeOn) {
-          setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+          setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "", email: g.email || "" });
           return; // persistence happens in finalizeJoin
         } else {
           updates.converted_consultant_id = null;
