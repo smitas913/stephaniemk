@@ -63,12 +63,13 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
   const [linkedConsultantId, setLinkedConsultantId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
 
   // Inline sub-forms for outcomes that need a little extra info
-  const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
+  const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string; email: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
   const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
 
