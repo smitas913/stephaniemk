@@ -942,6 +942,7 @@ function ConvertGuestToCustomerDialog({
       const seeded = contactFieldsForNewCustomer(ex);
       if (!seeded.full_name && g.name) seeded.full_name = g.name;
       if (!seeded.phone && g.phone) seeded.phone = g.phone;
+      if (!seeded.email && g.email) seeded.email = g.email;
       setScanFields(seeded);
       setScanOrders(orderDraftsFromExtracted(ex));
     } catch (e: any) {
