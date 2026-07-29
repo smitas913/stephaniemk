@@ -63,12 +63,13 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
   const [linkedConsultantId, setLinkedConsultantId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
 
   // Inline sub-forms for outcomes that need a little extra info
-  const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
+  const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string; email: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
   const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
 
@@ -147,7 +148,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setLinkedCustomerId(null); setLinkedConsultantId(null); setSuggestions([]); setShowForm(false);
+      setName(""); setPhone(""); setEmail(""); setLinkedCustomerId(null); setLinkedConsultantId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -187,6 +188,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       event_id: eventId,
       name: trimmedName,
       phone: phone.trim() || null,
+      email: email.trim() || null,
       rsvp: "Yes",
       converted_customer_id: linkedCustomerId,
       consultant_id: linkedConsultantId,
@@ -196,6 +198,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const handleSelectSuggestion = (s: GuestSuggestion) => {
     setName(s.name);
     if (s.phone) setPhone(s.phone);
+    if (s.email) setEmail(s.email);
     setLinkedCustomerId(s.kind === "customer" ? s.id : null);
     setLinkedConsultantId(s.kind === "consultant" ? s.id : null);
     setSuggestions([]);
@@ -259,7 +262,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "joined":
         if (willBeOn) {
-          setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+          setJoinForm({ guestId: g.id, name: g.name, phone: g.phone || "", email: g.email || "" });
           return; // persistence happens in finalizeJoin
         } else {
           updates.converted_consultant_id = null;
@@ -305,6 +308,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         const { data: inserted, error } = await supabase.from("team_consultants").insert({
           name: trimmedName,
           phone: joinForm.phone.trim() || null,
+          email: joinForm.email.trim() || null,
           status: "Active",
           join_date: new Date().toISOString().slice(0, 10),
           relationship_type: "Personal Recruit",
@@ -492,6 +496,8 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
@@ -526,6 +532,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         )}
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
+                      {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
                       <button
@@ -725,6 +732,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
                   {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
+                  {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
                   Confirmed
@@ -859,8 +867,8 @@ function ConvertGuestToCustomerDialog({
         // Link existing customer path — reuse existing behavior (no scan applied to an existing record here;
         // for that Stephanie can use Scan Photo on the customer's profile after linking).
         await fillEmptyFieldsFromNew(
-          { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: null, reason: "phone" },
-          { phone: g.phone }
+          { kind: "customer", id: linkExistingId, name: g.name, phone: g.phone, email: g.email, reason: "phone" },
+          { phone: g.phone, email: g.email }
         );
         await onCreated(linkExistingId);
         toast.success(`Linked ${g.name} to existing customer`);
@@ -870,7 +878,7 @@ function ConvertGuestToCustomerDialog({
         const created = await createCustomer({
           full_name: scanPayload.full_name?.trim() || g.name,
           phone: scanPayload.phone?.trim() || g.phone || null,
-          email: scanPayload.email?.trim() || null,
+          email: scanPayload.email?.trim() || g.email || null,
           address_line_1: scanPayload.address_line_1?.trim() || null,
           address_line_2: scanPayload.address_line_2?.trim() || null,
           city: scanPayload.city?.trim() || null,
@@ -938,6 +946,7 @@ function ConvertGuestToCustomerDialog({
       const seeded = contactFieldsForNewCustomer(ex);
       if (!seeded.full_name && g.name) seeded.full_name = g.name;
       if (!seeded.phone && g.phone) seeded.phone = g.phone;
+      if (!seeded.email && g.email) seeded.email = g.email;
       setScanFields(seeded);
       setScanOrders(orderDraftsFromExtracted(ex));
     } catch (e: any) {

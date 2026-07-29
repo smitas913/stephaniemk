@@ -658,6 +658,7 @@ export type Database = {
           converted_consultant_id: string | null
           converted_customer_id: string | null
           created_at: string
+          email: string | null
           event_id: string
           id: string
           interested: boolean | null
@@ -680,6 +681,7 @@ export type Database = {
           converted_consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
+          email?: string | null
           event_id: string
           id?: string
           interested?: boolean | null
@@ -702,6 +704,7 @@ export type Database = {
           converted_consultant_id?: string | null
           converted_customer_id?: string | null
           created_at?: string
+          email?: string | null
           event_id?: string
           id?: string
           interested?: boolean | null

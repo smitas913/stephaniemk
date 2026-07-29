@@ -155,6 +155,7 @@ export interface EventGuest {
   event_id: string;
   name: string;
   phone: string | null;
+  email: string | null;
   notes: string | null;
   converted_customer_id: string | null;
   consultant_id: string | null;
