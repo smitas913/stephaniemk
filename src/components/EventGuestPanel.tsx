@@ -496,6 +496,8 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
             className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
