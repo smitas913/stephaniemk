@@ -557,7 +557,9 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                       {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
-                      {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
+                      <GuestSkinTypeSelect value={(g as any).skin_type || null}
+                        onChange={(v) => updateMutation.mutate({ id: g.id, updates: { skin_type: v } as any })} />
+
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
                       <button
