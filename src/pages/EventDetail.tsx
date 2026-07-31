@@ -760,6 +760,20 @@ export default function EventDetail() {
                         <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
                       </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skin Type</label>
+                        <Input className="h-9 text-sm" placeholder="e.g. Combination" defaultValue={(event as any).hostess_skin_type || ""} key={`hst-${(event as any).hostess_skin_type}`}
+                          onBlur={(e) => { if (e.target.value !== ((event as any).hostess_skin_type || "")) updateField("hostess_skin_type", e.target.value || null); }} />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2 flex sm:items-end">
+                        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                          <Checkbox
+                            checked={!!(event as any).hostess_video_watched}
+                            onCheckedChange={(v) => updateField("hostess_video_watched", v === true)}
+                          />
+                          Watched the 2-min video
+                        </label>
+                      </div>
                       <div className="space-y-1.5 sm:col-span-3">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Where did you meet the hostess?</label>
                         <Select

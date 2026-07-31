@@ -121,6 +121,8 @@ export interface EventRecord {
   hostess_phone: string | null;
   hostess_email: string | null;
   hostess_source: string | null;
+  hostess_skin_type?: string | null;
+  hostess_video_watched?: boolean;
   google_form_link: string | null;
   hostess_next_action: string | null;
   hostess_next_action_date: string | null;
@@ -168,6 +170,8 @@ export interface EventGuest {
   thank_you_sent: boolean;
   party_rescheduled?: boolean;
   referral_count?: number;
+  skin_type?: string | null;
+  video_watched?: boolean;
 }
 
 export const RELATIONSHIP_STATUSES = ["Customer", "Former Consultant"] as const;
