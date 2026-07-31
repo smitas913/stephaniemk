@@ -58,6 +58,19 @@ const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
   { key: "noshow",  label: "No Show" },
 ];
 
+function GuestSkinTypeSelect({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <Select value={value || "__none__"} onValueChange={(v) => onChange(v === "__none__" ? null : v)}>
+      <SelectTrigger className="h-6 text-[11px] w-40 mt-1"><SelectValue placeholder="Skin type" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">Skin type not set</SelectItem>
+        {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
+
 export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
