@@ -101,6 +101,10 @@ export type RescheduleStatus = typeof RESCHEDULE_STATUSES[number];
 
 export const RSVP_OPTIONS = ["Invited", "Yes", "No", "Maybe"] as const;
 
+export const SKIN_TYPES = ["Normal to Dry", "Combination to Oily"] as const;
+export type SkinType = typeof SKIN_TYPES[number];
+
+
 export interface EventRecord {
   id: string;
   event_id: string;

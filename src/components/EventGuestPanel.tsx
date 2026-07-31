@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders, createCustomer, fetchTeamConsultants } from "@/lib/queries";
+import { SKIN_TYPES } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,19 @@ const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
   { key: "joined",  label: "She Joined" },
   { key: "noshow",  label: "No Show" },
 ];
+
+function GuestSkinTypeSelect({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <Select value={value || "__none__"} onValueChange={(v) => onChange(v === "__none__" ? null : v)}>
+      <SelectTrigger className="h-6 text-[11px] w-40 mt-1"><SelectValue placeholder="Skin type" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">Skin type not set</SelectItem>
+        {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
 
 export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
@@ -500,8 +514,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
-          <Input placeholder="Skin type (optional)" value={skinType} onChange={(e) => setSkinType(e.target.value)}
-            className="h-8 text-xs w-40" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Select value={skinType || "__none__"} onValueChange={(v) => setSkinType(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-xs w-44"><SelectValue placeholder="Skin type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Skin type not set</SelectItem>
+              {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
@@ -537,7 +557,9 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                       {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
-                      {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
+                      <GuestSkinTypeSelect value={(g as any).skin_type || null}
+                        onChange={(v) => updateMutation.mutate({ id: g.id, updates: { skin_type: v } as any })} />
+
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
                       <button
@@ -750,7 +772,9 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
                   {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                   {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
-                  {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
+                  <GuestSkinTypeSelect value={(g as any).skin_type || null}
+                    onChange={(v) => updateMutation.mutate({ id: g.id, updates: { skin_type: v } as any })} />
+
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
                   Confirmed
