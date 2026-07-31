@@ -750,6 +750,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
                   {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                   {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
+                  {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
                   Confirmed
