@@ -762,9 +762,18 @@ export default function EventDetail() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skin Type</label>
-                        <Input className="h-9 text-sm" placeholder="e.g. Combination" defaultValue={(event as any).hostess_skin_type || ""} key={`hst-${(event as any).hostess_skin_type}`}
-                          onBlur={(e) => { if (e.target.value !== ((event as any).hostess_skin_type || "")) updateField("hostess_skin_type", e.target.value || null); }} />
+                        <Select
+                          value={(event as any).hostess_skin_type || "__none__"}
+                          onValueChange={(val) => updateField("hostess_skin_type", val === "__none__" ? null : val)}
+                        >
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Not set" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Not set</SelectItem>
+                            {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
+
                       <div className="space-y-1.5 sm:col-span-2 flex sm:items-end">
                         <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
                           <Checkbox
