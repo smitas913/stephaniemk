@@ -501,8 +501,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
-          <Input placeholder="Skin type (optional)" value={skinType} onChange={(e) => setSkinType(e.target.value)}
-            className="h-8 text-xs w-40" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Select value={skinType || "__none__"} onValueChange={(v) => setSkinType(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-xs w-44"><SelectValue placeholder="Skin type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Skin type not set</SelectItem>
+              {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
