@@ -670,9 +670,11 @@ export type Database = {
           phone: string | null
           referral_count: number
           rsvp: string | null
+          skin_type: string | null
           task_day_before_sent: boolean
           task_invite_sent: boolean
           thank_you_sent: boolean | null
+          video_watched: boolean
         }
         Insert: {
           attending?: boolean | null
@@ -693,9 +695,11 @@ export type Database = {
           phone?: string | null
           referral_count?: number
           rsvp?: string | null
+          skin_type?: string | null
           task_day_before_sent?: boolean
           task_invite_sent?: boolean
           thank_you_sent?: boolean | null
+          video_watched?: boolean
         }
         Update: {
           attending?: boolean | null
@@ -716,9 +720,11 @@ export type Database = {
           phone?: string | null
           referral_count?: number
           rsvp?: string | null
+          skin_type?: string | null
           task_day_before_sent?: boolean
           task_invite_sent?: boolean
           thank_you_sent?: boolean | null
+          video_watched?: boolean
         }
         Relationships: [
           {
@@ -764,7 +770,9 @@ export type Database = {
           hostess_next_action: string | null
           hostess_next_action_date: string | null
           hostess_phone: string | null
+          hostess_skin_type: string | null
           hostess_source: string | null
+          hostess_video_watched: boolean
           id: string
           is_archived: boolean | null
           notes: string | null
@@ -820,7 +828,9 @@ export type Database = {
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
           hostess_phone?: string | null
+          hostess_skin_type?: string | null
           hostess_source?: string | null
+          hostess_video_watched?: boolean
           id?: string
           is_archived?: boolean | null
           notes?: string | null
@@ -876,7 +886,9 @@ export type Database = {
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
           hostess_phone?: string | null
+          hostess_skin_type?: string | null
           hostess_source?: string | null
+          hostess_video_watched?: boolean
           id?: string
           is_archived?: boolean | null
           notes?: string | null
