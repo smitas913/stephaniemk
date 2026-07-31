@@ -64,6 +64,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [skinType, setSkinType] = useState("");
   const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
   const [linkedConsultantId, setLinkedConsultantId] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<GuestSuggestion[]>([]);
@@ -148,7 +149,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     mutationFn: createEventGuest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
-      setName(""); setPhone(""); setEmail(""); setLinkedCustomerId(null); setLinkedConsultantId(null); setSuggestions([]); setShowForm(false);
+      setName(""); setPhone(""); setEmail(""); setSkinType(""); setLinkedCustomerId(null); setLinkedConsultantId(null); setSuggestions([]); setShowForm(false);
       toast.success("Guest added");
     },
     onError: (err: any) => toast.error(err.message || "Failed to add guest"),
@@ -189,6 +190,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       name: trimmedName,
       phone: phone.trim() || null,
       email: email.trim() || null,
+      skin_type: skinType.trim() || null,
       rsvp: "Yes",
       converted_customer_id: linkedCustomerId,
       consultant_id: linkedConsultantId,
@@ -498,6 +500,8 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Input placeholder="Skin type (optional)" value={skinType} onChange={(e) => setSkinType(e.target.value)}
+            className="h-8 text-xs w-40" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
@@ -533,6 +537,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                       {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
+                      {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
                       <button
@@ -557,6 +562,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         aria-label="Increase referrals"
                       >+</button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => updateMutation.mutate({ id: g.id, updates: { video_watched: !(g as any).video_watched } as any })}
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
+                        (g as any).video_watched
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                      )}
+                    >
+                      {(g as any).video_watched ? "Video ✓" : "Video"}
+                    </button>
                     <button
                       type="button"
                       onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
@@ -733,6 +750,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
                   {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                   {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
+                  {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
                   Confirmed
@@ -760,6 +778,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     aria-label="Increase referrals"
                   >+</button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => updateMutation.mutate({ id: g.id, updates: { video_watched: !(g as any).video_watched } as any })}
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
+                    (g as any).video_watched
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                  )}
+                >
+                  {(g as any).video_watched ? "Video ✓" : "Video"}
+                </button>
                 <button
                   type="button"
                   onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
