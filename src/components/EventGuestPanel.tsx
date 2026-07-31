@@ -500,6 +500,8 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+          <Input placeholder="Skin type (optional)" value={skinType} onChange={(e) => setSkinType(e.target.value)}
+            className="h-8 text-xs w-40" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
@@ -535,6 +537,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                       {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
+                      {(g as any).skin_type && <p className="text-[11px] text-muted-foreground truncate">Skin: {(g as any).skin_type}</p>}
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
                       <button
