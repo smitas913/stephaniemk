@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { addDays, format } from "date-fns";
-import { EVENT_STATUSES, RESCHEDULE_STATUSES } from "@/lib/types";
+import { EVENT_STATUSES, RESCHEDULE_STATUSES, SKIN_TYPES } from "@/lib/types";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
