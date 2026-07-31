@@ -564,6 +564,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     </div>
                     <button
                       type="button"
+                      onClick={() => updateMutation.mutate({ id: g.id, updates: { video_watched: !(g as any).video_watched } as any })}
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
+                        (g as any).video_watched
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                      )}
+                    >
+                      {(g as any).video_watched ? "Video ✓" : "Video"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
                       className={cn(
                         "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
@@ -765,6 +777,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     aria-label="Increase referrals"
                   >+</button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => updateMutation.mutate({ id: g.id, updates: { video_watched: !(g as any).video_watched } as any })}
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
+                    (g as any).video_watched
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                  )}
+                >
+                  {(g as any).video_watched ? "Video ✓" : "Video"}
+                </button>
                 <button
                   type="button"
                   onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
