@@ -671,60 +671,14 @@ export default function EventDetail() {
                           )}
                         </div>
                       ) : (
-                        <>
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Type</label>
-                            <Select
-                              value={(event as any).event_venue_type || ""}
-                              onValueChange={(val) => {
-                                updateField("event_venue_type", val);
-                                if (val === "My Home Office" && zoomDefaults?.home_office_address) {
-                                  setLocalLocation(zoomDefaults.home_office_address);
-                                  updateField("event_location", zoomDefaults.home_office_address);
-                                } else if (val === "Hostess's Home" || val === "Other Venue") {
-                                  // Clear the address so they can enter the correct one
-                                  setLocalLocation("");
-                                  updateField("event_location", null);
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select venue type" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Hostess's Home">Hostess's Home</SelectItem>
-                                <SelectItem value="My Home Office">My Home Office</SelectItem>
-                                <SelectItem value="Other Venue">Other Venue</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              {(event as any).event_venue_type === "Hostess's Home" ? "Hostess's Address" :
-                               (event as any).event_venue_type === "My Home Office" ? "My Address" :
-                               "Venue Address"}
-                            </label>
-                            <Input className="h-9 text-sm"
-                              placeholder={
-                                (event as any).event_venue_type === "Hostess's Home" ? "Hostess's street address" :
-                                (event as any).event_venue_type === "My Home Office" ? "Your home office address" :
-                                "Venue name or address"
-                              }
-                              value={localLocation}
-                              onChange={(e) => setLocalLocation(e.target.value)}
-                              onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
-                            {/* Only show button if field is empty or has a different value */}
-                            {(event as any).event_venue_type === "My Home Office" &&
-                             zoomDefaults?.home_office_address &&
-                             localLocation !== zoomDefaults.home_office_address && (
-                              <Button size="sm" variant="outline" className="h-7 text-xs"
-                                onClick={() => {
-                                  setLocalLocation(zoomDefaults.home_office_address!);
-                                  updateField("event_location", zoomDefaults.home_office_address);
-                                }}>
-                                Use my home office address
-                              </Button>
-                            )}
-                          </div>
-                        </>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Address</label>
+                          <Input className="h-9 text-sm"
+                            placeholder="Venue name or address"
+                            value={localLocation}
+                            onChange={(e) => setLocalLocation(e.target.value)}
+                            onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
+                        </div>
                       )}
                     </div>
                   </CardContent>
