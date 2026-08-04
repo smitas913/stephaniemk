@@ -18,6 +18,7 @@ import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, Use
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import CareerChatsTab from "@/components/CareerChatsTab";
+import { dedupeLinkedProspects, getProspectActionDate, prospectRequiresNextDate } from "@/lib/prospectFollowUp";
 
 const STATUS_COLORS: Record<string, string> = {
   "New Contact": "bg-muted text-muted-foreground",
@@ -92,7 +93,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
   }, [customers]);
 
   const filtered = useMemo(() => {
-    let list = prospects;
+    let list = dedupeLinkedProspects(prospects);
     // Archive filter
     list = list.filter((p) => showArchived ? (p as any).is_archived : !(p as any).is_archived);
     // DNC filter via linked customer
@@ -113,7 +114,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
     list = [...list].sort((a, b) => {
       if (sortBy === "interest") return ((b as any).interest_level || 0) - ((a as any).interest_level || 0);
       if (sortBy === "last_contact") return (b.last_contact_date || "").localeCompare(a.last_contact_date || "");
-      if (sortBy === "follow_up") return (a.next_follow_up_date || "9999").localeCompare(b.next_follow_up_date || "9999");
+      if (sortBy === "follow_up") return (getProspectActionDate(a) || "9999").localeCompare(getProspectActionDate(b) || "9999");
       if (sortBy === "name") return a.name.localeCompare(b.name);
       return 0;
     });
@@ -128,6 +129,9 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
 
   const createMut = useMutation({
     mutationFn: () => {
+      if (prospectRequiresNextDate(formStatus) && !formNextStepDate) {
+        throw new Error("Choose a next step date for an active prospect.");
+      }
       const data: Partial<Prospect> & { name: string } = {
         name: formName,
         phone: formPhone || null,
@@ -147,6 +151,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
       resetForm();
       toast.success("Prospect added!");
     },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const deleteMut = useMutation({
@@ -323,8 +328,9 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
           <p className="text-center text-muted-foreground py-12">No prospects found</p>
         ) : (() => {
           const renderCard = (p: Prospect) => {
-            const overdue = p.next_step_date && compareDateOnly(p.next_step_date) === -1;
-            const today = p.next_step_date && compareDateOnly(p.next_step_date) === 0;
+            const actionDate = getProspectActionDate(p);
+            const overdue = actionDate && compareDateOnly(actionDate) === -1;
+            const today = actionDate && compareDateOnly(actionDate) === 0;
             const assignedName = p.assigned_consultant_id ? consultantMap[p.assigned_consultant_id] : null;
             const followUpLabel = subTab === "unit" ? "Coach check-in:" : "Follow-up:";
 
@@ -358,21 +364,22 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
                       <Badge variant="secondary" className={cn("text-[10px] shrink-0", STATUS_COLORS[p.opportunity_status] || "")}>
                         {p.opportunity_status}
                       </Badge>
+                      {overdue && <Badge variant="destructive" className="text-[10px] shrink-0">Overdue</Badge>}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                       {p.last_contact_date && (
                         <span className="text-xs text-muted-foreground">Last contact: {formatDateOnly(p.last_contact_date, "MMM d")}</span>
                       )}
-                      {p.next_follow_up_date && (() => {
+                       {actionDate && (() => {
                         const todayKey = toLocalDateKey();
-                        const cls = p.next_follow_up_date < todayKey
+                         const cls = actionDate < todayKey
                           ? "text-destructive font-medium"
-                          : p.next_follow_up_date === todayKey
+                           : actionDate === todayKey
                             ? "text-primary font-medium"
                             : "text-muted-foreground";
                         return (
                           <span className={cn("text-xs", cls)}>
-                            {followUpLabel} {formatDateOnly(p.next_follow_up_date, "MMM d")}
+                             {followUpLabel} {formatDateOnly(actionDate, "MMM d")}
                           </span>
                         );
                       })()}
@@ -533,7 +540,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
                   <Input type="date" value={formNextStepDate} onChange={(e) => setFormNextStepDate(e.target.value)} />
                 </div>
               </div>
-              <Button className="w-full" onClick={() => createMut.mutate()} disabled={!formName.trim() || createMut.isPending}>
+              <Button className="w-full" onClick={() => createMut.mutate()} disabled={!formName.trim() || (prospectRequiresNextDate(formStatus) && !formNextStepDate) || createMut.isPending}>
                 {createMut.isPending ? "Adding..." : "Add Prospect"}
               </Button>
             </div>

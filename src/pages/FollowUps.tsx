@@ -57,6 +57,7 @@ import { resolveIntentCategory, categoryTag } from "@/lib/intentCategory";
 import TextActionButton from "@/components/TextActionButton";
 import ThankYouRemindersCard from "@/components/ThankYouRemindersCard";
 import { useTodaySections, TodaySectionWrapper } from "@/components/TodaySectionWrapper";
+import { dedupeLinkedProspects, getProspectActionDate } from "@/lib/prospectFollowUp";
 
 
 import {
@@ -2357,7 +2358,17 @@ export default function FollowUps() {
 
                      // Split into the three categories. Customers and leads are capped
                      // independently; prospects (recruiting) are unlimited per spec.
-                      const allCustomerItemsRaw = followUpItems.filter(i => i.itemType === "customer");
+                      const linkedProspectDates = new Map<string, string>();
+                      for (const prospect of dedupeLinkedProspects(prospects || [])) {
+                        if (!prospect.customer_id || prospect.is_archived) continue;
+                        const date = getProspectActionDate(prospect);
+                        if (date) linkedProspectDates.set(prospect.customer_id, date);
+                      }
+                      const allCustomerItemsRaw = followUpItems.filter((i) => {
+                        if (i.itemType !== "customer") return false;
+                        const prospectDate = linkedProspectDates.get(i.id);
+                        return !prospectDate || !i.next_follow_up || i.next_follow_up <= prospectDate;
+                      });
                       const isNewSequenceStage = (s: any) => s === "Day 2" || s === "Day 4" || s === "Day 6";
                       const newSequenceItems = allCustomerItemsRaw.filter(i => isNewSequenceStage((i as any).new_follow_up_stage));
                       const regularCustomerItems = allCustomerItemsRaw.filter(i => !isNewSequenceStage((i as any).new_follow_up_stage));
@@ -2696,9 +2707,19 @@ export default function FollowUps() {
                           {/* Career Chats due today — compact pointer to /prospects Career Chats tab */}
                           {(() => {
                             const todayK = frozenTodayKey;
-                            const dueChats = (prospects || [])
-                              .filter((p: any) => !p.is_archived && p.is_career_chat === true && p.next_follow_up_date && p.next_follow_up_date <= todayK)
-                              .sort((a: any, b: any) => (a.next_follow_up_date || "").localeCompare(b.next_follow_up_date || ""));
+                             const customerDates = new Map(
+                               enrichedCustomers
+                                 .filter((customer) => customer.next_follow_up_date)
+                                 .map((customer) => [customer.id, normalizeFollowUpDate(customer.next_follow_up_date)]),
+                             );
+                             const dueChats = dedupeLinkedProspects(prospects || [])
+                               .map((p: any) => ({ ...p, _actionDate: getProspectActionDate(p) }))
+                               .filter((p: any) => {
+                                 if (p.is_archived || p.is_career_chat !== true || !p._actionDate || p._actionDate > todayK) return false;
+                                 const customerDate = p.customer_id ? customerDates.get(p.customer_id) : null;
+                                 return !customerDate || p._actionDate < customerDate;
+                               })
+                               .sort((a: any, b: any) => a._actionDate.localeCompare(b._actionDate));
                             const consultantName = (id: string | null | undefined) =>
                               id ? (consultants.find((c: any) => c.id === id)?.name || "") : "";
                             return (
@@ -2728,7 +2749,7 @@ export default function FollowUps() {
                                     ) : (
                                       <div className="space-y-1">
                                         {dueChats.slice(0, 8).map((p: any) => {
-                                          const overdue = (p.next_follow_up_date || "") < todayK;
+                                           const overdue = p._actionDate < todayK;
                                           const cName = consultantName(p.assigned_consultant_id);
                                           return (
                                             <button

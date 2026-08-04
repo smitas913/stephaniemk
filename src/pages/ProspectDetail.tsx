@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TextActionButton from "@/components/TextActionButton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { prospectRequiresNextDate } from "@/lib/prospectFollowUp";
 
 const STATUS_COLORS: Record<string, string> = {
   "New Contact": "bg-muted text-muted-foreground",
@@ -80,6 +81,9 @@ export default function ProspectDetail() {
 
   const updateMut = useMutation({
     mutationFn: (data: Record<string, string>) => {
+      if (prospectRequiresNextDate(data.opportunity_status) && !data.next_step_date && !data.next_follow_up_date) {
+        throw new Error("Choose a next step date or follow-up date for an active prospect.");
+      }
       const cleaned: Record<string, string | null> = {};
       for (const [k, v] of Object.entries(data)) cleaned[k] = v === "" ? null : v;
       if (cleaned.name === null) cleaned.name = prospect!.name;
@@ -91,6 +95,7 @@ export default function ProspectDetail() {
       setEditing(false);
       toast.success("Prospect updated!");
     },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const deleteMut = useMutation({
@@ -453,7 +458,7 @@ export default function ProspectDetail() {
                 <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="text-primary text-xs">Edit</Button>
               ) : (
                 <>
-                  <Button size="sm" onClick={() => updateMut.mutate(form)} disabled={updateMut.isPending}><Save className="w-3 h-3 mr-1" />{updateMut.isPending ? "Saving..." : "Save"}</Button>
+                  <Button size="sm" onClick={() => updateMut.mutate(form)} disabled={(prospectRequiresNextDate(form.opportunity_status) && !form.next_step_date && !form.next_follow_up_date) || updateMut.isPending}><Save className="w-3 h-3 mr-1" />{updateMut.isPending ? "Saving..." : "Save"}</Button>
                   <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
                 </>
               )}
