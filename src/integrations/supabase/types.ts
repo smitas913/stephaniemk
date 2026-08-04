@@ -267,6 +267,33 @@ export type Database = {
         }
         Relationships: []
       }
+      content_feedback: {
+        Row: {
+          created_at: string | null
+          id: number
+          rating: string | null
+          section: string | null
+          topic: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          rating?: string | null
+          section?: string | null
+          topic?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          rating?: string | null
+          section?: string | null
+          topic?: string | null
+          url?: string | null
+        }
+        Relationships: []
+      }
       custom_blackout_days: {
         Row: {
           blackout_date: string
