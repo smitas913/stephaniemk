@@ -14,6 +14,7 @@ import { MessageSquare, User, Users, Clock, MoreHorizontal } from "lucide-react"
 import { addDays, format, differenceInCalendarDays, parseISO } from "date-fns";
 import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
 import { useNavigate } from "react-router-dom";
+import { dedupeLinkedProspects, getProspectActionDate } from "@/lib/prospectFollowUp";
 
 export default function CareerChatsTab() {
   const navigate = useNavigate();
@@ -32,9 +33,9 @@ export default function CareerChatsTab() {
   const todayKey = toLocalDateKey();
 
   const items = useMemo(() => {
-    const list = (prospects as Prospect[]).filter((p) => !p.is_archived && (p as any).is_career_chat === true);
+    const list = dedupeLinkedProspects((prospects as Prospect[]).filter((p) => !p.is_archived && (p as any).is_career_chat === true));
     const scored = list.map((p) => {
-      const fu = p.next_follow_up_date || p.next_step_date || null;
+      const fu = getProspectActionDate(p);
       const days = fu ? differenceInCalendarDays(parseISO(fu), parseISO(todayKey)) : null;
       const parked = days === null || days > 7;
       return { p, fu, days, parked };
@@ -133,6 +134,9 @@ export default function CareerChatsTab() {
                         <Badge variant="outline" className="text-[10px] shrink-0">
                           Interest {(p as any).interest_level}/10
                         </Badge>
+                      )}
+                      {days !== null && days < 0 && !parked && (
+                        <Badge variant="destructive" className="text-[10px] shrink-0">Overdue</Badge>
                       )}
                     </div>
 
