@@ -245,12 +245,18 @@ export default function Analytics() {
     }
 
 
+    // All Party/Facial-typed orders in the period (regardless of new vs. reorder status)
+    const eventSales = periodOrders
+      .filter((o) => o.order_type === "Party" || o.order_type === "Facial")
+      .reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+
     const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
     const reorderShare = totalSales > 0 ? (buckets.reorder.total / totalSales) * 100 : 0;
     const newFaceShare = totalSales > 0 ? (buckets.newFace.total / totalSales) * 100 : 0;
 
     return {
       totalSales,
+      eventSales,
       buckets,
       avgParty: avg(buckets.party),
       avgFacial: avg(buckets.facial),
