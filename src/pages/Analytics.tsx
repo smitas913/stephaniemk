@@ -224,18 +224,22 @@ export default function Analytics() {
       const amt = Number(o.retail_amount || 0);
       totalSales += amt;
       const isFirst = firstOrderByCustomer[o.customer_id] === o.order_date;
-      if (isFirst) { buckets.newFace.count++; buckets.newFace.total += amt; }
-      if (o.is_myshop_order) { buckets.myshop.count++; buckets.myshop.total += amt; }
+      if (isFirst) {
+        buckets.newFace.count++; buckets.newFace.total += amt;
+        continue;
+      }
+      if (o.is_myshop_order) {
+        buckets.myshop.count++; buckets.myshop.total += amt;
+        continue;
+      }
       switch (o.order_type) {
         case "Party": buckets.party.count++; buckets.party.total += amt; break;
         case "Facial": buckets.facial.count++; buckets.facial.total += amt; break;
         case "Reorder": buckets.reorder.count++; buckets.reorder.total += amt; break;
-        case "Other":
-        default:
-          if (!o.is_myshop_order) { buckets.other.count++; buckets.other.total += amt; }
-          break;
+        default: buckets.other.count++; buckets.other.total += amt; break;
       }
     }
+
 
     const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
     const reorderShare = totalSales > 0 ? (buckets.reorder.total / totalSales) * 100 : 0;
