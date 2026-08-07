@@ -9,14 +9,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, BarChart3, Repeat } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TrendingUp, BarChart3, Repeat, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, subMonths, format,
-  differenceInCalendarMonths,
+  parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, format,
+  addMonths, differenceInCalendarMonths, max as maxDate, min as minDate,
 } from "date-fns";
 
-type TimeView = "this-month" | "ytd" | "all-time";
+type TimeView = "this-month" | "ytd" | "seminar-year" | "all-time" | "custom";
 
 type MonthRow = {
   label: string;
@@ -37,8 +40,17 @@ const inRange = (dateStr: string | null | undefined, s: Date, e: Date) => {
   }
 };
 
+/** July 1 – June 30 Mary Kay business year containing `now`. */
+function seminarYearStart(now: Date): Date {
+  const year = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  return new Date(year, 6, 1);
+}
+
 export default function Analytics() {
   const [timeView, setTimeView] = useState<TimeView>("ytd");
+  const [customStart, setCustomStart] = useState<Date | undefined>(subDays(new Date(), 29));
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(new Date());
+
   const { data: events = [], isLoading: evL } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [], isLoading: orL } = useQuery({
     queryKey: ["all-orders-analytics"],
@@ -62,41 +74,47 @@ export default function Analytics() {
   const { data: customers = [], isLoading: cuL } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const isLoading = evL || orL || prL || cuL;
 
-  const analytics = useMemo(() => {
+  // ── Single source of truth for the selected date range ──
+  const { rangeStart, rangeEnd } = useMemo(() => {
     const now = new Date();
-
-    // Determine how many months to show
-    let monthCount: number;
-    if (timeView === "this-month") {
-      monthCount = 1;
-    } else if (timeView === "ytd") {
-      monthCount = now.getMonth() + 1; // Jan = 1, etc.
-    } else {
-      // all-time: find earliest event or order date
-      let earliest = now;
-      events.forEach((e) => {
-        if (e.event_date) {
-          const d = parseISO(e.event_date);
-          if (d < earliest) earliest = d;
-        }
-      });
-      orders.forEach((o) => {
-        if (o.order_date) {
-          const d = parseISO(o.order_date);
-          if (d < earliest) earliest = d;
-        }
-      });
-      monthCount = Math.max(differenceInCalendarMonths(now, earliest) + 1, 1);
-      if (monthCount > 60) monthCount = 60; // cap at 5 years
+    if (timeView === "this-month") return { rangeStart: startOfMonth(now), rangeEnd: endOfMonth(now) };
+    if (timeView === "ytd") return { rangeStart: startOfYear(now), rangeEnd: endOfMonth(now) };
+    if (timeView === "seminar-year") {
+      const start = seminarYearStart(now);
+      const seminarEnd = new Date(start.getFullYear() + 1, 5, 30, 23, 59, 59, 999);
+      // Cap at today so future empty months aren't shown
+      return { rangeStart: start, rangeEnd: minDate([seminarEnd, endOfMonth(now)]) };
     }
+    if (timeView === "custom") {
+      const s = customStart ?? subDays(now, 29);
+      const e = customEnd ?? now;
+      const [a, b] = s <= e ? [s, e] : [e, s];
+      return { rangeStart: a, rangeEnd: new Date(b.getFullYear(), b.getMonth(), b.getDate(), 23, 59, 59, 999) };
+    }
+    // all-time
+    let earliest = now;
+    events.forEach((e) => {
+      if (e.event_date) { const d = parseISO(e.event_date); if (d < earliest) earliest = d; }
+    });
+    orders.forEach((o) => {
+      if (o.order_date) { const d = parseISO(o.order_date); if (d < earliest) earliest = d; }
+    });
+    // cap at 5 years of months
+    const months = differenceInCalendarMonths(now, earliest);
+    if (months > 59) earliest = subMonths(now, 59);
+    return { rangeStart: startOfMonth(earliest), rangeEnd: endOfMonth(now) };
+  }, [timeView, customStart, customEnd, events, orders]);
 
-    // Build monthly rows
+  const analytics = useMemo(() => {
+    // Build one row per calendar month within the selected range
+    const monthCount = Math.max(differenceInCalendarMonths(rangeEnd, rangeStart) + 1, 1);
     const months: MonthRow[] = [];
-    for (let i = monthCount - 1; i >= 0; i--) {
-      const refDate = subMonths(now, i);
-      const mStart = startOfMonth(refDate);
-      const mEnd = endOfMonth(refDate);
-      const mLabel = format(mStart, "MMM yyyy");
+    for (let i = 0; i < monthCount; i++) {
+      const refDate = addMonths(startOfMonth(rangeStart), i);
+      const mStart = maxDate([startOfMonth(refDate), rangeStart]);
+      const mEnd = minDate([endOfMonth(refDate), rangeEnd]);
+      if (mStart > mEnd) continue;
+      const mLabel = format(refDate, "MMM yyyy");
       // Count events as "held" if status is Held OR if date has passed and status is still Booked
       const isEffectivelyHeld = (e: EventRecord) =>
         e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey());
@@ -116,6 +134,7 @@ export default function Analytics() {
         sales: mSales,
       });
     }
+
 
     // Compute averages
     const computeAvg = (rows: MonthRow[]): MonthRow => {
@@ -150,25 +169,10 @@ export default function Analytics() {
 
     const unitGuestsTotal = events
       .filter((e) => (e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey())))
-      .filter((e) => {
-        if (timeView === "all-time") return true;
-        const rs = timeView === "this-month" ? startOfMonth(now) : startOfYear(now);
-        return inRange(e.event_date, rs, endOfMonth(now));
-      })
+      .filter((e) => inRange(e.event_date, rangeStart, rangeEnd))
       .reduce((s, e: any) => s + Number(e.unit_guest_count || 0), 0);
 
 
-    // Reorder rate: customers who ordered in selected period with 2+ lifetime orders / total unique customers in period
-    // Determine date range for selected view
-    let rangeStart: Date;
-    const rangeEnd = endOfMonth(now);
-    if (timeView === "this-month") {
-      rangeStart = startOfMonth(now);
-    } else if (timeView === "ytd") {
-      rangeStart = startOfYear(now);
-    } else {
-      rangeStart = new Date(2000, 0, 1);
-    }
 
     // Event conversion stats for period
     const todayStr = toLocalDateKey();
@@ -195,7 +199,7 @@ export default function Analytics() {
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
     return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd, unitGuestsTotal };
-  }, [events, orders, prospects, customers, timeView]);
+  }, [events, orders, prospects, customers, rangeStart, rangeEnd]);
 
   // ── Sales by Source breakdown for selected time view ──
   const salesBreakdown = useMemo(() => {
@@ -260,7 +264,9 @@ export default function Analytics() {
   const TIME_VIEW_LABELS: Record<TimeView, string> = {
     "this-month": "This Month",
     "ytd": "Year-to-Date",
+    "seminar-year": `Seminar Year ${seminarYearStart(new Date()).getFullYear()}–${seminarYearStart(new Date()).getFullYear() + 1}`,
     "all-time": "All-Time",
+    "custom": `${format(rangeStart, "MMM d, yyyy")} – ${format(rangeEnd, "MMM d, yyyy")}`,
   };
 
   return (
@@ -271,17 +277,49 @@ export default function Analytics() {
             <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Long-term trends and performance patterns</p>
           </div>
-          <Select value={timeView} onValueChange={(v) => setTimeView(v as TimeView)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this-month">This Month</SelectItem>
-              <SelectItem value="ytd">Year-to-Date</SelectItem>
-              <SelectItem value="all-time">All-Time</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={timeView} onValueChange={(v) => setTimeView(v as TimeView)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this-month">This Month</SelectItem>
+                <SelectItem value="ytd">Year-to-Date</SelectItem>
+                <SelectItem value="seminar-year">Seminar Year</SelectItem>
+                <SelectItem value="all-time">All-Time</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+            {timeView === "custom" && (
+              <div className="flex items-center gap-1">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <CalendarIcon className="w-3 h-3" />
+                      {customStart ? format(customStart, "MMM d, yyyy") : "Start"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-xs text-muted-foreground">to</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <CalendarIcon className="w-3 h-3" />
+                      {customEnd ? format(customEnd, "MMM d, yyyy") : "End"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </div>
         </div>
+
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
