@@ -169,25 +169,10 @@ export default function Analytics() {
 
     const unitGuestsTotal = events
       .filter((e) => (e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey())))
-      .filter((e) => {
-        if (timeView === "all-time") return true;
-        const rs = timeView === "this-month" ? startOfMonth(now) : startOfYear(now);
-        return inRange(e.event_date, rs, endOfMonth(now));
-      })
+      .filter((e) => inRange(e.event_date, rangeStart, rangeEnd))
       .reduce((s, e: any) => s + Number(e.unit_guest_count || 0), 0);
 
 
-    // Reorder rate: customers who ordered in selected period with 2+ lifetime orders / total unique customers in period
-    // Determine date range for selected view
-    let rangeStart: Date;
-    const rangeEnd = endOfMonth(now);
-    if (timeView === "this-month") {
-      rangeStart = startOfMonth(now);
-    } else if (timeView === "ytd") {
-      rangeStart = startOfYear(now);
-    } else {
-      rangeStart = new Date(2000, 0, 1);
-    }
 
     // Event conversion stats for period
     const todayStr = toLocalDateKey();
