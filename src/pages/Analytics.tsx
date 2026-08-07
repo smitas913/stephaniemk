@@ -9,14 +9,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, BarChart3, Repeat } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TrendingUp, BarChart3, Repeat, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, subMonths, format,
-  differenceInCalendarMonths,
+  parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, format,
+  addMonths, differenceInCalendarMonths, max as maxDate, min as minDate,
 } from "date-fns";
 
-type TimeView = "this-month" | "ytd" | "all-time";
+type TimeView = "this-month" | "ytd" | "seminar-year" | "all-time" | "custom";
 
 type MonthRow = {
   label: string;
@@ -37,8 +40,17 @@ const inRange = (dateStr: string | null | undefined, s: Date, e: Date) => {
   }
 };
 
+/** July 1 – June 30 Mary Kay business year containing `now`. */
+function seminarYearStart(now: Date): Date {
+  const year = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+  return new Date(year, 6, 1);
+}
+
 export default function Analytics() {
   const [timeView, setTimeView] = useState<TimeView>("ytd");
+  const [customStart, setCustomStart] = useState<Date | undefined>(subDays(new Date(), 29));
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(new Date());
+
   const { data: events = [], isLoading: evL } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: orders = [], isLoading: orL } = useQuery({
     queryKey: ["all-orders-analytics"],
