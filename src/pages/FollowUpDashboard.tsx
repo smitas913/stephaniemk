@@ -26,6 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { parseISO, isWithinInterval, differenceInCalendarDays } from "date-fns";
+import { toLocalDateKey } from "@/lib/dateOnly";
 
 import {
   usePeriodFilter,
@@ -70,8 +71,12 @@ function useEfficiencyMetrics(
     const periodBookings = events.filter((e) => inRange(e.created_at, start, end));
 
     // ─── Activity averages (per week) ───
+    const isEffectivelyHeld = (e: EventRecord) =>
+      e.event_status === "Held" ||
+      (e.event_status === "Booked" && !!e.event_date && e.event_date < toLocalDateKey());
+
     const totalFacesHeld = periodEvents
-      .filter((e) => e.event_status === "Held")
+      .filter(isEffectivelyHeld)
       .reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const careerChats = periodNotes.filter((n) => n.result_type === "Career Chat").length;
     const bookingsCount = periodBookings.length;
@@ -81,7 +86,7 @@ function useEfficiencyMetrics(
     const avgBookingsPerWeek = bookingsCount / weeks;
 
     // ─── Avg Faces per Event (held only) ───
-    const heldEvents = periodEvents.filter((e) => e.event_status === "Held");
+    const heldEvents = periodEvents.filter(isEffectivelyHeld);
     const avgFacesPerEvent = heldEvents.length > 0 ? totalFacesHeld / heldEvents.length : 0;
 
     // ─── Booking Conversion Rate ───
@@ -115,15 +120,23 @@ function useEfficiencyMetrics(
 
     // ─── Reorder Rate ───
     const consultantIds = new Set(
-      customers.filter((c) => c.relationship_status === "Consultant").map((c) => c.id),
+      customers
+        .filter(
+          (c) =>
+            c.relationship_status === "Consultant" ||
+            c.relationship_status === "Former Consultant",
+        )
+        .map((c) => c.id),
     );
-    const periodOrders = orders.filter((o) => inRange(o.order_date, start, end));
+    const periodOrders = orders.filter(
+      (o) => inRange(o.order_date, start, end) && Number(o.retail_amount || 0) > 0,
+    );
     const periodCustomerIds = new Set(
       periodOrders.map((o) => o.customer_id).filter((cid) => !consultantIds.has(cid)),
     );
     const lifetimeOrderCounts: Record<string, number> = {};
     for (const o of orders) {
-      if (!consultantIds.has(o.customer_id)) {
+      if (!consultantIds.has(o.customer_id) && Number(o.retail_amount || 0) > 0) {
         lifetimeOrderCounts[o.customer_id] = (lifetimeOrderCounts[o.customer_id] || 0) + 1;
       }
     }
