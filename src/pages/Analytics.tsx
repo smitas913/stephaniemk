@@ -245,9 +245,9 @@ export default function Analytics() {
     }
 
 
-    // All Party/Facial-typed orders in the period (regardless of new vs. reorder status)
+    // Orders where a face was physically present (face_type is the reliable signal)
     const eventSales = periodOrders
-      .filter((o) => o.order_type === "Party" || o.order_type === "Facial")
+      .filter((o) => o.face_type === "Party" || o.face_type === "Facial")
       .reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
     const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
