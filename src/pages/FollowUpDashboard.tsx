@@ -71,8 +71,12 @@ function useEfficiencyMetrics(
     const periodBookings = events.filter((e) => inRange(e.created_at, start, end));
 
     // ─── Activity averages (per week) ───
+    const isEffectivelyHeld = (e: EventRecord) =>
+      e.event_status === "Held" ||
+      (e.event_status === "Booked" && !!e.event_date && e.event_date < toLocalDateKey());
+
     const totalFacesHeld = periodEvents
-      .filter((e) => e.event_status === "Held")
+      .filter(isEffectivelyHeld)
       .reduce((s, e) => s + Number(e.guest_count || 0), 0);
     const careerChats = periodNotes.filter((n) => n.result_type === "Career Chat").length;
     const bookingsCount = periodBookings.length;
@@ -82,7 +86,7 @@ function useEfficiencyMetrics(
     const avgBookingsPerWeek = bookingsCount / weeks;
 
     // ─── Avg Faces per Event (held only) ───
-    const heldEvents = periodEvents.filter((e) => e.event_status === "Held");
+    const heldEvents = periodEvents.filter(isEffectivelyHeld);
     const avgFacesPerEvent = heldEvents.length > 0 ? totalFacesHeld / heldEvents.length : 0;
 
     // ─── Booking Conversion Rate ───
