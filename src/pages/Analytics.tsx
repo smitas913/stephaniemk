@@ -245,12 +245,18 @@ export default function Analytics() {
     }
 
 
+    // All Party/Facial-typed orders in the period (regardless of new vs. reorder status)
+    const eventSales = periodOrders
+      .filter((o) => o.order_type === "Party" || o.order_type === "Facial")
+      .reduce((s, o) => s + Number(o.retail_amount || 0), 0);
+
     const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
     const reorderShare = totalSales > 0 ? (buckets.reorder.total / totalSales) * 100 : 0;
     const newFaceShare = totalSales > 0 ? (buckets.newFace.total / totalSales) * 100 : 0;
 
     return {
       totalSales,
+      eventSales,
       buckets,
       avgParty: avg(buckets.party),
       avgFacial: avg(buckets.facial),
@@ -437,7 +443,7 @@ export default function Analytics() {
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Sales per Face</p>
-                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{analytics.totals.faces > 0 ? formatCurrency(analytics.totals.sales / analytics.totals.faces) : "$0"}</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{analytics.totals.faces > 0 ? formatCurrency(salesBreakdown.eventSales / analytics.totals.faces) : "$0"}</p>
                   </div>
                 </div>
 
