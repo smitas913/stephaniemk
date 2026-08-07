@@ -264,7 +264,9 @@ export default function Analytics() {
   const TIME_VIEW_LABELS: Record<TimeView, string> = {
     "this-month": "This Month",
     "ytd": "Year-to-Date",
+    "seminar-year": `Seminar Year ${seminarYearStart(new Date()).getFullYear()}–${seminarYearStart(new Date()).getFullYear() + 1}`,
     "all-time": "All-Time",
+    "custom": `${format(rangeStart, "MMM d, yyyy")} – ${format(rangeEnd, "MMM d, yyyy")}`,
   };
 
   return (
@@ -275,17 +277,49 @@ export default function Analytics() {
             <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Long-term trends and performance patterns</p>
           </div>
-          <Select value={timeView} onValueChange={(v) => setTimeView(v as TimeView)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this-month">This Month</SelectItem>
-              <SelectItem value="ytd">Year-to-Date</SelectItem>
-              <SelectItem value="all-time">All-Time</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={timeView} onValueChange={(v) => setTimeView(v as TimeView)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this-month">This Month</SelectItem>
+                <SelectItem value="ytd">Year-to-Date</SelectItem>
+                <SelectItem value="seminar-year">Seminar Year</SelectItem>
+                <SelectItem value="all-time">All-Time</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+            {timeView === "custom" && (
+              <div className="flex items-center gap-1">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <CalendarIcon className="w-3 h-3" />
+                      {customStart ? format(customStart, "MMM d, yyyy") : "Start"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customStart} onSelect={setCustomStart} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-xs text-muted-foreground">to</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <CalendarIcon className="w-3 h-3" />
+                      {customEnd ? format(customEnd, "MMM d, yyyy") : "End"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={customEnd} onSelect={setCustomEnd} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </div>
         </div>
+
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
