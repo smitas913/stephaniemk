@@ -199,7 +199,7 @@ export default function Analytics() {
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
     return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd, unitGuestsTotal };
-  }, [events, orders, prospects, customers, timeView]);
+  }, [events, orders, prospects, customers, rangeStart, rangeEnd]);
 
   // ── Sales by Source breakdown for selected time view ──
   const salesBreakdown = useMemo(() => {
