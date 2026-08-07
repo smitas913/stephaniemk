@@ -74,41 +74,47 @@ export default function Analytics() {
   const { data: customers = [], isLoading: cuL } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const isLoading = evL || orL || prL || cuL;
 
-  const analytics = useMemo(() => {
+  // ── Single source of truth for the selected date range ──
+  const { rangeStart, rangeEnd } = useMemo(() => {
     const now = new Date();
-
-    // Determine how many months to show
-    let monthCount: number;
-    if (timeView === "this-month") {
-      monthCount = 1;
-    } else if (timeView === "ytd") {
-      monthCount = now.getMonth() + 1; // Jan = 1, etc.
-    } else {
-      // all-time: find earliest event or order date
-      let earliest = now;
-      events.forEach((e) => {
-        if (e.event_date) {
-          const d = parseISO(e.event_date);
-          if (d < earliest) earliest = d;
-        }
-      });
-      orders.forEach((o) => {
-        if (o.order_date) {
-          const d = parseISO(o.order_date);
-          if (d < earliest) earliest = d;
-        }
-      });
-      monthCount = Math.max(differenceInCalendarMonths(now, earliest) + 1, 1);
-      if (monthCount > 60) monthCount = 60; // cap at 5 years
+    if (timeView === "this-month") return { rangeStart: startOfMonth(now), rangeEnd: endOfMonth(now) };
+    if (timeView === "ytd") return { rangeStart: startOfYear(now), rangeEnd: endOfMonth(now) };
+    if (timeView === "seminar-year") {
+      const start = seminarYearStart(now);
+      const seminarEnd = new Date(start.getFullYear() + 1, 5, 30, 23, 59, 59, 999);
+      // Cap at today so future empty months aren't shown
+      return { rangeStart: start, rangeEnd: minDate([seminarEnd, endOfMonth(now)]) };
     }
+    if (timeView === "custom") {
+      const s = customStart ?? subDays(now, 29);
+      const e = customEnd ?? now;
+      const [a, b] = s <= e ? [s, e] : [e, s];
+      return { rangeStart: a, rangeEnd: new Date(b.getFullYear(), b.getMonth(), b.getDate(), 23, 59, 59, 999) };
+    }
+    // all-time
+    let earliest = now;
+    events.forEach((e) => {
+      if (e.event_date) { const d = parseISO(e.event_date); if (d < earliest) earliest = d; }
+    });
+    orders.forEach((o) => {
+      if (o.order_date) { const d = parseISO(o.order_date); if (d < earliest) earliest = d; }
+    });
+    // cap at 5 years of months
+    const months = differenceInCalendarMonths(now, earliest);
+    if (months > 59) earliest = subMonths(now, 59);
+    return { rangeStart: startOfMonth(earliest), rangeEnd: endOfMonth(now) };
+  }, [timeView, customStart, customEnd, events, orders]);
 
-    // Build monthly rows
+  const analytics = useMemo(() => {
+    // Build one row per calendar month within the selected range
+    const monthCount = Math.max(differenceInCalendarMonths(rangeEnd, rangeStart) + 1, 1);
     const months: MonthRow[] = [];
-    for (let i = monthCount - 1; i >= 0; i--) {
-      const refDate = subMonths(now, i);
-      const mStart = startOfMonth(refDate);
-      const mEnd = endOfMonth(refDate);
-      const mLabel = format(mStart, "MMM yyyy");
+    for (let i = 0; i < monthCount; i++) {
+      const refDate = addMonths(startOfMonth(rangeStart), i);
+      const mStart = maxDate([startOfMonth(refDate), rangeStart]);
+      const mEnd = minDate([endOfMonth(refDate), rangeEnd]);
+      if (mStart > mEnd) continue;
+      const mLabel = format(refDate, "MMM yyyy");
       // Count events as "held" if status is Held OR if date has passed and status is still Booked
       const isEffectivelyHeld = (e: EventRecord) =>
         e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey());
@@ -128,6 +134,7 @@ export default function Analytics() {
         sales: mSales,
       });
     }
+
 
     // Compute averages
     const computeAvg = (rows: MonthRow[]): MonthRow => {
