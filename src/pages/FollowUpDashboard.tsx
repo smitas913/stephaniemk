@@ -120,15 +120,23 @@ function useEfficiencyMetrics(
 
     // ─── Reorder Rate ───
     const consultantIds = new Set(
-      customers.filter((c) => c.relationship_status === "Consultant").map((c) => c.id),
+      customers
+        .filter(
+          (c) =>
+            c.relationship_status === "Consultant" ||
+            c.relationship_status === "Former Consultant",
+        )
+        .map((c) => c.id),
     );
-    const periodOrders = orders.filter((o) => inRange(o.order_date, start, end));
+    const periodOrders = orders.filter(
+      (o) => inRange(o.order_date, start, end) && Number(o.retail_amount || 0) > 0,
+    );
     const periodCustomerIds = new Set(
       periodOrders.map((o) => o.customer_id).filter((cid) => !consultantIds.has(cid)),
     );
     const lifetimeOrderCounts: Record<string, number> = {};
     for (const o of orders) {
-      if (!consultantIds.has(o.customer_id)) {
+      if (!consultantIds.has(o.customer_id) && Number(o.retail_amount || 0) > 0) {
         lifetimeOrderCounts[o.customer_id] = (lifetimeOrderCounts[o.customer_id] || 0) + 1;
       }
     }
