@@ -26,6 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { parseISO, isWithinInterval, differenceInCalendarDays } from "date-fns";
+import { toLocalDateKey } from "@/lib/dateOnly";
 
 import {
   usePeriodFilter,
