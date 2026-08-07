@@ -224,18 +224,22 @@ export default function Analytics() {
       const amt = Number(o.retail_amount || 0);
       totalSales += amt;
       const isFirst = firstOrderByCustomer[o.customer_id] === o.order_date;
-      if (isFirst) { buckets.newFace.count++; buckets.newFace.total += amt; }
-      if (o.is_myshop_order) { buckets.myshop.count++; buckets.myshop.total += amt; }
+      if (isFirst) {
+        buckets.newFace.count++; buckets.newFace.total += amt;
+        continue;
+      }
+      if (o.is_myshop_order) {
+        buckets.myshop.count++; buckets.myshop.total += amt;
+        continue;
+      }
       switch (o.order_type) {
         case "Party": buckets.party.count++; buckets.party.total += amt; break;
         case "Facial": buckets.facial.count++; buckets.facial.total += amt; break;
         case "Reorder": buckets.reorder.count++; buckets.reorder.total += amt; break;
-        case "Other":
-        default:
-          if (!o.is_myshop_order) { buckets.other.count++; buckets.other.total += amt; }
-          break;
+        default: buckets.other.count++; buckets.other.total += amt; break;
       }
     }
+
 
     const avg = (b: { count: number; total: number }) => (b.count > 0 ? b.total / b.count : 0);
     const reorderShare = totalSales > 0 ? (buckets.reorder.total / totalSales) * 100 : 0;
@@ -374,7 +378,7 @@ export default function Analytics() {
                     </TableBody>
                   </Table>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
                   <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Party Order</p>
                     <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.avgParty)}</p>
@@ -393,7 +397,12 @@ export default function Analytics() {
                     <p className="text-lg font-bold text-foreground tabular-nums mt-1">{formatCurrency(salesBreakdown.buckets.newFace.total)}</p>
                     <p className="text-[10px] text-muted-foreground">{salesBreakdown.newFaceShare.toFixed(1)}% of sales</p>
                   </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Sales per Face</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{analytics.totals.faces > 0 ? formatCurrency(analytics.totals.sales / analytics.totals.faces) : "$0"}</p>
+                  </div>
                 </div>
+
               </CardContent>
             </Card>
 
