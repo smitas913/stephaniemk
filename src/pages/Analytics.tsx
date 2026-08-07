@@ -443,7 +443,7 @@ export default function Analytics() {
                   </div>
                   <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg Sales per Face</p>
-                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{analytics.totals.faces > 0 ? formatCurrency(analytics.totals.sales / analytics.totals.faces) : "$0"}</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-1">{analytics.totals.faces > 0 ? formatCurrency(salesBreakdown.eventSales / analytics.totals.faces) : "$0"}</p>
                   </div>
                 </div>
 
