@@ -1092,6 +1092,30 @@ export type Database = {
         }
         Relationships: []
       }
+      habit_log: {
+        Row: {
+          created_at: string | null
+          done: boolean
+          habit_name: string
+          id: number
+          log_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          done?: boolean
+          habit_name: string
+          id?: number
+          log_date: string
+        }
+        Update: {
+          created_at?: string | null
+          done?: boolean
+          habit_name?: string
+          id?: number
+          log_date?: string
+        }
+        Relationships: []
+      }
       hostess_coaching_tasks: {
         Row: {
           created_at: string
@@ -1642,6 +1666,39 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          category: string
+          created_at: string | null
+          detail: string | null
+          id: number
+          notes: string | null
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string | null
+          detail?: string | null
+          id?: number
+          notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          detail?: string | null
+          id?: number
+          notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       prospect_notes: {
         Row: {
           created_at: string
@@ -2015,6 +2072,7 @@ export type Database = {
       }
       todos: {
         Row: {
+          category: string
           created_at: string
           done: boolean
           id: string
@@ -2024,6 +2082,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           created_at?: string
           done?: boolean
           id?: string
@@ -2033,6 +2092,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           created_at?: string
           done?: boolean
           id?: string
