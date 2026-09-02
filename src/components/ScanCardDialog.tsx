@@ -17,7 +17,6 @@ import {
   isBeautyProfileEmpty,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
-import { syncWishListReferrals } from "@/lib/beautyReferrals";
 import {
   CONTACT_FIELDS,
   type Extracted,
@@ -130,10 +129,7 @@ export default function ScanCardDialog({
       }
       payload.full_name = name;
       const cleanProfile = cleanBeautyProfile(profile);
-      if (!isBeautyProfileEmpty(cleanProfile)) {
-        const synced = await syncWishListReferrals(cleanProfile, name);
-        payload.beauty_notes = synced.profile;
-      }
+      if (!isBeautyProfileEmpty(cleanProfile)) payload.beauty_notes = cleanProfile;
       if (notes) payload.notes = notes;
 
       const customer: any = await createCustomer(payload as any, { allowDuplicate: true });
@@ -177,12 +173,9 @@ export default function ScanCardDialog({
       }
       payload.full_name = name;
       const cleanProfile = cleanBeautyProfile(profile);
-      const syncedProfile = isBeautyProfileEmpty(cleanProfile)
-        ? cleanProfile
-        : (await syncWishListReferrals(cleanProfile, name)).profile;
-      payload.beauty_notes = syncedProfile;
-      payload.skin_type = derivedSkinType(syncedProfile);
-      payload.foundation_shade = syncedProfile.foundation_shade || null;
+      payload.beauty_notes = cleanProfile;
+      payload.skin_type = derivedSkinType(cleanProfile);
+      payload.foundation_shade = cleanProfile.foundation_shade || null;
       payload.notes = notes || null;
       payload.raw_notes = extracted.raw_notes || null;
       payload.facial_date = facialDate || null;

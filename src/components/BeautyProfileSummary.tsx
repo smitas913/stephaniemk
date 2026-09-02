@@ -76,7 +76,6 @@ export default function BeautyProfileSummary({ profile }: { profile: BeautyProfi
             {refs.map((r, i) => (
               <li key={i} className="text-foreground">
                 {[r.name, r.relationship, r.contact].filter(Boolean).join(" · ")}
-                {r.lead_id && <span className="text-xs text-muted-foreground"> — in booking pipeline</span>}
               </li>
             ))}
           </ul>
