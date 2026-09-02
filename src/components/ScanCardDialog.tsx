@@ -272,7 +272,7 @@ export default function ScanCardDialog({
           {step === "review" && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                Everything is editable. Skin type and shade are often blank on the card — you can fill them in later from her profile.
+                Everything is editable and nothing here is required — anything the card left blank you can fill in later from her profile.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {CONTACT_FIELDS.map((f) => (
@@ -287,24 +287,16 @@ export default function ScanCardDialog({
                   </div>
                 ))}
                 <div>
-                  <Label className="text-xs">Skin type</Label>
-                  <Select value={skinType || "none"} onValueChange={(v) => setSkinType(v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Not set" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not set</SelectItem>
-                      {SKIN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Foundation shade</Label>
-                  <Input className="h-9" value={shade} onChange={(e) => setShade(e.target.value)} placeholder="e.g. Beige 3" />
-                </div>
-                <div>
                   <Label className="text-xs">Facial date</Label>
                   <Input className="h-9" type="date" value={facialDate} onChange={(e) => setFacialDate(e.target.value)} />
                 </div>
               </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <h3 className="text-sm font-semibold">Beauty Profile</h3>
+                <BeautyProfileFields value={profile} onChange={setProfile} showNotes={false} />
+              </div>
+
               <div>
                 <Label className="text-xs">Notes / other handwriting</Label>
                 <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
