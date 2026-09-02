@@ -11,7 +11,7 @@ import { parseGenericDate } from "@/lib/csvImport";
 import { createTeamConsultant, fetchTeamConsultants } from "@/lib/queries";
 import { toast } from "sonner";
 
-type DestField = "name" | "first_name" | "last_name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code";
+type DestField = "name" | "first_name" | "last_name" | "phone" | "email" | "join_date" | "notes" | "consultant_id" | "birthday" | "address_line_1" | "city" | "state_territory" | "postal_code" | "activity_status_code";
 
 const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
   { key: "name", label: "Full Name", required: false },
@@ -26,6 +26,7 @@ const DEST_FIELDS: { key: DestField; label: string; required: boolean }[] = [
   { key: "city", label: "City", required: false },
   { key: "state_territory", label: "State", required: false },
   { key: "postal_code", label: "Zip", required: false },
+  { key: "activity_status_code", label: "Activity Status Code", required: false },
   { key: "notes", label: "Notes", required: false },
 ];
 
@@ -43,6 +44,7 @@ const HEADER_HINTS: Record<DestField, string[]> = {
   state_territory: ["state", "state_territory", "province", "st"],
   postal_code: ["zip", "postal_code", "zipcode", "zip code", "postal"],
   notes: ["notes", "note", "comments", "comment"],
+  activity_status_code: ["activity_status_code", "activity status", "activity status code", "status code", "status", "activity"],
 };
 
 function autoMap(csvHeaders: string[]): Record<string, DestField | ""> {
@@ -138,6 +140,12 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
     for (const row of validRows) {
       const email = row.mapped.email?.toLowerCase();
       const name = row.mapped.name?.trim().toLowerCase();
+      const cid = row.mapped.consultant_id?.trim().toLowerCase();
+      // Consultant ID is Mary Kay's own unique identifier — highest-priority match.
+      if (cid) {
+        const match = existing.find((c) => (c as any).consultant_id?.trim().toLowerCase() === cid);
+        if (match) { dups.push({ rowIdx: row.rowIdx, name: row.mapped.name || "", matchReason: `Consultant ID: ${cid}`, existingId: match.id }); continue; }
+      }
       if (email) {
         const match = existing.find((c) => c.email?.toLowerCase() === email);
         if (match) { dups.push({ rowIdx: row.rowIdx, name: row.mapped.name || "", matchReason: `Email: ${email}`, existingId: match.id }); continue; }
@@ -180,10 +188,18 @@ export default function ImportConsultantsDialog({ open, onOpenChange }: Props) {
         state_territory: row.mapped.state_territory || null,
         postal_code: row.mapped.postal_code || null,
         notes: row.mapped.notes || null,
+        activity_status_code: row.mapped.activity_status_code?.trim() || null,
         status: "Active",
         focus_group: "General",
         onboarding_stage: "New",
       };
+
+      // Monthly T6 review: flag active consultants with no activating order.
+      const isT6 = (payload.activity_status_code || "").trim().toUpperCase().startsWith("T6");
+      if (isT6 && payload.status === "Active") {
+        payload.needs_attention = true;
+        payload.attention_reason = "T6 status — no activating order, review for removal";
+      }
 
       try {
         if (isDup && dupAction === "update") {
