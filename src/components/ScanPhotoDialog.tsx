@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Camera, Loader2, Trash2, Plus, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { SKIN_TYPES, type Customer } from "@/lib/types";
+import { type Customer } from "@/lib/types";
+import BeautyProfileFields from "@/components/BeautyProfileFields";
+import { parseBeautyProfile, type BeautyProfile } from "@/lib/beautyProfile";
 import {
   CONTACT_FIELDS,
   type Extracted,
@@ -20,7 +22,7 @@ import {
   orderDraftsFromExtracted,
   todayISO,
   applyScanToExistingCustomer,
-  normalizeSkinType,
+  beautyProfileFromExtracted,
 } from "@/lib/scanPhoto";
 
 export default function ScanPhotoDialog({
@@ -42,8 +44,7 @@ export default function ScanPhotoDialog({
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<Extracted | null>(null);
-  const [skinType, setSkinType] = useState<string>("");
-  const [shade, setShade] = useState<string>("");
+  const [profile, setProfile] = useState<BeautyProfile>({});
 
   // Contact resolutions per field
   const [resolutions, setResolutions] = useState<Record<string, Resolution>>({});
@@ -53,7 +54,7 @@ export default function ScanPhotoDialog({
     setFile(null); setBackFile(null); setPreview(null); setBackPreview(null);
     setScanning(false); setSaving(false);
     setExtracted(null); setResolutions({}); setOrderDrafts([]);
-    setSkinType(""); setShade("");
+    setProfile({});
   };
 
 
@@ -80,8 +81,7 @@ export default function ScanPhotoDialog({
     try {
       const ex = await runScanExtract(backFile ? [file, backFile] : file);
       setExtracted(ex);
-      setSkinType(normalizeSkinType(ex.contact?.skin_type) || "");
-      setShade((ex.contact?.foundation_shade || "").trim());
+      setProfile({ ...parseBeautyProfile((customer as any).beauty_notes), ...beautyProfileFromExtracted(ex) });
 
 
       // Seed contact resolutions: default replace when existing is empty, keep otherwise
@@ -124,8 +124,7 @@ export default function ScanPhotoDialog({
         extracted,
         resolutions,
         orderDrafts,
-        skinType,
-        foundationShade: shade,
+        beautyProfile: profile,
       });
       if (driveNeedsSetup) toast.warning("Saved. Google Drive isn't connected yet, so the PDF backup was skipped.");
       else if (driveError) toast.warning("Saved, but the Drive PDF backup failed.");
@@ -278,29 +277,14 @@ export default function ScanPhotoDialog({
               )}
             </div>
 
-            {/* Skin type + shade */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold">Skin type &amp; foundation shade</h3>
-              <p className="text-xs text-muted-foreground">Often blank on the card — leave empty and fill in later from her profile.</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Skin type</Label>
-                  <Select value={skinType || "none"} onValueChange={(v) => setSkinType(v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Not set" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not set</SelectItem>
-                      {SKIN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Foundation shade</Label>
-                  <Input className="h-9" value={shade} onChange={(e) => setShade(e.target.value)} placeholder="e.g. Beige 3" />
-                </div>
-              </div>
+            {/* Beauty Profile */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold">Beauty Profile</h3>
+              <p className="text-xs text-muted-foreground">
+                Pre-checked from the card where legible — nothing is required, and nothing saves until you confirm.
+              </p>
+              <BeautyProfileFields value={profile} onChange={setProfile} />
             </div>
-
-
 
             {/* Orders */}
             <div className="space-y-2">

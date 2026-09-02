@@ -42,7 +42,7 @@ import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import MergePickerDialog from "@/components/MergePickerDialog";
 import { GitMerge } from "lucide-react";
 import { fetchTeamConsultants } from "@/lib/queries";
-import BeautyNotesCard from "@/components/BeautyNotesCard";
+import BeautyProfileCard from "@/components/BeautyProfileCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
 import SkincareConversionDialog from "@/components/SkincareConversionDialog";
 
@@ -1004,8 +1004,8 @@ export default function CustomerDetail() {
           </CardContent>
         </Card>
 
-        {/* Beauty Notes */}
-        <BeautyNotesCard customerId={id!} value={(customer as any)?.beauty_notes} />
+        {/* Beauty Profile (Mary Kay card 10-260112) */}
+        <BeautyProfileCard customerId={id!} customerName={customer?.full_name} value={(customer as any)?.beauty_notes} />
 
         <ThoughtfulTouchesCard customerId={id!} customerName={customer?.full_name} />
 

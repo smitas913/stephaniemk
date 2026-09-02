@@ -5,7 +5,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { createOrder, createCustomerNote, updateCustomer } from "@/lib/queries";
 import { normalizeStateAbbreviation } from "@/lib/usStates";
-import { SKIN_TYPES } from "@/lib/types";
+import {
+  cleanBeautyProfile,
+  moisturizerFeelFromLoose,
+  normalizeExtractedBeautyProfile,
+  parseBeautyProfile,
+  type BeautyProfile,
+} from "@/lib/beautyProfile";
+import { syncWishListReferrals } from "@/lib/beautyReferrals";
 
 export type Extracted = {
   contact?: {
@@ -18,9 +25,12 @@ export type Extracted = {
     state_territory?: string | null;
     postal_code?: string | null;
     birthday?: string | null;
+    /** Legacy keys — folded into `beauty_profile` by runScanExtract. */
     skin_type?: string | null;
     foundation_shade?: string | null;
   };
+  /** Mary Kay Beauty Profile card fields (form 10-260112). */
+  beauty_profile?: Record<string, unknown>;
   orders?: Array<{
     order_date?: string | null;
     items?: Array<{ description?: string; amount?: number | null }>;
@@ -59,15 +69,21 @@ export const CONTACT_FIELDS: Array<{
   { key: "birthday", label: "Birthday" },
 ];
 
-/** Normalize an AI-guessed skin type onto the two supported options. */
-export function normalizeSkinType(v: string | null | undefined): string | null {
-  if (!v) return null;
-  const s = String(v).trim().toLowerCase();
-  const exact = SKIN_TYPES.find((t) => t.toLowerCase() === s);
-  if (exact) return exact;
-  if (/oil|combo|combination/.test(s)) return "Combination to Oily";
-  if (/dry|normal/.test(s)) return "Normal to Dry";
-  return null;
+/**
+ * Normalize the AI-extracted beauty profile onto the card's exact option sets,
+ * folding in the legacy flat skin_type / foundation_shade keys if the model
+ * still returns them.
+ */
+export function beautyProfileFromExtracted(ex: Extracted): BeautyProfile {
+  const p = normalizeExtractedBeautyProfile(ex.beauty_profile);
+  if (!p.moisturizer_feel) {
+    const feel = moisturizerFeelFromLoose(ex.contact?.skin_type);
+    if (feel) p.moisturizer_feel = feel;
+  }
+  if (!p.foundation_shade && ex.contact?.foundation_shade) {
+    p.foundation_shade = String(ex.contact.foundation_shade).trim();
+  }
+  return cleanBeautyProfile(p);
 }
 
 export function fileToBase64(file: File): Promise<string> {
@@ -122,9 +138,7 @@ export async function runScanExtract(input: File | Array<File | null | undefined
   );
   const { data, error } = await supabase.functions.invoke("scan-photo", { body: { images } });
   if (error) throw error;
-  const ex = (data?.extracted || {}) as Extracted;
-  if (ex.contact) ex.contact.skin_type = normalizeSkinType(ex.contact.skin_type);
-  return ex;
+  return (data?.extracted || {}) as Extracted;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,9 +275,8 @@ export async function applyScanToExistingCustomer(opts: {
   resolutions: Record<string, Resolution>;
   orderDrafts: OrderDraft[];
   eventId?: string | null;
-  /** Optional edited skin type / foundation shade from the review screen. */
-  skinType?: string | null;
-  foundationShade?: string | null;
+  /** Beauty Profile as reviewed/edited on the review screen. */
+  beautyProfile?: BeautyProfile | null;
 }): Promise<{ driveUrl: string | null; driveError: string | null; driveNeedsSetup: boolean }> {
   const { customer, extracted, resolutions, orderDrafts, eventId } = opts;
   const files = (opts.files ?? [opts.file]).filter(Boolean) as File[];
@@ -286,11 +299,11 @@ export async function applyScanToExistingCustomer(opts: {
     }
   }
 
-  const skin = normalizeSkinType(opts.skinType);
-  if (skin) updates.skin_type = skin;
-  const shade = (opts.foundationShade ?? "").trim();
-  if (shade) {
-    updates.beauty_notes = { ...(customer.beauty_notes || {}), foundation_shade: shade };
+  const incomingProfile = cleanBeautyProfile(opts.beautyProfile || {});
+  if (Object.keys(incomingProfile).length > 0) {
+    const merged = cleanBeautyProfile({ ...parseBeautyProfile(customer.beauty_notes), ...incomingProfile });
+    const synced = await syncWishListReferrals(merged, customer.full_name);
+    updates.beauty_notes = synced.profile;
   }
   if (drive.url) updates.scan_pdf_url = drive.url;
 

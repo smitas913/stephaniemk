@@ -1031,6 +1031,7 @@ export type Database = {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
+          beauty_notes: Json
           birthday: string | null
           city: string | null
           converted_customer_id: string | null
@@ -1055,6 +1056,7 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
+          beauty_notes?: Json
           birthday?: string | null
           city?: string | null
           converted_customer_id?: string | null
@@ -1079,6 +1081,7 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
+          beauty_notes?: Json
           birthday?: string | null
           city?: string | null
           converted_customer_id?: string | null
