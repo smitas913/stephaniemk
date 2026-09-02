@@ -26,6 +26,7 @@ import HostessCoachingCard from "@/components/HostessCoachingCard";
 
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
+import T6ReviewDialog from "@/components/T6ReviewDialog";
 
 // ─── Quotes ───
 const MOTIVATIONAL_QUOTES = [
@@ -237,6 +238,9 @@ export default function Dashboard() {
 
         {/* FINANCIAL SNAPSHOT */}
         <FinancialSnapshot range="mtd" compact />
+
+        {/* Monthly T6 consultant review — pops once per calendar month */}
+        <T6ReviewDialog auto />
 
       </div>
     </Layout>

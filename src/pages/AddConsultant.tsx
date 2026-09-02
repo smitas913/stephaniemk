@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createTeamConsultant, fetchTeamConsultants, fetchCustomers } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { ONBOARDING_STAGES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
 import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
@@ -40,28 +41,29 @@ export default function AddConsultant() {
 
   const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
+  const buildPayload = () => ({
+    name: fullName,
+    first_name: firstName.trim() || null,
+    last_name: lastName.trim() || null,
+    phone: phone.trim() || null,
+    email: email.trim() || null,
+    consultant_id: consultantId.trim() || null,
+    join_date: joinDate || null,
+    address_line_1: address1.trim() || null,
+    city: city.trim() || null,
+    state_territory: state.trim() || null,
+    postal_code: postal.trim() || null,
+    birthday: birthday || null,
+    onboarding_stage: onboardingStage,
+    coaching_focus: coachingFocus || null,
+    focus_group: focusGroup,
+    next_coaching_date: nextCoachingDate || null,
+    notes: notes.trim() || null,
+    status: "Active",
+  });
+
   const mutation = useMutation({
-    mutationFn: () =>
-      createTeamConsultant({
-        name: fullName,
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-        consultant_id: consultantId.trim() || null,
-        join_date: joinDate || null,
-        address_line_1: address1.trim() || null,
-        city: city.trim() || null,
-        state_territory: state.trim() || null,
-        postal_code: postal.trim() || null,
-        birthday: birthday || null,
-        onboarding_stage: onboardingStage,
-        coaching_focus: coachingFocus || null,
-        focus_group: focusGroup,
-        next_coaching_date: nextCoachingDate || null,
-        notes: notes.trim() || null,
-        status: "Active",
-      }),
+    mutationFn: () => createTeamConsultant(buildPayload()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       toast.success("Consultant added");
@@ -69,6 +71,26 @@ export default function AddConsultant() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  // Link an existing customer record to a brand-new consultant record and merge history over.
+  const convertMutation = useMutation({
+    mutationFn: async (customerId: string) => {
+      const created: any = await createTeamConsultant(buildPayload(), { allowDuplicate: true } as any);
+      const { error } = await supabase.rpc("merge_customer_into_consultant", {
+        _customer_id: customerId,
+        _consultant_id: created.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Converted to consultant — customer history merged in");
+      navigate(originPath);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
 
   const { data: existingConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -146,7 +168,23 @@ export default function AddConsultant() {
                       A {contactDuplicate.kind} with this {stripPhone(phone) ? "phone" : "email"} already exists: {contactDuplicate.name}
                       {contactDuplicate.phone ? ` · ${formatPhone(contactDuplicate.phone)}` : ""}
                     </p>
+                    {contactDuplicate.kind === "customer" && (
+                      <>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          If she just joined your team, link her customer record and move her order history onto the new consultant record.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="mt-2 h-8"
+                          disabled={!fullName || !hasContact || convertMutation.isPending || mutation.isPending}
+                          onClick={() => convertMutation.mutate(contactDuplicate!.id)}
+                        >
+                          {convertMutation.isPending ? "Converting..." : "Link & Convert to Consultant"}
+                        </Button>
+                      </>
+                    )}
                   </div>
+
                 </div>
               </div>
             )}
