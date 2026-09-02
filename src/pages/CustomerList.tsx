@@ -366,7 +366,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         <div className="flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[180px] basis-full sm:basis-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search name, phone, email, beauty notes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            <Input placeholder="Search name, phone, email, skin type, shade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
           </div>
           <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
             <SelectTrigger className="w-[130px] max-w-full h-9"><SelectValue /></SelectTrigger>
