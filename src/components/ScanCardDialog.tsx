@@ -5,20 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Camera, Loader2, ScanLine, UserPlus, Droplets } from "lucide-react";
 import { toast } from "sonner";
-import { SKIN_TYPES } from "@/lib/types";
 import { fetchEvents, createCustomer, updateEventGuest } from "@/lib/queries";
 import { createFacialContact } from "@/lib/facialContacts";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
+import BeautyProfileFields from "@/components/BeautyProfileFields";
+import {
+  cleanBeautyProfile,
+  derivedSkinType,
+  isBeautyProfileEmpty,
+  type BeautyProfile,
+} from "@/lib/beautyProfile";
+import { syncWishListReferrals } from "@/lib/beautyReferrals";
 import {
   CONTACT_FIELDS,
   type Extracted,
   runScanExtract,
   contactFieldsForNewCustomer,
   finalizeScanForNewCustomer,
-  normalizeSkinType,
+  beautyProfileFromExtracted,
   uploadScanPdfToDrive,
   todayISO,
 } from "@/lib/scanPhoto";
@@ -56,8 +62,7 @@ export default function ScanCardDialog({
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<Extracted | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
-  const [skinType, setSkinType] = useState("");
-  const [shade, setShade] = useState("");
+  const [profile, setProfile] = useState<BeautyProfile>({});
   const [notes, setNotes] = useState("");
   const [facialDate, setFacialDate] = useState(todayISO());
   const [eventId, setEventId] = useState<string | null>(seed?.eventId ?? null);
@@ -76,7 +81,7 @@ export default function ScanCardDialog({
     setFront(null); setBack(null); setFrontPreview(null); setBackPreview(null);
     setScanning(false); setSaving(false); setExtracted(null);
     setFields({ full_name: seed?.name || "", phone: seed?.phone || "" });
-    setSkinType(""); setShade(""); setNotes(""); setFacialDate(todayISO());
+    setProfile({}); setNotes(""); setFacialDate(todayISO());
     setEventId(seed?.eventId ?? null);
     setFollowUpFor(null);
   }, [open, seed?.name, seed?.phone, seed?.eventId]);
@@ -97,8 +102,7 @@ export default function ScanCardDialog({
         if (prev.phone && !next.phone) next.phone = prev.phone;
         return next;
       });
-      setSkinType(normalizeSkinType(ex.contact?.skin_type) || "");
-      setShade((ex.contact?.foundation_shade || "").trim());
+      setProfile(beautyProfileFromExtracted(ex));
       setNotes((ex.raw_notes || "").trim());
       setStep("review");
     } catch (e: any) {
@@ -125,8 +129,11 @@ export default function ScanCardDialog({
         if (v) payload[f.key as string] = v;
       }
       payload.full_name = name;
-      if (skinType) payload.skin_type = skinType;
-      if (shade) payload.beauty_notes = { foundation_shade: shade };
+      const cleanProfile = cleanBeautyProfile(profile);
+      if (!isBeautyProfileEmpty(cleanProfile)) {
+        const synced = await syncWishListReferrals(cleanProfile, name);
+        payload.beauty_notes = synced.profile;
+      }
       if (notes) payload.notes = notes;
 
       const customer: any = await createCustomer(payload as any, { allowDuplicate: true });
@@ -169,8 +176,13 @@ export default function ScanCardDialog({
         if (v) payload[f.key as string] = v;
       }
       payload.full_name = name;
-      payload.skin_type = skinType || null;
-      payload.foundation_shade = shade || null;
+      const cleanProfile = cleanBeautyProfile(profile);
+      const syncedProfile = isBeautyProfileEmpty(cleanProfile)
+        ? cleanProfile
+        : (await syncWishListReferrals(cleanProfile, name)).profile;
+      payload.beauty_notes = syncedProfile;
+      payload.skin_type = derivedSkinType(syncedProfile);
+      payload.foundation_shade = syncedProfile.foundation_shade || null;
       payload.notes = notes || null;
       payload.raw_notes = extracted.raw_notes || null;
       payload.facial_date = facialDate || null;
@@ -260,7 +272,7 @@ export default function ScanCardDialog({
           {step === "review" && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                Everything is editable. Skin type and shade are often blank on the card — you can fill them in later from her profile.
+                Everything is editable and nothing here is required — anything the card left blank you can fill in later from her profile.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {CONTACT_FIELDS.map((f) => (
@@ -275,24 +287,16 @@ export default function ScanCardDialog({
                   </div>
                 ))}
                 <div>
-                  <Label className="text-xs">Skin type</Label>
-                  <Select value={skinType || "none"} onValueChange={(v) => setSkinType(v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Not set" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not set</SelectItem>
-                      {SKIN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Foundation shade</Label>
-                  <Input className="h-9" value={shade} onChange={(e) => setShade(e.target.value)} placeholder="e.g. Beige 3" />
-                </div>
-                <div>
                   <Label className="text-xs">Facial date</Label>
                   <Input className="h-9" type="date" value={facialDate} onChange={(e) => setFacialDate(e.target.value)} />
                 </div>
               </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <h3 className="text-sm font-semibold">Beauty Profile</h3>
+                <BeautyProfileFields value={profile} onChange={setProfile} showNotes={false} />
+              </div>
+
               <div>
                 <Label className="text-xs">Notes / other handwriting</Label>
                 <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />

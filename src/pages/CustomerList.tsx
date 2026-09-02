@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+import { beautyProfileSearchText } from "@/lib/beautyProfile";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import TextActionButton from "@/components/TextActionButton";
 
@@ -194,15 +195,11 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
       }
 
       const q = search.toLowerCase();
-      const beauty = (c as any).beauty_notes;
-      const beautyText = beauty && typeof beauty === "object"
-        ? Object.values(beauty).filter((v) => typeof v === "string").join(" ").toLowerCase()
-        : "";
+      const beautyText = beautyProfileSearchText((c as any).beauty_notes);
       const matchSearch = !q
         || c.full_name.toLowerCase().includes(q)
         || c.email?.toLowerCase().includes(q)
         || c.phone?.includes(q)
-        || ((c as any).skin_type || "").toLowerCase().includes(q)
         || beautyText.includes(q);
 
       const matchStatus = filterStatus === "all" || c.relationship_status === filterStatus;

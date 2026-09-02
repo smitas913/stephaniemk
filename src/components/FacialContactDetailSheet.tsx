@@ -6,12 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ExternalLink, Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { SKIN_TYPES, type FacialContact } from "@/lib/types";
+import { type FacialContact } from "@/lib/types";
 import { fetchFacialContact, updateFacialContact, deleteFacialContact } from "@/lib/facialContacts";
+import BeautyProfileFields from "@/components/BeautyProfileFields";
+import {
+  cleanBeautyProfile,
+  derivedSkinType,
+  parseBeautyProfile,
+  type BeautyProfile,
+} from "@/lib/beautyProfile";
+import { syncWishListReferrals } from "@/lib/beautyReferrals";
 
 const TEXT_FIELDS: Array<{ key: keyof FacialContact; label: string; type?: string; wide?: boolean }> = [
   { key: "full_name", label: "Full name", wide: true },
@@ -23,7 +30,6 @@ const TEXT_FIELDS: Array<{ key: keyof FacialContact; label: string; type?: strin
   { key: "state_territory", label: "State" },
   { key: "postal_code", label: "ZIP" },
   { key: "birthday", label: "Birthday", type: "date" },
-  { key: "foundation_shade", label: "Foundation shade" },
   { key: "facial_date", label: "Facial date", type: "date" },
 ];
 
@@ -38,6 +44,7 @@ export default function FacialContactDetailSheet({
 }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState<Partial<FacialContact>>({});
+  const [profile, setProfile] = useState<BeautyProfile>({});
 
   const { data: contact, isLoading } = useQuery({
     queryKey: ["facial-contact", contactId],
@@ -46,7 +53,10 @@ export default function FacialContactDetailSheet({
   });
 
   useEffect(() => {
-    if (contact) setDraft(contact);
+    if (contact) {
+      setDraft(contact);
+      setProfile(parseBeautyProfile((contact as any).beauty_notes));
+    }
   }, [contact]);
 
   const save = useMutation({
@@ -54,8 +64,12 @@ export default function FacialContactDetailSheet({
       if (!contactId) return;
       const patch: Record<string, unknown> = {};
       for (const f of TEXT_FIELDS) patch[f.key as string] = (draft as any)[f.key] || null;
-      patch.skin_type = draft.skin_type || null;
       patch.notes = draft.notes || null;
+      const clean = cleanBeautyProfile(profile);
+      const synced = await syncWishListReferrals(clean, draft.full_name || "");
+      patch.beauty_notes = synced.profile;
+      patch.skin_type = derivedSkinType(synced.profile);
+      patch.foundation_shade = synced.profile.foundation_shade || null;
       if (!String(patch.full_name || "").trim()) throw new Error("Full name is required");
       return updateFacialContact(contactId, patch as Partial<FacialContact>);
     },
@@ -86,7 +100,7 @@ export default function FacialContactDetailSheet({
         <SheetHeader>
           <SheetTitle>{contact?.full_name || "Facial contact"}</SheetTitle>
           <SheetDescription>
-            Everything captured from the scanned card. Skin type and shade are often blank at scan time — fill them in here any time.
+            Everything captured from the scanned card, including the full Beauty Profile — fill in anything the card left blank.
           </SheetDescription>
         </SheetHeader>
 
@@ -106,19 +120,11 @@ export default function FacialContactDetailSheet({
                   />
                 </div>
               ))}
-              <div className="col-span-2">
-                <Label className="text-xs">Skin type</Label>
-                <Select
-                  value={draft.skin_type || "none"}
-                  onValueChange={(v) => setDraft((p) => ({ ...p, skin_type: v === "none" ? null : v }))}
-                >
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Not set" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not set</SelectItem>
-                    {SKIN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t">
+              <h3 className="text-sm font-semibold">Beauty Profile</h3>
+              <BeautyProfileFields value={profile} onChange={setProfile} />
             </div>
 
             <div>

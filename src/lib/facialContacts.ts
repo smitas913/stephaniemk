@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { FacialContact } from "@/lib/types";
 import { normalizePhoneForStorage } from "@/lib/phoneUtils";
+import { beautyProfileSearchText } from "@/lib/beautyProfile";
 
 type FacialContactInput = Partial<FacialContact> & { full_name: string };
 
@@ -55,10 +56,11 @@ export const deleteFacialContact = async (id: string) => {
   if (error) throw error;
 };
 
-/** Free-text match across name, phone, email, skin type and foundation shade. */
+/** Free-text match across name, phone, email, skin type, shade and Beauty Profile. */
 export const facialContactMatches = (c: FacialContact, query: string): boolean => {
   const q = query.trim().toLowerCase();
   if (!q) return true;
+  if (beautyProfileSearchText((c as any).beauty_notes).includes(q)) return true;
   return [c.full_name, c.phone, c.email, c.skin_type, c.foundation_shade, c.city]
     .filter(Boolean)
     .some((v) => String(v).toLowerCase().includes(q));

@@ -1,4 +1,4 @@
-// Extracts contact info, skin type, foundation shade and order details from
+// Extracts contact info, the full Mary Kay Beauty Profile card fields, and order details from
 // photos of a handwritten Mary Kay profile card or order form using Lovable AI
 // (Gemini vision).
 //
@@ -27,9 +27,27 @@ Return ONLY a JSON object matching this exact TypeScript type (no prose, no mark
     "city": string | null,
     "state_territory": string | null, // 2-letter US state code if possible
     "postal_code": string | null,
-    "birthday": string | null,      // ISO YYYY-MM-DD if year is legible, else null
-    "skin_type": string | null,     // EXACTLY "Normal to Dry" or "Combination to Oily", else null
-    "foundation_shade": string | null // e.g. "Beige 3", "Ivory 100"
+    "birthday": string | null       // ISO YYYY-MM-DD if year is legible, else null
+  },
+  "beauty_profile": {
+    "hostess": string | null,
+    "date": string | null,            // ISO YYYY-MM-DD
+    "anniversary": string | null,     // ISO YYYY-MM-DD
+    "occupation": string | null,
+    "best_time": "AM" | "PM" | null,
+    "best_contact": "Call" | "Text" | "Email" | null,
+    "social": "Facebook" | "Instagram" | "None" | null,
+    "interests": string[],            // subset of: "Additional skin care options", "Color application techniques", "Earning hostess rewards", "Earning extra money", "Fragrance and body care", "Men's products", "Gift-giving services", "Wedding services"
+    "wish_list_referrals": [ { "name": string, "relationship": string, "contact": string } ],
+    "age_range": "20 and under" | "20s–30s" | "40s–50s" | "60s–70s" | "80s+" | null,
+    "primary_skin_care_needs": string[], // subset of: "No aging concerns/Sensitive skin", "Early-to-moderate signs of aging", "Advanced signs of aging", "Mild-to-moderate acne"
+    "moisturizer_feel": "Dry/tight" | "Neither dry nor oily" | "Oily" | "Oily in the T-zone" | null,
+    "other_skin_concerns": string[],  // subset of: "More even-/radiant-looking skin", "Improved skin texture", "Skin firmness and resilience", "Extra hydration", "Wrinkles and expression lines", "Large-looking pores", "Excess oil", "Maximum hydration/extremely dry skin"
+    "eye_concerns": string[],         // subset of: "Deep wrinkles puffiness and sagging", "Fine lines and wrinkles", "Tired- and puffy-looking", "Gentle makeup remover"
+    "lip_concerns": string[],         // subset of: "Fine lines and wrinkles", "Dry lips"
+    "foundation_coverage": "Light" | "Medium/Full" | null,
+    "foundation_type": string | null,
+    "foundation_shade": string | null // the "Shade" line, e.g. "Beige 3", "Ivory 100"
   },
   "orders": [
     {
@@ -47,7 +65,12 @@ Return ONLY a JSON object matching this exact TypeScript type (no prose, no mark
 Rules:
 - If a field isn't legible or present, use null (or empty array for orders).
 - Do not invent values.
-- skin_type must be mapped to one of the two allowed strings. "dry", "normal", "normal/dry" => "Normal to Dry". "oily", "combo", "combination", "combination/oily" => "Combination to Oily". Anything ambiguous => null.
+- The card is the Mary Kay Beauty Profile (form 10-260112). The front holds contact/lifestyle info and the back the skin care questions.
+- beauty_profile option strings MUST match the allowed values above EXACTLY, character for character (including the en dashes in age ranges). If a written answer doesn't map cleanly to an allowed option, omit it.
+- Only include a checkbox option when it is actually marked/checked on the card. Never guess.
+- Empty multi-select lists must be [] and unanswered single-selects null.
+- Never put name, birthday, address, email or phone inside beauty_profile — those belong in "contact".
+- wish_list_referrals: up to 2 entries from the "who can I share your product wish list with" lines; omit blank rows.
 - foundation_shade: capture the shade name/number as written (e.g. "Beige 3", "C120", "Ivory 200"). If the card says a foundation was not made/matched, use null.
 - Amounts are numbers (no $ or commas).
 - Group items that clearly belong to one order together; otherwise create separate order objects.`;

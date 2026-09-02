@@ -1031,6 +1031,7 @@ export type Database = {
         Row: {
           address_line_1: string | null
           address_line_2: string | null
+          beauty_notes: Json
           birthday: string | null
           city: string | null
           converted_customer_id: string | null
@@ -1055,6 +1056,7 @@ export type Database = {
         Insert: {
           address_line_1?: string | null
           address_line_2?: string | null
+          beauty_notes?: Json
           birthday?: string | null
           city?: string | null
           converted_customer_id?: string | null
@@ -1079,6 +1081,7 @@ export type Database = {
         Update: {
           address_line_1?: string | null
           address_line_2?: string | null
+          beauty_notes?: Json
           birthday?: string | null
           city?: string | null
           converted_customer_id?: string | null
@@ -2465,6 +2468,7 @@ export type Database = {
       }
     }
     Functions: {
+      assert_internal_user: { Args: never; Returns: undefined }
       check_profile_update_safe: {
         Args: {
           _is_active: boolean
@@ -2474,6 +2478,10 @@ export type Database = {
         Returns: boolean
       }
       convert_person: {
+        Args: { _from_id: string; _from_type: string; _overrides?: Json }
+        Returns: Json
+      }
+      convert_person_impl: {
         Args: { _from_id: string; _from_type: string; _overrides?: Json }
         Returns: Json
       }
@@ -2495,6 +2503,10 @@ export type Database = {
         Returns: Json
       }
       merge_customer_into_consultant: {
+        Args: { _consultant_id: string; _customer_id: string }
+        Returns: Json
+      }
+      merge_customer_into_consultant_impl: {
         Args: { _consultant_id: string; _customer_id: string }
         Returns: Json
       }
