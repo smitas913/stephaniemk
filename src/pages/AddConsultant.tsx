@@ -40,28 +40,29 @@ export default function AddConsultant() {
 
   const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
+  const buildPayload = () => ({
+    name: fullName,
+    first_name: firstName.trim() || null,
+    last_name: lastName.trim() || null,
+    phone: phone.trim() || null,
+    email: email.trim() || null,
+    consultant_id: consultantId.trim() || null,
+    join_date: joinDate || null,
+    address_line_1: address1.trim() || null,
+    city: city.trim() || null,
+    state_territory: state.trim() || null,
+    postal_code: postal.trim() || null,
+    birthday: birthday || null,
+    onboarding_stage: onboardingStage,
+    coaching_focus: coachingFocus || null,
+    focus_group: focusGroup,
+    next_coaching_date: nextCoachingDate || null,
+    notes: notes.trim() || null,
+    status: "Active",
+  });
+
   const mutation = useMutation({
-    mutationFn: () =>
-      createTeamConsultant({
-        name: fullName,
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-        consultant_id: consultantId.trim() || null,
-        join_date: joinDate || null,
-        address_line_1: address1.trim() || null,
-        city: city.trim() || null,
-        state_territory: state.trim() || null,
-        postal_code: postal.trim() || null,
-        birthday: birthday || null,
-        onboarding_stage: onboardingStage,
-        coaching_focus: coachingFocus || null,
-        focus_group: focusGroup,
-        next_coaching_date: nextCoachingDate || null,
-        notes: notes.trim() || null,
-        status: "Active",
-      }),
+    mutationFn: () => createTeamConsultant(buildPayload()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       toast.success("Consultant added");
@@ -69,6 +70,26 @@ export default function AddConsultant() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  // Link an existing customer record to a brand-new consultant record and merge history over.
+  const convertMutation = useMutation({
+    mutationFn: async (customerId: string) => {
+      const created: any = await createTeamConsultant(buildPayload(), { allowDuplicate: true } as any);
+      const { error } = await supabase.rpc("merge_customer_into_consultant", {
+        _customer_id: customerId,
+        _consultant_id: created.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Converted to consultant — customer history merged in");
+      navigate(originPath);
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
 
   const { data: existingConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
