@@ -181,6 +181,7 @@ export interface EventGuest {
   party_rescheduled?: boolean;
   referral_count?: number;
   skin_type?: string | null;
+  allergies?: string | null;
   video_watched?: boolean;
   converted_facial_contact_id?: string | null;
 }

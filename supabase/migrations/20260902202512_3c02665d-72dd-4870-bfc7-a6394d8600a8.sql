@@ -1,0 +1,1 @@
+ALTER TABLE public.event_guests ADD COLUMN IF NOT EXISTS allergies text;

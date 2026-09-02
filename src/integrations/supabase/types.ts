@@ -685,6 +685,7 @@ export type Database = {
       }
       event_guests: {
         Row: {
+          allergies: string | null
           attending: boolean | null
           booked: boolean | null
           consultant_id: string | null
@@ -711,6 +712,7 @@ export type Database = {
           video_watched: boolean
         }
         Insert: {
+          allergies?: string | null
           attending?: boolean | null
           booked?: boolean | null
           consultant_id?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           video_watched?: boolean
         }
         Update: {
+          allergies?: string | null
           attending?: boolean | null
           booked?: boolean | null
           consultant_id?: string | null
