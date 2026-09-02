@@ -168,7 +168,23 @@ export default function AddConsultant() {
                       A {contactDuplicate.kind} with this {stripPhone(phone) ? "phone" : "email"} already exists: {contactDuplicate.name}
                       {contactDuplicate.phone ? ` · ${formatPhone(contactDuplicate.phone)}` : ""}
                     </p>
+                    {contactDuplicate.kind === "customer" && (
+                      <>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          If she just joined your team, link her customer record and move her order history onto the new consultant record.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="mt-2 h-8"
+                          disabled={!fullName || !hasContact || convertMutation.isPending || mutation.isPending}
+                          onClick={() => convertMutation.mutate(contactDuplicate!.id)}
+                        >
+                          {convertMutation.isPending ? "Converting..." : "Link & Convert to Consultant"}
+                        </Button>
+                      </>
+                    )}
                   </div>
+
                 </div>
               </div>
             )}
