@@ -645,6 +645,10 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     >
                       {(g as any).video_watched ? "Video ✓" : "Video"}
                     </button>
+                    <GuestAllergiesButton
+                      value={(g as any).allergies || null}
+                      onSave={(v) => updateMutation.mutate({ id: g.id, updates: { allergies: v } as any })}
+                    />
                     <button
                       type="button"
                       onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
