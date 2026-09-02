@@ -71,6 +71,50 @@ function GuestSkinTypeSelect({ value, onChange }: { value: string | null; onChan
   );
 }
 
+function GuestAllergiesButton({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || "");
+  const has = !!(value && value.trim());
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setDraft(value || ""); }}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0 max-w-[120px] truncate",
+            has
+              ? "bg-amber-100 text-amber-800 border-amber-300"
+              : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+          )}
+          title={has ? (value as string) : "Add allergies note"}
+        >
+          {has ? "Allergies ⚠" : "Allergies"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-2 space-y-2">
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="e.g. nuts, fragrance"
+          className="h-7 text-[11px]"
+          onKeyDown={(e) => { if (e.key === "Enter") { onSave(draft.trim() || null); setOpen(false); } }}
+        />
+        <div className="flex gap-1.5">
+          <Button size="sm" className="h-6 px-2 text-[10px] flex-1"
+            onClick={() => { onSave(draft.trim() || null); setOpen(false); }}>Save</Button>
+          {has && (
+            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]"
+              onClick={() => { onSave(null); setOpen(false); }}>Clear</Button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
+
 
 export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
