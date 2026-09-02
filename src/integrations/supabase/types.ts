@@ -2481,6 +2481,10 @@ export type Database = {
         Args: { _from_id: string; _from_type: string; _overrides?: Json }
         Returns: Json
       }
+      convert_person_impl: {
+        Args: { _from_id: string; _from_type: string; _overrides?: Json }
+        Returns: Json
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2499,6 +2503,10 @@ export type Database = {
         Returns: Json
       }
       merge_customer_into_consultant: {
+        Args: { _consultant_id: string; _customer_id: string }
+        Returns: Json
+      }
+      merge_customer_into_consultant_impl: {
         Args: { _consultant_id: string; _customer_id: string }
         Returns: Json
       }
