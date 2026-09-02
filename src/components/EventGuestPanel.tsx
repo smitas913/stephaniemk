@@ -10,13 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus, UserPlus } from "lucide-react";
+import { Trash2, Plus, UserPlus, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { checkForDuplicatePerson, type DuplicateMatch, fillEmptyFieldsFromNew } from "@/lib/duplicateCheck";
 import DuplicateGuardDialog from "@/components/DuplicateGuardDialog";
+import ScanCardDialog, { type ScanCardSeed } from "@/components/ScanCardDialog";
 
 
 interface Props {
@@ -91,6 +92,9 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   // Duplicate guard for finalizeJoin (consultant insert)
   const [joinDupCheck, setJoinDupCheck] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
   const [joinInsertPending, setJoinInsertPending] = useState(false);
+
+  // Per-guest "Scan Card" flow (event is already known, so the picker is skipped)
+  const [scanSeed, setScanSeed] = useState<ScanCardSeed | null>(null);
 
   // Guest → customer conversion prompt when marking Ordered
   const [convertGuestPrompt, setConvertGuestPrompt] = useState<{ guest: EventGuest; assign: string } | null>(null);
@@ -608,6 +612,15 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     >
                       {g.thank_you_sent ? "TY ✓" : "TY Note"}
                     </button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
+                      onClick={() => setScanSeed({ eventId, guestId: g.id, name: g.name, phone: g.phone || null })}
+                    >
+                      <ScanLine className="w-3 h-3" />Scan Card
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
                       onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
                       <Trash2 className="w-3 h-3 text-destructive" />
@@ -870,6 +883,16 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         }}
         dupCheck={convertGuestDup}
         setDupCheck={setConvertGuestDup}
+      />
+
+      <ScanCardDialog
+        open={Boolean(scanSeed)}
+        onOpenChange={(v) => { if (!v) setScanSeed(null); }}
+        seed={scanSeed ?? undefined}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ["event-guests", eventId] });
+          queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }}
       />
     </div>
   );

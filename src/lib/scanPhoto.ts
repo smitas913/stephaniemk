@@ -1,10 +1,11 @@
-// Shared helpers for the Scan Photo (Gemini vision) flow.
-// Used by ScanPhotoDialog (existing customer) and the guest-to-customer
-// conversion path in EventGuestPanel (new customer + optional order).
+// Shared helpers for the Scan Card / Scan Photo (Gemini vision) flow.
+// Used by ScanPhotoDialog (existing customer), ScanCardDialog (new person),
+// and the guest-to-customer conversion path in EventGuestPanel.
 
 import { supabase } from "@/integrations/supabase/client";
 import { createOrder, createCustomerNote, updateCustomer } from "@/lib/queries";
 import { normalizeStateAbbreviation } from "@/lib/usStates";
+import { SKIN_TYPES } from "@/lib/types";
 
 export type Extracted = {
   contact?: {
@@ -17,6 +18,8 @@ export type Extracted = {
     state_territory?: string | null;
     postal_code?: string | null;
     birthday?: string | null;
+    skin_type?: string | null;
+    foundation_shade?: string | null;
   };
   orders?: Array<{
     order_date?: string | null;
@@ -39,6 +42,7 @@ export type OrderDraft = {
   include: boolean;
 };
 
+/** Contact fields that live directly on `customers` / `facial_contacts`. */
 export const CONTACT_FIELDS: Array<{
   key: keyof NonNullable<Extracted["contact"]>;
   label: string;
@@ -54,6 +58,17 @@ export const CONTACT_FIELDS: Array<{
   { key: "postal_code", label: "ZIP" },
   { key: "birthday", label: "Birthday" },
 ];
+
+/** Normalize an AI-guessed skin type onto the two supported options. */
+export function normalizeSkinType(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const s = String(v).trim().toLowerCase();
+  const exact = SKIN_TYPES.find((t) => t.toLowerCase() === s);
+  if (exact) return exact;
+  if (/oil|combo|combination/.test(s)) return "Combination to Oily";
+  if (/dry|normal/.test(s)) return "Normal to Dry";
+  return null;
+}
 
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -94,14 +109,94 @@ export function orderDraftsFromExtracted(ex: Extracted): OrderDraft[] {
   }));
 }
 
-export async function runScanExtract(file: File): Promise<Extracted> {
-  const base64 = await fileToBase64(file);
-  const { data, error } = await supabase.functions.invoke("scan-photo", {
-    body: { imageBase64: base64, mimeType: file.type || "image/jpeg" },
-  });
+/**
+ * Run AI extraction over one or more images of the SAME card (front, then
+ * optional back). Both sides are sent in a single pass so info on either side
+ * is captured.
+ */
+export async function runScanExtract(input: File | Array<File | null | undefined>): Promise<Extracted> {
+  const files = (Array.isArray(input) ? input : [input]).filter(Boolean) as File[];
+  if (files.length === 0) throw new Error("No image to scan");
+  const images = await Promise.all(
+    files.map(async (f) => ({ base64: await fileToBase64(f), mimeType: f.type || "image/jpeg" })),
+  );
+  const { data, error } = await supabase.functions.invoke("scan-photo", { body: { images } });
   if (error) throw error;
-  return (data?.extracted || {}) as Extracted;
+  const ex = (data?.extracted || {}) as Extracted;
+  if (ex.contact) ex.contact.skin_type = normalizeSkinType(ex.contact.skin_type);
+  return ex;
 }
+
+// ---------------------------------------------------------------------------
+// Combined front/back PDF + Google Drive backup
+// ---------------------------------------------------------------------------
+
+async function imagesToPdfBase64(files: File[]): Promise<string> {
+  const { PDFDocument } = await import("pdf-lib");
+  const doc = await PDFDocument.create();
+  for (const f of files) {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    const isPng = (f.type || "").includes("png") || (bytes[0] === 0x89 && bytes[1] === 0x50);
+    const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    // Letter-size page, image scaled to fit with a small margin
+    const pageW = 612;
+    const pageH = 792;
+    const page = doc.addPage([pageW, pageH]);
+    const margin = 24;
+    const scale = Math.min((pageW - margin * 2) / img.width, (pageH - margin * 2) / img.height);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    page.drawImage(img, { x: (pageW - w) / 2, y: (pageH - h) / 2, width: w, height: h });
+  }
+  const b64 = await doc.saveAsBase64();
+  return b64;
+}
+
+export type DriveUploadResult = { url: string | null; error: string | null; needsSetup: boolean };
+
+/**
+ * Build a single PDF from the captured card images and upload it to the
+ * "MK CRM Card Scans" Google Drive folder. Never throws — a Drive/PDF failure
+ * must not block saving the person record.
+ */
+export async function uploadScanPdfToDrive(
+  files: Array<File | null | undefined>,
+  personName: string,
+): Promise<DriveUploadResult> {
+  const list = files.filter(Boolean) as File[];
+  if (list.length === 0) return { url: null, error: null, needsSetup: false };
+  try {
+    const pdfBase64 = await imagesToPdfBase64(list);
+    const safeName = (personName || "card").replace(/[^\w\s.-]/g, "").trim() || "card";
+    const fileName = `${safeName} — ${todayISO()}.pdf`;
+    const { data, error } = await supabase.functions.invoke("upload-scan-drive", {
+      body: { pdfBase64, fileName },
+    });
+    if (error) {
+      let details = error.message;
+      let needsSetup = false;
+      const ctx: any = (error as any).context;
+      if (ctx?.text) {
+        try {
+          const txt = await ctx.text();
+          const parsed = JSON.parse(txt);
+          details = parsed?.error || txt;
+          needsSetup = Boolean(parsed?.needsSetup);
+        } catch {
+          /* keep default message */
+        }
+      }
+      return { url: null, error: details, needsSetup };
+    }
+    return { url: (data?.url as string) || null, error: null, needsSetup: false };
+  } catch (e: any) {
+    return { url: null, error: e?.message || "Could not build the scan PDF", needsSetup: false };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Storage of the raw image (existing behaviour, kept as a local backup)
+// ---------------------------------------------------------------------------
 
 async function uploadScanFile(file: File, customerId: string): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
@@ -114,6 +209,16 @@ async function uploadScanFile(file: File, customerId: string): Promise<string | 
     .upload(path, file, { contentType: file.type || "image/jpeg", upsert: false });
   if (up.error) return null;
   return path;
+}
+
+async function uploadScanFiles(files: Array<File | null | undefined>, customerId: string): Promise<string[]> {
+  const out: string[] = [];
+  for (const f of files) {
+    if (!f) continue;
+    const p = await uploadScanFile(f, customerId);
+    if (p) out.push(p);
+  }
+  return out;
 }
 
 async function createOrdersFromDrafts(opts: {
@@ -143,19 +248,28 @@ async function createOrdersFromDrafts(opts: {
 }
 
 /**
- * Apply a scan to an EXISTING customer: contact resolutions, orders, scan note.
+ * Apply a scan to an EXISTING customer: contact resolutions, orders, scan note,
+ * plus the combined front/back PDF backed up to Google Drive.
  */
 export async function applyScanToExistingCustomer(opts: {
   customer: Record<string, any> & { id: string; full_name: string };
-  file: File | null;
+  /** Front image (legacy single-file callers). */
+  file?: File | null;
+  /** Front + optional back. Takes precedence over `file` when provided. */
+  files?: Array<File | null | undefined>;
   extracted: Extracted;
   resolutions: Record<string, Resolution>;
   orderDrafts: OrderDraft[];
   eventId?: string | null;
-}): Promise<void> {
-  const { customer, file, extracted, resolutions, orderDrafts, eventId } = opts;
+  /** Optional edited skin type / foundation shade from the review screen. */
+  skinType?: string | null;
+  foundationShade?: string | null;
+}): Promise<{ driveUrl: string | null; driveError: string | null; driveNeedsSetup: boolean }> {
+  const { customer, extracted, resolutions, orderDrafts, eventId } = opts;
+  const files = (opts.files ?? [opts.file]).filter(Boolean) as File[];
 
-  const scanPath = file ? await uploadScanFile(file, customer.id) : null;
+  const scanPaths = await uploadScanFiles(files, customer.id);
+  const drive = await uploadScanPdfToDrive(files, customer.full_name);
 
   const updates: Record<string, unknown> = {};
   const conflictLines: string[] = [];
@@ -171,6 +285,15 @@ export async function applyScanToExistingCustomer(opts: {
       conflictLines.push(`${f.label}: existing "${existing || "(empty)"}" | scanned "${incoming}"`);
     }
   }
+
+  const skin = normalizeSkinType(opts.skinType);
+  if (skin) updates.skin_type = skin;
+  const shade = (opts.foundationShade ?? "").trim();
+  if (shade) {
+    updates.beauty_notes = { ...(customer.beauty_notes || {}), foundation_shade: shade };
+  }
+  if (drive.url) updates.scan_pdf_url = drive.url;
+
   if (Object.keys(updates).length > 0) {
     await updateCustomer(customer.id, updates as any);
   }
@@ -183,8 +306,9 @@ export async function applyScanToExistingCustomer(opts: {
   });
 
   const noteParts = [
-    "Scanned handwritten profile/order card.",
-    scanPath ? `Scan stored at: ${scanPath}` : null,
+    `Scanned handwritten profile/order card (${files.length} image${files.length === 1 ? "" : "s"}).`,
+    scanPaths.length > 0 ? `Scan stored at: ${scanPaths.join(", ")}` : null,
+    drive.url ? `Drive PDF backup: ${drive.url}` : drive.error ? `Drive PDF backup unavailable: ${drive.error}` : null,
     created > 0 ? `Created ${created} order(s) (Unpaid — please review).` : null,
     conflictLines.length > 0 ? `Contact conflicts kept for review:\n- ${conflictLines.join("\n- ")}` : null,
     extracted.raw_notes ? `Additional handwriting:\n${extracted.raw_notes}` : null,
@@ -192,10 +316,12 @@ export async function applyScanToExistingCustomer(opts: {
     .filter(Boolean)
     .join("\n\n");
   await createCustomerNote({ customer_id: customer.id, note_text: noteParts, note_type: "Scan" });
+
+  return { driveUrl: drive.url, driveError: drive.error, driveNeedsSetup: Boolean(drive.needsSetup) };
 }
 
 /**
- * Contact fields, normalized + non-empty, ready to write on a NEW customer.
+ * Contact fields, normalized + non-empty, ready to write on a NEW person.
  * Caller controls which fields to overwrite from seed values (e.g. guest name/phone).
  */
 export function contactFieldsForNewCustomer(extracted: Extracted): Record<string, string> {
@@ -210,19 +336,25 @@ export function contactFieldsForNewCustomer(extracted: Extracted): Record<string
 }
 
 /**
- * After a NEW customer was just created from a scan, upload the image,
- * create any included orders (optionally linked to an event), and write
- * a "Scan" audit note.
+ * After a NEW customer was just created from a scan, upload the images,
+ * back up the combined PDF to Drive, create any included orders (optionally
+ * linked to an event), and write a "Scan" audit note.
  */
 export async function finalizeScanForNewCustomer(opts: {
   customerId: string;
   customerName: string;
-  file: File | null;
+  file?: File | null;
+  files?: Array<File | null | undefined>;
   extracted: Extracted;
   orderDrafts: OrderDraft[];
   eventId?: string | null;
-}): Promise<void> {
-  const scanPath = opts.file ? await uploadScanFile(opts.file, opts.customerId) : null;
+}): Promise<{ driveUrl: string | null; driveError: string | null; driveNeedsSetup: boolean }> {
+  const files = (opts.files ?? [opts.file]).filter(Boolean) as File[];
+  const scanPaths = await uploadScanFiles(files, opts.customerId);
+  const drive = await uploadScanPdfToDrive(files, opts.customerName);
+  if (drive.url) {
+    await updateCustomer(opts.customerId, { scan_pdf_url: drive.url } as any);
+  }
   const created = await createOrdersFromDrafts({
     customerId: opts.customerId,
     customerName: opts.customerName,
@@ -231,11 +363,13 @@ export async function finalizeScanForNewCustomer(opts: {
   });
   const noteParts = [
     "Customer created from scanned profile/order card.",
-    scanPath ? `Scan stored at: ${scanPath}` : null,
+    scanPaths.length > 0 ? `Scan stored at: ${scanPaths.join(", ")}` : null,
+    drive.url ? `Drive PDF backup: ${drive.url}` : drive.error ? `Drive PDF backup unavailable: ${drive.error}` : null,
     created > 0 ? `Created ${created} order(s) (Unpaid — please review).` : null,
     opts.extracted.raw_notes ? `Additional handwriting:\n${opts.extracted.raw_notes}` : null,
   ]
     .filter(Boolean)
     .join("\n\n");
   await createCustomerNote({ customer_id: opts.customerId, note_text: noteParts, note_type: "Scan" });
+  return { driveUrl: drive.url, driveError: drive.error, driveNeedsSetup: Boolean(drive.needsSetup) };
 }

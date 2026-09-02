@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -411,6 +411,8 @@ export type Database = {
           postal_code: string | null
           profile_date_first_order_date: string | null
           relationship_status: string | null
+          scan_pdf_url: string | null
+          skin_type: string | null
           skincare_started_at: string | null
           state_territory: string | null
           tags: string[]
@@ -453,6 +455,8 @@ export type Database = {
           postal_code?: string | null
           profile_date_first_order_date?: string | null
           relationship_status?: string | null
+          scan_pdf_url?: string | null
+          skin_type?: string | null
           skincare_started_at?: string | null
           state_territory?: string | null
           tags?: string[]
@@ -495,6 +499,8 @@ export type Database = {
           postal_code?: string | null
           profile_date_first_order_date?: string | null
           relationship_status?: string | null
+          scan_pdf_url?: string | null
+          skin_type?: string | null
           skincare_started_at?: string | null
           state_territory?: string | null
           tags?: string[]
@@ -684,6 +690,7 @@ export type Database = {
           consultant_id: string | null
           converted_consultant_id: string | null
           converted_customer_id: string | null
+          converted_facial_contact_id: string | null
           created_at: string
           email: string | null
           event_id: string
@@ -709,6 +716,7 @@ export type Database = {
           consultant_id?: string | null
           converted_consultant_id?: string | null
           converted_customer_id?: string | null
+          converted_facial_contact_id?: string | null
           created_at?: string
           email?: string | null
           event_id: string
@@ -734,6 +742,7 @@ export type Database = {
           consultant_id?: string | null
           converted_consultant_id?: string | null
           converted_customer_id?: string | null
+          converted_facial_contact_id?: string | null
           created_at?: string
           email?: string | null
           event_id?: string
@@ -759,6 +768,13 @@ export type Database = {
             columns: ["converted_consultant_id"]
             isOneToOne: false
             referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_guests_converted_facial_contact_id_fkey"
+            columns: ["converted_facial_contact_id"]
+            isOneToOne: false
+            referencedRelation: "facial_contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -1010,6 +1026,96 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      facial_contacts: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          birthday: string | null
+          city: string | null
+          converted_customer_id: string | null
+          created_at: string
+          email: string | null
+          event_id: string | null
+          facial_date: string | null
+          foundation_shade: string | null
+          full_name: string
+          id: string
+          notes: string | null
+          owner_user_id: string
+          phone: string | null
+          postal_code: string | null
+          raw_notes: string | null
+          scan_pdf_url: string | null
+          skin_type: string | null
+          source_guest_id: string | null
+          state_territory: string | null
+          updated_at: string
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          birthday?: string | null
+          city?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_id?: string | null
+          facial_date?: string | null
+          foundation_shade?: string | null
+          full_name: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string
+          phone?: string | null
+          postal_code?: string | null
+          raw_notes?: string | null
+          scan_pdf_url?: string | null
+          skin_type?: string | null
+          source_guest_id?: string | null
+          state_territory?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          birthday?: string | null
+          city?: string | null
+          converted_customer_id?: string | null
+          created_at?: string
+          email?: string | null
+          event_id?: string | null
+          facial_date?: string | null
+          foundation_shade?: string | null
+          full_name?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string
+          phone?: string | null
+          postal_code?: string | null
+          raw_notes?: string | null
+          scan_pdf_url?: string | null
+          skin_type?: string | null
+          source_guest_id?: string | null
+          state_territory?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facial_contacts_converted_customer_id_fkey"
+            columns: ["converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facial_contacts_converted_customer_id_fkey"
+            columns: ["converted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_settings: {
         Row: {
@@ -2461,12 +2567,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2490,11 +2596,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2515,11 +2621,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2540,11 +2646,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2557,11 +2663,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
