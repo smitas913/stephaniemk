@@ -18,7 +18,6 @@ import {
   parseBeautyProfile,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
-import { syncWishListReferrals } from "@/lib/beautyReferrals";
 
 const TEXT_FIELDS: Array<{ key: keyof FacialContact; label: string; type?: string; wide?: boolean }> = [
   { key: "full_name", label: "Full name", wide: true },
@@ -66,10 +65,9 @@ export default function FacialContactDetailSheet({
       for (const f of TEXT_FIELDS) patch[f.key as string] = (draft as any)[f.key] || null;
       patch.notes = draft.notes || null;
       const clean = cleanBeautyProfile(profile);
-      const synced = await syncWishListReferrals(clean, draft.full_name || "");
-      patch.beauty_notes = synced.profile;
-      patch.skin_type = derivedSkinType(synced.profile);
-      patch.foundation_shade = synced.profile.foundation_shade || null;
+      patch.beauty_notes = clean;
+      patch.skin_type = derivedSkinType(clean);
+      patch.foundation_shade = clean.foundation_shade || null;
       if (!String(patch.full_name || "").trim()) throw new Error("Full name is required");
       return updateFacialContact(contactId, patch as Partial<FacialContact>);
     },

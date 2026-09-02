@@ -63,12 +63,15 @@ export const LIP_CONCERN_OPTIONS = ["Fine lines and wrinkles", "Dry lips"] as co
 
 export const FOUNDATION_COVERAGE_OPTIONS = ["Light", "Medium/Full"] as const;
 
+/**
+ * A person the customer is happy to have her product wish list shared with —
+ * i.e. someone who might buy her a gift. Stored as written on the card; these
+ * are NOT business referrals and never enter the booking/lead pipeline.
+ */
 export type WishListReferral = {
   name?: string;
   relationship?: string;
   contact?: string;
-  /** Set once the referral has been pushed into the booking pipeline. */
-  lead_id?: string;
 };
 
 export type BeautyProfile = {
@@ -185,7 +188,6 @@ export function parseBeautyProfile(raw: unknown): BeautyProfile {
           name: str(o.name),
           relationship: str(o.relationship),
           contact: str(o.contact),
-          ...(str(o.lead_id) ? { lead_id: str(o.lead_id) } : {}),
         };
       })
       .filter((r) => r.name || r.relationship || r.contact);

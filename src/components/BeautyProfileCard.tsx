@@ -13,7 +13,6 @@ import {
   parseBeautyProfile,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
-import { syncWishListReferrals } from "@/lib/beautyReferrals";
 import BeautyProfileSummary from "@/components/BeautyProfileSummary";
 
 /**
@@ -41,17 +40,12 @@ export default function BeautyProfileCard({
   const save = useMutation({
     mutationFn: async (next: BeautyProfile) => {
       const clean = cleanBeautyProfile(next);
-      const { profile, created } = await syncWishListReferrals(clean, customerName || "");
-      await updateCustomer(customerId, { beauty_notes: profile } as any);
-      return created;
+      return updateCustomer(customerId, { beauty_notes: clean } as any);
     },
-    onSuccess: (created) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customer", customerId] });
       qc.invalidateQueries({ queryKey: ["customers"] });
-      qc.invalidateQueries({ queryKey: ["booking-leads"] });
-      toast.success(
-        created ? `Beauty Profile saved — ${created} referral lead${created === 1 ? "" : "s"} added` : "Beauty Profile saved",
-      );
+      toast.success("Beauty Profile saved");
       setEditing(false);
     },
     onError: (e: any) => toast.error(e.message || "Failed to save"),
@@ -89,7 +83,7 @@ export default function BeautyProfileCard({
         ) : isBeautyProfileEmpty(saved) ? (
           <p className="text-sm text-muted-foreground">
             No Beauty Profile yet. Click Edit to fill in the card — age range, skin care needs, foundation, interests and
-            referrals — or scan a printed card to fill it in for you.
+            gift-list names — or scan a printed card to fill it in for you.
           </p>
         ) : (
           <BeautyProfileSummary profile={saved} />

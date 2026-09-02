@@ -12,7 +12,6 @@ import {
   parseBeautyProfile,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
-import { syncWishListReferrals } from "@/lib/beautyReferrals";
 
 export type Extracted = {
   contact?: {
@@ -301,9 +300,10 @@ export async function applyScanToExistingCustomer(opts: {
 
   const incomingProfile = cleanBeautyProfile(opts.beautyProfile || {});
   if (Object.keys(incomingProfile).length > 0) {
-    const merged = cleanBeautyProfile({ ...parseBeautyProfile(customer.beauty_notes), ...incomingProfile });
-    const synced = await syncWishListReferrals(merged, customer.full_name);
-    updates.beauty_notes = synced.profile;
+    updates.beauty_notes = cleanBeautyProfile({
+      ...parseBeautyProfile(customer.beauty_notes),
+      ...incomingProfile,
+    });
   }
   if (drive.url) updates.scan_pdf_url = drive.url;
 

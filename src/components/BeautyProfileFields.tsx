@@ -145,7 +145,7 @@ export default function BeautyProfileFields({
             Who can I share your product wish list with?
           </Label>
           <p className="text-[11px] text-muted-foreground">
-            Each name you fill in is added to the booking pipeline as a Referral lead when you save.
+            People who might buy her a gift — stored exactly as written on the card.
           </p>
           {refs.map((r, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2">

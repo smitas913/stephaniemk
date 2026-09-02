@@ -972,12 +972,10 @@ function ConvertGuestToCustomerDialog({
           try {
             // Carry the Beauty Profile read off the card onto the new customer.
             const { cleanBeautyProfile, isBeautyProfileEmpty } = await import("@/lib/beautyProfile");
-            const { syncWishListReferrals } = await import("@/lib/beautyReferrals");
             const cardProfile = cleanBeautyProfile(beautyProfileFromExtracted(scanExtracted));
             if (!isBeautyProfileEmpty(cardProfile)) {
               const { updateCustomer } = await import("@/lib/queries");
-              const synced = await syncWishListReferrals(cardProfile, (created as any).full_name || g.name);
-              await updateCustomer(created.id, { beauty_notes: synced.profile } as any);
+              await updateCustomer(created.id, { beauty_notes: cardProfile } as any);
             }
             await finalizeScanForNewCustomer({
               customerId: created.id,
