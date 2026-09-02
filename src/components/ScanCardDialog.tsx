@@ -1,42 +1,36 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Loader2, ScanLine, Trash2, Plus, ArrowLeft } from "lucide-react";
+import { Camera, Loader2, ScanLine, UserPlus, Droplets } from "lucide-react";
 import { toast } from "sonner";
-import { toLocalDateKey } from "@/lib/dateOnly";
 import { SKIN_TYPES } from "@/lib/types";
-import { createCustomer, createEventGuest, updateEventGuest, fetchEvents } from "@/lib/queries";
+import { fetchEvents, createCustomer, updateEventGuest } from "@/lib/queries";
 import { createFacialContact } from "@/lib/facialContacts";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import {
   CONTACT_FIELDS,
   type Extracted,
-  type OrderDraft,
   runScanExtract,
-  orderDraftsFromExtracted,
   contactFieldsForNewCustomer,
   finalizeScanForNewCustomer,
-  uploadScanPdfToDrive,
   normalizeSkinType,
+  uploadScanPdfToDrive,
   todayISO,
 } from "@/lib/scanPhoto";
 
-type Step = "capture-front" | "capture-back" | "review" | "event" | "outcome";
-
 export type ScanCardSeed = {
-  /** Pre-known event (text event_id) — skips the event step. */
   eventId?: string | null;
-  /** Guest row this scan came from, so both sides get linked. */
   guestId?: string | null;
   name?: string | null;
   phone?: string | null;
 };
+
+type Step = "capture" | "review" | "event" | "outcome";
 
 export default function ScanCardDialog({
   open,
@@ -47,13 +41,13 @@ export default function ScanCardDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   seed?: ScanCardSeed;
-  onCreated?: () => void;
+  onCreated?: (result: { kind: "customer" | "facial_contact"; id: string; name: string }) => void;
 }) {
   const qc = useQueryClient();
   const frontRef = useRef<HTMLInputElement>(null);
   const backRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<Step>("capture-front");
+  const [step, setStep] = useState<Step>("capture");
   const [front, setFront] = useState<File | null>(null);
   const [back, setBack] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
@@ -61,71 +55,51 @@ export default function ScanCardDialog({
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<Extracted | null>(null);
-
-  // Editable review fields
   const [fields, setFields] = useState<Record<string, string>>({});
-  const [skinType, setSkinType] = useState<string>("");
-  const [shade, setShade] = useState<string>("");
-  const [facialDate, setFacialDate] = useState<string>(toLocalDateKey());
-  const [notes, setNotes] = useState<string>("");
-  const [orderDrafts, setOrderDrafts] = useState<OrderDraft[]>([]);
-
-  // Event linkage
-  const [eventChoice, setEventChoice] = useState<boolean | null>(null);
+  const [skinType, setSkinType] = useState("");
+  const [shade, setShade] = useState("");
+  const [notes, setNotes] = useState("");
+  const [facialDate, setFacialDate] = useState(todayISO());
   const [eventId, setEventId] = useState<string | null>(seed?.eventId ?? null);
-
   const [followUpFor, setFollowUpFor] = useState<{ id: string; name: string } | null>(null);
 
   const { data: bookedEvents = [] } = useQuery({
     queryKey: ["events"],
     queryFn: fetchEvents,
     enabled: open,
-    select: (data: any[]) =>
-      data.filter((e) => e.event_status === "Booked" || e.event_status === "Held").slice(0, 15),
+    select: (data: any[]) => data.filter((e) => e.event_status === "Booked" || e.event_status === "Held").slice(0, 15),
   });
 
-  const reset = () => {
-    setStep("capture-front");
+  useEffect(() => {
+    if (!open) return;
+    setStep("capture");
     setFront(null); setBack(null); setFrontPreview(null); setBackPreview(null);
     setScanning(false); setSaving(false); setExtracted(null);
-    setFields({}); setSkinType(""); setShade(""); setNotes("");
-    setFacialDate(toLocalDateKey());
-    setOrderDrafts([]);
-    setEventChoice(seed?.eventId ? false : null);
+    setFields({ full_name: seed?.name || "", phone: seed?.phone || "" });
+    setSkinType(""); setShade(""); setNotes(""); setFacialDate(todayISO());
     setEventId(seed?.eventId ?? null);
     setFollowUpFor(null);
-  };
+  }, [open, seed?.name, seed?.phone, seed?.eventId]);
 
-  useEffect(() => {
-    if (open) reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const handleClose = (v: boolean) => {
-    if (!v && (scanning || saving)) return;
-    onOpenChange(v);
-  };
-
-  const pick = (which: "front" | "back", f: File) => {
-    const url = URL.createObjectURL(f);
-    if (which === "front") { setFront(f); setFrontPreview(url); }
-    else { setBack(f); setBackPreview(url); }
-  };
+  const setField = (k: string, v: string) => setFields((p) => ({ ...p, [k]: v }));
 
   const runScan = async () => {
     if (!front) return;
     setScanning(true);
     try {
-      const ex = await runScanExtract([front, back]);
+      const ex = await runScanExtract(back ? [front, back] : front);
       setExtracted(ex);
-      const seeded = contactFieldsForNewCustomer(ex);
-      if (seed?.name) seeded.full_name = seed.name;
-      if (seed?.phone && !seeded.phone) seeded.phone = seed.phone;
-      setFields(seeded);
-      setSkinType(normalizeSkinType(ex.contact?.skin_type) ?? "");
+      const scanned = contactFieldsForNewCustomer(ex);
+      setFields((prev) => {
+        const next = { ...scanned };
+        // Seeded guest name/phone win when the scan didn't read them
+        if (prev.full_name && !next.full_name) next.full_name = prev.full_name;
+        if (prev.phone && !next.phone) next.phone = prev.phone;
+        return next;
+      });
+      setSkinType(normalizeSkinType(ex.contact?.skin_type) || "");
       setShade((ex.contact?.foundation_shade || "").trim());
       setNotes((ex.raw_notes || "").trim());
-      setOrderDrafts(orderDraftsFromExtracted(ex));
       setStep("review");
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
@@ -134,79 +108,47 @@ export default function ScanCardDialog({
     }
   };
 
-  const setField = (k: string, v: string) => setFields((prev) => ({ ...prev, [k]: v }));
-  const updateOrder = (i: number, patch: Partial<OrderDraft>) =>
-    setOrderDrafts((prev) => prev.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
-  const removeOrder = (i: number) => setOrderDrafts((prev) => prev.filter((_, idx) => idx !== i));
-
-  const selectedEvent = useMemo(
-    () => (bookedEvents as any[]).find((e) => e.event_id === eventId) || null,
-    [bookedEvents, eventId],
-  );
-
-  const afterReview = () => {
-    if (seed?.eventId) setStep("outcome");
-    else setStep("event");
+  const flagDrive = (error: string | null, needsSetup: boolean) => {
+    if (needsSetup) toast.warning("Saved. Google Drive isn't connected yet, so the PDF backup was skipped.");
+    else if (error) toast.warning("Saved, but the Drive PDF backup failed.");
   };
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["customers"] });
-    qc.invalidateQueries({ queryKey: ["facial-contacts"] });
-    if (eventId) qc.invalidateQueries({ queryKey: ["event-guests", eventId] });
-    onCreated?.();
-  };
-
-  const flagDrive = (driveError: string | null, needsSetup?: boolean) => {
-    if (!driveError) return;
-    toast.warning(
-      needsSetup
-        ? "Saved, but the Drive PDF backup needs a one-time Google authorization."
-        : `Saved, but the Drive PDF backup failed: ${driveError}`,
-    );
-  };
+  const name = (fields.full_name || "").trim();
 
   const saveAsCustomer = async () => {
-    const name = (fields.full_name || "").trim();
-    if (!name) { toast.error("Full name is required"); return; }
+    if (!extracted || !name) return;
     setSaving(true);
     try {
-      const payload: Record<string, any> = { ...fields, full_name: name };
+      const payload: Record<string, any> = {};
+      for (const f of CONTACT_FIELDS) {
+        const v = (fields[f.key as string] || "").trim();
+        if (v) payload[f.key as string] = v;
+      }
+      payload.full_name = name;
       if (skinType) payload.skin_type = skinType;
       if (shade) payload.beauty_notes = { foundation_shade: shade };
       if (notes) payload.notes = notes;
-      payload.relationship_status = "Customer";
-      payload.became_customer_date = facialDate || toLocalDateKey();
 
-      const created: any = await createCustomer(payload as any, { allowDuplicate: true });
-
-      const result = await finalizeScanForNewCustomer({
-        customerId: created.id,
+      const customer: any = await createCustomer(payload as any, { allowDuplicate: true });
+      const res = await finalizeScanForNewCustomer({
+        customerId: customer.id,
         customerName: name,
         files: [front, back],
-        extracted: extracted || {},
-        orderDrafts,
-        eventId: eventId ?? undefined,
+        extracted,
+        orderDrafts: [],
+        eventId,
       });
-      flagDrive(result.driveError);
+      flagDrive(res.driveError, res.driveNeedsSetup);
 
-      if (eventId) {
-        if (seed?.guestId) {
-          await updateEventGuest(seed.guestId, { converted_customer_id: created.id } as any);
-        } else {
-          await createEventGuest({
-            event_id: eventId,
-            name,
-            phone: fields.phone || null,
-            email: fields.email || null,
-            converted_customer_id: created.id,
-            skin_type: skinType || null,
-          });
-        }
+      if (seed?.guestId) {
+        await updateEventGuest(seed.guestId, { converted_customer_id: customer.id } as any);
       }
 
-      invalidate();
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      if (eventId) qc.invalidateQueries({ queryKey: ["event-guests", eventId] });
       toast.success(`${name} added as a customer`);
-      setFollowUpFor({ id: created.id, name });
+      onCreated?.({ kind: "customer", id: customer.id, name });
+      setFollowUpFor({ id: customer.id, name });
     } catch (e: any) {
       toast.error(e?.message || "Could not create the customer");
     } finally {
@@ -215,38 +157,36 @@ export default function ScanCardDialog({
   };
 
   const saveAsFacialContact = async () => {
-    const name = (fields.full_name || "").trim();
-    if (!name) { toast.error("Full name is required"); return; }
+    if (!extracted || !name) return;
     setSaving(true);
     try {
       const drive = await uploadScanPdfToDrive([front, back], name);
-      const contact = await createFacialContact({
-        full_name: name,
-        phone: fields.phone || null,
-        email: fields.email || null,
-        address_line_1: fields.address_line_1 || null,
-        address_line_2: fields.address_line_2 || null,
-        city: fields.city || null,
-        state_territory: fields.state_territory || null,
-        postal_code: fields.postal_code || null,
-        birthday: fields.birthday || null,
-        skin_type: skinType || null,
-        foundation_shade: shade || null,
-        notes: notes || null,
-        raw_notes: extracted?.raw_notes || null,
-        facial_date: facialDate || toLocalDateKey(),
-        scan_pdf_url: drive.url,
-        event_id: eventId || null,
-        source_guest_id: seed?.guestId || null,
-      });
-      flagDrive(drive.error, drive.needsSetup);
+      flagDrive(drive.error, Boolean(drive.needsSetup));
 
+      const payload: Record<string, any> = {};
+      for (const f of CONTACT_FIELDS) {
+        const v = (fields[f.key as string] || "").trim();
+        if (v) payload[f.key as string] = v;
+      }
+      payload.full_name = name;
+      payload.skin_type = skinType || null;
+      payload.foundation_shade = shade || null;
+      payload.notes = notes || null;
+      payload.raw_notes = extracted.raw_notes || null;
+      payload.facial_date = facialDate || null;
+      payload.scan_pdf_url = drive.url || null;
+      payload.event_id = eventId || null;
+      payload.source_guest_id = seed?.guestId || null;
+
+      const created = await createFacialContact(payload as any);
       if (seed?.guestId) {
-        await updateEventGuest(seed.guestId, { converted_facial_contact_id: contact.id } as any);
+        await updateEventGuest(seed.guestId, { converted_facial_contact_id: created.id } as any);
       }
 
-      invalidate();
+      qc.invalidateQueries({ queryKey: ["facial-contacts"] });
+      if (eventId) qc.invalidateQueries({ queryKey: ["event-guests", eventId] });
       toast.success(`${name} saved as a facial contact`);
+      onCreated?.({ kind: "facial_contact", id: created.id, name });
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e?.message || "Could not save the facial contact");
@@ -255,70 +195,76 @@ export default function ScanCardDialog({
     }
   };
 
+  const goAfterReview = () => {
+    if (!name) {
+      toast.error("A full name is required");
+      return;
+    }
+    setStep(seed?.eventId ? "outcome" : "event");
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={handleClose}>
+      <Dialog open={open && !followUpFor} onOpenChange={(v) => { if (!v && !scanning && !saving) onOpenChange(false); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ScanLine className="w-5 h-5 text-primary" />Scan Card
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><ScanLine className="w-5 h-5" />Scan Card</DialogTitle>
             <DialogDescription>
-              Snap the front (and back, if there's writing on it) of a handwritten profile card. Nothing is saved until you confirm.
+              Snap the profile card, check what came off it, then decide whether she becomes a customer or a facial contact.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Step 1 — front */}
-          {step === "capture-front" && (
+          {step === "capture" && (
             <div className="space-y-3">
               <input ref={frontRef} type="file" accept="image/*" capture="environment" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) pick("front", f); }} />
-              <Button type="button" variant="outline" onClick={() => frontRef.current?.click()} className="w-full gap-2 h-11">
-                <Camera className="w-4 h-4" />{front ? "Replace front photo" : "Snap the front of the card"}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFront(f); setFrontPreview(URL.createObjectURL(f)); } }} />
+              <input ref={backRef} type="file" accept="image/*" capture="environment" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) { setBack(f); setBackPreview(URL.createObjectURL(f)); } }} />
+
+              <Button type="button" variant="outline" onClick={() => frontRef.current?.click()} className="gap-2">
+                <Camera className="w-4 h-4" />{front ? "Replace front" : "Front of card"}
               </Button>
               {frontPreview && (
-                <div className="border rounded-lg overflow-hidden bg-muted/30">
-                  <img src={frontPreview} alt="Card front preview" className="w-full max-h-64 object-contain" />
+                <div className="border rounded-md overflow-hidden bg-muted/30">
+                  <img src={frontPreview} alt="Front preview" className="w-full max-h-60 object-contain" />
                 </div>
               )}
-              <Button type="button" className="w-full" disabled={!front} onClick={() => setStep("capture-back")}>
-                Next — back of the card
+
+              {front && (
+                <div className="rounded-md border border-dashed p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => backRef.current?.click()} className="gap-2">
+                      <Camera className="w-4 h-4" />{back ? "Replace back" : "Back of card"}
+                    </Button>
+                    {back && (
+                      <Button type="button" size="sm" variant="ghost" onClick={() => { setBack(null); setBackPreview(null); }}>
+                        Remove back
+                      </Button>
+                    )}
+                  </div>
+                  {backPreview && (
+                    <div className="border rounded-md overflow-hidden bg-muted/30">
+                      <img src={backPreview} alt="Back preview" className="w-full max-h-60 object-contain" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Button type="button" className="w-full gap-2" disabled={!front || scanning} onClick={runScan}>
+                {scanning ? <><Loader2 className="w-4 h-4 animate-spin" />Extracting…</> : "Extract with AI"}
               </Button>
             </div>
           )}
 
-          {/* Step 2 — optional back */}
-          {step === "capture-back" && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Got a back? Snap it too.</p>
-              <p className="text-xs text-muted-foreground">Both sides go to the AI in one pass and end up in one PDF backup.</p>
-              <input ref={backRef} type="file" accept="image/*" capture="environment" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) pick("back", f); }} />
-              <Button type="button" variant="outline" onClick={() => backRef.current?.click()} className="w-full gap-2 h-11">
-                <Camera className="w-4 h-4" />{back ? "Replace back photo" : "Snap the back"}
-              </Button>
-              {backPreview && (
-                <div className="border rounded-lg overflow-hidden bg-muted/30">
-                  <img src={backPreview} alt="Card back preview" className="w-full max-h-64 object-contain" />
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setStep("capture-front")}>
-                  <ArrowLeft className="w-4 h-4 mr-1" />Back
-                </Button>
-                <Button type="button" className="flex-1 gap-2" disabled={scanning} onClick={runScan}>
-                  {scanning ? <><Loader2 className="w-4 h-4 animate-spin" />Extracting…</> : back ? "Extract with AI" : "Skip — extract with AI"}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3 — review */}
           {step === "review" && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs text-muted-foreground">
+                Everything is editable. Skin type and shade are often blank on the card — you can fill them in later from her profile.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
                 {CONTACT_FIELDS.map((f) => (
-                  <div key={f.key} className={f.key === "full_name" ? "sm:col-span-2" : ""}>
+                  <div key={f.key as string} className={["full_name", "address_line_1", "address_line_2"].includes(f.key as string) ? "col-span-2" : ""}>
                     <Label className="text-xs">{f.label}{f.key === "full_name" ? " *" : ""}</Label>
                     <Input
                       className="h-9"
@@ -340,153 +286,81 @@ export default function ScanCardDialog({
                 </div>
                 <div>
                   <Label className="text-xs">Foundation shade</Label>
-                  <Input className="h-9" placeholder="e.g. Beige 3 (leave blank if not made)"
-                    value={shade} onChange={(e) => setShade(e.target.value)} />
+                  <Input className="h-9" value={shade} onChange={(e) => setShade(e.target.value)} placeholder="e.g. Beige 3" />
                 </div>
                 <div>
                   <Label className="text-xs">Facial date</Label>
                   <Input className="h-9" type="date" value={facialDate} onChange={(e) => setFacialDate(e.target.value)} />
                 </div>
               </div>
-
               <div>
                 <Label className="text-xs">Notes / other handwriting</Label>
-                <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="text-sm" />
+                <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
-
-              {orderDrafts.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold">Orders detected (only saved if she becomes a customer)</p>
-                  {orderDrafts.map((o, i) => (
-                    <Card key={i} className={`border-border/60 ${!o.include ? "opacity-50" : ""}`}>
-                      <CardContent className="p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="flex items-center gap-2 text-xs">
-                            <input type="checkbox" checked={o.include}
-                              onChange={(e) => updateOrder(i, { include: e.target.checked })} />
-                            Include this order
-                          </label>
-                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeOrder(i)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-xs">Date</Label>
-                            <Input type="date" className="h-8" value={o.order_date}
-                              onChange={(e) => updateOrder(i, { order_date: e.target.value })} />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Total ($)</Label>
-                            <Input type="number" step="0.01" className="h-8" value={o.total}
-                              onChange={(e) => updateOrder(i, { total: e.target.value })} />
-                          </div>
-                        </div>
-                        <Textarea rows={2} className="text-xs" value={o.itemsText}
-                          onChange={(e) => updateOrder(i, { itemsText: e.target.value })} />
-                      </CardContent>
-                    </Card>
-                  ))}
-                  <Button type="button" size="sm" variant="outline" className="gap-1"
-                    onClick={() => setOrderDrafts((p) => [...p, { order_date: todayISO(), itemsText: "", total: "", notes: "", include: true }])}>
-                    <Plus className="w-3.5 h-3.5" />Add order
-                  </Button>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setStep("capture-back")}>
-                  <ArrowLeft className="w-4 h-4 mr-1" />Back
-                </Button>
-                <Button type="button" className="flex-1" onClick={afterReview}>Next</Button>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep("capture")}>Back</Button>
+                <Button onClick={goAfterReview}>Continue</Button>
               </div>
             </div>
           )}
 
-          {/* Step 4 — event linkage */}
           {step === "event" && (
             <div className="space-y-3">
-              {eventChoice === null ? (
-                <>
-                  <p className="text-sm font-medium">Was this part of a booked event?</p>
-                  <p className="text-xs text-muted-foreground">Linking keeps the guest list and this record in sync.</p>
-                  <Button variant="outline" className="w-full h-auto py-3 justify-start gap-3"
-                    onClick={() => setEventChoice(true)}>
-                    <span className="text-lg">📅</span>
-                    <div className="text-left">
-                      <div className="text-sm font-semibold">Yes — pick the event</div>
-                      <div className="text-[11px] text-muted-foreground">Links the record to that event's guest list</div>
-                    </div>
-                  </Button>
-                  <Button variant="outline" className="w-full h-auto py-3 justify-start gap-3"
-                    onClick={() => { setEventChoice(false); setStep("outcome"); }}>
-                    <span className="text-lg">👤</span>
-                    <div className="text-left">
-                      <div className="text-sm font-semibold">No — standalone face</div>
-                      <div className="text-[11px] text-muted-foreground">1:1 facial, warm chatter, sample</div>
-                    </div>
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setStep("review")}>Back to review</Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-medium">Which event?</p>
-                  <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                    {(bookedEvents as any[]).length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-3 text-center">No booked or held events found</p>
-                    ) : (
-                      (bookedEvents as any[]).map((e) => (
-                        <button key={e.id}
-                          className={`w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${eventId === e.event_id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
-                          onClick={() => setEventId(e.event_id)}>
-                          <p className="text-sm font-medium">{e.hostess_name || e.event_id}</p>
-                          <p className="text-xs text-muted-foreground">{e.event_type} · {e.event_date}</p>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => { setEventChoice(null); setEventId(null); }}>Back</Button>
-                    <Button className="flex-1" disabled={!eventId} onClick={() => setStep("outcome")}>Next</Button>
-                  </div>
-                </>
-              )}
+              <p className="text-sm font-medium">Was this face part of a booked event?</p>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {(bookedEvents as any[]).length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">No booked or held events found</p>
+                ) : (
+                  (bookedEvents as any[]).map((e: any) => (
+                    <button
+                      key={e.id}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${
+                        eventId === e.event_id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                      }`}
+                      onClick={() => setEventId(e.event_id)}
+                    >
+                      <p className="text-sm font-medium text-foreground">{e.hostess_name || e.event_id}</p>
+                      <p className="text-xs text-muted-foreground">{e.event_type} · {e.event_date}</p>
+                    </button>
+                  ))
+                )}
+              </div>
+              <div className="flex flex-wrap justify-between gap-2">
+                <Button variant="outline" onClick={() => setStep("review")}>Back</Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => { setEventId(null); setStep("outcome"); }}>No event</Button>
+                  <Button disabled={!eventId} onClick={() => setStep("outcome")}>Continue</Button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Step 5 — outcome */}
           {step === "outcome" && (
             <div className="space-y-3">
-              <p className="text-sm font-medium">Did {fields.full_name || "this person"} become a customer?</p>
-              {selectedEvent && (
-                <p className="text-xs text-muted-foreground">
-                  Linking to {selectedEvent.hostess_name || selectedEvent.event_id} · {selectedEvent.event_date}
-                </p>
-              )}
-              <Button className="w-full h-auto py-3 justify-start gap-3" variant="outline" disabled={saving} onClick={saveAsCustomer}>
-                <span className="text-lg">🛍️</span>
-                <div className="text-left">
-                  <div className="text-sm font-semibold">Yes — create a Customer</div>
-                  <div className="text-[11px] text-muted-foreground">Then pick her follow-up sequence</div>
-                </div>
-              </Button>
-              <Button className="w-full h-auto py-3 justify-start gap-3" variant="outline" disabled={saving} onClick={saveAsFacialContact}>
-                <span className="text-lg">💧</span>
-                <div className="text-left">
-                  <div className="text-sm font-semibold">No — save as a Facial Contact</div>
-                  <div className="text-[11px] text-muted-foreground">Kept out of Customers and Leads</div>
-                </div>
-              </Button>
-              {saving && <p className="text-xs text-muted-foreground flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" />Saving and backing up the PDF…</p>}
-              {!saving && (
-                <Button variant="ghost" size="sm" onClick={() => setStep(seed?.eventId ? "review" : "event")}>Back</Button>
-              )}
+              <p className="text-sm font-medium">Did {name} become a customer?</p>
+              {eventId && <p className="text-xs text-muted-foreground">Linked to event {eventId}.</p>}
+              <div className="grid gap-2">
+                <Button className="justify-start gap-2 h-auto py-3" disabled={saving} onClick={saveAsCustomer}>
+                  <UserPlus className="w-4 h-4" />
+                  <span className="text-left">
+                    <span className="block font-medium">Yes — create a customer</span>
+                    <span className="block text-xs opacity-80">You'll pick her follow-up sequence next</span>
+                  </span>
+                </Button>
+                <Button variant="outline" className="justify-start gap-2 h-auto py-3" disabled={saving} onClick={saveAsFacialContact}>
+                  <Droplets className="w-4 h-4" />
+                  <span className="text-left">
+                    <span className="block font-medium">No — save as a facial contact</span>
+                    <span className="block text-xs text-muted-foreground">Kept out of Clients and Leads</span>
+                  </span>
+                </Button>
+              </div>
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setStep(seed?.eventId ? "review" : "event")} disabled={saving}>Back</Button>
+                {saving && <span className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</span>}
+              </div>
             </div>
           )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => handleClose(false)} disabled={scanning || saving}>Cancel</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -494,9 +368,9 @@ export default function ScanCardDialog({
         open={Boolean(followUpFor)}
         customerId={followUpFor?.id ?? null}
         customerName={followUpFor?.name ?? ""}
-        baseDate={facialDate || undefined}
         onClose={() => {
           setFollowUpFor(null);
+          qc.invalidateQueries({ queryKey: ["customers"] });
           onOpenChange(false);
         }}
       />
