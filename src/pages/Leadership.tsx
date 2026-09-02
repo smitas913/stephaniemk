@@ -28,6 +28,7 @@ import { openEmail } from "@/lib/emailPreference";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import ImportConsultantsDialog from "@/components/ImportConsultantsDialog";
+import T6ReviewDialog, { isT6Flagged } from "@/components/T6ReviewDialog";
 import ConsultantActivityLogger from "@/components/ConsultantActivityLogger";
 import OnboardingTrackerPanel from "@/components/OnboardingTrackerPanel";
 import TextActionButton from "@/components/TextActionButton";
@@ -96,6 +97,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
 
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showT6Review, setShowT6Review] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TeamConsultant | null>(null);
   const [convertTarget, setConvertTarget] = useState<TeamConsultant | null>(null);
@@ -314,6 +316,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setShowImport(true)}><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
+          <Button size="sm" variant="outline" onClick={() => setShowT6Review(true)}>
+            T6 Review{consultants.filter(isT6Flagged).length > 0 ? ` (${consultants.filter(isT6Flagged).length})` : ""}
+          </Button>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}><Plus className="w-4 h-4 mr-1" />Add Consultant</Button>
         </div>
       </div>
@@ -668,6 +673,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
       </Sheet>
 
       <ImportConsultantsDialog open={showImport} onOpenChange={setShowImport} />
+      <T6ReviewDialog open={showT6Review} onOpenChange={setShowT6Review} />
 
       {/* Convert to Customer Confirmation */}
       <AlertDialog open={!!convertTarget} onOpenChange={(open) => !open && setConvertTarget(null)}>
