@@ -968,8 +968,17 @@ function ConvertGuestToCustomerDialog({
 
         // If we ran a scan, finalize: upload image + create orders + audit note.
         if (mode === "scan" && scanExtracted) {
-          const { finalizeScanForNewCustomer } = await import("@/lib/scanPhoto");
+          const { finalizeScanForNewCustomer, beautyProfileFromExtracted } = await import("@/lib/scanPhoto");
           try {
+            // Carry the Beauty Profile read off the card onto the new customer.
+            const { cleanBeautyProfile, isBeautyProfileEmpty } = await import("@/lib/beautyProfile");
+            const { syncWishListReferrals } = await import("@/lib/beautyReferrals");
+            const cardProfile = cleanBeautyProfile(beautyProfileFromExtracted(scanExtracted));
+            if (!isBeautyProfileEmpty(cardProfile)) {
+              const { updateCustomer } = await import("@/lib/queries");
+              const synced = await syncWishListReferrals(cardProfile, (created as any).full_name || g.name);
+              await updateCustomer(created.id, { beauty_notes: synced.profile } as any);
+            }
             await finalizeScanForNewCustomer({
               customerId: created.id,
               customerName: (created as any).full_name || g.name,
