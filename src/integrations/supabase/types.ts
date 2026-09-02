@@ -2468,6 +2468,7 @@ export type Database = {
       }
     }
     Functions: {
+      assert_internal_user: { Args: never; Returns: undefined }
       check_profile_update_safe: {
         Args: {
           _is_active: boolean
