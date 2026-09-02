@@ -33,7 +33,9 @@ export interface Customer {
   became_customer_date: string | null;
   tags?: string[] | null;
   assigned_consultant_id?: string | null;
-  beauty_notes?: Record<string, string> | null;
+  /** Digital Mary Kay Beauty Profile card (see src/lib/beautyProfile.ts). */
+  beauty_notes?: Record<string, unknown> | null;
+  /** @deprecated Superseded by the Beauty Profile — no longer surfaced in the UI. */
   skin_type?: string | null;
   scan_pdf_url?: string | null;
   created_at: string;
@@ -199,8 +201,10 @@ export interface FacialContact {
   state_territory: string | null;
   postal_code: string | null;
   birthday: string | null;
+  /** Derived from the Beauty Profile — kept for list display and filtering. */
   skin_type: string | null;
   foundation_shade: string | null;
+  beauty_notes?: Record<string, unknown> | null;
   notes: string | null;
   raw_notes: string | null;
   facial_date: string | null;
