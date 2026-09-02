@@ -80,7 +80,10 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
       } catch (e) {
         console.error("Failed to seed hostess coaching tasks", e);
       }
-      if (hostessName.trim()) {
+      const savedEventType = isLeadGen ? leadGenSubtype : eventType;
+      // Only auto-add the hostess as a guest for events with a single named individual hostess.
+      // Guest Event and Vendor Event "hostess" fields hold event/business names, not people.
+      if (hostessName.trim() && savedEventType !== "Guest Event" && savedEventType !== "Vendor Event") {
         try {
           await createEventGuest({
             event_id: eventId,
@@ -92,6 +95,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
           console.error("Failed to add hostess to guest list", e);
         }
       }
+
       // Clear any stale single-event cache for this id, then refetch the list
       // so EventDetail has fresh data the moment we navigate.
       queryClient.removeQueries({ queryKey: ["event", eventId] });
