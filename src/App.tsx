@@ -43,6 +43,8 @@ import Campaigns from "./pages/Campaigns";
 import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
+import FacialContacts from "./pages/FacialContacts";
+
 import Scripts from "./pages/Scripts";
 import UserSettings from "./pages/UserSettings";
 
@@ -208,6 +210,15 @@ const AppRoutes = () => (
       }
     />
     <Route path="/customers" element={<CustomersRedirect />} />
+    <Route
+      path="/facial-contacts"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <FacialContacts />
+        </ProtectedRoute>
+      }
+    />
+
     <Route
       path="/booking-leads/:id"
       element={

@@ -33,8 +33,12 @@ export interface Customer {
   became_customer_date: string | null;
   tags?: string[] | null;
   assigned_consultant_id?: string | null;
+  beauty_notes?: Record<string, string> | null;
+  skin_type?: string | null;
+  scan_pdf_url?: string | null;
   created_at: string;
   updated_at: string;
+
 }
 
 export const CUSTOMER_TAGS = ["Lead", "Prospect", "DNC"] as const;
@@ -176,7 +180,40 @@ export interface EventGuest {
   referral_count?: number;
   skin_type?: string | null;
   video_watched?: boolean;
+  converted_facial_contact_id?: string | null;
 }
+
+/**
+ * Lightweight person record created from a scanned profile card when the face
+ * did NOT become a customer. Intentionally separate from `customers` so these
+ * never appear in Customer or Lead lists, filters, or search.
+ */
+export interface FacialContact {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
+  city: string | null;
+  state_territory: string | null;
+  postal_code: string | null;
+  birthday: string | null;
+  skin_type: string | null;
+  foundation_shade: string | null;
+  notes: string | null;
+  raw_notes: string | null;
+  facial_date: string | null;
+  scan_pdf_url: string | null;
+  event_id: string | null;
+  source_guest_id: string | null;
+  converted_customer_id: string | null;
+  owner_user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+
 
 export const RELATIONSHIP_STATUSES = ["Customer", "Former Consultant"] as const;
 export const ORDER_TYPES = ["Reorder", "Party", "Facial", "Other"] as const;

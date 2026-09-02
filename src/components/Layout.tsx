@@ -18,6 +18,8 @@ import {
   BookOpen,
   MoreHorizontal,
   FileText,
+  Droplets,
+
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -41,7 +43,9 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
+  { to: "/facial-contacts", label: "Facial Contacts", icon: Droplets },
   { to: "/performance", label: "Averages", icon: TrendingUp },
+
   { to: "/analytics", label: "Analytics", icon: Target },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },

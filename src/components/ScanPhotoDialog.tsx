@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Camera, Loader2, Trash2, Plus, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Customer } from "@/lib/types";
+import { SKIN_TYPES, type Customer } from "@/lib/types";
 import {
   CONTACT_FIELDS,
   type Extracted,
@@ -19,6 +20,7 @@ import {
   orderDraftsFromExtracted,
   todayISO,
   applyScanToExistingCustomer,
+  normalizeSkinType,
 } from "@/lib/scanPhoto";
 
 export default function ScanPhotoDialog({
@@ -32,20 +34,28 @@ export default function ScanPhotoDialog({
 }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const backRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<Extracted | null>(null);
+  const [skinType, setSkinType] = useState<string>("");
+  const [shade, setShade] = useState<string>("");
 
   // Contact resolutions per field
   const [resolutions, setResolutions] = useState<Record<string, Resolution>>({});
   const [orderDrafts, setOrderDrafts] = useState<OrderDraft[]>([]);
 
   const reset = () => {
-    setFile(null); setPreview(null); setScanning(false); setSaving(false);
+    setFile(null); setBackFile(null); setPreview(null); setBackPreview(null);
+    setScanning(false); setSaving(false);
     setExtracted(null); setResolutions({}); setOrderDrafts([]);
+    setSkinType(""); setShade("");
   };
+
 
   const handleClose = (v: boolean) => {
     if (!v && !scanning && !saving) reset();
@@ -54,8 +64,13 @@ export default function ScanPhotoDialog({
 
   const handleFile = (f: File) => {
     setFile(f);
-    const url = URL.createObjectURL(f);
-    setPreview(url);
+    setPreview(URL.createObjectURL(f));
+    setExtracted(null);
+  };
+
+  const handleBackFile = (f: File) => {
+    setBackFile(f);
+    setBackPreview(URL.createObjectURL(f));
     setExtracted(null);
   };
 
@@ -63,8 +78,11 @@ export default function ScanPhotoDialog({
     if (!file) return;
     setScanning(true);
     try {
-      const ex = await runScanExtract(file);
+      const ex = await runScanExtract(backFile ? [file, backFile] : file);
       setExtracted(ex);
+      setSkinType(normalizeSkinType(ex.contact?.skin_type) || "");
+      setShade((ex.contact?.foundation_shade || "").trim());
+
 
       // Seed contact resolutions: default replace when existing is empty, keep otherwise
       const nextRes: Record<string, Resolution> = {};
@@ -84,6 +102,7 @@ export default function ScanPhotoDialog({
     }
   };
 
+
   const setRes = (key: string, r: Resolution) => setResolutions((prev) => ({ ...prev, [key]: r }));
 
   const updateOrder = (i: number, patch: Partial<OrderDraft>) =>
@@ -98,13 +117,19 @@ export default function ScanPhotoDialog({
     if (!extracted) return;
     setSaving(true);
     try {
-      await applyScanToExistingCustomer({
+      const { driveError, driveNeedsSetup } = await applyScanToExistingCustomer({
         customer: customer as any,
         file,
+        files: [file, backFile],
         extracted,
         resolutions,
         orderDrafts,
+        skinType,
+        foundationShade: shade,
       });
+      if (driveNeedsSetup) toast.warning("Saved. Google Drive isn't connected yet, so the PDF backup was skipped.");
+      else if (driveError) toast.warning("Saved, but the Drive PDF backup failed.");
+
 
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["customer", customer.id] }),
@@ -128,7 +153,7 @@ export default function ScanPhotoDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><ScanLine className="w-5 h-5" />Scan Photo</DialogTitle>
           <DialogDescription>
-            Upload a photo of a handwritten profile card or order form. Nothing will be saved to {customer.full_name}'s profile until you confirm below.
+            Snap the front of the card, and the back too if there's writing on it. Nothing is saved to {customer.full_name}'s profile until you confirm below.
           </DialogDescription>
         </DialogHeader>
 
@@ -145,19 +170,53 @@ export default function ScanPhotoDialog({
                 if (f) handleFile(f);
               }}
             />
-            <div className="flex items-center gap-2">
+            <input
+              ref={backRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleBackFile(f);
+              }}
+            />
+            <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="gap-2">
-                <Camera className="w-4 h-4" />{file ? "Replace image" : "Choose image"}
+                <Camera className="w-4 h-4" />{file ? "Replace front" : "Front of card"}
               </Button>
               {file && <span className="text-xs text-muted-foreground truncate">{file.name}</span>}
             </div>
             {preview && (
               <div className="border rounded-md overflow-hidden bg-muted/30">
-                <img src={preview} alt="Scan preview" className="w-full max-h-72 object-contain" />
+                <img src={preview} alt="Front preview" className="w-full max-h-60 object-contain" />
               </div>
             )}
+
+            {file && (
+              <div className="rounded-md border border-dashed p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => backRef.current?.click()} className="gap-2">
+                    <Camera className="w-4 h-4" />{backFile ? "Replace back" : "Back of card"}
+                  </Button>
+                  {backFile && (
+                    <Button type="button" size="sm" variant="ghost" onClick={() => { setBackFile(null); setBackPreview(null); }}>
+                      Remove back
+                    </Button>
+                  )}
+                </div>
+                {backPreview && (
+                  <div className="border rounded-md overflow-hidden bg-muted/30">
+                    <img src={backPreview} alt="Back preview" className="w-full max-h-60 object-contain" />
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button type="button" disabled={!file || scanning} onClick={runScan} className="w-full gap-2">
               {scanning ? <><Loader2 className="w-4 h-4 animate-spin" />Extracting…</> : <>Extract with AI</>}
+
             </Button>
           </div>
         )}
@@ -218,6 +277,30 @@ export default function ScanPhotoDialog({
                 <p className="text-xs text-muted-foreground italic">No contact fields detected.</p>
               )}
             </div>
+
+            {/* Skin type + shade */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">Skin type &amp; foundation shade</h3>
+              <p className="text-xs text-muted-foreground">Often blank on the card — leave empty and fill in later from her profile.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Skin type</Label>
+                  <Select value={skinType || "none"} onValueChange={(v) => setSkinType(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Not set" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not set</SelectItem>
+                      {SKIN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Foundation shade</Label>
+                  <Input className="h-9" value={shade} onChange={(e) => setShade(e.target.value)} placeholder="e.g. Beige 3" />
+                </div>
+              </div>
+            </div>
+
+
 
             {/* Orders */}
             <div className="space-y-2">
