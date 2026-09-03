@@ -267,7 +267,7 @@ export default function SixMostImportant({
                 </div>
               ) : (
                 <>
-                  <div className={cn(compact ? "grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5" : "space-y-1.5")}>
+                  <div className={cn(compact ? "grid grid-cols-1 sm:grid-cols-3 gap-3" : "space-y-1.5")}>
                     {items.map((item) =>
                       compact ? (
                         <FocusItemCompact
