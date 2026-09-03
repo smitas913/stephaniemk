@@ -213,6 +213,8 @@ export interface FacialContact {
   event_id: string | null;
   source_guest_id: string | null;
   converted_customer_id: string | null;
+  /** True when the face didn't become a customer but may want another appointment. */
+  interested_in_rebooking: boolean;
   owner_user_id: string;
   created_at: string;
   updated_at: string;
