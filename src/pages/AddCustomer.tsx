@@ -41,8 +41,8 @@ export default function AddCustomer() {
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
   const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
-  // Beauty Profile — collapsed by default so a quick name/phone add stays fast.
-  const [beautyOpen, setBeautyOpen] = useState(false);
+  // Beauty Profile — expanded by default so the full card is visible; still collapsible for a quick add.
+  const [beautyOpen, setBeautyOpen] = useState(true);
   const [beautyProfile, setBeautyProfile] = useState<BeautyProfile>({});
 
   // Duplicate-name detection (never blocks creation — informational only)
