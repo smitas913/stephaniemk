@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
+import { toLocalDateKey, formatDateOnly, normalizeDateOnly, parseLocalDate } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { MessageSquare, User, Users, Clock, MoreHorizontal } from "lucide-react";
