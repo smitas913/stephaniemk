@@ -140,7 +140,8 @@ Deno.serve(async (req) => {
     const folderId = await findOrCreateFolder();
 
     const boundary = `mkcrm${crypto.randomUUID().replace(/-/g, "")}`;
-    const metadata = JSON.stringify({ name: fileName, parents: [folderId], mimeType: "application/pdf" });
+    const uniqueName = await uniqueFileName(folderId, fileName);
+    const metadata = JSON.stringify({ name: uniqueName, parents: [folderId], mimeType: "application/pdf" });
     const enc = new TextEncoder();
     const head = enc.encode(
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
