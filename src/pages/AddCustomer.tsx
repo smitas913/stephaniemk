@@ -12,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
+import BeautyProfileFields from "@/components/BeautyProfileFields";
+import { cleanBeautyProfile, isBeautyProfileEmpty, type BeautyProfile } from "@/lib/beautyProfile";
 
 export default function AddCustomer() {
   const navigate = useNavigate();
@@ -39,6 +41,9 @@ export default function AddCustomer() {
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
   const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
   const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
+  // Beauty Profile — collapsed by default so a quick name/phone add stays fast.
+  const [beautyOpen, setBeautyOpen] = useState(false);
+  const [beautyProfile, setBeautyProfile] = useState<BeautyProfile>({});
 
   // Duplicate-name detection (never blocks creation — informational only)
   const { data: existingCustomers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
@@ -91,6 +96,7 @@ export default function AddCustomer() {
         next_follow_up_date: nextFollowUp || null,
         date_added: dateAdded || toLocalDateKey(),
         assigned_consultant_id: assignedConsultantId === "__me__" ? null : assignedConsultantId,
+        beauty_notes: cleanBeautyProfile(beautyProfile),
         became_customer_date:
           relationship === "Customer"
             ? (becameCustomerDate || firstOrderDate || null)
@@ -291,6 +297,31 @@ export default function AddCustomer() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">Who owns this customer relationship.</p>
+            </div>
+
+            {/* Beauty Profile — collapsible */}
+            <div className="rounded-lg border border-border/60">
+              <button
+                type="button"
+                onClick={() => setBeautyOpen((v) => !v)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors rounded-lg"
+              >
+                {beautyOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Add Beauty Profile info</span>
+                {!beautyOpen && !isBeautyProfileEmpty(beautyProfile) && (
+                  <span className="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">filled in</span>
+                )}
+                <span className="ml-auto text-[11px] text-muted-foreground">Optional</span>
+              </button>
+              {beautyOpen && (
+                <div className="px-3 pb-4 pt-1 border-t border-border/60">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Matches the printed Beauty Profile card — fill in whatever you have.
+                  </p>
+                  <BeautyProfileFields value={beautyProfile} onChange={setBeautyProfile} />
+                </div>
+              )}
             </div>
 
             {/* Notes */}
