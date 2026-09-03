@@ -181,7 +181,7 @@ export async function uploadScanPdfToDrive(
   try {
     const pdfBase64 = await imagesToPdfBase64(list);
     const safeName = (personName || "card").replace(/[^\w\s.-]/g, "").trim() || "card";
-    const fileName = `${safeName} — ${todayISO()}.pdf`;
+    const fileName = `${safeName} - ${todayISO()}.pdf`;
     const { data, error } = await supabase.functions.invoke("upload-scan-drive", {
       body: { pdfBase64, fileName },
     });

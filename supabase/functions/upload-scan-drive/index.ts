@@ -64,6 +64,35 @@ async function findOrCreateFolder(): Promise<string> {
   return created.id as string;
 }
 
+/**
+ * Ensure the filename is unique inside the folder by appending " (2)", " (3)", …
+ * Never throws — falls back to the requested name if the lookup fails.
+ */
+async function uniqueFileName(folderId: string, fileName: string): Promise<string> {
+  const dot = fileName.lastIndexOf(".");
+  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+  const ext = dot > 0 ? fileName.slice(dot) : "";
+  try {
+    const q = encodeURIComponent(
+      `'${folderId}' in parents and trashed=false and name contains '${base.replace(/'/g, "\\'")}'`,
+    );
+    const res = await fetch(`${GATEWAY}/drive/v3/files?q=${q}&fields=files(name)&pageSize=200`, {
+      headers: driveHeaders(),
+    });
+    if (!res.ok) return fileName;
+    const data = await res.json();
+    const taken = new Set<string>((data?.files ?? []).map((f: { name: string }) => f.name));
+    if (!taken.has(fileName)) return fileName;
+    for (let i = 2; i < 500; i++) {
+      const candidate = `${base} (${i})${ext}`;
+      if (!taken.has(candidate)) return candidate;
+    }
+    return `${base} (${Date.now()})${ext}`;
+  } catch {
+    return fileName;
+  }
+}
+
 function base64ToBytes(b64: string): Uint8Array {
   const clean = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
   const bin = atob(clean);
