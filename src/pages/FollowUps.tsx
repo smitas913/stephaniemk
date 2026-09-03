@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   fetchCustomers, fetchOrders, updateCustomer, createCustomerNote, fetchLatestNotes, fetchCustomerNotes,
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
-  bulkUpdateCustomerFollowUps, fetchBookingLeads, updateBookingLead,
+  bulkUpdateCustomerFollowUps,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
   fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings,
 } from "@/lib/queries";
@@ -16,8 +16,8 @@ import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel }
 import type { DormantStage } from "@/lib/dormantCadence";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
-import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS, BOOKING_LEAD_STATUSES } from "@/lib/types";
-import type { Customer, CustomerComputed, CustomerNote, ProspectNote, BookingLead, TeamConsultant, EventRecord } from "@/lib/types";
+import { NOTE_TYPES, COACHING_FOCUS_OPTIONS, FOCUS_GROUPS } from "@/lib/types";
+import type { Customer, CustomerComputed, CustomerNote, ProspectNote, TeamConsultant, EventRecord } from "@/lib/types";
 import Layout from "@/components/Layout";
 // SixMostImportant moved to Dashboard (/dashboard)
 import ClientCleanupCard from "@/components/ClientCleanupCard";
@@ -297,7 +297,7 @@ export default function FollowUps() {
   const { data: allOrders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
   const { data: prospects = [], isLoading: pLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
-  const { data: bookingLeads = [], isLoading: blLoading } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  // Booking leads retired — the Booking Activity queue now only carries event reschedules.
   const { data: consultants = [], isLoading: tcLoading } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: events = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
@@ -363,7 +363,7 @@ export default function FollowUps() {
       return (data as any[]) || [];
     },
   });
-  const isLoading = cLoading || oLoading || pLoading || blLoading || tcLoading || eLoading || etLoading || ssLoading;
+  const isLoading = cLoading || oLoading || pLoading || tcLoading || eLoading || etLoading || ssLoading;
 
   // Daily Scorecard removed — per-metric reach-out / booking / sharing aggregation no longer computed.
   // The 6 Most Important Things uses `focusAutoCounts` (below) sourced directly from `computeMetricsForDate`.
@@ -622,7 +622,7 @@ export default function FollowUps() {
       .filter((n: any) => {
         if (item.itemType === "customer" && n.customer_id === item.id) return true;
         if (item.itemType === "prospect" && n.prospect_id === item.id) return true;
-        if (item.itemType === "lead" && n.entity_type === "Lead" && n.note_body?.includes(item.name)) return true;
+        
         if (item.itemType === "consultant" && n.entity_type === "Consultant" && n.note_body?.includes(item.name)) return true;
         if (item.itemType === "hostess" && n.entity_type === "Hostess" && n.note_body?.includes(item.name)) return true;
         return false;
@@ -704,7 +704,7 @@ export default function FollowUps() {
          allNotes,
          customers,
          prospects,
-         bookingLeads,
+         bookingLeads: [],
          consultants,
          events,
        });
@@ -719,7 +719,7 @@ export default function FollowUps() {
        const relationship = metrics.relationshipDetails.length;
 
        return { booking_attempts, booking_activity, customer_followup, client_followup, hostess_coaching, recruiting_followup, consultant_coaching, relationship };
-    }, [unifiedNotes, prospects, events, allNotes, bookingLeads, customers, consultants]);
+    }, [unifiedNotes, prospects, events, allNotes, customers, consultants]);
 
   // Mobile detection
   const isMobile = useIsMobile();
@@ -927,43 +927,10 @@ export default function FollowUps() {
         };
       });
 
-    // Booking lead items (converted to ActionItems)
-    const LEAD_OUTREACH = new Set(["Call", "Text", "Email", "In Person"]);
-    const leadAttemptCounts = new Map<string, number>();
-    for (const n of unifiedNotes as any[]) {
-      if (n.entity_type !== "Lead" || !n.person_id) continue;
-      if (!LEAD_OUTREACH.has(n.note_type)) continue;
-      leadAttemptCounts.set(n.person_id, (leadAttemptCounts.get(n.person_id) || 0) + 1);
-    }
-    const leadItems: ActionItem[] = bookingLeads
-      .filter((lead) => !(lead.converted_customer_id && customerDncSet.has(lead.converted_customer_id)))
-      .filter((lead) => lead.status !== "Not Interested" && !lead.converted_customer_id && normalizeFollowUpDate(lead.next_follow_up_date))
-      // Hide booking leads whose contact already exists as a Customer-status record.
-      // Conversion normally deletes the lead row, but pre-existing orphans (or leads
-      // duplicated by phone/email) would otherwise linger and surface "Lead not found".
-      .filter((lead) => !isExistingCustomer(lead.name, lead.phone, lead.email))
-      .map((lead) => {
-        const effectiveDate = normalizeFollowUpDate(lead.next_follow_up_date);
-        const status = getFollowUpStatus(effectiveDate, todayKey) || "UPCOMING";
-        const daysOverdue = status === "OVERDUE" ? getDaysOverdue(effectiveDate, todayDate) : null;
-        return {
-          id: lead.id, itemType: "lead" as const, name: lead.name,
-          phone: lead.phone, email: lead.email,
-          next_follow_up: effectiveDate, follow_up_status: status,
-          daysOverdue,
-          followUpReason: lead.lead_source ? `Booking Lead - ${lead.lead_source}` : "Booking Follow-Up",
-          lastContacted: lead.last_contact_date,
-          actionLabel: "Booking Follow-Up",
-          allow_non_working_day: !!(lead as any).allow_non_working_day,
-          _attempts: leadAttemptCounts.get(lead.id) || 0,
-          _leadStatus: lead.status,
-        };
-      });
-
     // Event workflow tasks removed — event_tasks feature retired
     const eventTaskItems: ActionItem[] = [];
 
-    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems, ...leadItems];
+    const allItems = [...customerItems, ...prospectItems, ...consultantItems, ...hostessItems];
     // Note: event_tasks are shown in Event Coaching section, not the main follow-up list
     const sortItems = (items: ActionItem[]) => items.sort((a, b) => {
       // Default: newest customers (by created_at) first
@@ -1164,7 +1131,7 @@ export default function FollowUps() {
       birthdaysOverdue,
       birthdaysUpcoming,
     };
-  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, bookingLeads, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
+  }, [enrichedCustomers, prospects, consultants, events, notesByCustomer, isNonWorkday, frozenToday, frozenTodayKey, isOOOActive, followUpSnapshot, customerDncSet, isExistingCustomer]);
 
   useEffect(() => {
     const activeStartDate = scheduleSettings?.ooo_start_date || null;
@@ -1228,7 +1195,7 @@ export default function FollowUps() {
                 case "customer":
                   return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
                 case "lead":
-                  return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+                  return updateEvent(item.id, { reschedule_next_follow_up_date: newDate } as any);
                 case "prospect":
                   return updateProspect(item.id, { next_follow_up_date: newDate } as any);
                 case "consultant":
@@ -1252,7 +1219,6 @@ export default function FollowUps() {
         queryClient.invalidateQueries({ queryKey: ["schedule-settings"] });
         queryClient.invalidateQueries({ queryKey: ["customers"] });
         queryClient.invalidateQueries({ queryKey: ["prospects"] });
-        queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
         queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
         queryClient.invalidateQueries({ queryKey: ["events"] });
         queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
@@ -1282,11 +1248,9 @@ export default function FollowUps() {
   ]);
 
   // ─── Daily Follow-Up Limit Auto-Distribution ─────────────────────────────────
-  // For Customer and Lead categories, if the number of items currently visible in
-  // Today exceeds the user's per-day cap, push the lowest-priority overflow forward
-  // across upcoming workdays (each category distributed independently). Runs at most
-  // once per (date, category) per session to avoid loops; user actions invalidate
-  // queries which give us a fresh chance on the next pass.
+  // If the number of customer follow-ups currently visible in Today exceeds the
+  // user's per-day cap, push the lowest-priority overflow forward across upcoming
+  // workdays. Runs at most once per (date, category) per session to avoid loops.
   useEffect(() => {
     if (isLoading) return;
     if (isOOOActive) return; // OOO has its own ease-back-in flow
@@ -1294,10 +1258,9 @@ export default function FollowUps() {
 
     const todayKey = toLocalDateKey();
     const customerLimit = Math.max(1, Number(scheduleSettings.daily_customer_followup_limit ?? 10));
-    const leadLimit = Math.max(1, Number(scheduleSettings.daily_lead_followup_limit ?? 10));
 
     const runForCategory = async (
-      category: "customer" | "lead",
+      category: "customer",
       limit: number,
       items: ActionItem[],
     ) => {
@@ -1317,22 +1280,14 @@ export default function FollowUps() {
       const newDates = spreadTasks(seedDates, limit, null, blackout, workdayFlags);
 
       await Promise.allSettled(
-        toPush.map((item, idx) => {
-          const newDate = newDates[idx];
-          if (category === "customer") {
-            return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
-          }
-          return updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
-        })
+        toPush.map((item, idx) => updateCustomer(item.id, { next_follow_up_date: newDates[idx] } as any))
       );
 
-      queryClient.invalidateQueries({ queryKey: category === "customer" ? ["customers"] : ["booking-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
     };
 
     const customerItems = todayActions.filter((i) => i.itemType === "customer");
-    const leadItems = todayActions.filter((i) => i.itemType === "lead");
     void runForCategory("customer", customerLimit, customerItems);
-    void runForCategory("lead", leadLimit, leadItems);
   }, [
     isLoading,
     isOOOActive,
@@ -1375,17 +1330,7 @@ export default function FollowUps() {
   }, [distributeSelectedIds, distributeDays]);
 
   // ─── Mutations ───
-  const bookingLeadContactMut = useMutation({
-    mutationFn: async (lead: BookingLead) => {
-      await updateBookingLead(lead.id, { last_contact_date: toLocalDateKey(), status: lead.status === "New Contact" ? "Working" : lead.status });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
-      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
-      toast.success("Lead marked as contacted");
-    },
-  });
+
 
   const contactMutation = useMutation({
     mutationFn: async ({ item, note, nextStep, type, nextDate, isBookingAttempt, isFollowUp, dnc, followUpReason }: { item: ActionItem; note: string; nextStep?: string; type: string; nextDate?: string; isBookingAttempt?: boolean; isFollowUp?: boolean; dnc?: boolean; followUpReason?: string | null }) => {
@@ -1487,31 +1432,6 @@ export default function FollowUps() {
           is_booking_attempt: hCategory === "Booking" || (isBookingAttempt ?? false),
           is_follow_up: hCategory === "Follow-Up" || (isFollowUp ?? true),
         });
-      } else if (item.itemType === "lead") {
-        const defaultNext = format(addDays(new Date(), 2), "yyyy-MM-dd");
-        const resolvedNext = dnc ? null : (nextDate || defaultNext);
-        const updates: Record<string, string | null> = {
-          last_contact_date: today,
-          next_follow_up_date: resolvedNext,
-        };
-        if (dnc) updates.status = "Not Interested";
-        else if (!nextDate) updates.status = "Working";
-        await updateBookingLead(item.id, updates as any);
-        const lBody = note.trim() || `${type} follow-up`;
-        const lReason = lBody.match(/^\s*\[([^\]]+)\]/)?.[1] || null;
-        const lCategory = resolveIntentCategory(lReason);
-        await createNote({
-          entity_type: "Lead",
-          person_id: item.id,
-          person_type: "lead",
-          note_body: lBody,
-          note_type: type,
-          tags: [categoryTag(lCategory)],
-          next_step: nextStep?.trim() || null,
-          next_follow_up_date: resolvedNext,
-          is_booking_attempt: isBookingAttempt ?? false,
-          is_follow_up: dnc ? false : (isFollowUp ?? true),
-        });
       }
     },
     onSuccess: () => {
@@ -1519,7 +1439,6 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
@@ -1625,41 +1544,19 @@ export default function FollowUps() {
           });
         } catch (e) { console.warn("[skip] hostess note failed:", e); }
       } else if (item.itemType === "lead") {
-        if (item._isRescheduleEvent) {
-          // This "lead" row is actually a rescheduling EVENT. Update the event's
-          // reschedule_next_follow_up_date so the row clears from Booking Activity.
-          await updateEvent(item.id, { reschedule_next_follow_up_date: computed } as any);
-          try {
-            await createNote({
-              entity_type: "Hostess",
-              note_body: `[${item.name}] [Reschedule] ${skipNoteBody}`,
-              note_type: "Skipped",
-              next_follow_up_date: computed,
-              is_booking_attempt: false,
-              is_follow_up: false,
-            });
-          } catch (e) { console.warn("[skip] reschedule note failed:", e); }
-        } else {
-          await updateBookingLead(item.id, { next_follow_up_date: computed } as any);
-          try {
-            await createNote({
-              entity_type: "Lead",
-              person_id: item.id,
-              person_type: "lead",
-              note_body: skipNoteBody,
-              note_type: "Skipped",
-              next_follow_up_date: computed,
-              is_booking_attempt: false,
-              is_follow_up: false,
-            });
-          } catch (e) { console.warn("[skip] lead note failed:", e); }
-        }
-      } else if (item.itemType === "event_task") {
-        // Event tasks: just push the due date out (no separate activity log)
-        if (computed) {
-          const { error } = await supabase.from("event_tasks" as any).update({ due_date: computed }).eq("id", item.id);
-          if (error) throw error;
-        }
+        // Booking Activity rows are rescheduling EVENTS. Update the event's
+        // reschedule_next_follow_up_date so the row clears from Booking Activity.
+        await updateEvent(item.id, { reschedule_next_follow_up_date: computed } as any);
+        try {
+          await createNote({
+            entity_type: "Hostess",
+            note_body: `[${item.name}] [Reschedule] ${skipNoteBody}`,
+            note_type: "Skipped",
+            next_follow_up_date: computed,
+            is_booking_attempt: false,
+            is_follow_up: false,
+          });
+        } catch (e) { console.warn("[skip] reschedule note failed:", e); }
       }
     },
     // Optimistic clearance: immediately patch the relevant React Query cache so the
@@ -1691,20 +1588,12 @@ export default function FollowUps() {
         return { prev, key: ["team-consultants"] };
       }
       if (item.itemType === "lead") {
-        if (item._isRescheduleEvent) {
-          await queryClient.cancelQueries({ queryKey: ["events"] });
-          const prev = queryClient.getQueryData<any[]>(["events"]);
-          queryClient.setQueryData<any[]>(["events"], (old) =>
-            (old || []).map((e) => e.id === item.id ? { ...e, reschedule_next_follow_up_date: computed } : e)
-          );
-          return { prev, key: ["events"] };
-        }
-        await queryClient.cancelQueries({ queryKey: ["booking-leads"] });
-        const prev = queryClient.getQueryData<any[]>(["booking-leads"]);
-        queryClient.setQueryData<any[]>(["booking-leads"], (old) =>
-          (old || []).map((l) => l.id === item.id ? { ...l, next_follow_up_date: computed } : l)
+        await queryClient.cancelQueries({ queryKey: ["events"] });
+        const prev = queryClient.getQueryData<any[]>(["events"]);
+        queryClient.setQueryData<any[]>(["events"], (old) =>
+          (old || []).map((e) => e.id === item.id ? { ...e, reschedule_next_follow_up_date: computed } : e)
         );
-        return { prev, key: ["booking-leads"] };
+        return { prev, key: ["events"] };
       }
       if (item.itemType === "hostess") {
         await queryClient.cancelQueries({ queryKey: ["events"] });
@@ -1721,7 +1610,6 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
@@ -1899,7 +1787,7 @@ export default function FollowUps() {
       else if (detailItem.itemType === "prospect") await updateProspect(detailItem.id, { next_follow_up_date: normalizedDate } as any);
       else if (detailItem.itemType === "consultant") await updateTeamConsultant(detailItem.id, { next_coaching_date: normalizedDate } as any);
       else if (detailItem.itemType === "hostess") await updateEvent(detailItem.id, { hostess_next_action_date: normalizedDate } as any);
-      else if (detailItem.itemType === "lead") await updateBookingLead(detailItem.id, { next_follow_up_date: normalizedDate } as any);
+      else if (detailItem.itemType === "lead") await updateEvent(detailItem.id, { reschedule_next_follow_up_date: normalizedDate } as any);
       // event_task items don't support rescheduling via this mechanism
     },
     onSuccess: () => {
@@ -1907,7 +1795,6 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       setDetailFollowUpDate(""); toast.success("Date updated");
     },
   });
@@ -1946,9 +1833,6 @@ export default function FollowUps() {
         const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
         await updateProspect(item.id, { last_contact_date: today, next_follow_up_date: nextDate } as any);
         if (note.trim()) await createProspectNote({ prospect_id: item.id, note_text: note.trim() });
-      } else if (item.itemType === "lead") {
-        const nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
-        await updateBookingLead(item.id, { last_contact_date: today, next_follow_up_date: nextDate, status: "Working" } as any);
       }
     },
     onSuccess: () => {
@@ -1956,7 +1840,6 @@ export default function FollowUps() {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["customer-notes"] });
@@ -2121,9 +2004,7 @@ export default function FollowUps() {
             case "customer":
               return updateCustomer(item.id, { next_follow_up_date: newDate } as any);
             case "lead":
-              return item._isRescheduleEvent
-                ? updateEvent(item.id, { reschedule_next_follow_up_date: newDate } as any)
-                : updateBookingLead(item.id, { next_follow_up_date: newDate } as any);
+              return updateEvent(item.id, { reschedule_next_follow_up_date: newDate } as any);
             case "prospect":
               return updateProspect(item.id, { next_follow_up_date: newDate } as any);
             case "consultant":
@@ -2143,7 +2024,6 @@ export default function FollowUps() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
@@ -2168,7 +2048,7 @@ export default function FollowUps() {
             case "customer":
               return updateCustomer(u.id, { next_follow_up_date: u.previousDate } as any);
             case "lead":
-              return updateBookingLead(u.id, { next_follow_up_date: u.previousDate } as any);
+              return updateEvent(u.id, { reschedule_next_follow_up_date: u.previousDate } as any);
             case "prospect":
               return updateProspect(u.id, { next_follow_up_date: u.previousDate } as any);
             case "consultant":
@@ -2187,7 +2067,6 @@ export default function FollowUps() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
@@ -2224,7 +2103,7 @@ export default function FollowUps() {
       const tableMap: Record<string, string> = {
         customer: "customers",
         prospect: "prospects",
-        lead: "booking_leads",
+        lead: "events",
         consultant: "team_consultants",
         hostess: "events",
         event_task: "event_tasks",
@@ -2240,7 +2119,6 @@ export default function FollowUps() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
       queryClient.invalidateQueries({ queryKey: ["team-consultants"] });
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
@@ -2253,8 +2131,8 @@ export default function FollowUps() {
     if (item.itemType === "customer") navigate(`/customers/${item.id}`, { state: { from: "/follow-ups" } });
     else if (item.itemType === "prospect") navigate(`/prospects/${item.id}`, { state: { from: "/follow-ups" } });
     else if (item.itemType === "lead") {
-      if (item._isRescheduleEvent && item._eventId) navigate(`/events/${item._eventId}`);
-      else navigate(`/booking-leads/${item.id}`, { state: { from: "/follow-ups" } });
+      if (item._eventId) navigate(`/events/${item._eventId}`);
+      else navigate("/events");
     }
     else if (item.itemType === "hostess") {
       const evt = events.find(e => e.id === item.id);
@@ -2400,7 +2278,7 @@ export default function FollowUps() {
                            _eventId: e.event_id,
                            _isRescheduleEvent: true,
                          }));
-                      const allLeadItems = [...followUpItems.filter(i => i.itemType === "lead"), ...rescheduleLeadItems];
+                      const allLeadItems = [...rescheduleLeadItems];
                       // Prospect + career-chat follow-ups moved to /prospects "Career Chats" tab.
                       const prospectItems: ActionItem[] = [];
                       const careerChatItems: any[] = [];
@@ -2615,7 +2493,7 @@ export default function FollowUps() {
 
                             sectionKey="booking"
                             title="Booking Activity"
-                            count={todayActions.filter((i) => i.itemType === "lead").length}
+                            count={leadSorted.length}
                             order={order.indexOf("booking")}
                             totalSections={6}
                             collapsed={!!collapsed["booking"]}
@@ -3080,13 +2958,6 @@ export default function FollowUps() {
                 <ConsultantEditPanel
                   item={detailItem}
                   consultants={consultants}
-                  queryClient={queryClient}
-                  onClose={() => setDetailItem(null)}
-                />
-              ) : detailItem?.itemType === "lead" ? (
-                <LeadEditPanel
-                  item={detailItem}
-                  bookingLeads={bookingLeads}
                   queryClient={queryClient}
                   onClose={() => setDetailItem(null)}
                 />
@@ -4018,283 +3889,6 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
   );
 }
 
-// ─── Lead Edit Panel (inline in detail sheet) ───
-
-const LEAD_ACTIVITY_TYPES = ["Call", "Text", "Email", "Booking", "Sharing"] as const;
-
-function getAutoFollowUpDays(status: string): number {
-  if (status === "New Contact" || status === "New") return 1;
-  if (status === "Warm") return 2;
-  if (status === "Working") return 2;
-  return 2;
-}
-
-function LeadEditPanel({ item, bookingLeads, queryClient, onClose }: {
-  item: ActionItem;
-  bookingLeads: BookingLead[];
-  queryClient: ReturnType<typeof useQueryClient>;
-  onClose: () => void;
-}) {
-  const lead = bookingLeads.find((l) => l.id === item.id);
-  const isFirstContact = lead?.status === "New Contact" || lead?.status === "New";
-  const [status, setStatus] = useState(lead?.status || "New Contact");
-  const [activityType, setActivityType] = useState<string>("Call");
-  const [newNote, setNewNote] = useState("");
-  const [nextStepText, setNextStepText] = useState("");
-  const [nextFollowUp, setNextFollowUp] = useState(() => {
-    if (lead?.next_follow_up_date) return lead.next_follow_up_date;
-    const days = getAutoFollowUpDays(lead?.status || "New Contact");
-    return format(addDays(new Date(), days), "yyyy-MM-dd");
-  });
-  const [saving, setSaving] = useState(false);
-  const [activityLogged, setActivityLogged] = useState(false);
-  const [loggedMessage, setLoggedMessage] = useState("");
-  // Lead logic: first contact = booking attempt only, subsequent = follow-up + optional booking attempt
-  const [isBookingAttempt, setIsBookingAttempt] = useState(true);
-  const [isFollowUpFlag, setIsFollowUpFlag] = useState(!isFirstContact);
-  const nextFollowUpRef = useRef<HTMLInputElement>(null);
-
-  // Sync state when lead data refreshes (after mutation + invalidation)
-  useEffect(() => {
-    if (lead) {
-      setStatus(lead.status);
-      if (lead.next_follow_up_date) setNextFollowUp(lead.next_follow_up_date);
-    }
-  }, [lead?.status, lead?.next_follow_up_date]);
-
-  const notesHistory = useMemo(() => {
-    if (!lead?.notes) return [];
-    const lines = lead.notes.split("\n").filter(Boolean);
-    return lines.map((line, i) => ({ id: String(i), text: line })).reverse();
-  }, [lead?.notes]);
-
-  const handleLogActivity = async () => {
-    if (!newNote.trim()) {
-      toast.error("Please add a note about what happened");
-      return;
-    }
-    setSaving(true);
-    try {
-      const today = toLocalDateKey();
-      const timestamp = format(new Date(), "MM/dd/yyyy h:mm a");
-      const entry = `[${timestamp}] (${activityType}) ${newNote.trim()}`;
-      const currentNotes = lead?.notes || "";
-      const updatedNotes = currentNotes ? `${currentNotes}\n${entry}` : entry;
-
-      const newStatus = (status === "New Contact" || status === "New") ? "Working" : status;
-      const autoFollowUpDays = getAutoFollowUpDays(newStatus);
-      const autoNextDate = format(addDays(new Date(), autoFollowUpDays), "yyyy-MM-dd");
-      // Respect the user-selected next follow-up date so that saving an activity
-      // moves the contact off Today onto the chosen day. Fall back to the auto
-      // cadence date when the field is empty.
-      const effectiveNextDate = nextFollowUp || autoNextDate;
-
-      await Promise.all([
-        updateBookingLead(item.id, {
-          last_contact_date: today,
-          next_follow_up_date: effectiveNextDate,
-          status: newStatus,
-          notes: updatedNotes,
-          lead_activity: activityType,
-        } as any),
-        createNote({
-          entity_type: "Lead",
-          person_id: item.id,
-          person_type: "lead",
-          note_body: newNote.trim(),
-          note_type: activityType,
-          next_step: nextStepText.trim() || null,
-          next_follow_up_date: effectiveNextDate,
-          is_booking_attempt: isBookingAttempt,
-          is_follow_up: isFollowUpFlag,
-        }),
-      ]);
-
-      // Update local state immediately
-      setNextFollowUp(effectiveNextDate);
-      setStatus(newStatus);
-      setNewNote("");
-      setActivityLogged(true);
-      setLoggedMessage(`Activity logged ✓ Next follow-up set to ${formatDateOnly(effectiveNextDate)}`);
-
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
-      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
-      queryClient.invalidateQueries({ queryKey: ["focus-daily-progress"] });
-
-      // Focus the next follow-up date input
-      setTimeout(() => nextFollowUpRef.current?.focus(), 100);
-    } catch { toast.error("Failed to save"); }
-    setSaving(false);
-  };
-
-  const handleSaveNextStep = async () => {
-    setSaving(true);
-    try {
-      await updateBookingLead(item.id, {
-        status: status as any,
-        next_follow_up_date: nextFollowUp || null,
-      } as any);
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
-      toast.success("Next step updated");
-    } catch { toast.error("Failed to save"); }
-    setSaving(false);
-  };
-
-  const todayFormatted = format(new Date(), "MMMM d, yyyy");
-  const autoFollowUpLabel = useMemo(() => {
-    if (!nextFollowUp) return null;
-    const effective = (status === "New Contact" || status === "New") ? "Working" : status;
-    const days = getAutoFollowUpDays(effective);
-    const autoDate = format(addDays(new Date(), days), "yyyy-MM-dd");
-    if (nextFollowUp === autoDate) {
-      return `Auto-set to ${formatDateOnly(nextFollowUp)} based on ${effective} lead cadence`;
-    }
-    return `Manually set to ${formatDateOnly(nextFollowUp)}`;
-  }, [nextFollowUp, status]);
-
-  return (
-    <div className="space-y-6">
-      {/* Contact Info Bar */}
-      {lead && (
-        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          {lead.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</span>}
-          {lead.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{lead.email}</span>}
-          {lead.lead_source && <Badge variant="secondary" className="text-[10px]">{lead.lead_source}</Badge>}
-          {lead.last_contact_date && <span className="text-xs">Last: {formatDateOnly(lead.last_contact_date)}</span>}
-        </div>
-      )}
-
-      {/* Success confirmation banner */}
-      {activityLogged && loggedMessage && (
-        <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          {loggedMessage}
-        </div>
-      )}
-
-      {/* ── SECTION 1: Log Today's Activity ── */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">Log Today's Activity</h3>
-          <span className="text-xs text-muted-foreground">Today — {todayFormatted}</span>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity Type</label>
-          <Select value={activityType} onValueChange={setActivityType}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {LEAD_ACTIVITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <FileText className="w-3 h-3" /> What Happened <span className="text-destructive">*</span>
-          </label>
-          <Textarea
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Brief conversation summary — what was discussed?"
-            className="min-h-[70px]"
-            autoFocus
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            ➡️ Next Step
-          </label>
-          <Input
-            value={nextStepText}
-            onChange={(e) => setNextStepText(e.target.value)}
-            placeholder="e.g., Book facial, Send info packet, Follow up next week..."
-            className="h-9"
-          />
-        </div>
-
-        <div className="flex items-center gap-4 pt-1">
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <Checkbox checked={isBookingAttempt} onCheckedChange={(v) => setIsBookingAttempt(!!v)} />
-            <span className="text-muted-foreground">Booking Attempt</span>
-          </label>
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <Checkbox checked={isFollowUpFlag} onCheckedChange={(v) => setIsFollowUpFlag(!!v)} />
-            <span className="text-muted-foreground">Follow-Up</span>
-          </label>
-        </div>
-        {isFirstContact && (
-          <p className="text-[10px] text-amber-600 dark:text-amber-400">
-            First contact — defaults to Booking Attempt only
-          </p>
-        )}
-
-        <Button className="w-full" onClick={handleLogActivity} disabled={saving || !newNote.trim()}>
-          <CheckCircle2 className="w-4 h-4 mr-1.5" />
-          {saving ? "Saving..." : "Log Activity"}
-        </Button>
-        <p className="text-[11px] text-muted-foreground text-center">
-          Logging marks as contacted and auto-sets next follow-up
-        </p>
-      </div>
-
-      {/* ── SECTION 2: Next Step ── */}
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Next Step</h3>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {BOOKING_LEAD_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-            <CalendarRange className="w-3 h-3" /> Next Follow-Up Date
-          </label>
-          <Input
-            ref={nextFollowUpRef}
-            type="date"
-            value={nextFollowUp}
-            min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
-            onChange={(e) => setNextFollowUp(e.target.value)}
-            className="h-9"
-          />
-          {autoFollowUpLabel && (
-            <p className="text-[11px] text-muted-foreground italic">{autoFollowUpLabel}</p>
-          )}
-        </div>
-
-        <Button variant="outline" className="w-full" onClick={handleSaveNextStep} disabled={saving}>
-          {saving ? "Saving..." : "Update Next Step"}
-        </Button>
-      </div>
-
-      {/* ── Notes History ── */}
-      <div>
-        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Notes History</h4>
-        {notesHistory.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
-        ) : (
-          <div className="space-y-2">
-            {notesHistory.map((note) => (
-              <div key={note.id} className="p-3 rounded-lg bg-muted/30 border border-border/40">
-                <p className="text-sm text-foreground whitespace-pre-wrap">{note.text}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Quick Activity Types ───
 const QUICK_ACTIVITY_TYPES = ["Call", "Text", "Email", "In Person"] as const;
