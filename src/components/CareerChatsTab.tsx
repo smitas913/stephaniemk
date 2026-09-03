@@ -35,8 +35,8 @@ export default function CareerChatsTab() {
   const items = useMemo(() => {
     const list = dedupeLinkedProspects((prospects as Prospect[]).filter((p) => !p.is_archived && (p as any).is_career_chat === true));
     const scored = list.map((p) => {
-      const fu = getProspectActionDate(p);
-      const days = fu ? differenceInCalendarDays(parseISO(fu), parseISO(todayKey)) : null;
+      const fu = normalizeDateOnly(getProspectActionDate(p));
+      const days = fu ? differenceInCalendarDays(parseLocalDate(fu), parseLocalDate(todayKey)) : null;
       const parked = days === null || days > 7;
       return { p, fu, days, parked };
     });
