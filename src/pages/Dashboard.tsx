@@ -11,7 +11,7 @@ import {
   fetchAllLatestNotes,
   fetchCustomers,
   fetchProspects,
-  fetchBookingLeads,
+  
   fetchTeamConsultants,
 } from "@/lib/queries";
 
@@ -149,7 +149,7 @@ export default function Dashboard() {
   const { data: notes = [] } = useQuery({ queryKey: ["notes-all"], queryFn: fetchAllLatestNotes });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
-  const { data: bookingLeads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads });
+  const bookingLeads: any[] = [];
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
@@ -172,7 +172,7 @@ export default function Dashboard() {
       consultant_coaching: metrics.coachingDetails.length,
       relationship: metrics.relationshipDetails.length,
     };
-  }, [unifiedNotes, notes, customers, prospects, bookingLeads, consultants, events]);
+  }, [unifiedNotes, notes, customers, prospects, consultants, events]);
 
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
@@ -215,7 +215,7 @@ export default function Dashboard() {
                 if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
                 else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
                 else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
-                else if (type === "Lead") navigate("/booking-leads");
+                
                 else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
                 else if (type === "Hostess") {
                   const evt = events.find((e: any) => e.id === id);
