@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { fetchCustomers, fetchBookingLeads, fetchProspects, upsertEvent, fetchZoomDefaults } from "@/lib/queries";
+import { fetchCustomers, fetchProspects, upsertEvent, fetchZoomDefaults } from "@/lib/queries";
 import { generateEventId } from "@/lib/eventId";
 import { useQuery as useRQ } from "@tanstack/react-query";
 import { fetchEvents } from "@/lib/queries";
@@ -35,7 +35,6 @@ export default function QuickBookingDialog({
   const [query, setQuery] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [selectedPhone, setSelectedPhone] = useState("");
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [eventType, setEventType] = useState<string>("Party");
   const [eventDate, setEventDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [eventTime, setEventTime] = useState("6:30 PM");
@@ -43,7 +42,6 @@ export default function QuickBookingDialog({
   const [step, setStep] = useState<"who" | "when">("who");
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: open });
-  const { data: leads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads, enabled: open });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects, enabled: open });
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents, enabled: open });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults, enabled: open });
@@ -51,10 +49,9 @@ export default function QuickBookingDialog({
   const allPeople = useMemo(() => {
     const list: { id: string; name: string; phone: string; kind: string }[] = [];
     customers.forEach((c: any) => list.push({ id: c.id, name: c.full_name, phone: c.phone || "", kind: "customer" }));
-    leads.forEach((l: any) => list.push({ id: l.id, name: l.name, phone: l.phone || "", kind: "lead" }));
     prospects.forEach((p: any) => list.push({ id: p.id, name: p.name, phone: p.phone || "", kind: "prospect" }));
     return list;
-  }, [customers, leads, prospects]);
+  }, [customers, prospects]);
 
   const matches = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -69,14 +66,6 @@ export default function QuickBookingDialog({
       const hour24 = eventTime.includes("PM") && h !== 12 ? h + 12 : eventTime.includes("AM") && h === 12 ? 0 : h;
       const time24 = `${String(hour24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-      // If no lead was explicitly selected but the typed name matches a lead, link it.
-      let leadIdToLink = selectedLeadId;
-      if (!leadIdToLink) {
-        const nameLc = selectedName.trim().toLowerCase();
-        const matchLead = leads.find((l: any) => (l.name || "").toLowerCase() === nameLc);
-        if (matchLead) leadIdToLink = (matchLead as any).id;
-      }
-
       const eventId = generateEventId(eventType, eventDate, selectedName || "Event", events.map((e: any) => e.event_id));
       const payload: any = {
         event_id: eventId,
@@ -86,7 +75,6 @@ export default function QuickBookingDialog({
         event_time: time24,
         hostess_name: selectedName.trim() || null,
         hostess_phone: selectedPhone.trim() || null,
-        hostess_lead_id: leadIdToLink || null,
         guest_count: 0,
         event_status: "Booked",
       };
@@ -110,7 +98,7 @@ export default function QuickBookingDialog({
   });
 
   const reset = () => {
-    setQuery(""); setSelectedName(""); setSelectedPhone(""); setSelectedLeadId(null);
+    setQuery(""); setSelectedName(""); setSelectedPhone("");
     setEventType("Party"); setEventDate(format(new Date(), "yyyy-MM-dd"));
     setEventTime("6:30 PM"); setFormat_("In-Person"); setStep("who");
   };
@@ -132,7 +120,7 @@ export default function QuickBookingDialog({
                 autoFocus
                 placeholder="Search or type a name..."
                 value={query}
-                onChange={e => { setQuery(e.target.value); setSelectedName(e.target.value); setSelectedLeadId(null); }}
+                onChange={e => { setQuery(e.target.value); setSelectedName(e.target.value); }}
                 className="h-9"
               />
               {matches.length > 0 && (
@@ -142,7 +130,6 @@ export default function QuickBookingDialog({
                       onClick={() => {
                         setSelectedName(p.name);
                         setSelectedPhone(p.phone);
-                        setSelectedLeadId(p.kind === "lead" ? p.id : null);
                         setQuery(p.name);
                       }}>
                       <p className="text-sm font-medium text-foreground">{p.name}</p>
