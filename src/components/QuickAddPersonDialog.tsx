@@ -3,10 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   fetchCustomers,
   fetchProspects,
-  fetchBookingLeads,
   fetchTeamConsultants,
   fetchEvents,
-  createBookingLead,
   createCustomer,
   createNote,
   flagCustomer,
@@ -88,7 +86,7 @@ export default function QuickAddPersonDialog({
   });
   // Face flow: Non-customer post-step (tags + follow-up + DNC + Skip)
   const [nonCustomerPrompt, setNonCustomerPrompt] = useState<{ customerId: string; name: string } | null>(null);
-  const [nonCustomerTags, setNonCustomerTags] = useState<{ lead: boolean; prospect: boolean; dnc: boolean }>({ lead: false, prospect: false, dnc: false });
+  const [nonCustomerTags, setNonCustomerTags] = useState<{ prospect: boolean; dnc: boolean }>({ prospect: false, dnc: false });
   const [nonCustomerFollowUpDate, setNonCustomerFollowUpDate] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -109,7 +107,7 @@ export default function QuickAddPersonDialog({
       setFaceEventCheck(null);
       setFaceEventId(null);
       setNonCustomerPrompt(null);
-      setNonCustomerTags({ lead: false, prospect: false, dnc: false });
+      setNonCustomerTags({ prospect: false, dnc: false });
       setNonCustomerFollowUpDate("");
       // Autofocus search shortly after mount
       setTimeout(() => inputRef.current?.focus(), 80);
@@ -119,17 +117,15 @@ export default function QuickAddPersonDialog({
   // Only fetch people when dialog open
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: open });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects, enabled: open });
-  const { data: leads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads, enabled: open });
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants, enabled: open });
 
   const allPeople = useMemo<PersonMatch[]>(() => {
     const list: PersonMatch[] = [];
     customers.forEach((c: any) => list.push({ kind: "customer", id: c.id, name: c.full_name, detail: c.phone || c.email || undefined }));
     prospects.forEach((p: any) => list.push({ kind: "prospect", id: p.id, name: p.name, detail: p.phone || p.email || undefined }));
-    leads.forEach((l: any) => list.push({ kind: "lead", id: l.id, name: l.name, detail: l.phone || l.email || undefined }));
     consultants.forEach((c: any) => list.push({ kind: "consultant", id: c.id, name: c.name, detail: c.phone || c.email || undefined }));
     return list;
-  }, [customers, prospects, leads, consultants]);
+  }, [customers, prospects, consultants]);
 
   const matches = useMemo<PersonMatch[]>(() => {
     const q = query.trim().toLowerCase();
@@ -270,23 +266,19 @@ export default function QuickAddPersonDialog({
     }
   };
 
-  // "Add person?" handler: captures a Customer / Lead choice (Skip removed —
+  // "Add person?" handler: captures the person as a Customer (Skip removed —
   // closing the dialog without choosing leaves the activity unlogged for that name).
-  const handleCaptureChoice = async (choice: "customer" | "lead") => {
+  const handleCaptureChoice = async (choice: "customer") => {
     if (!capturePrompt || !resultType) return;
     setBusy(true);
     try {
       let person: PersonMatch | null = null;
       let isNewCustomer = false;
-      if (choice === "customer") {
+      {
         const c = await createCustomer({ full_name: capturePrompt.name, relationship_status: "Customer" } as any);
         person = { kind: "customer", id: (c as any).id, name: capturePrompt.name };
         isNewCustomer = true;
         toast.success(`Customer added: ${capturePrompt.name}`);
-      } else {
-        const l = await createBookingLead({ name: capturePrompt.name, status: "New" as any });
-        person = { kind: "lead", id: (l as any).id, name: capturePrompt.name };
-        toast.success(`Lead added: ${capturePrompt.name}`);
       }
       await logActivity(person, capturePrompt.name);
       setBusy(false);
@@ -400,7 +392,6 @@ export default function QuickAddPersonDialog({
       if (action === "save") {
         const updates: any = {};
         const tagSet = new Set<string>();
-        if (nonCustomerTags.lead) tagSet.add("Lead");
         if (nonCustomerTags.prospect) tagSet.add("Prospect");
         if (nonCustomerTags.dnc) tagSet.add("DNC");
         if (tagSet.size > 0) updates.tags = Array.from(tagSet);
@@ -418,7 +409,7 @@ export default function QuickAddPersonDialog({
     } finally {
       setBusy(false);
       setNonCustomerPrompt(null);
-      setNonCustomerTags({ lead: false, prospect: false, dnc: false });
+      setNonCustomerTags({ prospect: false, dnc: false });
       setNonCustomerFollowUpDate("");
       onLogged();
       onOpenChange(false);
@@ -648,7 +639,6 @@ export default function QuickAddPersonDialog({
             <div className="space-y-2">
               <div className="flex flex-wrap gap-1.5">
                 {([
-                  { key: "lead", label: "Lead", icon: UserPlus, activeCls: "bg-blue-500 text-white border-blue-500", inactiveCls: "bg-background text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950" },
                   { key: "prospect", label: "Prospect", icon: Tag, activeCls: "bg-purple-500 text-white border-purple-500", inactiveCls: "bg-background text-purple-600 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950" },
                   { key: "dnc", label: "Do Not Contact", icon: Ban, activeCls: "bg-destructive text-destructive-foreground border-destructive", inactiveCls: "bg-background text-destructive border-destructive/40 hover:bg-destructive/10" },
                 ] as const).map((t) => {
@@ -845,17 +835,6 @@ export default function QuickAddPersonDialog({
                 <Users className="w-4 h-4 text-blue-600" />
                 <span className="text-xs font-semibold">Customer</span>
               </Button>
-              {resultType !== "Face" && (
-                <Button
-                  variant="outline"
-                  className="h-auto py-3 flex flex-col gap-1 hover:bg-amber-50 hover:border-amber-300"
-                  disabled={busy}
-                  onClick={() => handleCaptureChoice("lead")}
-                >
-                  <UserPlus className="w-4 h-4 text-amber-600" />
-                  <span className="text-xs font-semibold">Lead</span>
-                </Button>
-              )}
             </div>
             {busy && (
               <div className="flex items-center justify-center text-xs text-muted-foreground">
