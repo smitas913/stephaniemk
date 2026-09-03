@@ -1045,6 +1045,7 @@ export type Database = {
           foundation_shade: string | null
           full_name: string
           id: string
+          interested_in_rebooking: boolean
           notes: string | null
           owner_user_id: string
           phone: string | null
@@ -1070,6 +1071,7 @@ export type Database = {
           foundation_shade?: string | null
           full_name: string
           id?: string
+          interested_in_rebooking?: boolean
           notes?: string | null
           owner_user_id?: string
           phone?: string | null
@@ -1095,6 +1097,7 @@ export type Database = {
           foundation_shade?: string | null
           full_name?: string
           id?: string
+          interested_in_rebooking?: boolean
           notes?: string | null
           owner_user_id?: string
           phone?: string | null
