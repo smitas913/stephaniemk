@@ -155,7 +155,7 @@ export default function ScheduleSettings() {
   const resetMutation = useMutation({
     mutationFn: (mode: "today" | "clear") => resetOverdueFollowUps(cutoffDate, mode),
     onSuccess: (res, mode) => {
-      const total = res.customers + res.prospects + res.booking_leads;
+      const total = res.customers + res.prospects;
       toast.success(
         mode === "today"
           ? `Moved ${total} follow-up${total === 1 ? "" : "s"} to today`
@@ -168,7 +168,6 @@ export default function ScheduleSettings() {
       queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
-      queryClient.invalidateQueries({ queryKey: ["booking-leads"] });
     },
     onError: () => toast.error("Failed to reset follow-ups"),
   });
@@ -370,8 +369,7 @@ export default function ScheduleSettings() {
                   {backlogCounts && backlogCounts.total > 0 && (
                     <>
                       {" "}({backlogCounts.customers} customer{backlogCounts.customers === 1 ? "" : "s"},{" "}
-                      {backlogCounts.prospects} prospect{backlogCounts.prospects === 1 ? "" : "s"},{" "}
-                      {backlogCounts.booking_leads} lead{backlogCounts.booking_leads === 1 ? "" : "s"})
+                      {backlogCounts.prospects} prospect{backlogCounts.prospects === 1 ? "" : "s"})
                     </>
                   )}
                   . {resetMode === "today"

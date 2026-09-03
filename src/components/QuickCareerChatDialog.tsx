@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchCustomers, fetchProspects, fetchBookingLeads, fetchTeamConsultants, createNote, createProspectNote } from "@/lib/queries";
+import { fetchCustomers, fetchProspects, fetchTeamConsultants, createNote, createProspectNote } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { format, addDays } from "date-fns";
@@ -48,7 +48,6 @@ export default function QuickCareerChatDialog({
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: open });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects, enabled: open });
-  const { data: leads = [] } = useQuery({ queryKey: ["booking-leads"], queryFn: fetchBookingLeads, enabled: open });
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants, enabled: open });
 
   // Prefill from an existing prospect when caller passes one (e.g. Career Chats tab "Log conversation").
@@ -92,9 +91,8 @@ export default function QuickCareerChatDialog({
     const list: { id: string; name: string; phone: string; kind: string }[] = [];
     customers.forEach((c: any) => list.push({ id: c.id, name: c.full_name, phone: c.phone || "", kind: "customer" }));
     prospects.forEach((p: any) => list.push({ id: p.id, name: p.name, phone: p.phone || "", kind: "prospect" }));
-    leads.forEach((l: any) => list.push({ id: l.id, name: l.name, phone: l.phone || "", kind: "lead" }));
     return list;
-  }, [customers, prospects, leads]);
+  }, [customers, prospects]);
 
   const matches = useMemo(() => {
     const q = query.toLowerCase().trim();

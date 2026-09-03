@@ -35,8 +35,6 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
 import Analytics from "./pages/Analytics";
-import BookingLeads from "./pages/BookingLeads";
-import LeadDetail from "./pages/LeadDetail";
 import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
 import Campaigns from "./pages/Campaigns";
@@ -219,15 +217,8 @@ const AppRoutes = () => (
       }
     />
 
-    <Route
-      path="/booking-leads/:id"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <LeadDetail />
-        </ProtectedRoute>
-      }
-    />
-    <Route path="/booking-leads" element={<Navigate to="/clients?tab=leads" replace />} />
+    <Route path="/booking-leads/:id" element={<Navigate to="/clients" replace />} />
+    <Route path="/booking-leads" element={<Navigate to="/clients" replace />} />
     <Route
       path="/customers/new"
       element={

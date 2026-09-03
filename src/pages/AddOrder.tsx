@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
-import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder, createBookingLead, unarchiveCustomer, updateCustomer, createNote } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, createOrder, createCustomer, fetchOrder, updateOrder, deleteOrder, unarchiveCustomer, updateCustomer, createNote } from "@/lib/queries";
 import { applyPostOrderFollowUp, getFollowUpIntentOptions, type FollowUpIntent } from "@/lib/postOrderFollowUp";
 import { getOrCreateNonCustomerBucket } from "@/lib/nonCustomerBucket";
 import { useAuth } from "@/hooks/useAuth";
@@ -424,22 +424,25 @@ export default function AddOrder() {
       let resolvedCustomerName = customerName;
 
       if (isNonCustomer) {
-        resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
-        resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
-        // Create a booking lead if follow-up was requested
         if (nonCustomerFollowUp && nonCustomerLabel.trim()) {
+          // "Add to customer list & follow up" — create a real customer record
+          // and start the standard new-customer cadence (2+2+2, then 30-day).
+          const newCust = await createCustomer({
+            full_name: nonCustomerLabel.trim(),
+            phone: nonCustomerPhone.trim() || null,
+            relationship_status: "Customer",
+          } as any);
+          resolvedCustomerId = newCust.id;
+          resolvedCustomerName = newCust.full_name;
           try {
-            const followUpDate = format(addDays(new Date(), 30), "yyyy-MM-dd");
-            await createBookingLead({
-              name: nonCustomerLabel.trim(),
-              phone: nonCustomerPhone.trim() || null,
-              lead_source: "Other",
-              status: "New",
-              next_follow_up_date: followUpDate,
-            } as any);
+            const { applyNewCustomerFollowUp } = await import("@/lib/newCustomerFollowUp");
+            await applyNewCustomerFollowUp(newCust.id, "222", undefined, orderDate);
           } catch (e) {
-            console.error("Failed to create follow-up lead", e);
+            console.error("Failed to apply new-customer follow-up", e);
           }
+        } else {
+          resolvedCustomerId = await getOrCreateNonCustomerBucket(user?.id ?? null);
+          resolvedCustomerName = nonCustomerLabel.trim() || "One-Time Order";
         }
       } else if (isNewCustomer && newCustName.trim() && !customerId) {
         const birthdayMMDD = newCustBirthday ? (() => {
@@ -621,7 +624,7 @@ export default function AddOrder() {
       setSubmitting(false);
       setDncSuppressFollowUp(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, nonCustomerFollowUp, nonCustomerPhone, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
 
   // Edit mode: show loading until prefill complete
   if (isEditMode && !editPrefilled) {
@@ -867,7 +870,7 @@ export default function AddOrder() {
                     onChange={e => setNonCustomerFollowUp(e.target.checked)}
                     className="rounded border-border"
                   />
-                  <span className="text-xs font-medium text-foreground">Add to follow-up list as a potential customer</span>
+                  <span className="text-xs font-medium text-foreground">Add to customer list &amp; follow up</span>
                 </label>
                 {nonCustomerFollowUp && (
                   <div className="space-y-1.5 pl-5">
@@ -877,7 +880,7 @@ export default function AddOrder() {
                       onChange={e => setNonCustomerPhone(e.target.value)}
                       className="h-8 text-xs"
                     />
-                    <p className="text-[11px] text-muted-foreground">Creates a booking lead so you can follow up later.</p>
+                    <p className="text-[11px] text-muted-foreground">Creates a customer record and starts the 2+2+2 follow-up cadence.</p>
                   </div>
                 )}
               </div>

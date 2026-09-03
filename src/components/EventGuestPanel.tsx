@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, createBookingLead, fetchOrders, createCustomer, fetchTeamConsultants } from "@/lib/queries";
+import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, fetchOrders, createCustomer, fetchTeamConsultants } from "@/lib/queries";
 import { SKIN_TYPES } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
@@ -309,21 +309,6 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "career":
         updates.interested = willBeOn;
-        if (willBeOn) {
-          try {
-            const noteHost = hostessName?.trim() || "the party";
-            await createBookingLead({
-              name: g.name,
-              phone: g.phone || undefined,
-              lead_source: "Other",
-              source_detail: "Party Guest",
-              status: "New Contact",
-              notes: `Career interest from ${noteHost}'s party`,
-            } as any);
-          } catch (e: any) {
-            toast.error(e.message || "Could not create prospect");
-          }
-        }
         break;
       case "joined":
         if (willBeOn) {
@@ -340,7 +325,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     if (willBeOn) {
       if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
       if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
-      if (outcome === "career")  toast.success(`${g.name} added to booking leads`);
+      if (outcome === "career")  toast.success(`${g.name} marked Career Interest`);
       if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
     }
   };
@@ -437,24 +422,6 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     }
     setBookForm(null);
     navigate(`/events/new?${params.toString()}`);
-  };
-
-  const saveNoShowAsLead = async (g: EventGuest) => {
-    try {
-      const noteHost = hostessName?.trim() || "the party";
-      await createBookingLead({
-        name: g.name,
-        phone: g.phone || undefined,
-        lead_source: "Other",
-        source_detail: "Party Guest",
-        status: "New Contact",
-        notes: `No-show from ${noteHost}'s party — follow up to reschedule`,
-      } as any);
-      toast.success(`${g.name} added to booking leads`);
-      setNoShowFollowUp(null);
-    } catch (e: any) {
-      toast.error(e.message || "Could not save");
-    }
   };
 
   const partyRescheduled = guests.some((g: any) => g.party_rescheduled);
@@ -794,18 +761,6 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     );
                   })()}
 
-                  {/* No-show follow-up CTA */}
-                  {noShowFollowUp === g.id && isNoShow && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <p className="text-xs text-muted-foreground">Save her to booking leads for follow-up?</p>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveNoShowAsLead(g)}>
-                        Save to Booking Leads
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setNoShowFollowUp(null)}>
-                        Skip
-                      </Button>
-                    </div>
-                  )}
                 </div>
               );
             })}
