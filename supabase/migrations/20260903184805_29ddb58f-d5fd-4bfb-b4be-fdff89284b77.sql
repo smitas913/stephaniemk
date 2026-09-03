@@ -1,0 +1,1 @@
+ALTER TABLE public.facial_contacts ADD COLUMN interested_in_rebooking boolean NOT NULL DEFAULT false;

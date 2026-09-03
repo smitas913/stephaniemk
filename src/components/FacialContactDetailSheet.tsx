@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ExternalLink, Loader2, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export default function FacialContactDetailSheet({
       const patch: Record<string, unknown> = {};
       for (const f of TEXT_FIELDS) patch[f.key as string] = (draft as any)[f.key] || null;
       patch.notes = draft.notes || null;
+      patch.interested_in_rebooking = (draft as any).interested_in_rebooking ?? false;
       const clean = cleanBeautyProfile(profile);
       patch.beauty_notes = clean;
       patch.skin_type = derivedSkinType(clean);
@@ -131,6 +133,22 @@ export default function FacialContactDetailSheet({
                 rows={4}
                 value={draft.notes || ""}
                 onChange={(e) => setDraft((p) => ({ ...p, notes: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium" htmlFor="rebook-toggle">
+                  Might rebook for another appointment
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Flag this face as a candidate for a follow-up facial or appointment.
+                </p>
+              </div>
+              <Switch
+                id="rebook-toggle"
+                checked={(draft as any).interested_in_rebooking ?? false}
+                onCheckedChange={(v) => setDraft((p) => ({ ...p, interested_in_rebooking: v }))}
               />
             </div>
 

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Droplets, ScanLine, Search, Calendar, ExternalLink, Loader2 } from "lucide-react";
+import { Droplets, ScanLine, Search, Calendar, ExternalLink, Loader2, RotateCcw } from "lucide-react";
 import { SKIN_TYPES } from "@/lib/types";
 import { fetchFacialContacts, facialContactMatches } from "@/lib/facialContacts";
 import { formatPhone } from "@/lib/phoneUtils";
@@ -17,6 +17,7 @@ export default function FacialContacts() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [skinFilter, setSkinFilter] = useState<string>("all");
+  const [rebookOnly, setRebookOnly] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
@@ -28,9 +29,12 @@ export default function FacialContacts() {
   const filtered = useMemo(
     () =>
       contacts.filter(
-        (c) => facialContactMatches(c, search) && (skinFilter === "all" || c.skin_type === skinFilter),
+        (c) =>
+          facialContactMatches(c, search) &&
+          (skinFilter === "all" || c.skin_type === skinFilter) &&
+          (!rebookOnly || c.interested_in_rebooking),
       ),
-    [contacts, search, skinFilter],
+    [contacts, search, skinFilter, rebookOnly],
   );
 
   return (
@@ -72,6 +76,21 @@ export default function FacialContacts() {
                 {SKIN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
+            <button
+              type="button"
+              onClick={() => setRebookOnly((v) => !v)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                rebookOnly
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {rebookOnly ? (
+                <span className="inline-flex items-center gap-1.5"><RotateCcw className="w-3 h-3" /> Show all</span>
+              ) : (
+                "Rebook Candidates"
+              )}
+            </button>
           </div>
         </CardHeader>
         <CardContent>
@@ -104,7 +123,16 @@ export default function FacialContacts() {
                         className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
                         onClick={() => setDetailId(c.id)}
                       >
-                        <td className="py-2.5 pr-3 font-medium text-foreground">{c.full_name}</td>
+                        <td className="py-2.5 pr-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{c.full_name}</span>
+                            {c.interested_in_rebooking && (
+                              <Badge variant="secondary" className="font-normal text-[10px] px-1.5 py-0 h-5">
+                                Might rebook
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-2.5 pr-3 text-muted-foreground">{c.phone ? formatPhone(c.phone) : "—"}</td>
                         <td className="py-2.5 pr-3">{c.skin_type ? <Badge variant="secondary" className="font-normal">{c.skin_type}</Badge> : <span className="text-muted-foreground">—</span>}</td>
                         <td className="py-2.5 pr-3 text-muted-foreground">{c.foundation_shade || "—"}</td>
@@ -139,7 +167,14 @@ export default function FacialContacts() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-foreground">{c.full_name}</span>
-                      {c.skin_type && <Badge variant="secondary" className="font-normal text-[11px]">{c.skin_type}</Badge>}
+                      <div className="flex items-center gap-1.5">
+                        {c.interested_in_rebooking && (
+                          <Badge variant="secondary" className="font-normal text-[10px] px-1.5 py-0 h-5">
+                            Might rebook
+                          </Badge>
+                        )}
+                        {c.skin_type && <Badge variant="secondary" className="font-normal text-[11px]">{c.skin_type}</Badge>}
+                      </div>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
                       {c.phone && <span>{formatPhone(c.phone)}</span>}
