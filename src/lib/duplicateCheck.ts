@@ -2,13 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { stripPhone, normalizeEmail } from "./phoneUtils";
 
 export type DuplicateMatch = {
-  kind: "customer" | "consultant";
+  kind: "customer" | "consultant" | "prospect";
   id: string;
   name: string;
   phone: string | null;
   email: string | null;
   reason: "phone" | "email" | "name";
-  extra?: { join_date?: string | null; date_added?: string | null };
+  extra?: { join_date?: string | null; date_added?: string | null; date_shared?: string | null };
 };
 
 export type DuplicateCheckResult = {
@@ -21,9 +21,14 @@ export type DupOpts = {
   phone?: string | null;
   email?: string | null;
   /** Which table we're about to insert into. Match search covers BOTH tables regardless. */
-  kind: "customer" | "consultant";
+  kind: "customer" | "consultant" | "prospect";
   excludeCustomerId?: string;
   excludeConsultantId?: string;
+  excludeProspectId?: string;
+  /** Opt-in: also search the prospects table (recruiting pipeline). */
+  searchProspects?: boolean;
+  /** Opt-in: search ONLY the prospects table. */
+  prospectsOnly?: boolean;
 };
 
 function nameKey(s: string | null | undefined): string {
@@ -45,9 +50,19 @@ export async function checkForDuplicatePerson(opts: DupOpts): Promise<DuplicateC
   let strong: DuplicateMatch | null = null;
   let softName: DuplicateMatch | null = null;
 
-  const [{ data: customers }, { data: consultants }] = await Promise.all([
-    supabase.from("customers").select("id, full_name, phone, email, date_added").limit(5000),
-    supabase.from("team_consultants").select("id, name, phone, email, join_date").limit(5000),
+  const searchPeople = !opts.prospectsOnly;
+  const searchProspects = !!opts.searchProspects || !!opts.prospectsOnly;
+
+  const [{ data: customers }, { data: consultants }, { data: prospects }] = await Promise.all([
+    searchPeople
+      ? supabase.from("customers").select("id, full_name, phone, email, date_added").limit(5000)
+      : Promise.resolve({ data: [] as any[] }),
+    searchPeople
+      ? supabase.from("team_consultants").select("id, name, phone, email, join_date").limit(5000)
+      : Promise.resolve({ data: [] as any[] }),
+    searchProspects
+      ? supabase.from("prospects").select("id, name, phone, email, date_shared").limit(5000)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const consider = (m: DuplicateMatch) => {
@@ -94,6 +109,22 @@ export async function checkForDuplicatePerson(opts: DupOpts): Promise<DuplicateC
     else if (nameNorm && cn && nameNorm === cn && nameNorm.length > 2) consider({ ...base, reason: "name" });
   }
 
+  for (const p of prospects || []) {
+    if (opts.excludeProspectId && (p as any).id === opts.excludeProspectId) continue;
+    const pp = stripPhone((p as any).phone);
+    const pn = nameKey((p as any).name);
+    const base = {
+      kind: "prospect" as const,
+      id: (p as any).id,
+      name: (p as any).name,
+      phone: (p as any).phone,
+      email: (p as any).email ?? null,
+      extra: { date_shared: (p as any).date_shared },
+    };
+    if (phoneDigits && pp && phoneDigits.length >= 7 && pp === phoneDigits) consider({ ...base, reason: "phone" });
+    else if (nameNorm && pn && nameNorm === pn && nameNorm.length > 2) consider({ ...base, reason: "name" });
+  }
+
   return { strong, softName };
 }
 
@@ -102,14 +133,16 @@ export async function fillEmptyFieldsFromNew(
   match: DuplicateMatch,
   fresh: { phone?: string | null; email?: string | null; [k: string]: any }
 ) {
-  const table = match.kind === "customer" ? "customers" : "team_consultants";
+  const table = match.kind === "customer" ? "customers" : match.kind === "prospect" ? "prospects" : "team_consultants";
   const updates: Record<string, any> = {};
   const skipKeys = new Set(["id", "kind", "reason", "extra", "name", "full_name"]);
-  const allowedKeys = [
-    "phone", "email", "birthday", "birthday_mmdd",
-    "address_line_1", "address_line_2", "city", "state_territory", "postal_code",
-    "notes",
-  ];
+  const allowedKeys = match.kind === "prospect"
+    ? ["phone", "email", "address_line_1", "city", "state_territory", "postal_code", "notes"]
+    : [
+      "phone", "email", "birthday", "birthday_mmdd",
+      "address_line_1", "address_line_2", "city", "state_territory", "postal_code",
+      "notes",
+    ];
   for (const k of allowedKeys) {
     const val = (fresh as any)[k];
     if (val === undefined || val === null || val === "") continue;

@@ -824,6 +824,7 @@ export type Database = {
           notes: string | null
           ordering_guest_count: number | null
           owner_user_id: string | null
+          prospect_id: string | null
           rebook_not_interested: boolean | null
           requires_manual_next_step: boolean
           reschedule_attempt_number: number
@@ -882,6 +883,7 @@ export type Database = {
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          prospect_id?: string | null
           rebook_not_interested?: boolean | null
           requires_manual_next_step?: boolean
           reschedule_attempt_number?: number
@@ -940,6 +942,7 @@ export type Database = {
           notes?: string | null
           ordering_guest_count?: number | null
           owner_user_id?: string | null
+          prospect_id?: string | null
           rebook_not_interested?: boolean | null
           requires_manual_next_step?: boolean
           reschedule_attempt_number?: number
@@ -984,6 +987,13 @@ export type Database = {
             columns: ["hostess_lead_id"]
             isOneToOne: false
             referencedRelation: "booking_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
             referencedColumns: ["id"]
           },
         ]
