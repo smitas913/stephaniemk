@@ -1132,6 +1132,7 @@ function ConvertGuestToCustomerDialog({
               They ordered at this event. Add them so you can track future follow-ups.
             </DialogDescription>
           </DialogHeader>
+          {cameraOverlay}
 
           {/* Mode switcher */}
           <div className="flex items-center gap-2 text-xs">

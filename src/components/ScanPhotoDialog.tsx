@@ -161,6 +161,7 @@ export default function ScanPhotoDialog({
             Snap the front of the card, and the back too if there's writing on it. Nothing is saved to {customer.full_name}'s profile until you confirm below.
           </DialogDescription>
         </DialogHeader>
+        {cameraOverlay}
 
         {!extracted && (
           <div className="space-y-3">

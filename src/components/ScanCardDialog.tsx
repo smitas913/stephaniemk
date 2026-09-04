@@ -243,6 +243,7 @@ export default function ScanCardDialog({
               Snap the profile card, check what came off it, then decide whether she becomes a customer or a facial contact.
             </DialogDescription>
           </DialogHeader>
+          {cameraOverlay}
 
           {step === "capture" && (
             <div className="space-y-3">
