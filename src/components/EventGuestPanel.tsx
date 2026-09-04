@@ -20,6 +20,15 @@ import { format } from "date-fns";
 import { checkForDuplicatePerson, type DuplicateMatch, fillEmptyFieldsFromNew } from "@/lib/duplicateCheck";
 import DuplicateGuardDialog from "@/components/DuplicateGuardDialog";
 import ScanCardDialog, { type ScanCardSeed } from "@/components/ScanCardDialog";
+import BeautyProfileFields from "@/components/BeautyProfileFields";
+import BirthdayInput from "@/components/BirthdayInput";
+import { cleanBeautyProfile, isBeautyProfileEmpty, type BeautyProfile } from "@/lib/beautyProfile";
+import {
+  EMPTY_BIRTHDAY_VALUE,
+  birthdayColumns,
+  birthdayValueFromRecord,
+  type BirthdayValue,
+} from "@/lib/birthday";
 
 
 interface Props {
@@ -971,11 +980,15 @@ function ConvertGuestToCustomerDialog({
   const [scanExtracted, setScanExtracted] = useState<import("@/lib/scanPhoto").Extracted | null>(null);
   const [scanFields, setScanFields] = useState<Record<string, string>>({});
   const [scanOrders, setScanOrders] = useState<import("@/lib/scanPhoto").OrderDraft[]>([]);
+  // Beauty Profile read off the card — reviewed/edited here before it is saved.
+  const [scanProfile, setScanProfile] = useState<BeautyProfile>({});
+  const [scanBirthday, setScanBirthday] = useState<BirthdayValue>(EMPTY_BIRTHDAY_VALUE);
 
   const resetScan = () => {
     setScanFile(null); setScanPreview(null); setScanning(false);
     setScanBackFile(null); setScanBackPreview(null);
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
+    setScanProfile({}); setScanBirthday(EMPTY_BIRTHDAY_VALUE);
   };
 
   const closeAll = () => { setPrompt(null); setDupCheck(null); resetScan(); setMode("manual"); };
@@ -1007,19 +1020,18 @@ function ConvertGuestToCustomerDialog({
           city: scanPayload.city?.trim() || null,
           state_territory: scanPayload.state_territory?.trim() || null,
           postal_code: scanPayload.postal_code?.trim() || null,
-          birthday: scanPayload.birthday?.trim() || null,
+          ...(mode === "scan" ? birthdayColumns(scanBirthday) : {}),
           relationship_status: "Customer",
           assigned_consultant_id: prompt.assign === "__me__" ? null : prompt.assign,
         } as any, { allowDuplicate: true });
 
         // If we ran a scan, finalize: upload image + create orders + audit note.
         if (mode === "scan" && scanExtracted) {
-          const { finalizeScanForNewCustomer, beautyProfileFromExtracted } = await import("@/lib/scanPhoto");
+          const { finalizeScanForNewCustomer } = await import("@/lib/scanPhoto");
 
           // 1) Beauty Profile read off the card — saved on its own so nothing else can block it.
           try {
-            const { cleanBeautyProfile, isBeautyProfileEmpty } = await import("@/lib/beautyProfile");
-            const cardProfile = cleanBeautyProfile(beautyProfileFromExtracted(scanExtracted));
+            const cardProfile = cleanBeautyProfile(scanProfile);
             if (!isBeautyProfileEmpty(cardProfile)) {
               const { updateCustomer } = await import("@/lib/queries");
               await updateCustomer(created.id, { beauty_notes: cardProfile } as any);
@@ -1078,12 +1090,14 @@ function ConvertGuestToCustomerDialog({
     setScanFile(f);
     setScanPreview(URL.createObjectURL(f));
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
+    setScanProfile({}); setScanBirthday(EMPTY_BIRTHDAY_VALUE);
   };
 
   const handleScanBackFile = (f: File) => {
     setScanBackFile(f);
     setScanBackPreview(URL.createObjectURL(f));
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
+    setScanProfile({}); setScanBirthday(EMPTY_BIRTHDAY_VALUE);
   };
 
   const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
@@ -1092,7 +1106,7 @@ function ConvertGuestToCustomerDialog({
     if (!scanFile) return;
     setScanning(true);
     try {
-      const { runScanExtract, orderDraftsFromExtracted, contactFieldsForNewCustomer } = await import("@/lib/scanPhoto");
+      const { runScanExtract, orderDraftsFromExtracted, contactFieldsForNewCustomer, beautyProfileFromExtracted } = await import("@/lib/scanPhoto");
       const ex = await runScanExtract(scanBackFile ? [scanFile, scanBackFile] : scanFile);
       setScanExtracted(ex);
       // Seed editable fields: scanned values, falling back to guest name/phone for any that are missing.
@@ -1102,6 +1116,8 @@ function ConvertGuestToCustomerDialog({
       if (!seeded.email && g.email) seeded.email = g.email;
       setScanFields(seeded);
       setScanOrders(orderDraftsFromExtracted(ex));
+      setScanProfile(beautyProfileFromExtracted(ex));
+      setScanBirthday(birthdayValueFromRecord({ birthday: seeded.birthday || null }));
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
     } finally {
@@ -1226,7 +1242,7 @@ function ConvertGuestToCustomerDialog({
                       <FieldInput label="Full name" value={scanFields.full_name || ""} onChange={(v) => updateScanField("full_name", v)} />
                       <FieldInput label="Phone" value={scanFields.phone || ""} onChange={(v) => updateScanField("phone", v)} />
                       <FieldInput label="Email" value={scanFields.email || ""} onChange={(v) => updateScanField("email", v)} />
-                      <FieldInput label="Birthday" value={scanFields.birthday || ""} onChange={(v) => updateScanField("birthday", v)} placeholder="YYYY-MM-DD" />
+                      <BirthdayInput className="col-span-2" value={scanBirthday} onChange={setScanBirthday} />
                       <FieldInput label="Address line 1" value={scanFields.address_line_1 || ""} onChange={(v) => updateScanField("address_line_1", v)} className="col-span-2" />
                       <FieldInput label="Address line 2" value={scanFields.address_line_2 || ""} onChange={(v) => updateScanField("address_line_2", v)} className="col-span-2" />
                       <FieldInput label="City" value={scanFields.city || ""} onChange={(v) => updateScanField("city", v)} />
@@ -1245,6 +1261,12 @@ function ConvertGuestToCustomerDialog({
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  {/* Beauty Profile read off the card — editable before saving */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <h3 className="text-sm font-semibold">Beauty Profile</h3>
+                    <BeautyProfileFields value={scanProfile} onChange={setScanProfile} showNotes={false} />
                   </div>
 
                   {/* Orders */}

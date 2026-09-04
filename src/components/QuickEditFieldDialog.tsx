@@ -10,6 +10,9 @@ import { formatPhone } from "@/lib/phoneUtils";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { normalizeStateAbbreviation } from "@/lib/usStates";
 
+import BirthdayInput from "@/components/BirthdayInput";
+import { EMPTY_BIRTHDAY_VALUE, birthdayColumns, birthdayValueFromRecord, type BirthdayValue } from "@/lib/birthday";
+
 export type QuickEditField = "phone" | "email" | "birthday" | "address";
 
 interface Customer {
@@ -44,7 +47,7 @@ export default function QuickEditFieldDialog({ customer, field, onClose }: Props
   // Local state per field
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [birthday, setBirthday] = useState("");
+  const [birthday, setBirthday] = useState<BirthdayValue>(EMPTY_BIRTHDAY_VALUE);
   const [addr, setAddr] = useState({
     address_line_1: "",
     address_line_2: "",
@@ -57,14 +60,7 @@ export default function QuickEditFieldDialog({ customer, field, onClose }: Props
     if (!field) return;
     setPhone(customer.phone ? formatPhone(customer.phone) : "");
     setEmail(customer.email || "");
-    setBirthday(
-      customer.birthday
-        ? (() => {
-            const m = customer.birthday!.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            return m ? `${m[2]}/${m[3]}/${m[1]}` : customer.birthday!;
-          })()
-        : customer.birthday_mmdd || ""
-    );
+    setBirthday(birthdayValueFromRecord({ birthday: customer.birthday, birthday_mmdd: customer.birthday_mmdd }));
     setAddr({
       address_line_1: customer.address_line_1 || "",
       address_line_2: customer.address_line_2 || "",
@@ -83,32 +79,7 @@ export default function QuickEditFieldDialog({ customer, field, onClose }: Props
       } else if (field === "email") {
         updates.email = email.trim() || null;
       } else if (field === "birthday") {
-        const raw = birthday.trim();
-        if (!raw) {
-          updates.birthday = null;
-          updates.birthday_mmdd = null;
-        } else {
-          const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-          const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-          if (isoMatch) {
-            const [, y, m, d] = isoMatch;
-            const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
-            updates.birthday = `${y}-${mm}-${dd}`;
-            updates.birthday_mmdd = `${mm}/${dd}`;
-          } else if (slashMatch) {
-            const [, m, d, y] = slashMatch;
-            const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
-            updates.birthday_mmdd = `${mm}/${dd}`;
-            if (y) {
-              const fullYear = y.length === 2 ? `19${y}` : y;
-              updates.birthday = `${fullYear}-${mm}-${dd}`;
-            } else {
-              updates.birthday = null;
-            }
-          } else {
-            throw new Error("Birthday must be MM/DD or MM/DD/YYYY");
-          }
-        }
+        Object.assign(updates, birthdayColumns(birthday));
       } else if (field === "address") {
         updates.address_line_1 = addr.address_line_1.trim() || null;
         updates.address_line_2 = addr.address_line_2.trim() || null;
@@ -168,17 +139,7 @@ export default function QuickEditFieldDialog({ customer, field, onClose }: Props
           )}
 
           {field === "birthday" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="qe-bday">Birthday</Label>
-              <Input
-                id="qe-bday"
-                autoFocus
-                placeholder="MM/DD or MM/DD/YYYY"
-                value={birthday}
-                onChange={(e) => setBirthday(e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">Year is optional.</p>
-            </div>
+            <BirthdayInput value={birthday} onChange={setBirthday} />
           )}
 
           {field === "address" && (
