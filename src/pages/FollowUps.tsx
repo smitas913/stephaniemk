@@ -3481,6 +3481,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       let autoNextDate: string;
       let nextStage = currentDormantStage;
       let cadenceLabel: string;
+      let dormantAdvance: DormantAdvance | null = null;
+      const sourceCustomerRecord = customers.find((c) => c.id === item.id);
 
       if (isDidNotConnect) {
         // Did Not Connect uses shorter retry intervals
@@ -3498,11 +3500,13 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         cadenceLabel = info.label;
       }
 
-      // Check if catalog follow-up is earlier (only for non-DNC)
+      const willAutoArchive = !isDidNotConnect && isDormant && !!dormantAdvance?.autoArchive;
+
+      // Check if catalog follow-up is earlier (only for non-DNC, and never when archiving)
       let effectiveDate = autoNextDate;
       let effectiveSource: "cadence" | "catalog" = "cadence";
       let effectiveLabel = cadenceLabel;
-      if (!isDidNotConnect && catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
+      if (!isDidNotConnect && !willAutoArchive && catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
         effectiveDate = catalogFollowUp.follow_up_date;
         effectiveSource = "catalog";
         effectiveLabel = `${catalogType} Catalog Follow-Up`;
@@ -3510,13 +3514,21 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
       const updates: Record<string, any> = {
         last_contacted: today,
-        next_follow_up_date: effectiveDate,
+        next_follow_up_date: effectiveDate || null,
         follow_up_reason: isDidNotConnect
           ? "Did not connect — retry scheduled"
           : effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
       };
-      if (!isDidNotConnect && isDormant) {
+      if (!isDidNotConnect && isDormant && dormantAdvance) {
         updates.dormant_follow_up_stage = nextStage;
+        updates.dormant_annual_cycles_completed = dormantAdvance.cyclesCompleted;
+        if (dormantAdvance.autoArchive) {
+          updates.is_active = false;
+          updates.archived_at = new Date().toISOString();
+          updates.next_follow_up_date = null;
+          updates.follow_up_reason = null;
+          updates.notes = dormantAutoArchiveNote(dormantAdvance.cyclesCompleted, sourceCustomerRecord?.notes);
+        }
       }
 
       await updateCustomer(item.id, updates as any);
