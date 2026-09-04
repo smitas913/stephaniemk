@@ -27,7 +27,7 @@ export default function DuplicateGuardDialog({
   strong: DuplicateMatch | null;
   softName: DuplicateMatch | null;
   attemptedName: string;
-  targetKind: "customer" | "consultant";
+  targetKind: "customer" | "consultant" | "prospect";
   onLinkExisting: (match: DuplicateMatch) => void | Promise<void>;
   onCreateAnyway: () => void | Promise<void>;
   linkLabel?: string;
