@@ -476,11 +476,15 @@ export async function finalizeScanForNewCustomer(opts: {
   eventId?: string | null;
 }): Promise<{ driveUrl: string | null; driveError: string | null; driveNeedsSetup: boolean }> {
   const files = (opts.files ?? [opts.file]).filter(Boolean) as File[];
-  const scanPaths = await uploadScanFiles(files, opts.customerId);
-  const drive = await uploadScanPdfToDrive(files, opts.customerName);
+  const { scanPaths, drive } = await backupScanArtifacts(files, opts.customerId, opts.customerName);
   if (drive.url) {
-    await updateCustomer(opts.customerId, { scan_pdf_url: drive.url } as any);
+    try {
+      await updateCustomer(opts.customerId, { scan_pdf_url: drive.url } as any);
+    } catch {
+      /* backup link only — never block the rest of the save */
+    }
   }
+
   const created = await createOrdersFromDrafts({
     customerId: opts.customerId,
     customerName: opts.customerName,
