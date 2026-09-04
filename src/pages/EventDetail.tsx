@@ -38,6 +38,7 @@ import { toast } from "sonner";
 const EVENT_TYPES = ["Party", "Facial", "Guest Event", "Sharing Appointment", "Pearl Appointment", "Career Chat", "Networking Event", "Vendor Event", "On-the-Go"] as const;
 
 const EVENT_FORMATS = ["In-Person", "Virtual"] as const;
+const SHARING_EVENT_FORMATS = ["In-Person", "Virtual", "Phone"] as const;
 const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "David's Bridal", "Warm Chatter", "Networking Event", "Vendor Event", "Facial Box", "Referral", "Current Customer", "Other"] as const;
 
 export default function EventDetail() {
@@ -60,6 +61,9 @@ export default function EventDetail() {
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
+
+  const isSharing = ["Sharing Appointment", "Career Chat", "Pearl Appointment"].includes(event?.event_type ?? "");
+  const formatOptions = isSharing ? SHARING_EVENT_FORMATS : EVENT_FORMATS;
 
   const linkedOrders = useMemo(() =>
     allOrders.filter((o) => o.event_id === eventId || o.parent_event_id === eventId)
@@ -576,7 +580,7 @@ export default function EventDetail() {
                           }
                         }}>
                           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>{EVENT_FORMATS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                          <SelectContent>{formatOptions.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       {/* Unified Status */}
