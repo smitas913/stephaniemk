@@ -43,6 +43,7 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
   const queryClient = useQueryClient();
   const { profile } = useAuth();
   const isDirector = profile?.role === "owner" || profile?.role === "admin";
+  const isMobile = useIsMobile();
 
   const { data: prospects = [], isLoading } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
