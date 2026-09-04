@@ -14,14 +14,68 @@ function toBusinessDay(d: Date): Date {
 
 const RECENT_CONTACT_DAYS = 7;
 
+/** Activity tier cutoffs, measured in days since the most recent order. */
+export const ACTIVE_MAX_DAYS = 120;
+export const WARM_MAX_DAYS = 270;
+
+/** Days before the catalog mail date for the "heads-up" text. */
+export const CATALOG_HEADS_UP_LEAD_DAYS = 7;
+/** Days after the catalog mail date for the "did it arrive?" follow-up text. */
+export const CATALOG_FOLLOW_UP_LAG_DAYS = 5;
+/** Maintenance interval used when no catalog mail date has been set yet. */
+const MAINTENANCE_TOUCH_DAYS = 75;
+
+export const CATALOG_REASONS = {
+  headsUp: "Catalog Coming — Heads-Up Text",
+  followUp: "Catalog Follow-Up Text",
+  virtual: "Send Virtual Catalog Text",
+} as const;
+
+/**
+ * Resolve the next catalog-driven touchpoint for an Active/Warm customer.
+ *
+ * PCP customers get two sequential touchpoints per catalog cycle (heads-up
+ * before the mailing, follow-up after it); non-PCP customers get a single
+ * virtual-catalog text on the mail date itself. Returns null once the cycle's
+ * touchpoints are in the past, or when no catalog mail date is set — callers
+ * then fall back to the normal maintenance cadence.
+ */
+export function getCatalogTouchpoint(
+  catalogMailDate: string | null | undefined,
+  isPcp: boolean,
+  today: Date
+): { date: Date; reason: string; kind: "heads_up" | "catalog_follow_up" | "virtual_catalog" } | null {
+  if (!catalogMailDate) return null;
+  const mail = parseLocalDate(catalogMailDate.slice(0, 10));
+  if (isNaN(mail.getTime())) return null;
+
+  if (!isPcp) {
+    if (mail < today) return null;
+    return { date: mail, reason: CATALOG_REASONS.virtual, kind: "virtual_catalog" };
+  }
+
+  const headsUp = addDays(mail, -CATALOG_HEADS_UP_LEAD_DAYS);
+  const followUp = addDays(mail, CATALOG_FOLLOW_UP_LAG_DAYS);
+  if (headsUp >= today) return { date: headsUp, reason: CATALOG_REASONS.headsUp, kind: "heads_up" };
+  if (followUp >= today) return { date: followUp, reason: CATALOG_REASONS.followUp, kind: "catalog_follow_up" };
+  return null;
+}
+
 /**
  * Compute derived customer fields.
  * @param referenceDate Optional "today" override. When provided (e.g., during Out of Office freeze),
  *   all time-based calculations (activity status, days-since-last-order, auto follow-up dates,
  *   follow-up status) are anchored to this date instead of the real-time clock. This prevents
  *   workflow accumulation while OOO is active.
+ * @param catalogMailDate Optional global "next catalog mail date" (from user settings). When set,
+ *   Active/Warm customers are scheduled off the catalog cycle instead of a fixed interval.
  */
-export function computeCustomerFields(customer: Customer, orders: Order[], referenceDate?: Date): CustomerComputed {
+export function computeCustomerFields(
+  customer: Customer,
+  orders: Order[],
+  referenceDate?: Date,
+  catalogMailDate?: string | null
+): CustomerComputed {
   const isConsultant = customer.relationship_status === "Consultant";
   const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(0, 0, 0, 0);
@@ -32,6 +86,7 @@ export function computeCustomerFields(customer: Customer, orders: Order[], refer
   const lastContacted = customer.last_contacted ? parseLocalDate(customer.last_contacted) : null;
   const daysSinceContact = lastContacted ? differenceInDays(today, lastContacted) : null;
   const recentlyContacted = daysSinceContact !== null && daysSinceContact <= RECENT_CONTACT_DAYS;
+  const isPcp = Array.isArray(customer.tags) && customer.tags.includes("PCP");
 
   // --- Manual new customer flag (read from DB field) ---
   const isNew = !!(customer as any).new_customer_flag;
@@ -41,8 +96,8 @@ export function computeCustomerFields(customer: Customer, orders: Order[], refer
   if (!isConsultant) {
     if (lastOrderDate) {
       const days = differenceInDays(today, lastOrderDate);
-      if (days <= 90) category = "Active";
-      else if (days <= 179) category = "Warm";
+      if (days <= ACTIVE_MAX_DAYS) category = "Active";
+      else if (days <= WARM_MAX_DAYS) category = "Warm";
       else category = "Dormant";
     } else {
       category = "No Orders";
