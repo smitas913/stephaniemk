@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchUserPreferences, upsertUserPreferences } from "@/lib/queries";
+import {
+  CATALOG_HEADS_UP_LEAD_DAYS,
+  CATALOG_FOLLOW_UP_LAG_DAYS,
+} from "@/lib/computedFields";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
