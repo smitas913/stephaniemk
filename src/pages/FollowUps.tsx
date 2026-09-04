@@ -303,6 +303,8 @@ export default function FollowUps() {
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
   const etLoading = false;
   const { data: scheduleSettings, isLoading: ssLoading } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
+  const { data: userPrefs } = useQuery({ queryKey: ["user-preferences"], queryFn: fetchUserPreferences });
+  const nextCatalogMailDate = userPrefs?.next_catalog_mail_date || null;
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
 
