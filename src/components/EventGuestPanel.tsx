@@ -5,7 +5,7 @@ import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest,
 import { SKIN_TYPES } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
-import { useCameraCapture } from "@/lib/scanCapture";
+import { usePhotoCapture } from "@/components/CameraCapture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1086,8 +1086,7 @@ function ConvertGuestToCustomerDialog({
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
   };
 
-  const openScanCapture = useCameraCapture(handleScanFile);
-  const openScanBackCapture = useCameraCapture(handleScanBackFile);
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
 
   const runScan = async () => {
     if (!scanFile) return;
@@ -1133,6 +1132,7 @@ function ConvertGuestToCustomerDialog({
               They ordered at this event. Add them so you can track future follow-ups.
             </DialogDescription>
           </DialogHeader>
+          {cameraOverlay}
 
           {/* Mode switcher */}
           <div className="flex items-center gap-2 text-xs">
@@ -1173,8 +1173,11 @@ function ConvertGuestToCustomerDialog({
               {!scanExtracted && (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => openScanCapture()} className="gap-2" disabled={scanning}>
+                    <Button type="button" variant="outline" onClick={() => takePhoto(handleScanFile, "Front of card")} className="gap-2" disabled={scanning}>
                       📷 {scanFile ? "Replace front" : "Front of card"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => chooseFromLibrary(handleScanFile)} disabled={scanning}>
+                      Choose from library
                     </Button>
                     {scanFile && <span className="text-xs text-muted-foreground truncate">{scanFile.name}</span>}
                   </div>
@@ -1188,8 +1191,11 @@ function ConvertGuestToCustomerDialog({
                     <div className="rounded-md border border-dashed p-3 space-y-2">
                       <p className="text-xs text-muted-foreground">Got writing on the back? Snap it — otherwise skip ahead.</p>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" onClick={() => openScanBackCapture()} className="gap-2" disabled={scanning}>
+                        <Button type="button" size="sm" variant="outline" onClick={() => takePhoto(handleScanBackFile, "Back of card")} className="gap-2" disabled={scanning}>
                           📷 {scanBackFile ? "Replace back" : "Back of card"}
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => chooseFromLibrary(handleScanBackFile)} disabled={scanning}>
+                          Choose from library
                         </Button>
                         {scanBackFile && (
                           <Button type="button" size="sm" variant="ghost" disabled={scanning}

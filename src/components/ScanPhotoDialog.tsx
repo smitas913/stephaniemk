@@ -23,7 +23,7 @@ import {
   applyScanToExistingCustomer,
   beautyProfileFromExtracted,
 } from "@/lib/scanPhoto";
-import { useCameraCapture } from "@/lib/scanCapture";
+import { usePhotoCapture } from "@/components/CameraCapture";
 
 export default function ScanPhotoDialog({
   open,
@@ -73,8 +73,7 @@ export default function ScanPhotoDialog({
     setExtracted(null);
   };
 
-  const openFrontCapture = useCameraCapture(handleFile);
-  const openBackCapture = useCameraCapture(handleBackFile);
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
 
   const runScan = async () => {
     if (!file) return;
@@ -162,12 +161,16 @@ export default function ScanPhotoDialog({
             Snap the front of the card, and the back too if there's writing on it. Nothing is saved to {customer.full_name}'s profile until you confirm below.
           </DialogDescription>
         </DialogHeader>
+        {cameraOverlay}
 
         {!extracted && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => openFrontCapture()} className="gap-2">
+              <Button type="button" variant="outline" onClick={() => takePhoto(handleFile, "Front of card")} className="gap-2">
                 <Camera className="w-4 h-4" />{file ? "Replace front" : "Front of card"}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => chooseFromLibrary(handleFile)}>
+                Choose from library
               </Button>
               {file && <span className="text-xs text-muted-foreground truncate">{file.name}</span>}
             </div>
@@ -181,8 +184,11 @@ export default function ScanPhotoDialog({
               <div className="rounded-md border border-dashed p-3 space-y-2">
                 <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => openBackCapture()} className="gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => takePhoto(handleBackFile, "Back of card")} className="gap-2">
                     <Camera className="w-4 h-4" />{backFile ? "Replace back" : "Back of card"}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => chooseFromLibrary(handleBackFile)}>
+                    Choose from library
                   </Button>
                   {backFile && (
                     <Button type="button" size="sm" variant="ghost" onClick={() => { setBackFile(null); setBackPreview(null); }}>

@@ -54,52 +54,69 @@ export function consumeInterruptedCapture(): boolean {
 /**
  * Opens the camera / photo picker via a throwaway input attached to
  * document.body, so no dialog focus trap can swallow the change event.
+ *
+ * `useCamera: true` adds capture="environment" (hands off to the OS camera app —
+ * this is the fallback path only, used when the in-page camera is unavailable).
+ * The interruption flag is only set on that path, since the photo-library path
+ * and the in-page camera never background the tab for a camera app.
  */
+function pickFile(onFile: (file: File) => void, useCamera: boolean) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  if (useCamera) input.setAttribute("capture", "environment");
+  // Keep it out of view but still clickable/interactive.
+  input.style.position = "fixed";
+  input.style.left = "-10000px";
+  input.style.top = "0";
+  input.style.opacity = "0";
+  input.setAttribute("aria-hidden", "true");
+  document.body.appendChild(input);
+
+  let settled = false;
+  const cleanup = () => {
+    if (settled) return;
+    settled = true;
+    if (useCamera) clearInProgress();
+    window.removeEventListener("focus", onReturn);
+    // Defer removal so the change event finishes dispatching first.
+    setTimeout(() => input.remove(), 0);
+  };
+
+  const onReturn = () => {
+    // If we regain focus and no file ever arrives, the user cancelled.
+    setTimeout(() => {
+      if (!input.files || input.files.length === 0) cleanup();
+    }, 4000);
+  };
+
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    cleanup();
+    if (file) onFile(file);
+  });
+  input.addEventListener("cancel", cleanup);
+  window.addEventListener("focus", onReturn);
+
+  if (useCamera) markInProgress();
+  input.click();
+}
+
+/** Fallback: hand off to the OS camera app via a file input. */
+export function openCameraInput(onFile: (file: File) => void) {
+  pickFile(onFile, true);
+}
+
+/** Opens the photo library picker (no camera app, so no tab backgrounding). */
+export function openPhotoLibrary(onFile: (file: File) => void) {
+  pickFile(onFile, false);
+}
+
+/** @deprecated prefer the in-page camera (see CameraCapture). Kept as fallback. */
 export function useCameraCapture(onFile: (file: File) => void) {
   const cb = useRef(onFile);
   cb.current = onFile;
-
-  return useCallback(() => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.setAttribute("capture", "environment");
-    // Keep it out of view but still clickable/interactive.
-    input.style.position = "fixed";
-    input.style.left = "-10000px";
-    input.style.top = "0";
-    input.style.opacity = "0";
-    input.setAttribute("aria-hidden", "true");
-    document.body.appendChild(input);
-
-    let settled = false;
-    const cleanup = () => {
-      if (settled) return;
-      settled = true;
-      clearInProgress();
-      window.removeEventListener("focus", onReturn);
-      // Defer removal so the change event finishes dispatching first.
-      setTimeout(() => input.remove(), 0);
-    };
-
-    const onReturn = () => {
-      // If we regain focus and no file ever arrives, the user cancelled.
-      setTimeout(() => {
-        if (!input.files || input.files.length === 0) cleanup();
-      }, 4000);
-    };
-
-    input.addEventListener("change", () => {
-      const file = input.files?.[0];
-      cleanup();
-      if (file) cb.current(file);
-    });
-    input.addEventListener("cancel", cleanup);
-    window.addEventListener("focus", onReturn);
-
-    markInProgress();
-    input.click();
-  }, []);
+  return useCallback(() => openCameraInput((f) => cb.current(f)), []);
 }
 
 /** Mount once near the app root to surface interrupted-capture reloads. */

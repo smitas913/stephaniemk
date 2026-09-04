@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useCameraCapture } from "@/lib/scanCapture";
+import { usePhotoCapture } from "@/components/CameraCapture";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -60,10 +60,11 @@ export default function ScanCardDialog({
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<Extracted | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
-  // Camera inputs are created on document.body (see scanCapture) so the Radix
-  // dialog focus trap can't swallow the change event on Android Chrome.
-  const openFrontCapture = useCameraCapture((f: File) => { setFront(f); setFrontPreview(URL.createObjectURL(f)); });
-  const openBackCapture = useCameraCapture((f: File) => { setBack(f); setBackPreview(URL.createObjectURL(f)); });
+  // Photos are captured in-page (see CameraCapture) so Android never
+  // backgrounds — and discards — the tab for the OS camera app.
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
+  const setFrontFile = (f: File) => { setFront(f); setFrontPreview(URL.createObjectURL(f)); };
+  const setBackFile = (f: File) => { setBack(f); setBackPreview(URL.createObjectURL(f)); };
   const [profile, setProfile] = useState<BeautyProfile>({});
   const [notes, setNotes] = useState("");
   const [facialDate, setFacialDate] = useState(todayISO());
@@ -242,13 +243,19 @@ export default function ScanCardDialog({
               Snap the profile card, check what came off it, then decide whether she becomes a customer or a facial contact.
             </DialogDescription>
           </DialogHeader>
+          {cameraOverlay}
 
           {step === "capture" && (
             <div className="space-y-3">
 
-              <Button type="button" variant="outline" onClick={() => openFrontCapture()} className="gap-2">
-                <Camera className="w-4 h-4" />{front ? "Replace front" : "Front of card"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" onClick={() => takePhoto(setFrontFile, "Front of card")} className="gap-2">
+                  <Camera className="w-4 h-4" />{front ? "Replace front" : "Front of card"}
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => chooseFromLibrary(setFrontFile)}>
+                  Choose from library
+                </Button>
+              </div>
               {frontPreview && (
                 <div className="border rounded-md overflow-hidden bg-muted/30">
                   <img src={frontPreview} alt="Front preview" className="w-full max-h-60 object-contain" />
@@ -259,8 +266,11 @@ export default function ScanCardDialog({
                 <div className="rounded-md border border-dashed p-3 space-y-2">
                   <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => openBackCapture()} className="gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => takePhoto(setBackFile, "Back of card")} className="gap-2">
                       <Camera className="w-4 h-4" />{back ? "Replace back" : "Back of card"}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => chooseFromLibrary(setBackFile)}>
+                      Choose from library
                     </Button>
                     {back && (
                       <Button type="button" size="sm" variant="ghost" onClick={() => { setBack(null); setBackPreview(null); }}>
