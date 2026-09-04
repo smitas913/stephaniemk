@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants, fetchUserPreferences } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
@@ -162,14 +162,17 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     return map;
   }, [allNotes]);
 
+  const { data: userPrefs } = useQuery({ queryKey: ["user-preferences"], queryFn: fetchUserPreferences });
+  const catalogMailDate = userPrefs?.next_catalog_mail_date || null;
+
   const enriched: EnrichedCustomer[] = useMemo(() => {
     return customers.map((c) => {
       const custOrders = allOrders.filter((o) => o.customer_id === c.id);
-      const computed = computeCustomerFields(c, custOrders);
+      const computed = computeCustomerFields(c, custOrders, undefined, catalogMailDate);
       const latest_note = notesByCustomer.get(c.id);
       return { ...c, ...computed, latest_note };
     });
-  }, [customers, allOrders, notesByCustomer]);
+  }, [customers, allOrders, notesByCustomer, catalogMailDate]);
 
   const filtered = useMemo(() => {
     let result = enriched.filter((c) => {

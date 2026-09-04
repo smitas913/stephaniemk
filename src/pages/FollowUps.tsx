@@ -772,10 +772,10 @@ export default function FollowUps() {
       .filter((c) => !(Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")))
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
-        const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined);
+        const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined, nextCatalogMailDate);
         return { ...c, ...computed };
       });
-  }, [customers, allOrders, isOOOActive, frozenToday]);
+  }, [customers, allOrders, isOOOActive, frozenToday, nextCatalogMailDate]);
 
   const customerDncSet = useMemo(() => {
     const s = new Set<string>();
