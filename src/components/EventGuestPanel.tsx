@@ -968,7 +968,6 @@ function ConvertGuestToCustomerDialog({
   const [scanExtracted, setScanExtracted] = useState<import("@/lib/scanPhoto").Extracted | null>(null);
   const [scanFields, setScanFields] = useState<Record<string, string>>({});
   const [scanOrders, setScanOrders] = useState<import("@/lib/scanPhoto").OrderDraft[]>([]);
-  const scanInputRef = useRef<HTMLInputElement>(null);
 
   const resetScan = () => {
     setScanFile(null); setScanPreview(null); setScanning(false);
@@ -1154,16 +1153,8 @@ function ConvertGuestToCustomerDialog({
             <div className="space-y-3">
               {!scanExtracted && (
                 <>
-                  <input
-                    ref={scanInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleScanFile(f); }}
-                  />
                   <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => scanInputRef.current?.click()} className="gap-2" disabled={scanning}>
+                    <Button type="button" variant="outline" onClick={() => openScanCapture()} className="gap-2" disabled={scanning}>
                       📷 {scanFile ? "Replace image" : "Choose image"}
                     </Button>
                     {scanFile && <span className="text-xs text-muted-foreground truncate">{scanFile.name}</span>}

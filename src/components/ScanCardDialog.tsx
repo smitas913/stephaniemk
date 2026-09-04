@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useCameraCapture } from "@/lib/scanCapture";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -49,9 +50,7 @@ export default function ScanCardDialog({
   onCreated?: (result: { kind: "customer" | "facial_contact"; id: string; name: string }) => void;
 }) {
   const qc = useQueryClient();
-  const frontRef = useRef<HTMLInputElement>(null);
-  const backRef = useRef<HTMLInputElement>(null);
-
+  
   const [step, setStep] = useState<Step>("capture");
   const [front, setFront] = useState<File | null>(null);
   const [back, setBack] = useState<File | null>(null);
@@ -237,12 +236,8 @@ export default function ScanCardDialog({
 
           {step === "capture" && (
             <div className="space-y-3">
-              <input ref={frontRef} type="file" accept="image/*" capture="environment" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) { setFront(f); setFrontPreview(URL.createObjectURL(f)); } }} />
-              <input ref={backRef} type="file" accept="image/*" capture="environment" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) { setBack(f); setBackPreview(URL.createObjectURL(f)); } }} />
 
-              <Button type="button" variant="outline" onClick={() => frontRef.current?.click()} className="gap-2">
+              <Button type="button" variant="outline" onClick={() => openFrontCapture()} className="gap-2">
                 <Camera className="w-4 h-4" />{front ? "Replace front" : "Front of card"}
               </Button>
               {frontPreview && (
@@ -255,7 +250,7 @@ export default function ScanCardDialog({
                 <div className="rounded-md border border-dashed p-3 space-y-2">
                   <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => backRef.current?.click()} className="gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => openBackCapture()} className="gap-2">
                       <Camera className="w-4 h-4" />{back ? "Replace back" : "Back of card"}
                     </Button>
                     {back && (
