@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import ZoomDefaultsSettings from "@/components/ZoomDefaultsSettings";
 import ScheduleSettings from "@/components/ScheduleSettings";
+import CatalogMailDateSettings from "@/components/CatalogMailDateSettings";
 import EmailPreferenceSettings from "@/components/EmailPreferenceSettings";
 import FinancialDefaultsSettings from "@/components/FinancialDefaultsSettings";
 import DiscountTypeSettings from "@/components/DiscountTypeSettings";
