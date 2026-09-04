@@ -14,92 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      booking_leads: {
-        Row: {
-          address_line_1: string | null
-          allow_non_working_day: boolean
-          city: string | null
-          contact_card_photo_url: string | null
-          converted_consultant_id: string | null
-          converted_customer_id: string | null
-          created_at: string
-          email: string | null
-          id: string
-          last_contact_date: string | null
-          lead_activity: string | null
-          lead_source: string | null
-          met_date: string | null
-          name: string
-          next_follow_up_date: string | null
-          notes: string | null
-          owner_user_id: string | null
-          phone: string | null
-          postal_code: string | null
-          source_detail: string | null
-          state_territory: string | null
-          status: Database["public"]["Enums"]["booking_lead_status"]
-          updated_at: string | null
-        }
-        Insert: {
-          address_line_1?: string | null
-          allow_non_working_day?: boolean
-          city?: string | null
-          contact_card_photo_url?: string | null
-          converted_consultant_id?: string | null
-          converted_customer_id?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          last_contact_date?: string | null
-          lead_activity?: string | null
-          lead_source?: string | null
-          met_date?: string | null
-          name: string
-          next_follow_up_date?: string | null
-          notes?: string | null
-          owner_user_id?: string | null
-          phone?: string | null
-          postal_code?: string | null
-          source_detail?: string | null
-          state_territory?: string | null
-          status?: Database["public"]["Enums"]["booking_lead_status"]
-          updated_at?: string | null
-        }
-        Update: {
-          address_line_1?: string | null
-          allow_non_working_day?: boolean
-          city?: string | null
-          contact_card_photo_url?: string | null
-          converted_consultant_id?: string | null
-          converted_customer_id?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          last_contact_date?: string | null
-          lead_activity?: string | null
-          lead_source?: string | null
-          met_date?: string | null
-          name?: string
-          next_follow_up_date?: string | null
-          notes?: string | null
-          owner_user_id?: string | null
-          phone?: string | null
-          postal_code?: string | null
-          source_detail?: string | null
-          state_territory?: string | null
-          status?: Database["public"]["Enums"]["booking_lead_status"]
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "booking_leads_converted_consultant_id_fkey"
-            columns: ["converted_consultant_id"]
-            isOneToOne: false
-            referencedRelation: "team_consultants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       business_goals: {
         Row: {
           auto_track_key: string | null
@@ -816,7 +730,6 @@ export type Database = {
           hostess_converted_consultant_id: string | null
           hostess_converted_customer_id: string | null
           hostess_email: string | null
-          hostess_lead_id: string | null
           hostess_name: string | null
           hostess_next_action: string | null
           hostess_next_action_date: string | null
@@ -877,7 +790,6 @@ export type Database = {
           hostess_converted_consultant_id?: string | null
           hostess_converted_customer_id?: string | null
           hostess_email?: string | null
-          hostess_lead_id?: string | null
           hostess_name?: string | null
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
@@ -938,7 +850,6 @@ export type Database = {
           hostess_converted_consultant_id?: string | null
           hostess_converted_customer_id?: string | null
           hostess_email?: string | null
-          hostess_lead_id?: string | null
           hostess_name?: string | null
           hostess_next_action?: string | null
           hostess_next_action_date?: string | null
@@ -989,13 +900,6 @@ export type Database = {
             columns: ["hostess_converted_customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "events_hostess_lead_id_fkey"
-            columns: ["hostess_lead_id"]
-            isOneToOne: false
-            referencedRelation: "booking_leads"
             referencedColumns: ["id"]
           },
           {
@@ -2546,13 +2450,6 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "consultant" | "customer"
-      booking_lead_status:
-        | "New Contact"
-        | "Working"
-        | "Booked"
-        | "Not Interested"
-        | "Warm"
-        | "Converted"
       consultant_status: "none" | "pending" | "approved" | "rejected"
       expense_category:
         | "Inventory"
@@ -2720,14 +2617,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "staff", "consultant", "customer"],
-      booking_lead_status: [
-        "New Contact",
-        "Working",
-        "Booked",
-        "Not Interested",
-        "Warm",
-        "Converted",
-      ],
       consultant_status: ["none", "pending", "approved", "rejected"],
       expense_category: [
         "Inventory",
