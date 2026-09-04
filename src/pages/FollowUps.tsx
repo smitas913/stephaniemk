@@ -3488,10 +3488,10 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         autoNextDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
         cadenceLabel = retryInfo.label;
       } else if (isDormant) {
-        const effectiveStage = currentDormantStage || "Stage 1";
-        nextStage = getNextDormantStage(effectiveStage);
-        autoNextDate = getNextDormantFollowUpDate(effectiveStage);
-        cadenceLabel = getDormantStageLabel(nextStage);
+        dormantAdvance = resolveDormantAdvance(currentDormantStage, (sourceCustomerRecord as any)?.dormant_annual_cycles_completed);
+        nextStage = dormantAdvance.nextStage;
+        autoNextDate = dormantAdvance.nextDate;
+        cadenceLabel = dormantAdvance.label;
       } else {
         const info = getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage);
         autoNextDate = format(addDays(new Date(), info.days), "yyyy-MM-dd");
