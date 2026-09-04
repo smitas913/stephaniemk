@@ -20,8 +20,12 @@ export const WARM_MAX_DAYS = 270;
 
 /** Days before the catalog mail date for the "heads-up" text. */
 export const CATALOG_HEADS_UP_LEAD_DAYS = 7;
-/** Days after the catalog mail date for the "did it arrive?" follow-up text. */
-export const CATALOG_FOLLOW_UP_LAG_DAYS = 5;
+/**
+ * Days after the catalog mail date for the "did it arrive?" follow-up text.
+ * Physical catalogs take 7-10 business days to arrive, so this is set well past
+ * that window (14 calendar days) to avoid asking before most customers have it.
+ */
+export const CATALOG_FOLLOW_UP_LAG_DAYS = 14;
 /** Maintenance interval used when no catalog mail date has been set yet. */
 const MAINTENANCE_TOUCH_DAYS = 75;
 
