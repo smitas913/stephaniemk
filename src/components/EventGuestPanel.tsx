@@ -133,6 +133,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string; email: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
   const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
+  const [careerForm, setCareerForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
 
   // Duplicate guard for finalizeJoin (consultant insert)
   const [joinDupCheck, setJoinDupCheck] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
@@ -309,6 +310,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
         break;
       case "career":
         updates.interested = willBeOn;
+        if (willBeOn) {
+          setCareerForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+        } else {
+          setCareerForm((prev) => (prev && prev.guestId === g.id ? null : prev));
+        }
         break;
       case "joined":
         if (willBeOn) {

@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
 
-const BUSINESS_EVENT_TYPES = new Set(["Career Chat", "Pearl Appointment"]);
+const BUSINESS_EVENT_TYPES = new Set(["Sharing Appointment", "Career Chat", "Pearl Appointment"]);
 const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
 
 
@@ -651,6 +651,10 @@ export default function Events() {
                       <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="Party">Party</SelectItem>
                       <SelectItem value="Facial">Facial</SelectItem>
+                      <SelectItem value="Sharing Appointment">Sharing Appointment</SelectItem>
+                      <SelectItem value="Customer Appt">Customer Appt</SelectItem>
+                      <SelectItem value="Guest Event">Guest Event</SelectItem>
+                      <SelectItem value="Lead Generating Event">Lead Gen</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
