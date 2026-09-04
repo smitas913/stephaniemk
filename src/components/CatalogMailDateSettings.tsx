@@ -60,7 +60,9 @@ export default function CatalogMailDateSettings() {
           </p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Customers on the PCP list get a heads-up text 7 days before and a follow-up text 5 days after.
+          Customers on the PCP list get a heads-up text {CATALOG_HEADS_UP_LEAD_DAYS} day
+          {CATALOG_HEADS_UP_LEAD_DAYS === 1 ? "" : "s"} before and a follow-up text{" "}
+          {CATALOG_FOLLOW_UP_LAG_DAYS} day{CATALOG_FOLLOW_UP_LAG_DAYS === 1 ? "" : "s"} after.
           Everyone else who's Active or Warm gets a virtual catalog text on the mail date.
         </p>
         <Button size="sm" disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate()}>
