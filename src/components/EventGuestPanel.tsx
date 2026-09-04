@@ -1172,8 +1172,11 @@ function ConvertGuestToCustomerDialog({
               {!scanExtracted && (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" variant="outline" onClick={() => openScanCapture()} className="gap-2" disabled={scanning}>
+                    <Button type="button" variant="outline" onClick={() => takePhoto(handleScanFile, "Front of card")} className="gap-2" disabled={scanning}>
                       📷 {scanFile ? "Replace front" : "Front of card"}
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => chooseFromLibrary(handleScanFile)} disabled={scanning}>
+                      Choose from library
                     </Button>
                     {scanFile && <span className="text-xs text-muted-foreground truncate">{scanFile.name}</span>}
                   </div>
