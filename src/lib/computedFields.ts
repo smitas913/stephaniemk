@@ -120,6 +120,11 @@ export function computeCustomerFields(
 
   const daysSinceLastOrder = lastOrderDate ? differenceInDays(today, lastOrderDate) : null;
 
+  // --- Catalog-driven touchpoint (Active/Warm only) ---
+  const catalogTouch = !isConsultant && (category === "Active" || category === "Warm")
+    ? getCatalogTouchpoint(catalogMailDate, isPcp, today)
+    : null;
+
   // --- Follow-up date calculation (skip for Consultants) ---
   let nextFollowUp: Date | null = null;
   const hasManualDate = !isConsultant && !!customer.next_follow_up_date;
