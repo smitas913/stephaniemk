@@ -50,9 +50,19 @@ export async function checkForDuplicatePerson(opts: DupOpts): Promise<DuplicateC
   let strong: DuplicateMatch | null = null;
   let softName: DuplicateMatch | null = null;
 
-  const [{ data: customers }, { data: consultants }] = await Promise.all([
-    supabase.from("customers").select("id, full_name, phone, email, date_added").limit(5000),
-    supabase.from("team_consultants").select("id, name, phone, email, join_date").limit(5000),
+  const searchPeople = !opts.prospectsOnly;
+  const searchProspects = !!opts.searchProspects || !!opts.prospectsOnly;
+
+  const [{ data: customers }, { data: consultants }, { data: prospects }] = await Promise.all([
+    searchPeople
+      ? supabase.from("customers").select("id, full_name, phone, email, date_added").limit(5000)
+      : Promise.resolve({ data: [] as any[] }),
+    searchPeople
+      ? supabase.from("team_consultants").select("id, name, phone, email, join_date").limit(5000)
+      : Promise.resolve({ data: [] as any[] }),
+    searchProspects
+      ? supabase.from("prospects").select("id, name, phone, email, date_shared").limit(5000)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const consider = (m: DuplicateMatch) => {
