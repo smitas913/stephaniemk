@@ -265,8 +265,11 @@ export default function ScanCardDialog({
                 <div className="rounded-md border border-dashed p-3 space-y-2">
                   <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => openBackCapture()} className="gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => takePhoto(setBackFile, "Back of card")} className="gap-2">
                       <Camera className="w-4 h-4" />{back ? "Replace back" : "Back of card"}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => chooseFromLibrary(setBackFile)}>
+                      Choose from library
                     </Button>
                     {back && (
                       <Button type="button" size="sm" variant="ghost" onClick={() => { setBack(null); setBackPreview(null); }}>

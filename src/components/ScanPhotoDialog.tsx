@@ -165,8 +165,11 @@ export default function ScanPhotoDialog({
         {!extracted && (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => openFrontCapture()} className="gap-2">
+              <Button type="button" variant="outline" onClick={() => takePhoto(handleFile, "Front of card")} className="gap-2">
                 <Camera className="w-4 h-4" />{file ? "Replace front" : "Front of card"}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => chooseFromLibrary(handleFile)}>
+                Choose from library
               </Button>
               {file && <span className="text-xs text-muted-foreground truncate">{file.name}</span>}
             </div>
