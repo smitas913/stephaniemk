@@ -12,7 +12,7 @@ import {
 import { buildWorkdayFlags, isTodayNonWorkday, spreadTasks } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
-import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
+import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel, resolveDormantAdvance, dormantAutoArchiveNote, type DormantAdvance } from "@/lib/dormantCadence";
 import type { DormantStage } from "@/lib/dormantCadence";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
