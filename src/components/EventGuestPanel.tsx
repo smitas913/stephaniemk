@@ -1232,7 +1232,10 @@ function ConvertGuestToCustomerDialog({
         attemptedName={g.name}
         targetKind="customer"
         linkPending={pending}
-        onLinkExisting={async (match) => { await performCreate(match.id, match.kind); }}
+        onLinkExisting={async (match) => {
+          if (match.kind === "prospect") return;
+          await performCreate(match.id, match.kind);
+        }}
         onCreateAnyway={async () => { await performCreate(); }}
       />
     </>
