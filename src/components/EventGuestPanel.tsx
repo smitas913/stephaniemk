@@ -1172,15 +1172,37 @@ function ConvertGuestToCustomerDialog({
             <div className="space-y-3">
               {!scanExtracted && (
                 <>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" onClick={() => openScanCapture()} className="gap-2" disabled={scanning}>
-                      📷 {scanFile ? "Replace image" : "Choose image"}
+                      📷 {scanFile ? "Replace front" : "Front of card"}
                     </Button>
                     {scanFile && <span className="text-xs text-muted-foreground truncate">{scanFile.name}</span>}
                   </div>
                   {scanPreview && (
                     <div className="border rounded-md overflow-hidden bg-muted/30">
-                      <img src={scanPreview} alt="Scan preview" className="w-full max-h-56 object-contain" />
+                      <img src={scanPreview} alt="Front preview" className="w-full max-h-56 object-contain" />
+                    </div>
+                  )}
+
+                  {scanFile && (
+                    <div className="rounded-md border border-dashed p-3 space-y-2">
+                      <p className="text-xs text-muted-foreground">Got writing on the back? Snap it — otherwise skip ahead.</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={() => openScanBackCapture()} className="gap-2" disabled={scanning}>
+                          📷 {scanBackFile ? "Replace back" : "Back of card"}
+                        </Button>
+                        {scanBackFile && (
+                          <Button type="button" size="sm" variant="ghost" disabled={scanning}
+                            onClick={() => { setScanBackFile(null); setScanBackPreview(null); }}>
+                            Remove back
+                          </Button>
+                        )}
+                      </div>
+                      {scanBackPreview && (
+                        <div className="border rounded-md overflow-hidden bg-muted/30">
+                          <img src={scanBackPreview} alt="Back preview" className="w-full max-h-56 object-contain" />
+                        </div>
+                      )}
                     </div>
                   )}
                   <Button type="button" disabled={!scanFile || scanning} onClick={runScan} className="w-full">
