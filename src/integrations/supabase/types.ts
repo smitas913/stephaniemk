@@ -809,6 +809,8 @@ export type Database = {
           event_type: string | null
           event_venue_type: string | null
           future_bookings_count: number | null
+          google_calendar_event_id: string | null
+          google_calendar_synced_at: string | null
           google_form_link: string | null
           guest_count: number | null
           hostess_converted_consultant_id: string | null
@@ -868,6 +870,8 @@ export type Database = {
           event_type?: string | null
           event_venue_type?: string | null
           future_bookings_count?: number | null
+          google_calendar_event_id?: string | null
+          google_calendar_synced_at?: string | null
           google_form_link?: string | null
           guest_count?: number | null
           hostess_converted_consultant_id?: string | null
@@ -927,6 +931,8 @@ export type Database = {
           event_type?: string | null
           event_venue_type?: string | null
           future_bookings_count?: number | null
+          google_calendar_event_id?: string | null
+          google_calendar_synced_at?: string | null
           google_form_link?: string | null
           guest_count?: number | null
           hostess_converted_consultant_id?: string | null
