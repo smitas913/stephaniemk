@@ -134,7 +134,7 @@ export default function NewEvent() {
   };
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (vars?: { linkProspectId?: string }) => {
       const displayType = isLeadGen ? leadGenSubtype : eventType;
       const eventId = generateEventId(eventType, eventDate, hostessName || "Event", events.map(e => e.event_id));
       const payload: Record<string, any> = {
@@ -162,12 +162,90 @@ export default function NewEvent() {
         payload.virtual_platform_link = platformLink || null;
         payload.virtual_notes = virtualNotes.trim() || null;
       }
+      // Sharing Appointment: connect the booking to the recruiting pipeline.
+      if (isSharing) {
+        const contactName = hostessName.trim();
+        const contactPhone = normalizePhoneForStorage(hostessPhone) || null;
+        const userId = (await supabase.auth.getUser()).data.user?.id || null;
+        let prospectId: string | null = vars?.linkProspectId || null;
+
+        if (!prospectId && contactName) {
+          const { data: created, error: pErr } = await supabase
+            .from("prospects")
+            .insert({
+              name: contactName,
+              phone: contactPhone,
+              ownership_type: sharingOwnership,
+              assigned_consultant_id: sharingOwnership === "unit" ? selectedConsultant?.id ?? null : null,
+              is_career_chat: true,
+              opportunity_status: "Booked",
+              date_shared: eventDate || null,
+              next_step_type: "Sharing Appointment",
+              next_step_date: eventDate || null,
+              next_follow_up_date: eventDate || null,
+              owner_user_id: userId,
+            } as any)
+            .select("id")
+            .single();
+          if (pErr) throw pErr;
+          prospectId = (created as any)?.id || null;
+        } else if (prospectId) {
+          // Linking to an existing prospect — reflect the new booking on their record.
+          await supabase.from("prospects").update({
+            opportunity_status: "Booked",
+            is_career_chat: true,
+            next_step_type: "Sharing Appointment",
+            next_step_date: eventDate || null,
+            next_follow_up_date: eventDate || null,
+            ...(sharingOwnership === "unit" && selectedConsultant
+              ? { ownership_type: "unit", assigned_consultant_id: selectedConsultant.id }
+              : {}),
+          } as any).eq("id", prospectId);
+        }
+
+        if (prospectId) payload.prospect_id = prospectId;
+
+        const inserted = await insertNewEvent(payload as any);
+
+        if (prospectId) {
+          const body = `Sharing appointment scheduled for ${eventDate}${eventTime ? ` at ${eventTime}` : ""}.`;
+          try {
+            // NOTE: no result_type here on purpose — the career_chats metric should only
+            // move once the conversation is actually logged after the appointment.
+            await createNote({
+              entity_type: "Prospect",
+              person_type: "prospect",
+              person_id: prospectId,
+              prospect_id: prospectId,
+              note_body: body,
+              note_type: "Sharing Appointment",
+              note_date: toLocalDateKey(),
+            });
+            if (sharingOwnership === "unit" && selectedConsultant) {
+              await createNote({
+                entity_type: "Consultant",
+                person_type: "consultant",
+                person_id: selectedConsultant.id,
+                note_body: `${contactName || "Prospect"} — ${body}`,
+                note_type: "Sharing Appointment",
+                note_date: toLocalDateKey(),
+              });
+            }
+          } catch (e) {
+            console.error("Failed to add sharing appointment notes", e);
+          }
+        }
+        return (inserted?.event_id as string) || eventId;
+      }
+
       const inserted = await insertNewEvent(payload as any);
       return (inserted?.event_id as string) || eventId;
     },
     onSuccess: async (eventId) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["prospects"] });
+      queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
 
 
       // Auto-add pending guest for Guest Events booked from lead/booking flow
@@ -220,7 +298,36 @@ export default function NewEvent() {
     },
   });
 
-  const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype) && !mutation.isPending;
+  const canSubmit = eventType && eventDate && (!isLeadGen || leadGenSubtype)
+    && (!isSharing || sharingOwnership === "personal" || !!selectedConsultant)
+    && !mutation.isPending && !dupChecking;
+
+  // For Sharing Appointments, look for an existing prospect before creating a new one.
+  const handleCreate = async () => {
+    const contactName = hostessName.trim();
+    if (!isSharing || !contactName) {
+      mutation.mutate({});
+      return;
+    }
+    setDupChecking(true);
+    try {
+      const res = await checkForDuplicatePerson({
+        fullName: contactName,
+        phone: hostessPhone,
+        kind: "prospect",
+        prospectsOnly: true,
+      });
+      if (res.strong || res.softName) {
+        setDupCheck(res);
+        return;
+      }
+    } catch (e) {
+      console.error("Prospect duplicate check failed", e);
+    } finally {
+      setDupChecking(false);
+    }
+    mutation.mutate({});
+  };
 
   return (
     <Layout>
@@ -387,8 +494,21 @@ export default function NewEvent() {
               </div>
             </div>
 
+            {/* Location — Sharing Appointment: single plain location field */}
+            {!isVirtual && isSharing && (
+              <div className="max-w-sm">
+                <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
+                <AddressAutocomplete
+                  value={eventLocation}
+                  onChange={setEventLocation}
+                  onAddressSelect={(parsed) => setEventLocation(parsed.formatted)}
+                  placeholder="Address, coffee shop, or meeting spot"
+                />
+              </div>
+            )}
+
             {/* Location — only for In-Person */}
-            {!isVirtual && (
+            {!isVirtual && !isSharing && (
               <div className="space-y-3 max-w-sm">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Venue Type</label>
@@ -465,8 +585,58 @@ export default function NewEvent() {
             </div>
             )}
 
-            {/* Where did you meet the hostess? — hide for Guest Events */}
-            {eventType !== "Guest Event" && (
+            {/* Personal / Unit toggle — Sharing Appointment only */}
+            {isSharing && (
+              <div className="max-w-sm space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Who is this for?</label>
+                  <div className="flex gap-3">
+                    {([["personal", "Personal"], ["unit", "For a Consultant"]] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => {
+                          setSharingOwnership(val);
+                          if (val === "personal") { setSelectedConsultant(null); setConsultantQuery(""); }
+                        }}
+                        className={cn(
+                          "flex-1 h-10 rounded-lg border-2 text-sm font-medium transition-colors",
+                          sharingOwnership === val
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {sharingOwnership === "unit" && (
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">Which consultant? *</label>
+                    <Input
+                      placeholder="Search consultant..."
+                      value={selectedConsultant ? selectedConsultant.name : consultantQuery}
+                      onChange={(e) => { setConsultantQuery(e.target.value); setSelectedConsultant(null); }}
+                      className="h-10"
+                    />
+                    {consultantMatches.length > 0 && !selectedConsultant && (
+                      <div className="border border-border rounded-lg mt-1 divide-y divide-border/40">
+                        {consultantMatches.map((c: any) => (
+                          <button key={c.id} type="button" className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm"
+                            onClick={() => { setSelectedConsultant({ id: c.id, name: c.name }); setConsultantQuery(c.name); }}>
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Where did you meet the hostess? — hide for Guest Events and Sharing Appointments */}
+            {eventType !== "Guest Event" && !isSharing && (
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Where did you meet the hostess?</label>
               <select
@@ -488,8 +658,8 @@ export default function NewEvent() {
 
             {/* Submit */}
             <div className="flex gap-3 pt-2">
-              <Button className="h-11 px-8" disabled={!canSubmit} onClick={() => mutation.mutate()}>
-                {mutation.isPending ? "Creating..." : "Create Event"}
+              <Button className="h-11 px-8" disabled={!canSubmit} onClick={handleCreate}>
+                {mutation.isPending || dupChecking ? "Creating..." : "Create Event"}
               </Button>
               <Button variant="outline" className="h-11" onClick={() => navigate(fromPath)}>
                 Cancel
@@ -498,6 +668,20 @@ export default function NewEvent() {
           </CardContent>
         </Card>
       </div>
+
+      <DuplicateGuardDialog
+        open={!!dupCheck}
+        onOpenChange={(v) => { if (!v) { setDupCheck(null); setDupChecking(false); } }}
+        strong={dupCheck?.strong || null}
+        softName={dupCheck?.softName || null}
+        attemptedName={hostessName.trim()}
+        targetKind="prospect"
+        linkLabel="Link to existing prospect"
+        createLabel="Create new prospect"
+        linkPending={mutation.isPending}
+        onLinkExisting={(match) => { setDupCheck(null); setDupChecking(false); mutation.mutate({ linkProspectId: match.id }); }}
+        onCreateAnyway={() => { setDupCheck(null); setDupChecking(false); mutation.mutate({}); }}
+      />
     </Layout>
   );
 }
