@@ -1806,15 +1806,17 @@ export default function FollowUps() {
       if (item.itemType === "customer") {
         const isDormant = item.activity_status === "Dormant";
         const currentStage = (item.dormant_follow_up_stage || null) as DormantStage;
+        const sourceCustomer = customers.find((c) => c.id === item.id);
 
         let nextDate: string;
         let nextStage: DormantStage = currentStage;
+        let advance: DormantAdvance | null = null;
 
         if (isDormant) {
-          // Use dormant cadence
-          const effectiveStage = currentStage || "Stage 1";
-          nextStage = getNextDormantStage(effectiveStage as DormantStage);
-          nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
+          // Use dormant cadence (auto-archives after 2 annual cycles)
+          advance = resolveDormantAdvance(currentStage, (sourceCustomer as any)?.dormant_annual_cycles_completed);
+          nextStage = advance.nextStage;
+          nextDate = advance.nextDate;
         } else {
           // Default to Quick Follow-Up (2 days) — not reorder cycle
           nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
@@ -1822,13 +1824,21 @@ export default function FollowUps() {
 
         const updates: Record<string, any> = {
           last_contacted: today,
-          next_follow_up_date: nextDate,
+          next_follow_up_date: nextDate || null,
         };
-        if (isDormant) {
+        if (isDormant && advance) {
           updates.dormant_follow_up_stage = nextStage;
+          updates.dormant_annual_cycles_completed = advance.cyclesCompleted;
+          if (advance.autoArchive) {
+            updates.is_active = false;
+            updates.archived_at = new Date().toISOString();
+            updates.next_follow_up_date = null;
+            updates.follow_up_reason = null;
+            updates.notes = dormantAutoArchiveNote(advance.cyclesCompleted, sourceCustomer?.notes);
+          }
         }
         await updateCustomer(item.id, updates as any);
-        await logCustomerActivity({ customerId: item.id, noteType: nType, noteText: note, nextFollowUpDate: nextDate });
+        await logCustomerActivity({ customerId: item.id, noteType: nType, noteText: note, nextFollowUpDate: updates.next_follow_up_date || undefined });
       } else if (item.itemType === "prospect") {
         const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
         await updateProspect(item.id, { last_contact_date: today, next_follow_up_date: nextDate } as any);
