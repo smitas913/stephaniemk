@@ -2,13 +2,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { stripPhone, normalizeEmail } from "./phoneUtils";
 
 export type DuplicateMatch = {
-  kind: "customer" | "consultant";
+  kind: "customer" | "consultant" | "prospect";
   id: string;
   name: string;
   phone: string | null;
   email: string | null;
   reason: "phone" | "email" | "name";
-  extra?: { join_date?: string | null; date_added?: string | null };
+  extra?: { join_date?: string | null; date_added?: string | null; date_shared?: string | null };
 };
 
 export type DuplicateCheckResult = {
