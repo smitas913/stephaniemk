@@ -194,6 +194,8 @@ export type UserPreferences = {
   user_id: string;
   weekly_reset_day: number; // 0=Sun..6=Sat
   weekly_reset_last_dismissed: string | null;
+  /** Global "next catalog mail date" — drives Active/Warm catalog touchpoints. */
+  next_catalog_mail_date: string | null;
 };
 
 export const fetchUserPreferences = async (): Promise<UserPreferences | null> => {
