@@ -282,6 +282,17 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
     return Array.from(s).sort((a, b) => a.localeCompare(b));
   }, [customers]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterArchive !== "active") count++;
+    if (filterDnc !== "active") count++;
+    if (filterSkincare !== "all") count++;
+    if (filterAssigned !== "all") count++;
+    if (filterMissing.length > 0) count++;
+    if (filterTags.length > 0) count++;
+    return count;
+  }, [filterArchive, filterDnc, filterSkincare, filterAssigned, filterMissing, filterTags]);
+
   const statusBadge = (val: string, colors: string) => val ? <span className={cn("text-[11px] px-1.5 py-0.5 rounded font-medium", colors)}>{val}</span> : null;
 
   const customerHasOrders = (customerId: string) => allOrders.some((o) => o.customer_id === customerId);
