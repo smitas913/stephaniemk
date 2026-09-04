@@ -54,11 +54,12 @@ function getActiveOutcomes(g: EventGuest): Set<OutcomeKey> {
 const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
   { key: "tried",   label: "Tried Product" },
   { key: "ordered", label: "Ordered" },
-  { key: "booked",  label: "Booked Next Event" },
-  { key: "career",  label: "Career Interest" },
+  { key: "booked",  label: "Booked New Appointment" },
+  { key: "career",  label: "Booked Career Chat" },
   { key: "joined",  label: "She Joined" },
   { key: "noshow",  label: "No Show" },
 ];
+
 
 function GuestSkinTypeSelect({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   return (
@@ -330,10 +331,11 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
 
     if (willBeOn) {
       if (outcome === "ordered") toast.success(`${g.name} marked Ordered`);
-      if (outcome === "booked")  toast.success(`${g.name} marked Booked Next`);
-      if (outcome === "career")  toast.success(`${g.name} marked Career Interest`);
+      if (outcome === "booked")  toast.success(`${g.name} marked Booked New Appointment`);
+      if (outcome === "career")  toast.success(`${g.name} marked Booked Career Chat`);
       if (outcome === "tried")   toast.success(`${g.name} marked Tried Product`);
     }
+
   };
 
   const finalizeJoin = async () => {
