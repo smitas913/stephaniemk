@@ -117,16 +117,6 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
 
-  const addMutation = useMutation({
-    mutationFn: createCustomer,
-    onSuccess: (newCustomer) => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      setOpen(false);
-      setForm({ full_name: "", phone: "", email: "" });
-      navigate(`/customers/${newCustomer.id}`);
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: deleteCustomer,
     onSuccess: () => {
