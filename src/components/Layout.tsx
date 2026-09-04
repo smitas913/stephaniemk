@@ -18,7 +18,6 @@ import {
   BookOpen,
   MoreHorizontal,
   FileText,
-  Droplets,
 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,7 +42,6 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
-  { to: "/facial-contacts", label: "Facial Contacts", icon: Droplets },
   { to: "/performance", label: "Averages", icon: TrendingUp },
 
   { to: "/analytics", label: "Analytics", icon: Target },
