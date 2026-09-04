@@ -247,9 +247,14 @@ export default function ScanCardDialog({
           {step === "capture" && (
             <div className="space-y-3">
 
-              <Button type="button" variant="outline" onClick={() => openFrontCapture()} className="gap-2">
-                <Camera className="w-4 h-4" />{front ? "Replace front" : "Front of card"}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" variant="outline" onClick={() => takePhoto(setFrontFile, "Front of card")} className="gap-2">
+                  <Camera className="w-4 h-4" />{front ? "Replace front" : "Front of card"}
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => chooseFromLibrary(setFrontFile)}>
+                  Choose from library
+                </Button>
+              </div>
               {frontPreview && (
                 <div className="border rounded-md overflow-hidden bg-muted/30">
                   <img src={frontPreview} alt="Front preview" className="w-full max-h-60 object-contain" />
