@@ -1035,6 +1035,7 @@ function ConvertGuestToCustomerDialog({
               customerId: created.id,
               customerName: (created as any).full_name || g.name,
               file: scanFile,
+              files: [scanFile, scanBackFile],
               extracted: scanExtracted,
               orderDrafts: scanOrders,
               eventId,
