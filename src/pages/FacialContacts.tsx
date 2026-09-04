@@ -12,8 +12,9 @@ import { fetchFacialContacts, facialContactMatches } from "@/lib/facialContacts"
 import { formatPhone } from "@/lib/phoneUtils";
 import ScanCardDialog from "@/components/ScanCardDialog";
 import FacialContactDetailSheet from "@/components/FacialContactDetailSheet";
+import Layout from "@/components/Layout";
 
-export default function FacialContacts() {
+export default function FacialContacts({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [skinFilter, setSkinFilter] = useState<string>("all");
@@ -37,22 +38,24 @@ export default function FacialContacts() {
     [contacts, search, skinFilter, rebookOnly],
   );
 
-  return (
-    <div className="container py-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Droplets className="w-6 h-6 text-primary" />
-            Facial Contacts
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Scanned profile cards for faces who haven't become customers — kept out of Clients and Leads.
-          </p>
+  const content = (
+    <div className={embedded ? "" : "container py-6 space-y-4"}>
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Droplets className="w-6 h-6 text-primary" />
+              Facial Contacts
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Scanned profile cards for faces who haven't become customers — kept out of Clients and Leads.
+            </p>
+          </div>
+          <Button onClick={() => setScanOpen(true)} className="gap-2">
+            <ScanLine className="w-4 h-4" />Scan Card
+          </Button>
         </div>
-        <Button onClick={() => setScanOpen(true)} className="gap-2">
-          <ScanLine className="w-4 h-4" />Scan Card
-        </Button>
-      </div>
+      )}
 
       <Card className="border-border/50 shadow-sm">
         <CardHeader className="pb-3">
@@ -202,4 +205,6 @@ export default function FacialContacts() {
       />
     </div>
   );
+
+  return embedded ? content : <Layout>{content}</Layout>;
 }

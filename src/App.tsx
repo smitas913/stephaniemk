@@ -209,14 +209,7 @@ const AppRoutes = () => (
       }
     />
     <Route path="/customers" element={<CustomersRedirect />} />
-    <Route
-      path="/facial-contacts"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <FacialContacts />
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/facial-contacts" element={<Navigate to="/clients?tab=facial-contacts" replace />} />
 
     <Route path="/booking-leads/:id" element={<Navigate to="/clients" replace />} />
     <Route path="/booking-leads" element={<Navigate to="/clients" replace />} />

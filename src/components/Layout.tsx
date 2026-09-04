@@ -43,7 +43,6 @@ const primaryNavItems = [
 ];
 
 const secondaryNavItems = [
-  { to: "/facial-contacts", label: "Facial Contacts", icon: Droplets },
   { to: "/performance", label: "Averages", icon: TrendingUp },
 
   { to: "/analytics", label: "Analytics", icon: Target },
