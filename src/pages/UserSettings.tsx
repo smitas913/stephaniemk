@@ -52,6 +52,7 @@ export default function UserSettings() {
 
           <TabsContent value="schedule" className="space-y-4 mt-4">
             <ScheduleSettings />
+            <CatalogMailDateSettings />
             <EmailPreferenceSettings />
           </TabsContent>
 
