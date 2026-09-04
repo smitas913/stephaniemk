@@ -1,18 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag, Sparkles, X, FileSpreadsheet, MoreHorizontal, Filter } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag, Sparkles, X, FileSpreadsheet, MoreHorizontal, Filter, Camera, FilePenLine } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import PCPImportDialog from "@/components/PCPImportDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose, SheetFooter } from "@/components/ui/sheet";
-
+import ScanCardDialog from "@/components/ScanCardDialog";
 import { beautyProfileSearchText } from "@/lib/beautyProfile";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import TextActionButton from "@/components/TextActionButton";
@@ -33,6 +32,7 @@ import TextActionButton from "@/components/TextActionButton";
 type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
 };
+
 
 export default function CustomerList({ embedded = false }: { embedded?: boolean }) {
   const isMobile = useIsMobile();
