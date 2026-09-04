@@ -1113,6 +1113,17 @@ export default function EventDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <QuickCareerChatDialog
+        open={careerChatOpen}
+        onOpenChange={setCareerChatOpen}
+        initialProspectId={(event as any)?.prospect_id ?? null}
+        onLogged={() => {
+          setCareerChatOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["prospects"] });
+          queryClient.invalidateQueries({ queryKey: ["events"] });
+        }}
+      />
+
     </Layout>
   );
 }
