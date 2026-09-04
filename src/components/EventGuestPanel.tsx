@@ -773,7 +773,26 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         </div>
                       </div>
                     );
-                  })()}
+                   })()}
+
+                  {/* Inline career interest panel */}
+                  {careerForm && careerForm.guestId === g.id && (
+                    <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50/60 space-y-2">
+                      <p className="text-xs font-medium text-amber-800">Book a sharing appointment</p>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <Button size="sm" className="h-8 text-xs" onClick={createSharingAppointment}>
+                          Create Sharing Appointment for {careerForm.name}
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => setCareerForm(null)}
+                          className="ml-auto text-[11px] text-muted-foreground hover:underline"
+                        >
+                          Skip
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               );
