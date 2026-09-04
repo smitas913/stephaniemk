@@ -144,13 +144,98 @@ export async function runScanExtract(input: File | Array<File | null | undefined
 // Combined front/back PDF + Google Drive backup
 // ---------------------------------------------------------------------------
 
+/** True when the bytes start with the PNG magic number. */
+function isPngBytes(b: Uint8Array) {
+  return b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+}
+
+/** True when the bytes start with the JPEG SOI marker. */
+function isJpegBytes(b: Uint8Array) {
+  return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+}
+
+/**
+ * Re-encode any browser-decodable image (HEIC/HEIF from an iPhone, WebP, TIFF,
+ * etc.) to JPEG bytes using a canvas. Returns null when the browser can't
+ * decode the format at all.
+ */
+async function reencodeToJpegBytes(file: File): Promise<Uint8Array | null> {
+  const drawToBlob = async (source: CanvasImageSource, width: number, height: number) => {
+    // Cap the long edge so a 12MP phone photo doesn't blow up the payload.
+    const maxEdge = 2000;
+    const scale = Math.min(1, maxEdge / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9),
+    );
+    if (!blob) return null;
+    return new Uint8Array(await blob.arrayBuffer());
+  };
+
+  // Preferred path: createImageBitmap handles anything the browser can decode
+  // (Safari on iOS decodes HEIC here).
+  try {
+    if (typeof createImageBitmap === "function") {
+      const bmp = await createImageBitmap(file);
+      const out = await drawToBlob(bmp, bmp.width, bmp.height);
+      bmp.close?.();
+      if (out) return out;
+    }
+  } catch {
+    /* fall through to the <img> path */
+  }
+
+  // Fallback: decode through an <img> element + object URL.
+  try {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = () => reject(new Error("decode failed"));
+        el.src = url;
+      });
+      return await drawToBlob(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  } catch {
+    return null;
+  }
+}
+
 async function imagesToPdfBase64(files: File[]): Promise<string> {
   const { PDFDocument } = await import("pdf-lib");
   const doc = await PDFDocument.create();
+  let embedded = 0;
   for (const f of files) {
+    let img: Awaited<ReturnType<typeof doc.embedJpg>> | null = null;
     const bytes = new Uint8Array(await f.arrayBuffer());
-    const isPng = (f.type || "").includes("png") || (bytes[0] === 0x89 && bytes[1] === 0x50);
-    const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    try {
+      if (isPngBytes(bytes)) img = await doc.embedPng(bytes);
+      else if (isJpegBytes(bytes)) img = await doc.embedJpg(bytes);
+    } catch {
+      img = null;
+    }
+    if (!img) {
+      // Anything else (HEIC/HEIF, WebP, TIFF, or a corrupt header) — re-encode.
+      const jpeg = await reencodeToJpegBytes(f);
+      if (jpeg) {
+        try {
+          img = await doc.embedJpg(jpeg);
+        } catch {
+          img = null;
+        }
+      }
+    }
+    if (!img) continue; // Skip an undecodable page rather than losing the whole PDF.
     // Letter-size page, image scaled to fit with a small margin
     const pageW = 612;
     const pageH = 792;
@@ -160,10 +245,13 @@ async function imagesToPdfBase64(files: File[]): Promise<string> {
     const w = img.width * scale;
     const h = img.height * scale;
     page.drawImage(img, { x: (pageW - w) / 2, y: (pageH - h) / 2, width: w, height: h });
+    embedded += 1;
   }
+  if (embedded === 0) throw new Error("None of the card photos could be read as an image");
   const b64 = await doc.saveAsBase64();
   return b64;
 }
+
 
 export type DriveUploadResult = { url: string | null; error: string | null; needsSetup: boolean };
 
