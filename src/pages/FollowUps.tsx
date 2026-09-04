@@ -7,7 +7,7 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings,
+  fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings, fetchUserPreferences,
 } from "@/lib/queries";
 import { buildWorkdayFlags, isTodayNonWorkday, spreadTasks } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
