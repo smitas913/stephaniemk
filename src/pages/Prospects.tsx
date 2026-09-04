@@ -130,6 +130,15 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
     return counts;
   }, [prospects]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterStatus !== "all") count++;
+    if (filterDnc !== "active") count++;
+    if (filterConsultant !== "all") count++;
+    if (showArchived) count++;
+    return count;
+  }, [filterStatus, filterDnc, filterConsultant, showArchived]);
+
   const createMut = useMutation({
     mutationFn: () => {
       if (prospectRequiresNextDate(formStatus) && !formNextStepDate) {
