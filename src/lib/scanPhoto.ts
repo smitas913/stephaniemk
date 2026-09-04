@@ -368,8 +368,8 @@ export async function applyScanToExistingCustomer(opts: {
   const { customer, extracted, resolutions, orderDrafts, eventId } = opts;
   const files = (opts.files ?? [opts.file]).filter(Boolean) as File[];
 
-  const scanPaths = await uploadScanFiles(files, customer.id);
-  const drive = await uploadScanPdfToDrive(files, customer.full_name);
+  const { scanPaths, drive } = await backupScanArtifacts(files, customer.id, customer.full_name);
+
 
   const updates: Record<string, unknown> = {};
   const conflictLines: string[] = [];
