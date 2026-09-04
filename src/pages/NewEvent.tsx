@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useEffect } from "react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, insertNewEvent, fetchZoomDefaults } from "@/lib/queries";
+import { fetchEvents, insertNewEvent, fetchZoomDefaults, fetchTeamConsultants, createNote } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
+import { checkForDuplicatePerson, type DuplicateMatch } from "@/lib/duplicateCheck";
+import DuplicateGuardDialog from "@/components/DuplicateGuardDialog";
+import { normalizePhoneForStorage } from "@/lib/phoneUtils";
 import { generateEventId } from "@/lib/eventId";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import Layout from "@/components/Layout";
@@ -12,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, MessageSquare, Users, UserCheck, Gem } from "lucide-react";
+import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, Users, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -21,9 +25,7 @@ const EVENT_TYPES = [
   { value: "Facial", label: "Facial", icon: Sparkles },
   { value: "customer_appt", label: "Customer Appt", icon: UserCheck },
   { value: "Guest Event", label: "Guest Event", icon: Users },
-  { value: "Career Chat", label: "Career Chat", icon: MessageSquare },
   { value: "Sharing Appointment", label: "Sharing Appt", icon: Share2 },
-  { value: "Pearl Appointment", label: "Pearl Appt", icon: Gem },
   { value: "Lead Generating Event", label: "Lead Gen", icon: Megaphone },
 ] as const;
 
@@ -72,6 +74,12 @@ export default function NewEvent() {
   const [platformName, setPlatformName] = useState("");
   const [platformLink, setPlatformLink] = useState("");
   const [virtualNotes, setVirtualNotes] = useState("");
+  // Sharing Appointment — recruiting linkage
+  const [sharingOwnership, setSharingOwnership] = useState<"personal" | "unit">("personal");
+  const [consultantQuery, setConsultantQuery] = useState("");
+  const [selectedConsultant, setSelectedConsultant] = useState<{ id: string; name: string } | null>(null);
+  const [dupCheck, setDupCheck] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
+  const [dupChecking, setDupChecking] = useState(false);
 
   // Prefill from query params (e.g. when navigated from "Booking Created" in interaction panel)
   const [pendingGuestName, setPendingGuestName] = useState("");
@@ -81,7 +89,7 @@ export default function NewEvent() {
     const t = searchParams.get("type");
     const h = searchParams.get("hostess");
     const p = searchParams.get("phone");
-    if (t && ["Party", "Facial", "customer_appt", "Guest Event", "Career Chat", "Sharing Appointment", "Pearl Appointment", "Lead Generating Event"].includes(t)) {
+    if (t && ["Party", "Facial", "customer_appt", "Guest Event", "Sharing Appointment", "Lead Generating Event"].includes(t)) {
       setEventType(t);
     }
     if (t === "Guest Event") {
@@ -97,6 +105,14 @@ export default function NewEvent() {
 
   const isLeadGen = eventType === "Lead Generating Event";
   const isVirtual = eventFormat === "Virtual";
+  const isSharing = eventType === "Sharing Appointment";
+
+  const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const consultantMatches = useMemo(() => {
+    const q = consultantQuery.toLowerCase().trim();
+    if (!q || selectedConsultant) return [];
+    return (consultants as any[]).filter((c: any) => c.name?.toLowerCase().includes(q)).slice(0, 5);
+  }, [consultants, consultantQuery, selectedConsultant]);
 
   // Auto-fill zoom defaults when switching to Zoom
   const handlePlatformChange = (platform: string) => {
