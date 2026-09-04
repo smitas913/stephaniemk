@@ -12,6 +12,13 @@ import { fetchEvents, createCustomer, updateEventGuest } from "@/lib/queries";
 import { createFacialContact } from "@/lib/facialContacts";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import BeautyProfileFields from "@/components/BeautyProfileFields";
+import BirthdayInput from "@/components/BirthdayInput";
+import {
+  EMPTY_BIRTHDAY_VALUE,
+  birthdayColumns,
+  birthdayValueFromRecord,
+  type BirthdayValue,
+} from "@/lib/birthday";
 import {
   cleanBeautyProfile,
   derivedSkinType,
@@ -66,6 +73,7 @@ export default function ScanCardDialog({
   const setFrontFile = (f: File) => { setFront(f); setFrontPreview(URL.createObjectURL(f)); };
   const setBackFile = (f: File) => { setBack(f); setBackPreview(URL.createObjectURL(f)); };
   const [profile, setProfile] = useState<BeautyProfile>({});
+  const [birthday, setBirthday] = useState<BirthdayValue>(EMPTY_BIRTHDAY_VALUE);
   const [notes, setNotes] = useState("");
   const [facialDate, setFacialDate] = useState(todayISO());
   const [eventId, setEventId] = useState<string | null>(seed?.eventId ?? null);
@@ -85,6 +93,7 @@ export default function ScanCardDialog({
     setScanning(false); setSaving(false); setExtracted(null);
     setFields({ full_name: seed?.name || "", phone: seed?.phone || "" });
     setProfile({}); setNotes(""); setFacialDate(todayISO());
+    setBirthday(EMPTY_BIRTHDAY_VALUE);
     setEventId(seed?.eventId ?? null);
     setFollowUpFor(null);
   }, [open, seed?.name, seed?.phone, seed?.eventId]);
@@ -106,6 +115,7 @@ export default function ScanCardDialog({
         return next;
       });
       setProfile(beautyProfileFromExtracted(ex));
+      setBirthday(birthdayValueFromRecord({ birthday: scanned.birthday || null }));
       setNotes((ex.raw_notes || "").trim());
       setStep("review");
     } catch (e: any) {
@@ -128,10 +138,12 @@ export default function ScanCardDialog({
     try {
       const payload: Record<string, any> = {};
       for (const f of CONTACT_FIELDS) {
+        if (f.key === "birthday") continue; // handled by the year-optional editor
         const v = (fields[f.key as string] || "").trim();
         if (v) payload[f.key as string] = v;
       }
       payload.full_name = name;
+      Object.assign(payload, birthdayColumns(birthday));
       const cleanProfile = cleanBeautyProfile(profile);
       if (!isBeautyProfileEmpty(cleanProfile)) payload.beauty_notes = cleanProfile;
       if (notes) payload.notes = notes;
@@ -188,10 +200,14 @@ export default function ScanCardDialog({
 
       const payload: Record<string, any> = {};
       for (const f of CONTACT_FIELDS) {
+        if (f.key === "birthday") continue;
         const v = (fields[f.key as string] || "").trim();
         if (v) payload[f.key as string] = v;
       }
       payload.full_name = name;
+      // facial_contacts only stores a full date, so a month/day-only birthday
+      // is kept on the customer record it converts into later.
+      payload.birthday = birthdayColumns(birthday).birthday;
       const cleanProfile = cleanBeautyProfile(profile);
       payload.beauty_notes = cleanProfile;
       payload.skin_type = derivedSkinType(cleanProfile);
@@ -298,17 +314,18 @@ export default function ScanCardDialog({
                 Everything is editable and nothing here is required — anything the card left blank you can fill in later from her profile.
               </p>
               <div className="grid grid-cols-2 gap-3">
-                {CONTACT_FIELDS.map((f) => (
+                {CONTACT_FIELDS.filter((f) => f.key !== "birthday").map((f) => (
                   <div key={f.key as string} className={["full_name", "address_line_1", "address_line_2"].includes(f.key as string) ? "col-span-2" : ""}>
                     <Label className="text-xs">{f.label}{f.key === "full_name" ? " *" : ""}</Label>
                     <Input
                       className="h-9"
-                      type={f.key === "birthday" ? "date" : "text"}
+                      type="text"
                       value={fields[f.key as string] || ""}
                       onChange={(e) => setField(f.key as string, e.target.value)}
                     />
                   </div>
                 ))}
+                <BirthdayInput className="col-span-2" value={birthday} onChange={setBirthday} />
                 <div>
                   <Label className="text-xs">Facial date</Label>
                   <Input className="h-9" type="date" value={facialDate} onChange={(e) => setFacialDate(e.target.value)} />
