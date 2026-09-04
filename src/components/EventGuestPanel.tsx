@@ -965,6 +965,8 @@ function ConvertGuestToCustomerDialog({
   const [mode, setMode] = useState<"manual" | "scan">("manual");
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const [scanBackFile, setScanBackFile] = useState<File | null>(null);
+  const [scanBackPreview, setScanBackPreview] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanExtracted, setScanExtracted] = useState<import("@/lib/scanPhoto").Extracted | null>(null);
   const [scanFields, setScanFields] = useState<Record<string, string>>({});
