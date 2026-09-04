@@ -125,8 +125,9 @@ export default function ScanPhotoDialog({
         orderDrafts,
         beautyProfile: profile,
       });
-      if (driveNeedsSetup) toast.warning("Saved. Google Drive isn't connected yet, so the PDF backup was skipped.");
-      else if (driveError) toast.warning("Saved, but the Drive PDF backup failed.");
+      if (driveNeedsSetup) toast.warning("Saved — Google Drive isn't connected yet, so the card photo backup was skipped.");
+      else if (driveError) toast.warning("Saved — but the card photo backup failed.");
+
 
 
       await Promise.all([
