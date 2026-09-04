@@ -39,6 +39,13 @@ export default function PCPCatalogUpload() {
   const [parsedNames, setParsedNames] = useState<{ first: string; last: string }[]>([]);
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: userPrefs } = useQuery({ queryKey: ["user-preferences"], queryFn: fetchUserPreferences });
+
+  // Default the catalog date to the saved "Next Catalog Mail Date" from Settings.
+  useEffect(() => {
+    const saved = userPrefs?.next_catalog_mail_date;
+    if (saved && !catalogEndDate) setCatalogEndDate(saved.slice(0, 10));
+  }, [userPrefs?.next_catalog_mail_date]);
 
   const normalize = (s: string) => (s || "").toLowerCase().trim();
 
