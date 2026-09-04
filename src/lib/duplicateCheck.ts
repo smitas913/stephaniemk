@@ -109,6 +109,22 @@ export async function checkForDuplicatePerson(opts: DupOpts): Promise<DuplicateC
     else if (nameNorm && cn && nameNorm === cn && nameNorm.length > 2) consider({ ...base, reason: "name" });
   }
 
+  for (const p of prospects || []) {
+    if (opts.excludeProspectId && (p as any).id === opts.excludeProspectId) continue;
+    const pp = stripPhone((p as any).phone);
+    const pn = nameKey((p as any).name);
+    const base = {
+      kind: "prospect" as const,
+      id: (p as any).id,
+      name: (p as any).name,
+      phone: (p as any).phone,
+      email: (p as any).email ?? null,
+      extra: { date_shared: (p as any).date_shared },
+    };
+    if (phoneDigits && pp && phoneDigits.length >= 7 && pp === phoneDigits) consider({ ...base, reason: "phone" });
+    else if (nameNorm && pn && nameNorm === pn && nameNorm.length > 2) consider({ ...base, reason: "name" });
+  }
+
   return { strong, softName };
 }
 
