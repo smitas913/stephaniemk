@@ -13,6 +13,7 @@ import type { EventRecord, OrderWithCustomer } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EventGuestPanel from "@/components/EventGuestPanel";
+import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
 
 import Layout from "@/components/Layout";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
@@ -152,6 +153,8 @@ export default function EventDetail() {
     },
     onError: (err: any) => toast.error(err.message || "Failed to convert hostess"),
   });
+
+  const [careerChatOpen, setCareerChatOpen] = useState(false);
 
   const eventMutation = useMutation({
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
@@ -377,6 +380,17 @@ export default function EventDetail() {
               {event?.event_type ? ` · ${event.event_type}` : ""}
             </p>
           </div>
+          {event && (event as any).prospect_id && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5 shrink-0"
+              onClick={() => setCareerChatOpen(true)}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              Log conversation
+            </Button>
+          )}
           {event && (
             <div className="flex items-center gap-1.5 shrink-0">
               {(event as any).reschedule_status === "In Process of Rescheduling" ? (
