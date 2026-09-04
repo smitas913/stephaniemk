@@ -1190,8 +1190,11 @@ function ConvertGuestToCustomerDialog({
                     <div className="rounded-md border border-dashed p-3 space-y-2">
                       <p className="text-xs text-muted-foreground">Got writing on the back? Snap it — otherwise skip ahead.</p>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" onClick={() => openScanBackCapture()} className="gap-2" disabled={scanning}>
+                        <Button type="button" size="sm" variant="outline" onClick={() => takePhoto(handleScanBackFile, "Back of card")} className="gap-2" disabled={scanning}>
                           📷 {scanBackFile ? "Replace back" : "Back of card"}
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => chooseFromLibrary(handleScanBackFile)} disabled={scanning}>
+                          Choose from library
                         </Button>
                         {scanBackFile && (
                           <Button type="button" size="sm" variant="ghost" disabled={scanning}
