@@ -559,7 +559,7 @@ export default function NewEvent() {
             {/* Hostess Name / Event Title */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                {eventType === "Sharing Appointment" ? "Contact Name" : eventType === "Guest Event" ? "Event Title" : "Hostess Name"}
+                {eventType === "Sharing Appointment" ? "Prospect Name" : eventType === "Guest Event" ? "Event Title" : "Hostess Name"}
               </label>
               <Input
                 placeholder={eventType === "Guest Event" ? "e.g. Foundation Matching Launch Party" : "Optional — can add later"}
@@ -573,7 +573,7 @@ export default function NewEvent() {
             {eventType !== "Guest Event" && (
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                {eventType === "Sharing Appointment" ? "Contact Phone" : "Hostess Phone"}
+                {eventType === "Sharing Appointment" ? "Prospect Number" : "Hostess Phone"}
               </label>
               <Input
                 type="tel"
