@@ -1,18 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers, fetchOrders, createCustomer, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, deleteCustomer, updateCustomer, archiveCustomer, unarchiveCustomer, fetchLatestNotes, unflagCustomer, fetchTeamConsultants } from "@/lib/queries";
 import { computeCustomerFields } from "@/lib/computedFields";
 import type { Customer, CustomerComputed, CustomerNote } from "@/lib/types";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag, Sparkles, X, FileSpreadsheet, MoreHorizontal, Filter } from "lucide-react";
+import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag, Sparkles, X, FileSpreadsheet, MoreHorizontal, Filter, Camera, FilePenLine } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import PCPImportDialog from "@/components/PCPImportDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { formatDateOnly, getFollowUpStatus, parseLocalDate } from "@/lib/dateOnly";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose, SheetFooter } from "@/components/ui/sheet";
-
+import ScanCardDialog from "@/components/ScanCardDialog";
 import { beautyProfileSearchText } from "@/lib/beautyProfile";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import TextActionButton from "@/components/TextActionButton";
@@ -34,12 +33,13 @@ type EnrichedCustomer = Customer & CustomerComputed & {
   latest_note?: CustomerNote;
 };
 
+
 export default function CustomerList({ embedded = false }: { embedded?: boolean }) {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [open, setOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -56,7 +56,6 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [tagsOpen, setTagsOpen] = useState(false);
   const [filterAttention, setFilterAttention] = useState(false);
   const [attentionView, setAttentionView] = useState<"all" | "followup" | "missing">("all");
-  const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pcpImportOpen, setPcpImportOpen] = useState(false);
 
@@ -117,16 +116,6 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const { data: teamConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allNotes = [] } = useQuery({ queryKey: ["all-notes"], queryFn: fetchLatestNotes });
-
-  const addMutation = useMutation({
-    mutationFn: createCustomer,
-    onSuccess: (newCustomer) => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      setOpen(false);
-      setForm({ full_name: "", phone: "", email: "" });
-      navigate(`/customers/${newCustomer.id}`);
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: deleteCustomer,
@@ -305,22 +294,21 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             <p className="text-sm text-muted-foreground">{enriched.filter(c => filterArchive === "active" ? c.is_active !== false : c.is_active === false).length} total · {filtered.length} shown</p>
           </div>
           <div className="flex items-center gap-2">
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" />Add</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
-                <form onSubmit={(e) => { e.preventDefault(); addMutation.mutate(form); }} className="space-y-3">
-                  <Input placeholder="Full Name *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required className="h-11" />
-                  <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" className="h-11" />
-                  <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" className="h-11" />
-                  <Button type="submit" className="w-full h-11" disabled={addMutation.isPending}>
-                    {addMutation.isPending ? "Adding..." : "Add Customer"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/customers/new")}>
+                  <FilePenLine className="w-4 h-4 mr-2" />
+                  Enter manually
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setScanOpen(true)}>
+                  <Camera className="w-4 h-4 mr-2" />
+                  Scan or upload a photo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -336,6 +324,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             </DropdownMenu>
           </div>
           <PCPImportDialog open={pcpImportOpen} onOpenChange={setPcpImportOpen} />
+          <ScanCardDialog open={scanOpen} onOpenChange={setScanOpen} />
         </div>
 
         {selectedIds.size > 0 && (
