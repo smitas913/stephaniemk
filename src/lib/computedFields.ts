@@ -150,14 +150,16 @@ export function computeCustomerFields(
       } else {
         nextFollowUp = addDays(dormantBase, 5);
       }
-    } else if (category === "Warm") {
-      // Warm customers: follow-up at ~45 days after last contact to encourage reorder
-      const warmBase = lastContacted || lastOrderDate;
-      nextFollowUp = addDays(warmBase, 45);
-    } else if (category === "Active") {
-      // Active customers: light maintenance at ~75 days
-      const activeBase = lastContacted || lastOrderDate;
-      nextFollowUp = addDays(activeBase, 75);
+    } else if (category === "Active" || category === "Warm") {
+      // Active and Warm now share one cadence. When a catalog mail date is set,
+      // the touch is driven off the catalog cycle; otherwise fall back to a
+      // light maintenance interval from the last contact/order.
+      if (catalogTouch) {
+        nextFollowUp = catalogTouch.date;
+      } else {
+        const maintenanceBase = lastContacted || lastOrderDate;
+        nextFollowUp = addDays(maintenanceBase, MAINTENANCE_TOUCH_DAYS);
+      }
     } else {
       if (lastContacted) {
         nextFollowUp = addDays(lastContacted, 90);
