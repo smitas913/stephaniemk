@@ -389,6 +389,7 @@ export type Database = {
           created_at: string
           customer_source: string | null
           date_added: string
+          dormant_annual_cycles_completed: number
           dormant_follow_up_stage: string | null
           email: string | null
           flagged_at: string | null
@@ -433,6 +434,7 @@ export type Database = {
           created_at?: string
           customer_source?: string | null
           date_added?: string
+          dormant_annual_cycles_completed?: number
           dormant_follow_up_stage?: string | null
           email?: string | null
           flagged_at?: string | null
@@ -477,6 +479,7 @@ export type Database = {
           created_at?: string
           customer_source?: string | null
           date_added?: string
+          dormant_annual_cycles_completed?: number
           dormant_follow_up_stage?: string | null
           email?: string | null
           flagged_at?: string | null
@@ -2232,6 +2235,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          next_catalog_mail_date: string | null
           updated_at: string
           user_id: string
           weekly_reset_day: number
@@ -2240,6 +2244,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          next_catalog_mail_date?: string | null
           updated_at?: string
           user_id: string
           weekly_reset_day?: number
@@ -2248,6 +2253,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          next_catalog_mail_date?: string | null
           updated_at?: string
           user_id?: string
           weekly_reset_day?: number
