@@ -974,6 +974,7 @@ function ConvertGuestToCustomerDialog({
 
   const resetScan = () => {
     setScanFile(null); setScanPreview(null); setScanning(false);
+    setScanBackFile(null); setScanBackPreview(null);
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
   };
 
