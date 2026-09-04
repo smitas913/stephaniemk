@@ -372,148 +372,316 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
         )}
 
         {/* Search + Archive Toggle */}
-        <div className="flex flex-wrap gap-2 items-center">
-          <div className="relative flex-1 min-w-[180px] basis-full sm:basis-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search name, phone, email, skin type, shade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
-          </div>
-          <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
-            <SelectTrigger className="w-[130px] max-w-full h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
-            <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active (no DNC)</SelectItem>
-              <SelectItem value="dnc">Do Not Contact</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
-            <SelectTrigger className="w-[150px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Skincare</SelectItem>
-              <SelectItem value="yes">Skincare: Yes</SelectItem>
-              <SelectItem value="no">Skincare: No</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterAssigned} onValueChange={setFilterAssigned}>
-            <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue placeholder="Assigned to" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Assignments</SelectItem>
-              <SelectItem value="me">Me (director)</SelectItem>
-              {(teamConsultants as any[]).map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Popover open={missingOpen} onOpenChange={setMissingOpen}>
-            <PopoverTrigger asChild>
-              <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs max-w-full">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}</span>
-                <ChevronDown className="w-3 h-3 shrink-0" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-52 p-2" align="start">
-              {[
-                { key: "birthday", label: "Missing Birthday" },
-                { key: "phone", label: "Missing Phone" },
-                { key: "email", label: "Missing Email" },
-                { key: "address", label: "Missing Address" },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  className={cn(
-                    "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
-                    filterMissing.includes(key)
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted text-foreground"
+        {isMobile ? (
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search name, phone, email, skin type, shade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1 text-xs shrink-0">
+                  <Filter className="w-3.5 h-3.5 shrink-0" />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold bg-primary text-primary-foreground">
+                      {activeFilterCount}
+                    </span>
                   )}
-                  onClick={() => {
-                    setFilterMissing((prev) =>
-                      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
-                    );
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-              {filterMissing.length > 0 && (
-                <button
-                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
-                  onClick={() => { setFilterMissing([]); setMissingOpen(false); }}
-                >
-                  Clear all
-                </button>
-              )}
-            </PopoverContent>
-          </Popover>
-          <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={filterTags.length > 0 ? "default" : "outline"}
-                size="sm"
-                className="h-9 gap-1 text-xs max-w-full"
-                disabled={availableTags.length === 0}
-              >
-                <span className="truncate">Tags{filterTags.length > 0 && ` (${filterTags.length})`}</span>
-                <ChevronDown className="w-3 h-3 shrink-0" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-52 p-2 max-h-72 overflow-y-auto" align="start">
-              {availableTags.length === 0 ? (
-                <div className="text-xs text-muted-foreground px-2 py-1.5">No tags yet</div>
-              ) : (
-                availableTags.map((tag) => (
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto px-4 py-5">
+                <SheetHeader className="text-left pb-2">
+                  <SheetTitle className="text-base">Filters</SheetTitle>
+                  <SheetDescription>Refine the customer list</SheetDescription>
+                </SheetHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Archive status</label>
+                    <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
+                      <SelectTrigger className="w-full h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">DNC status</label>
+                    <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+                      <SelectTrigger className="w-full h-10 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active (no DNC)</SelectItem>
+                        <SelectItem value="dnc">Do Not Contact</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Skincare customer</label>
+                    <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
+                      <SelectTrigger className="w-full h-10 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Skincare</SelectItem>
+                        <SelectItem value="yes">Skincare: Yes</SelectItem>
+                        <SelectItem value="no">Skincare: No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Assigned to</label>
+                    <Select value={filterAssigned} onValueChange={setFilterAssigned}>
+                      <SelectTrigger className="w-full h-10 text-xs"><SelectValue placeholder="Assigned to" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Assignments</SelectItem>
+                        <SelectItem value="me">Me (director)</SelectItem>
+                        {(teamConsultants as any[]).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Missing info</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { key: "birthday", label: "Birthday" },
+                        { key: "phone", label: "Phone" },
+                        { key: "email", label: "Email" },
+                        { key: "address", label: "Address" },
+                      ].map(({ key, label }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          className={cn(
+                            "text-xs px-3 py-2 rounded-md border transition-colors",
+                            filterMissing.includes(key)
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card text-foreground border-border hover:bg-muted"
+                          )}
+                          onClick={() => {
+                            setFilterMissing((prev) =>
+                              prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+                            );
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Tags</label>
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                      {availableTags.length === 0 ? (
+                        <div className="text-xs text-muted-foreground px-1 py-1.5">No tags yet</div>
+                      ) : (
+                        availableTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={cn(
+                              "text-xs px-3 py-2 rounded-md border transition-colors",
+                              filterTags.includes(tag)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-card text-foreground border-border hover:bg-muted"
+                            )}
+                            onClick={() => {
+                              setFilterTags((prev) =>
+                                prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                              );
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <SheetFooter className="flex-row gap-2 pt-4 border-t border-border mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 h-10"
+                    onClick={() => {
+                      setFilterArchive("active");
+                      setFilterDnc("active");
+                      setFilterSkincare("all");
+                      setFilterAssigned("all");
+                      setFilterMissing([]);
+                      setFilterTags([]);
+                    }}
+                  >
+                    Clear all
+                  </Button>
+                  <SheetClose asChild>
+                    <Button size="sm" className="flex-1 h-10">Apply</Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
+            <Button
+              variant={filterAttention ? "default" : "outline"}
+              size="sm"
+              className="h-9 gap-1 text-xs shrink-0"
+              onClick={() => {
+                const next = !filterAttention;
+                setFilterAttention(next);
+                if (!next) {
+                  const sp = new URLSearchParams(searchParams);
+                  sp.delete("attention");
+                  setSearchParams(sp, { replace: true });
+                }
+              }}
+            >
+              <Flag className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Items to Complete</span>
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[180px] basis-full sm:basis-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search name, phone, email, skin type, shade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-9" />
+            </div>
+            <Select value={filterArchive} onValueChange={(v) => setFilterArchive(v as "active" | "archived")}>
+              <SelectTrigger className="w-[130px] max-w-full h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+              <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active (no DNC)</SelectItem>
+                <SelectItem value="dnc">Do Not Contact</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterSkincare} onValueChange={(v) => setFilterSkincare(v as "all" | "yes" | "no")}>
+              <SelectTrigger className="w-[150px] max-w-full h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Skincare</SelectItem>
+                <SelectItem value="yes">Skincare: Yes</SelectItem>
+                <SelectItem value="no">Skincare: No</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterAssigned} onValueChange={setFilterAssigned}>
+              <SelectTrigger className="w-[170px] max-w-full h-9 text-xs"><SelectValue placeholder="Assigned to" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Assignments</SelectItem>
+                <SelectItem value="me">Me (director)</SelectItem>
+                {(teamConsultants as any[]).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Popover open={missingOpen} onOpenChange={setMissingOpen}>
+              <PopoverTrigger asChild>
+                <Button variant={filterMissing.length > 0 ? "default" : "outline"} size="sm" className="h-9 gap-1 text-xs max-w-full">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Missing Info{filterMissing.length > 0 && ` (${filterMissing.length})`}</span>
+                  <ChevronDown className="w-3 h-3 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-2" align="start">
+                {[
+                  { key: "birthday", label: "Missing Birthday" },
+                  { key: "phone", label: "Missing Phone" },
+                  { key: "email", label: "Missing Email" },
+                  { key: "address", label: "Missing Address" },
+                ].map(({ key, label }) => (
                   <button
-                    key={tag}
+                    key={key}
                     className={cn(
                       "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
-                      filterTags.includes(tag)
+                      filterMissing.includes(key)
                         ? "bg-primary text-primary-foreground"
                         : "hover:bg-muted text-foreground"
                     )}
                     onClick={() => {
-                      setFilterTags((prev) =>
-                        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                      setFilterMissing((prev) =>
+                        prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
                       );
                     }}
                   >
-                    {tag}
+                    {label}
                   </button>
-                ))
-              )}
-              {filterTags.length > 0 && (
-                <button
-                  className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
-                  onClick={() => { setFilterTags([]); setTagsOpen(false); }}
+                ))}
+                {filterMissing.length > 0 && (
+                  <button
+                    className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
+                    onClick={() => { setFilterMissing([]); setMissingOpen(false); }}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={filterTags.length > 0 ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 gap-1 text-xs max-w-full"
+                  disabled={availableTags.length === 0}
                 >
-                  Clear all
-                </button>
-              )}
-            </PopoverContent>
-          </Popover>
-          <Button
-            variant={filterAttention ? "default" : "outline"}
-            size="sm"
-            className="h-9 gap-1 text-xs max-w-full"
-            onClick={() => {
-              const next = !filterAttention;
-              setFilterAttention(next);
-              if (!next) {
-                const sp = new URLSearchParams(searchParams);
-                sp.delete("attention");
-                setSearchParams(sp, { replace: true });
-              }
-            }}
-          >
-            <Flag className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">Items to Complete</span>
-          </Button>
-        </div>
+                  <span className="truncate">Tags{filterTags.length > 0 && ` (${filterTags.length})`}</span>
+                  <ChevronDown className="w-3 h-3 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-2 max-h-72 overflow-y-auto" align="start">
+                {availableTags.length === 0 ? (
+                  <div className="text-xs text-muted-foreground px-2 py-1.5">No tags yet</div>
+                ) : (
+                  availableTags.map((tag) => (
+                    <button
+                      key={tag}
+                      className={cn(
+                        "w-full text-left text-sm px-2.5 py-1.5 rounded-md transition-colors",
+                        filterTags.includes(tag)
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted text-foreground"
+                      )}
+                      onClick={() => {
+                        setFilterTags((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        );
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  ))
+                )}
+                {filterTags.length > 0 && (
+                  <button
+                    className="w-full text-left text-xs px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted mt-1"
+                    onClick={() => { setFilterTags([]); setTagsOpen(false); }}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant={filterAttention ? "default" : "outline"}
+              size="sm"
+              className="h-9 gap-1 text-xs max-w-full"
+              onClick={() => {
+                const next = !filterAttention;
+                setFilterAttention(next);
+                if (!next) {
+                  const sp = new URLSearchParams(searchParams);
+                  sp.delete("attention");
+                  setSearchParams(sp, { replace: true });
+                }
+              }}
+            >
+              <Flag className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Items to Complete</span>
+            </Button>
+          </div>
+        )}
 
 
         {filterAttention && (
