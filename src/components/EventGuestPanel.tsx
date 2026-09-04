@@ -1012,15 +1012,23 @@ function ConvertGuestToCustomerDialog({
         // If we ran a scan, finalize: upload image + create orders + audit note.
         if (mode === "scan" && scanExtracted) {
           const { finalizeScanForNewCustomer, beautyProfileFromExtracted } = await import("@/lib/scanPhoto");
+
+          // 1) Beauty Profile read off the card — saved on its own so nothing else can block it.
           try {
-            // Carry the Beauty Profile read off the card onto the new customer.
             const { cleanBeautyProfile, isBeautyProfileEmpty } = await import("@/lib/beautyProfile");
             const cardProfile = cleanBeautyProfile(beautyProfileFromExtracted(scanExtracted));
             if (!isBeautyProfileEmpty(cardProfile)) {
               const { updateCustomer } = await import("@/lib/queries");
               await updateCustomer(created.id, { beauty_notes: cardProfile } as any);
             }
-            await finalizeScanForNewCustomer({
+          } catch (e: any) {
+            toast.warning(`Saved, but the beauty profile didn't attach: ${e?.message || e}`);
+          }
+
+          // 2) Orders + audit note + photo backup. The backup step can't throw,
+          //    so a Drive/PDF problem only shows up as a warning below.
+          try {
+            const res = await finalizeScanForNewCustomer({
               customerId: created.id,
               customerName: (created as any).full_name || g.name,
               file: scanFile,
@@ -1028,11 +1036,17 @@ function ConvertGuestToCustomerDialog({
               orderDrafts: scanOrders,
               eventId,
             });
+            if (res.driveNeedsSetup) {
+              toast.warning("Saved — Google Drive isn't connected yet, so the card photo backup was skipped.");
+            } else if (res.driveError) {
+              toast.warning("Saved — but the card photo backup failed.");
+            }
           } catch (e: any) {
             // Don't roll back the customer for a scan-finalize glitch — surface it.
-            toast.error(`Customer created, but scan finalize failed: ${e?.message || e}`);
+            toast.error(`Customer created, but the orders/notes step failed: ${e?.message || e}`);
           }
         }
+
 
         await onCreated(created.id);
         toast.success(`${(created as any).full_name || g.name} added to customer list`);
