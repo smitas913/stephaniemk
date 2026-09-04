@@ -101,7 +101,9 @@ function CameraOverlay({ label, onCapture, onCancel, onUnavailable }: OverlayPro
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] bg-black flex flex-col">
+    // pointerEvents is forced on: Radix sets body{pointer-events:none} while a
+    // dialog is open, which would otherwise swallow taps on this portal.
+    <div className="fixed inset-0 z-[200] bg-black flex flex-col" style={{ pointerEvents: "auto" }}>
       <div className="flex items-center justify-between p-3 text-white">
         <span className="text-sm font-medium">{label}</span>
         <button
