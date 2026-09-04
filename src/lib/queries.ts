@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, BookingLead, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
 import { nextAvailableWeekday, nextAvailableDay, spreadTasks, buildWorkdayFlags, type OOOPeriod } from "./smartSchedule";
 import { normalizePhoneForStorage, stripPhone, normalizeEmail } from "./phoneUtils";
@@ -334,11 +334,6 @@ export const upsertEvent = async (event: Partial<EventRecord> & { event_id: stri
     .single();
   if (error) throw error;
 
-  // Auto-progress matching booking lead → Booked when an event is scheduled.
-  if (event.hostess_name) {
-    const { autoProgressLeadFromEvent } = await import("./leadAutoStatus");
-    await autoProgressLeadFromEvent({ hostessName: event.hostess_name as string });
-  }
   return data;
 };
 
@@ -377,8 +372,6 @@ export const insertNewEvent = async (
   if (error) throw error;
 
   if (event.hostess_name) {
-    const { autoProgressLeadFromEvent } = await import("./leadAutoStatus");
-    await autoProgressLeadFromEvent({ hostessName: event.hostess_name as string });
     await ensureHostessAsGuest(finalId, event.hostess_name as string, (event.hostess_phone as string) || null);
   }
   return data as any;
@@ -896,20 +889,6 @@ export const createNote = async (note: {
     }
   }
 
-  // Auto-progress booking lead status based on logged activity.
-  if (note.entity_type === "Lead" && note.person_id) {
-    const { autoProgressLeadFromNote } = await import("./leadAutoStatus");
-    const category = (note.tags || []).find((t) =>
-      ["Booking", "Coaching", "Recruiting", "Team Building", "Follow-Up"].includes(t)
-    ) || null;
-    await autoProgressLeadFromNote({
-      leadId: note.person_id,
-      actionType: note.note_type || null,
-      category,
-      isBookingAttempt: note.is_booking_attempt ?? false,
-      noteType: note.note_type || null,
-    });
-  }
   return data;
 };
 
@@ -1087,10 +1066,6 @@ export const deleteNote = async (id: string) => {
     await rollbackProspectStateFromNotes(note.prospect_id);
   }
 
-  // 5. Lead status rollback.
-  if (note?.entity_type === "Lead" && note?.person_id) {
-    await rollbackLeadStatusFromNotes(note.person_id);
-  }
 };
 
 const OUTREACH_NOTE_TYPES_SET = new Set(["Call", "Text", "Email", "In Person"]);
@@ -1161,51 +1136,6 @@ async function rollbackProspectStateFromNotes(prospectId: string) {
     .eq("id", prospectId);
 }
 
-async function rollbackLeadStatusFromNotes(leadId: string) {
-  const { data: lead } = await supabase
-    .from("booking_leads" as any)
-    .select("status, last_contact_date, next_follow_up_date")
-    .eq("id", leadId)
-    .maybeSingle();
-  const current = (lead as any)?.status;
-  // Never auto-revive DNC; never demote Booked (event-driven).
-  if (!current || current === "Not Interested" || current === "Booked") {
-    // Still recompute last_contact_date / next_follow_up_date below.
-  }
-
-  const { data: remaining } = await supabase
-    .from("notes")
-    .select("note_type, note_date, next_follow_up_date")
-    .eq("entity_type", "Lead")
-    .eq("person_id", leadId);
-  const rows = (remaining as any[]) || [];
-  const hasOutreach = rows.some((r) => OUTREACH_NOTE_TYPES_SET.has(r.note_type));
-
-  const updates: Record<string, any> = {};
-  if (current === "Working" && !hasOutreach) {
-    updates.status = "New Contact";
-  }
-
-  // Recompute last_contact_date and next_follow_up_date.
-  const contactDates = rows
-    .filter((r) => OUTREACH_NOTE_TYPES_SET.has(r.note_type))
-    .map((r) => (r.note_date || "").slice(0, 10))
-    .filter(Boolean)
-    .sort();
-  updates.last_contact_date = contactDates.length ? contactDates[contactDates.length - 1] : null;
-
-  const todayKey = toLocalDateKeyImport();
-  const futureFollowUps = rows
-    .map((r) => (r.next_follow_up_date || "").slice(0, 10))
-    .filter((d) => d && d >= todayKey)
-    .sort();
-  updates.next_follow_up_date = futureFollowUps[0] || null;
-
-  if (Object.keys(updates).length > 0) {
-    await supabase.from("booking_leads" as any).update(updates as any).eq("id", leadId);
-  }
-}
-
 export const updateNote = async (
   id: string,
   updates: { note_body?: string; note_date?: string; next_follow_up_date?: string | null }
@@ -1242,119 +1172,6 @@ export const fetchCustomerSummary = async () => {
     .select("*");
   if (error) throw error;
   return data;
-};
-
-// Booking Leads
-
-export const fetchBookingLeads = async (): Promise<BookingLead[]> => {
-  const { data, error } = await supabase
-    .from("booking_leads" as any)
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data as unknown as BookingLead[];
-};
-
-export const fetchBookingLead = async (id: string): Promise<BookingLead> => {
-  const { data, error } = await supabase
-    .from("booking_leads" as any)
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (error) throw error;
-  return data as unknown as BookingLead;
-};
-
-export const createBookingLead = async (lead: Partial<BookingLead> & { name: string }) => {
-  const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from("booking_leads" as any)
-    .insert(withNormalizedPhone({ ...lead, owner_user_id: userId }) as any)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as unknown as BookingLead;
-};
-
-export const updateBookingLead = async (id: string, updates: Partial<BookingLead>) => {
-  const { error } = await supabase
-    .from("booking_leads" as any)
-    .update(withNormalizedPhone(updates) as any)
-    .eq("id", id);
-  if (error) throw error;
-};
-
-export const deleteBookingLead = async (id: string) => {
-  const { error } = await supabase
-    .from("booking_leads" as any)
-    .delete()
-    .eq("id", id);
-  if (error) throw error;
-};
-
-export const convertBookingLeadToCustomer = async (lead: BookingLead, existingEventIds: string[] = []) => {
-  const userId = await getCurrentUserId();
-  const { data: customer, error: cErr } = await supabase
-    .from("customers")
-    .insert({
-      full_name: lead.name,
-      phone: lead.phone,
-      email: lead.email,
-      address_line_1: (lead as any).address_line_1 || null,
-      city: (lead as any).city || null,
-      state_territory: (lead as any).state_territory || null,
-      postal_code: (lead as any).postal_code || null,
-      notes: lead.notes,
-      relationship_status: "Customer",
-      owner_user_id: userId,
-    } as any)
-    .select()
-    .single();
-  if (cErr) throw cErr;
-
-  // Re-point any historical Lead notes to the new Customer so activity history
-  // is preserved and continues to count toward trackers.
-  await supabase
-    .from("notes")
-    .update({
-      entity_type: "Customer",
-      person_type: "customer",
-      person_id: customer.id,
-      customer_id: customer.id,
-      prospect_id: null,
-    } as any)
-    .eq("entity_type", "Lead")
-    .eq("person_id", lead.id);
-
-  // Auto-create an event for the booking
-  const { generateEventId } = await import("./eventId");
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const eventType = "Party";
-  const eventId = generateEventId(eventType, dateStr, lead.name, existingEventIds);
-  const { error: evErr } = await supabase
-    .from("events")
-    .insert({
-      event_id: eventId,
-      event_type: eventType,
-      event_date: null, // date TBD, user sets on event page
-      hostess_name: lead.name,
-      guest_count: 0,
-      owner_user_id: userId,
-      notes: lead.notes ? `Converted from booking lead. ${lead.notes}` : "Converted from booking lead.",
-    } as any);
-  if (evErr) throw evErr;
-
-
-
-
-  // Delete the original booking_lead. Data lives on the customer record now;
-  // leaving the lead around creates orphans that break "Lead not found" lookups
-  // and lead-queue counters.
-  const { error: delErr } = await supabase.from("booking_leads" as any).delete().eq("id", lead.id);
-  if (delErr) console.error("Failed to delete converted booking lead", delErr);
-
-  return { customer, eventId };
 };
 
 // Team Consultants
@@ -1514,35 +1331,30 @@ export const deleteBlackoutDay = async (id: string): Promise<void> => {
 // ─── Follow-Up Backlog Cleanup (post Out of Office) ───
 
 /**
- * Find all follow-ups (customers, prospects, booking_leads) whose
+ * Find all follow-ups (customers, prospects) whose
  * next_follow_up_date is on/before `cutoffDate` (i.e. became due/overdue
  * during or before the cutoff). Counts are per-table.
  */
 export const countOverdueFollowUps = async (cutoffDate: string): Promise<{
   customers: number;
   prospects: number;
-  booking_leads: number;
   total: number;
 }> => {
   const userId = await getCurrentUserId();
-  if (!userId) return { customers: 0, prospects: 0, booking_leads: 0, total: 0 };
+  if (!userId) return { customers: 0, prospects: 0, total: 0 };
 
-  const [c, p, b] = await Promise.all([
+  const [c, p] = await Promise.all([
     supabase.from("customers").select("id", { count: "exact", head: true })
       .not("next_follow_up_date", "is", null)
       .lte("next_follow_up_date", cutoffDate),
     supabase.from("prospects").select("id", { count: "exact", head: true })
       .not("next_follow_up_date", "is", null)
       .lte("next_follow_up_date", cutoffDate),
-    supabase.from("booking_leads").select("id", { count: "exact", head: true })
-      .not("next_follow_up_date", "is", null)
-      .lte("next_follow_up_date", cutoffDate),
   ]);
 
   const customers = c.count ?? 0;
   const prospects = p.count ?? 0;
-  const booking_leads = b.count ?? 0;
-  return { customers, prospects, booking_leads, total: customers + prospects + booking_leads };
+  return { customers, prospects, total: customers + prospects };
 };
 
 /**
@@ -1553,11 +1365,11 @@ export const countOverdueFollowUps = async (cutoffDate: string): Promise<{
 export const resetOverdueFollowUps = async (
   cutoffDate: string,
   mode: "today" | "clear"
-): Promise<{ customers: number; prospects: number; booking_leads: number }> => {
+): Promise<{ customers: number; prospects: number }> => {
   const today = toLocalDateKeyImport();
   const newDate: string | null = mode === "today" ? today : null;
 
-  const updateTable = async (table: "customers" | "prospects" | "booking_leads") => {
+  const updateTable = async (table: "customers" | "prospects") => {
     const { data, error } = await supabase
       .from(table)
       .update({ next_follow_up_date: newDate } as any)
@@ -1568,13 +1380,12 @@ export const resetOverdueFollowUps = async (
     return data?.length ?? 0;
   };
 
-  const [customers, prospects, booking_leads] = await Promise.all([
+  const [customers, prospects] = await Promise.all([
     updateTable("customers"),
     updateTable("prospects"),
-    updateTable("booking_leads"),
   ]);
 
-  return { customers, prospects, booking_leads };
+  return { customers, prospects };
 };
 
 export const convertProspectToConsultant = async (

@@ -150,7 +150,6 @@ export interface EventRecord {
   virtual_platform_link: string | null;
   virtual_notes: string | null;
   thank_you_sent?: boolean;
-  hostess_lead_id?: string | null;
   hostess_converted_customer_id?: string | null;
 }
 
@@ -337,35 +336,6 @@ export interface Income {
   source: string | null;
   notes: string | null;
   owner_user_id: string | null;
-  created_at: string;
-  updated_at: string | null;
-}
-
-export const BOOKING_LEAD_STATUSES = ["New Contact", "Warm", "Booked", "Working", "Converted"] as const;
-export const BOOKING_LEAD_SOURCES = ["Networking", "Warm Chatter", "Referral", "Facial Box", "Bridal", "Vendor Table", "Honoring Working Women", "Social Media", "Other"] as const;
-export const LEAD_ACTIVITIES = ["No Activity Yet", "1:1 Appointment Booked", "Event Booked", "Samples Given", "Follow-Up Needed"] as const;
-export const DEFAULT_LEAD_SOURCE = "Networking";
-
-export interface BookingLead {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-  lead_source: string | null;
-  source_detail: string | null;
-  met_date: string | null;
-  lead_activity: string | null;
-  status: string;
-  last_contact_date: string | null;
-  next_follow_up_date: string | null;
-  notes: string | null;
-  converted_customer_id: string | null;
-  owner_user_id: string | null;
-  allow_non_working_day: boolean;
-  address_line_1: string | null;
-  city: string | null;
-  state_territory: string | null;
-  postal_code: string | null;
   created_at: string;
   updated_at: string | null;
 }

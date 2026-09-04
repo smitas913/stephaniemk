@@ -218,7 +218,6 @@ export default function MergeDuplicates() {
         { table: "daily_plan_items", col: "customer_id" },
         { table: "catalog_campaign_customers", col: "customer_id" },
         { table: "event_guests", col: "converted_customer_id" },
-        { table: "booking_leads", col: "converted_customer_id" },
       ];
       for (const { table, col } of tablesToReassign) {
         const { error } = await supabase.from(table as any).update({ [col]: primary.id } as any).eq(col, duplicate.id);
