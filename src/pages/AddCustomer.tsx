@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import BeautyProfileFields from "@/components/BeautyProfileFields";
+import BirthdayInput from "@/components/BirthdayInput";
+import { EMPTY_BIRTHDAY_VALUE, birthdayColumns, type BirthdayValue } from "@/lib/birthday";
 import { cleanBeautyProfile, isBeautyProfileEmpty, type BeautyProfile } from "@/lib/beautyProfile";
 
 export default function AddCustomer() {
@@ -32,7 +34,7 @@ export default function AddCustomer() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [postal, setPostal] = useState("");
-  const [birthday, setBirthday] = useState("");
+  const [birthday, setBirthday] = useState<BirthdayValue>(EMPTY_BIRTHDAY_VALUE);
   const [relationship, setRelationship] = useState("Customer");
   const [firstOrderDate, setFirstOrderDate] = useState("");
   const [notes, setNotes] = useState("");
@@ -89,7 +91,7 @@ export default function AddCustomer() {
         city: city.trim() || null,
         state_territory: state.trim() || null,
         postal_code: postal.trim() || null,
-        birthday: birthday || null,
+        ...birthdayColumns(birthday),
         relationship_status: relationship,
         profile_date_first_order_date: firstOrderDate || null,
         notes: notes.trim() || null,
