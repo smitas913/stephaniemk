@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { PeriodProvider } from "@/hooks/usePeriodFilter";
 import { PreviousLocationProvider } from "@/hooks/usePreviousLocation";
+import { useCaptureInterruptionNotice } from "@/lib/scanCapture";
 import Landing from "./pages/Landing";
 import FollowUpDashboard from "./pages/FollowUpDashboard";
 import Dashboard from "./pages/Dashboard";
@@ -496,11 +497,17 @@ function CustomerPortalRedirect() {
   );
 }
 
+const CaptureInterruptionNotice = () => {
+  useCaptureInterruptionNotice();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <CaptureInterruptionNotice />
       <BrowserRouter>
         <AuthProvider>
           <PeriodProvider>
