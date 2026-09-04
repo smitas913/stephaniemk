@@ -42,7 +42,6 @@ import Campaigns from "./pages/Campaigns";
 import MailingLists from "./pages/MailingLists";
 import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
-import FacialContacts from "./pages/FacialContacts";
 
 import Scripts from "./pages/Scripts";
 import UserSettings from "./pages/UserSettings";

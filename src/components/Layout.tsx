@@ -18,7 +18,6 @@ import {
   BookOpen,
   MoreHorizontal,
   FileText,
-  Droplets,
 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
