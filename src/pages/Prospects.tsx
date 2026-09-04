@@ -233,103 +233,259 @@ export default function Prospects({ embedded = false }: { embedded?: boolean }) 
         {topTab === "list" && <>
 
 
-        {/* Sort + Archive controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">Sort by:</span>
-          {[
-            { value: "interest", label: "Interest Level" },
-            { value: "last_contact", label: "Last Contact" },
-            { value: "follow_up", label: "Follow-Up Date" },
-            { value: "name", label: "Name" },
-          ].map(s => (
-            <button key={s.value}
-              onClick={() => setSortBy(s.value as any)}
-              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${sortBy === s.value ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-muted"}`}>
-              {s.label}
-            </button>
-          ))}
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={`text-xs px-2.5 py-1 rounded-full border ml-auto transition-colors ${showArchived ? "border-amber-300 bg-amber-50 text-amber-700" : "border-border text-muted-foreground hover:bg-muted"}`}>
-            {showArchived ? "Hide Archived" : "Show Archived"}
-          </button>
-        </div>
-
-        {/* Status filter chips */}
-        <div className="flex flex-wrap gap-1.5">
-          <Button
-            variant={filterStatus === "all" ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => setFilterStatus("all")}
-          >
-            All ({prospects.length})
-          </Button>
-          {OPPORTUNITY_STATUSES.map((s) => (
-            <Button
-              key={s}
-              variant={filterStatus === s ? "default" : "outline"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setFilterStatus(s)}
-            >
-              {s} ({statusCounts[s] || 0})
-            </Button>
-          ))}
-        </div>
-
-        {/* Personal / Unit sub-tabs + Assigned-to filter (directors/admins only) */}
-        {isDirector && (
+        {isMobile ? (
           <>
-            <div className="flex gap-1 border-b border-border/50">
-              {(["personal", "unit"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setSubTab(t)}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
-                    subTab === t
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {t === "personal" ? "Personal" : "Unit"}
-                </button>
-              ))}
+            {/* Mobile: Search + Filters */}
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+              </div>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-1 text-xs shrink-0">
+                    <Filter className="w-3.5 h-3.5 shrink-0" />
+                    <span>Filters</span>
+                    {activeFilterCount > 0 && (
+                      <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-semibold bg-primary text-primary-foreground">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto px-4 py-5">
+                  <SheetHeader className="text-left pb-2">
+                    <SheetTitle className="text-base">Filters</SheetTitle>
+                    <SheetDescription>Refine the prospect list</SheetDescription>
+                  </SheetHeader>
+                  <div className="space-y-5 py-2">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">Sort by</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { value: "interest", label: "Interest Level" },
+                          { value: "last_contact", label: "Last Contact" },
+                          { value: "follow_up", label: "Follow-Up Date" },
+                          { value: "name", label: "Name" },
+                        ].map(s => (
+                          <button key={s.value}
+                            type="button"
+                            onClick={() => setSortBy(s.value as any)}
+                            className={`text-xs px-3 py-2 rounded-md border transition-colors ${sortBy === s.value ? "border-primary bg-primary text-primary-foreground font-medium" : "border-border bg-card text-foreground hover:bg-muted"}`}>
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-muted-foreground">Status</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setFilterStatus("all")}
+                          className={`text-xs px-3 py-2 rounded-md border transition-colors ${filterStatus === "all" ? "border-primary bg-primary text-primary-foreground font-medium" : "border-border bg-card text-foreground hover:bg-muted"}`}
+                        >
+                          All ({prospects.length})
+                        </button>
+                        {OPPORTUNITY_STATUSES.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setFilterStatus(s)}
+                            className={`text-xs px-3 py-2 rounded-md border transition-colors ${filterStatus === s ? "border-primary bg-primary text-primary-foreground font-medium" : "border-border bg-card text-foreground hover:bg-muted"}`}
+                          >
+                            {s} ({statusCounts[s] || 0})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {subTab === "unit" && consultants.length > 0 && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">Assigned to</label>
+                        <Select value={filterConsultant} onValueChange={setFilterConsultant}>
+                          <SelectTrigger className="h-10 w-full text-xs"><SelectValue placeholder="Assigned To" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Consultants</SelectItem>
+                            {consultants.filter(c => c.status === "Active").map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">DNC status</label>
+                      <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+                        <SelectTrigger className="w-full h-10 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active (no DNC)</SelectItem>
+                          <SelectItem value="dnc">Do Not Contact</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border p-3 bg-card">
+                      <span className="text-sm font-medium text-foreground">Show archived</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowArchived(!showArchived)}
+                        className={cn(
+                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                          showArchived ? "bg-primary" : "bg-muted"
+                        )}
+                        aria-pressed={showArchived}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-background transition-transform",
+                            showArchived ? "translate-x-6" : "translate-x-1"
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <SheetFooter className="flex-row gap-2 pt-4 border-t border-border mt-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1 h-10"
+                      onClick={() => {
+                        setFilterStatus("all");
+                        setFilterDnc("active");
+                        setFilterConsultant("all");
+                        setShowArchived(false);
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                    <SheetClose asChild>
+                      <Button size="sm" className="flex-1 h-10">Apply</Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
             </div>
 
-            {subTab === "unit" && consultants.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                <Select value={filterConsultant} onValueChange={setFilterConsultant}>
-                  <SelectTrigger className="h-8 w-[180px] text-xs">
-                    <SelectValue placeholder="Assigned To" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Consultants</SelectItem>
-                    {consultants.filter(c => c.status === "Active").map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Mobile: Personal / Unit sub-tabs stay visible */}
+            {isDirector && (
+              <div className="flex gap-1 border-b border-border/50">
+                {(["personal", "unit"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setSubTab(t)}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                      subTab === t
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {t === "personal" ? "Personal" : "Unit"}
+                  </button>
+                ))}
               </div>
             )}
           </>
-        )}
+        ) : (
+          <>
+            {/* Sort + Archive controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Sort by:</span>
+              {[
+                { value: "interest", label: "Interest Level" },
+                { value: "last_contact", label: "Last Contact" },
+                { value: "follow_up", label: "Follow-Up Date" },
+                { value: "name", label: "Name" },
+              ].map(s => (
+                <button key={s.value}
+                  onClick={() => setSortBy(s.value as any)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${sortBy === s.value ? "border-primary bg-primary/10 text-primary font-medium" : "border-border text-muted-foreground hover:bg-muted"}`}>
+                  {s.label}
+                </button>
+              ))}
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className={`text-xs px-2.5 py-1 rounded-full border ml-auto transition-colors ${showArchived ? "border-amber-300 bg-amber-50 text-amber-700" : "border-border text-muted-foreground hover:bg-muted"}`}>
+                {showArchived ? "Hide Archived" : "Show Archived"}
+              </button>
+            </div>
 
-        {/* Search + Active/DNC */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
-          </div>
-          <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
-            <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active (no DNC)</SelectItem>
-              <SelectItem value="dnc">Do Not Contact</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            {/* Status filter chips */}
+            <div className="flex flex-wrap gap-1.5">
+              <Button
+                variant={filterStatus === "all" ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFilterStatus("all")}
+              >
+                All ({prospects.length})
+              </Button>
+              {OPPORTUNITY_STATUSES.map((s) => (
+                <Button
+                  key={s}
+                  variant={filterStatus === s ? "default" : "outline"}
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setFilterStatus(s)}
+                >
+                  {s} ({statusCounts[s] || 0})
+                </Button>
+              ))}
+            </div>
+
+            {/* Personal / Unit sub-tabs + Assigned-to filter (directors/admins only) */}
+            {isDirector && (
+              <>
+                <div className="flex gap-1 border-b border-border/50">
+                  {(["personal", "unit"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setSubTab(t)}
+                      className={cn(
+                        "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                        subTab === t
+                          ? "border-primary text-primary"
+                          : "border-transparent text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {t === "personal" ? "Personal" : "Unit"}
+                    </button>
+                  ))}
+                </div>
+
+                {subTab === "unit" && consultants.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Select value={filterConsultant} onValueChange={setFilterConsultant}>
+                      <SelectTrigger className="h-8 w-[180px] text-xs">
+                        <SelectValue placeholder="Assigned To" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Consultants</SelectItem>
+                        {consultants.filter(c => c.status === "Active").map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Search + Active/DNC */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Search prospects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+              </div>
+              <Select value={filterDnc} onValueChange={(v) => setFilterDnc(v as "active" | "dnc")}>
+                <SelectTrigger className="w-[170px] h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active (no DNC)</SelectItem>
+                  <SelectItem value="dnc">Do Not Contact</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
 
         {/* List */}
         {isLoading ? (
