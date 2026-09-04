@@ -56,7 +56,6 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [tagsOpen, setTagsOpen] = useState(false);
   const [filterAttention, setFilterAttention] = useState(false);
   const [attentionView, setAttentionView] = useState<"all" | "followup" | "missing">("all");
-  const [form, setForm] = useState({ full_name: "", phone: "", email: "" });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pcpImportOpen, setPcpImportOpen] = useState(false);
 
