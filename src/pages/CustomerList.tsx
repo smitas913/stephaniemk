@@ -294,22 +294,21 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             <p className="text-sm text-muted-foreground">{enriched.filter(c => filterArchive === "active" ? c.is_active !== false : c.is_active === false).length} total · {filtered.length} shown</p>
           </div>
           <div className="flex items-center gap-2">
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" />Add</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
-                <form onSubmit={(e) => { e.preventDefault(); addMutation.mutate(form); }} className="space-y-3">
-                  <Input placeholder="Full Name *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required className="h-11" />
-                  <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" className="h-11" />
-                  <Input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" className="h-11" />
-                  <Button type="submit" className="w-full h-11" disabled={addMutation.isPending}>
-                    {addMutation.isPending ? "Adding..." : "Add Customer"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/customers/new")}>
+                  <FilePenLine className="w-4 h-4 mr-2" />
+                  Enter manually
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setScanOpen(true)}>
+                  <Camera className="w-4 h-4 mr-2" />
+                  Scan or upload a photo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -325,6 +324,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
             </DropdownMenu>
           </div>
           <PCPImportDialog open={pcpImportOpen} onOpenChange={setPcpImportOpen} />
+          <ScanCardDialog open={scanOpen} onOpenChange={setScanOpen} />
         </div>
 
         {selectedIds.size > 0 && (
