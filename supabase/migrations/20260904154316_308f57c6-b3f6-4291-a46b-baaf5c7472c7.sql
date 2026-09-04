@@ -1,0 +1,2 @@
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS next_catalog_mail_date date;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS dormant_annual_cycles_completed integer NOT NULL DEFAULT 0;

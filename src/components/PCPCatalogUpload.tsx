@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchCustomers } from "@/lib/queries";
+import { fetchCustomers, fetchUserPreferences } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,13 @@ export default function PCPCatalogUpload() {
   const [parsedNames, setParsedNames] = useState<{ first: string; last: string }[]>([]);
 
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
+  const { data: userPrefs } = useQuery({ queryKey: ["user-preferences"], queryFn: fetchUserPreferences });
+
+  // Default the catalog date to the saved "Next Catalog Mail Date" from Settings.
+  useEffect(() => {
+    const saved = userPrefs?.next_catalog_mail_date;
+    if (saved && !catalogEndDate) setCatalogEndDate(saved.slice(0, 10));
+  }, [userPrefs?.next_catalog_mail_date]);
 
   const normalize = (s: string) => (s || "").toLowerCase().trim();
 

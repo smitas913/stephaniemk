@@ -7,12 +7,12 @@ import {
   fetchProspects, updateProspect, createProspectNote, fetchProspectNotes,
   bulkUpdateCustomerFollowUps,
   fetchTeamConsultants, updateTeamConsultant, fetchEvents, updateEvent,
-  fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings,
+  fetchAllLatestNotes, createNote, fetchScheduleSettings, upsertScheduleSettings, fetchUserPreferences,
 } from "@/lib/queries";
 import { buildWorkdayFlags, isTodayNonWorkday, spreadTasks } from "@/lib/smartSchedule";
 import { computeCustomerFields } from "@/lib/computedFields";
 import { getCadenceInfo, getNextCoachingDate, snoozeCoachingDate } from "@/lib/coachingCadence";
-import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel } from "@/lib/dormantCadence";
+import { getNextDormantStage, getNextDormantFollowUpDate, getDormantStageLabel, resolveDormantAdvance, dormantAutoArchiveNote, type DormantAdvance } from "@/lib/dormantCadence";
 import type { DormantStage } from "@/lib/dormantCadence";
 import { formatPhone, phoneForLink } from "@/lib/phoneUtils";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
@@ -303,6 +303,8 @@ export default function FollowUps() {
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
   const etLoading = false;
   const { data: scheduleSettings, isLoading: ssLoading } = useQuery({ queryKey: ["schedule-settings"], queryFn: fetchScheduleSettings });
+  const { data: userPrefs } = useQuery({ queryKey: ["user-preferences"], queryFn: fetchUserPreferences });
+  const nextCatalogMailDate = userPrefs?.next_catalog_mail_date || null;
   const workdayFlags = buildWorkdayFlags(scheduleSettings);
   const isNonWorkday = isTodayNonWorkday(workdayFlags);
 
@@ -772,10 +774,10 @@ export default function FollowUps() {
       .filter((c) => !(Array.isArray((c as any).tags) && (c as any).tags.includes("DNC")))
       .map((c) => {
         const custOrders = allOrders.filter((o) => o.customer_id === c.id);
-        const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined);
+        const computed = computeCustomerFields(c, custOrders, isOOOActive ? frozenToday : undefined, nextCatalogMailDate);
         return { ...c, ...computed };
       });
-  }, [customers, allOrders, isOOOActive, frozenToday]);
+  }, [customers, allOrders, isOOOActive, frozenToday, nextCatalogMailDate]);
 
   const customerDncSet = useMemo(() => {
     const s = new Set<string>();
@@ -1806,15 +1808,17 @@ export default function FollowUps() {
       if (item.itemType === "customer") {
         const isDormant = item.activity_status === "Dormant";
         const currentStage = (item.dormant_follow_up_stage || null) as DormantStage;
+        const sourceCustomer = customers.find((c) => c.id === item.id);
 
         let nextDate: string;
         let nextStage: DormantStage = currentStage;
+        let advance: DormantAdvance | null = null;
 
         if (isDormant) {
-          // Use dormant cadence
-          const effectiveStage = currentStage || "Stage 1";
-          nextStage = getNextDormantStage(effectiveStage as DormantStage);
-          nextDate = getNextDormantFollowUpDate(effectiveStage as DormantStage);
+          // Use dormant cadence (auto-archives after 2 annual cycles)
+          advance = resolveDormantAdvance(currentStage, (sourceCustomer as any)?.dormant_annual_cycles_completed);
+          nextStage = advance.nextStage;
+          nextDate = advance.nextDate;
         } else {
           // Default to Quick Follow-Up (2 days) — not reorder cycle
           nextDate = format(addDays(new Date(), 2), "yyyy-MM-dd");
@@ -1822,13 +1826,21 @@ export default function FollowUps() {
 
         const updates: Record<string, any> = {
           last_contacted: today,
-          next_follow_up_date: nextDate,
+          next_follow_up_date: nextDate || null,
         };
-        if (isDormant) {
+        if (isDormant && advance) {
           updates.dormant_follow_up_stage = nextStage;
+          updates.dormant_annual_cycles_completed = advance.cyclesCompleted;
+          if (advance.autoArchive) {
+            updates.is_active = false;
+            updates.archived_at = new Date().toISOString();
+            updates.next_follow_up_date = null;
+            updates.follow_up_reason = null;
+            updates.notes = dormantAutoArchiveNote(advance.cyclesCompleted, sourceCustomer?.notes);
+          }
         }
         await updateCustomer(item.id, updates as any);
-        await logCustomerActivity({ customerId: item.id, noteType: nType, noteText: note, nextFollowUpDate: nextDate });
+        await logCustomerActivity({ customerId: item.id, noteType: nType, noteText: note, nextFollowUpDate: updates.next_follow_up_date || undefined });
       } else if (item.itemType === "prospect") {
         const nextDate = format(addDays(new Date(), 5), "yyyy-MM-dd");
         await updateProspect(item.id, { last_contact_date: today, next_follow_up_date: nextDate } as any);
@@ -3471,6 +3483,8 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
       let autoNextDate: string;
       let nextStage = currentDormantStage;
       let cadenceLabel: string;
+      let dormantAdvance: DormantAdvance | null = null;
+      const sourceCustomerRecord = customers.find((c) => c.id === item.id);
 
       if (isDidNotConnect) {
         // Did Not Connect uses shorter retry intervals
@@ -3478,21 +3492,23 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
         autoNextDate = format(addDays(new Date(), retryInfo.days), "yyyy-MM-dd");
         cadenceLabel = retryInfo.label;
       } else if (isDormant) {
-        const effectiveStage = currentDormantStage || "Stage 1";
-        nextStage = getNextDormantStage(effectiveStage);
-        autoNextDate = getNextDormantFollowUpDate(effectiveStage);
-        cadenceLabel = getDormantStageLabel(nextStage);
+        dormantAdvance = resolveDormantAdvance(currentDormantStage, (sourceCustomerRecord as any)?.dormant_annual_cycles_completed);
+        nextStage = dormantAdvance.nextStage;
+        autoNextDate = dormantAdvance.nextDate;
+        cadenceLabel = dormantAdvance.label;
       } else {
         const info = getCustomerAutoFollowUpDays(item.activity_status, currentDormantStage);
         autoNextDate = format(addDays(new Date(), info.days), "yyyy-MM-dd");
         cadenceLabel = info.label;
       }
 
-      // Check if catalog follow-up is earlier (only for non-DNC)
+      const willAutoArchive = !isDidNotConnect && isDormant && !!dormantAdvance?.autoArchive;
+
+      // Check if catalog follow-up is earlier (only for non-DNC, and never when archiving)
       let effectiveDate = autoNextDate;
       let effectiveSource: "cadence" | "catalog" = "cadence";
       let effectiveLabel = cadenceLabel;
-      if (!isDidNotConnect && catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
+      if (!isDidNotConnect && !willAutoArchive && catalogFollowUp?.follow_up_date && catalogFollowUp.follow_up_date < autoNextDate) {
         effectiveDate = catalogFollowUp.follow_up_date;
         effectiveSource = "catalog";
         effectiveLabel = `${catalogType} Catalog Follow-Up`;
@@ -3500,13 +3516,21 @@ function CustomerEditPanel({ item, customers, enrichedCustomers, queryClient, on
 
       const updates: Record<string, any> = {
         last_contacted: today,
-        next_follow_up_date: effectiveDate,
+        next_follow_up_date: effectiveDate || null,
         follow_up_reason: isDidNotConnect
           ? "Did not connect — retry scheduled"
           : effectiveSource === "catalog" ? `${catalogType} Catalog Follow-Up` : cadenceLabel,
       };
-      if (!isDidNotConnect && isDormant) {
+      if (!isDidNotConnect && isDormant && dormantAdvance) {
         updates.dormant_follow_up_stage = nextStage;
+        updates.dormant_annual_cycles_completed = dormantAdvance.cyclesCompleted;
+        if (dormantAdvance.autoArchive) {
+          updates.is_active = false;
+          updates.archived_at = new Date().toISOString();
+          updates.next_follow_up_date = null;
+          updates.follow_up_reason = null;
+          updates.notes = dormantAutoArchiveNote(dormantAdvance.cyclesCompleted, sourceCustomerRecord?.notes);
+        }
       }
 
       await updateCustomer(item.id, updates as any);

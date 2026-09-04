@@ -41,7 +41,7 @@ import { BookOpen, Sparkles } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import MergePickerDialog from "@/components/MergePickerDialog";
 import { GitMerge } from "lucide-react";
-import { fetchTeamConsultants } from "@/lib/queries";
+import { fetchTeamConsultants, fetchUserPreferences } from "@/lib/queries";
 import BeautyProfileCard from "@/components/BeautyProfileCard";
 import ThoughtfulTouchesCard from "@/components/ThoughtfulTouchesCard";
 import SkincareConversionDialog from "@/components/SkincareConversionDialog";
@@ -176,10 +176,12 @@ export default function CustomerDetail() {
     enabled: !!id,
   });
 
+  const { data: userPrefs } = useQuery({ queryKey: ["user-preferences"], queryFn: fetchUserPreferences });
+
   const computed = useMemo(() => {
     if (!customer) return null;
-    return computeCustomerFields(customer, orders);
-  }, [customer, orders]);
+    return computeCustomerFields(customer, orders, undefined, userPrefs?.next_catalog_mail_date || null);
+  }, [customer, orders, userPrefs?.next_catalog_mail_date]);
 
   // Build Universal Action Panel item
   const actionPanelItem = useMemo<UniversalActionItem | null>(() => {
