@@ -245,10 +245,7 @@ export default function AddCustomer() {
 
             {/* Birthday & Relationship */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Birthday</label>
-                <Input type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} className="h-10" />
-              </div>
+              <BirthdayInput value={birthday} onChange={setBirthday} />
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Relationship</label>
                 <Select value={relationship} onValueChange={setRelationship}>
