@@ -67,14 +67,14 @@ export default function ScanPhotoDialog({
     setExtracted(null);
   };
 
-  const openFrontCapture = useCameraCapture(handleFile);
-  const openBackCapture = useCameraCapture(handleBackFile);
-
   const handleBackFile = (f: File) => {
     setBackFile(f);
     setBackPreview(URL.createObjectURL(f));
     setExtracted(null);
   };
+
+  const openFrontCapture = useCameraCapture(handleFile);
+  const openBackCapture = useCameraCapture(handleBackFile);
 
   const runScan = async () => {
     if (!file) return;
