@@ -21,9 +21,14 @@ export type DupOpts = {
   phone?: string | null;
   email?: string | null;
   /** Which table we're about to insert into. Match search covers BOTH tables regardless. */
-  kind: "customer" | "consultant";
+  kind: "customer" | "consultant" | "prospect";
   excludeCustomerId?: string;
   excludeConsultantId?: string;
+  excludeProspectId?: string;
+  /** Opt-in: also search the prospects table (recruiting pipeline). */
+  searchProspects?: boolean;
+  /** Opt-in: search ONLY the prospects table. */
+  prospectsOnly?: boolean;
 };
 
 function nameKey(s: string | null | undefined): string {
