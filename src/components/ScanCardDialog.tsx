@@ -112,8 +112,8 @@ export default function ScanCardDialog({
   };
 
   const flagDrive = (error: string | null, needsSetup: boolean) => {
-    if (needsSetup) toast.warning("Saved. Google Drive isn't connected yet, so the PDF backup was skipped.");
-    else if (error) toast.warning("Saved, but the Drive PDF backup failed.");
+    if (needsSetup) toast.warning("Saved — Google Drive isn't connected yet, so the card photo backup was skipped.");
+    else if (error) toast.warning("Saved — but the card photo backup failed.");
   };
 
   const name = (fields.full_name || "").trim();
@@ -133,15 +133,21 @@ export default function ScanCardDialog({
       if (notes) payload.notes = notes;
 
       const customer: any = await createCustomer(payload as any, { allowDuplicate: true });
-      const res = await finalizeScanForNewCustomer({
-        customerId: customer.id,
-        customerName: name,
-        files: [front, back],
-        extracted,
-        orderDrafts: [],
-        eventId,
-      });
-      flagDrive(res.driveError, res.driveNeedsSetup);
+      // Orders/notes/photo-backup run in their own try so a hiccup there never
+      // makes a successful save look like a total failure.
+      try {
+        const res = await finalizeScanForNewCustomer({
+          customerId: customer.id,
+          customerName: name,
+          files: [front, back],
+          extracted,
+          orderDrafts: [],
+          eventId,
+        });
+        flagDrive(res.driveError, res.driveNeedsSetup);
+      } catch (e: any) {
+        toast.warning(`Saved — but the card backup/notes step failed: ${e?.message || e}`);
+      }
 
       if (seed?.guestId) {
         await updateEventGuest(seed.guestId, { converted_customer_id: customer.id } as any);
@@ -163,8 +169,18 @@ export default function ScanCardDialog({
     if (!extracted || !name) return;
     setSaving(true);
     try {
-      const drive = await uploadScanPdfToDrive([front, back], name);
+      let drive: { url: string | null; error: string | null; needsSetup?: boolean } = {
+        url: null,
+        error: null,
+        needsSetup: false,
+      };
+      try {
+        drive = await uploadScanPdfToDrive([front, back], name);
+      } catch (e: any) {
+        drive = { url: null, error: e?.message || "Could not build the card PDF", needsSetup: false };
+      }
       flagDrive(drive.error, Boolean(drive.needsSetup));
+
 
       const payload: Record<string, any> = {};
       for (const f of CONTACT_FIELDS) {
