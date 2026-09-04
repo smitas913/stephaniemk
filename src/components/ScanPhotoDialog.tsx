@@ -23,7 +23,7 @@ import {
   applyScanToExistingCustomer,
   beautyProfileFromExtracted,
 } from "@/lib/scanPhoto";
-import { useCameraCapture } from "@/lib/scanCapture";
+import { usePhotoCapture } from "@/components/CameraCapture";
 
 export default function ScanPhotoDialog({
   open,
@@ -73,8 +73,7 @@ export default function ScanPhotoDialog({
     setExtracted(null);
   };
 
-  const openFrontCapture = useCameraCapture(handleFile);
-  const openBackCapture = useCameraCapture(handleBackFile);
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
 
   const runScan = async () => {
     if (!file) return;

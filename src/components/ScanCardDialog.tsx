@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useCameraCapture } from "@/lib/scanCapture";
+import { usePhotoCapture } from "@/components/CameraCapture";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -60,10 +60,11 @@ export default function ScanCardDialog({
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<Extracted | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
-  // Camera inputs are created on document.body (see scanCapture) so the Radix
-  // dialog focus trap can't swallow the change event on Android Chrome.
-  const openFrontCapture = useCameraCapture((f: File) => { setFront(f); setFrontPreview(URL.createObjectURL(f)); });
-  const openBackCapture = useCameraCapture((f: File) => { setBack(f); setBackPreview(URL.createObjectURL(f)); });
+  // Photos are captured in-page (see CameraCapture) so Android never
+  // backgrounds — and discards — the tab for the OS camera app.
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
+  const setFrontFile = (f: File) => { setFront(f); setFrontPreview(URL.createObjectURL(f)); };
+  const setBackFile = (f: File) => { setBack(f); setBackPreview(URL.createObjectURL(f)); };
   const [profile, setProfile] = useState<BeautyProfile>({});
   const [notes, setNotes] = useState("");
   const [facialDate, setFacialDate] = useState(todayISO());

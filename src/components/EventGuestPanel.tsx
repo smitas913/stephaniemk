@@ -5,7 +5,7 @@ import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest,
 import { SKIN_TYPES } from "@/lib/types";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
-import { useCameraCapture } from "@/lib/scanCapture";
+import { usePhotoCapture } from "@/components/CameraCapture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1086,8 +1086,7 @@ function ConvertGuestToCustomerDialog({
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
   };
 
-  const openScanCapture = useCameraCapture(handleScanFile);
-  const openScanBackCapture = useCameraCapture(handleScanBackFile);
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
 
   const runScan = async () => {
     if (!scanFile) return;
