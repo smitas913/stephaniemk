@@ -965,6 +965,8 @@ function ConvertGuestToCustomerDialog({
   const [mode, setMode] = useState<"manual" | "scan">("manual");
   const [scanFile, setScanFile] = useState<File | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const [scanBackFile, setScanBackFile] = useState<File | null>(null);
+  const [scanBackPreview, setScanBackPreview] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanExtracted, setScanExtracted] = useState<import("@/lib/scanPhoto").Extracted | null>(null);
   const [scanFields, setScanFields] = useState<Record<string, string>>({});
@@ -972,6 +974,7 @@ function ConvertGuestToCustomerDialog({
 
   const resetScan = () => {
     setScanFile(null); setScanPreview(null); setScanning(false);
+    setScanBackFile(null); setScanBackPreview(null);
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
   };
 
@@ -1032,6 +1035,7 @@ function ConvertGuestToCustomerDialog({
               customerId: created.id,
               customerName: (created as any).full_name || g.name,
               file: scanFile,
+              files: [scanFile, scanBackFile],
               extracted: scanExtracted,
               orderDrafts: scanOrders,
               eventId,
@@ -1076,14 +1080,21 @@ function ConvertGuestToCustomerDialog({
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
   };
 
+  const handleScanBackFile = (f: File) => {
+    setScanBackFile(f);
+    setScanBackPreview(URL.createObjectURL(f));
+    setScanExtracted(null); setScanFields({}); setScanOrders([]);
+  };
+
   const openScanCapture = useCameraCapture(handleScanFile);
+  const openScanBackCapture = useCameraCapture(handleScanBackFile);
 
   const runScan = async () => {
     if (!scanFile) return;
     setScanning(true);
     try {
       const { runScanExtract, orderDraftsFromExtracted, contactFieldsForNewCustomer } = await import("@/lib/scanPhoto");
-      const ex = await runScanExtract(scanFile);
+      const ex = await runScanExtract(scanBackFile ? [scanFile, scanBackFile] : scanFile);
       setScanExtracted(ex);
       // Seed editable fields: scanned values, falling back to guest name/phone for any that are missing.
       const seeded = contactFieldsForNewCustomer(ex);
@@ -1107,7 +1118,12 @@ function ConvertGuestToCustomerDialog({
   return (
     <>
       <Dialog open={!!prompt && !dupCheck} onOpenChange={(v) => { if (!v) closeAll(); }}>
-        <DialogContent className={mode === "scan" ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-sm"}>
+        <DialogContent
+          className={mode === "scan" ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-sm"}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onFocusOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
@@ -1156,15 +1172,37 @@ function ConvertGuestToCustomerDialog({
             <div className="space-y-3">
               {!scanExtracted && (
                 <>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="outline" onClick={() => openScanCapture()} className="gap-2" disabled={scanning}>
-                      📷 {scanFile ? "Replace image" : "Choose image"}
+                      📷 {scanFile ? "Replace front" : "Front of card"}
                     </Button>
                     {scanFile && <span className="text-xs text-muted-foreground truncate">{scanFile.name}</span>}
                   </div>
                   {scanPreview && (
                     <div className="border rounded-md overflow-hidden bg-muted/30">
-                      <img src={scanPreview} alt="Scan preview" className="w-full max-h-56 object-contain" />
+                      <img src={scanPreview} alt="Front preview" className="w-full max-h-56 object-contain" />
+                    </div>
+                  )}
+
+                  {scanFile && (
+                    <div className="rounded-md border border-dashed p-3 space-y-2">
+                      <p className="text-xs text-muted-foreground">Got writing on the back? Snap it — otherwise skip ahead.</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={() => openScanBackCapture()} className="gap-2" disabled={scanning}>
+                          📷 {scanBackFile ? "Replace back" : "Back of card"}
+                        </Button>
+                        {scanBackFile && (
+                          <Button type="button" size="sm" variant="ghost" disabled={scanning}
+                            onClick={() => { setScanBackFile(null); setScanBackPreview(null); }}>
+                            Remove back
+                          </Button>
+                        )}
+                      </div>
+                      {scanBackPreview && (
+                        <div className="border rounded-md overflow-hidden bg-muted/30">
+                          <img src={scanBackPreview} alt="Back preview" className="w-full max-h-56 object-contain" />
+                        </div>
+                      )}
                     </div>
                   )}
                   <Button type="button" disabled={!scanFile || scanning} onClick={runScan} className="w-full">
