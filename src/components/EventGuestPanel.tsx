@@ -430,6 +430,14 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     navigate(`/events/new?${params.toString()}`);
   };
 
+  const createSharingAppointment = () => {
+    if (!careerForm) return;
+    const params = new URLSearchParams({ type: "Sharing Appointment", hostess: careerForm.name });
+    if (careerForm.phone) params.set("phone", careerForm.phone);
+    setCareerForm(null);
+    navigate(`/events/new?${params.toString()}`);
+  };
+
   const partyRescheduled = guests.some((g: any) => g.party_rescheduled);
   const togglePartyRescheduled = async () => {
     const newVal = !partyRescheduled;
