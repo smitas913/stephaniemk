@@ -312,6 +312,31 @@ async function uploadScanFile(file: File, customerId: string): Promise<string | 
   return path;
 }
 
+/**
+ * Image upload + PDF/Drive backup, fully isolated: this never throws, so a
+ * failure here can never block the beauty profile, orders, or audit note.
+ */
+async function backupScanArtifacts(
+  files: Array<File | null | undefined>,
+  customerId: string,
+  personName: string,
+): Promise<{ scanPaths: string[]; drive: DriveUploadResult }> {
+  let scanPaths: string[] = [];
+  try {
+    scanPaths = await uploadScanFiles(files, customerId);
+  } catch {
+    scanPaths = [];
+  }
+  let drive: DriveUploadResult = { url: null, error: null, needsSetup: false };
+  try {
+    drive = await uploadScanPdfToDrive(files, personName);
+  } catch (e: any) {
+    drive = { url: null, error: e?.message || "Could not back up the card photo", needsSetup: false };
+  }
+  return { scanPaths, drive };
+}
+
+
 async function uploadScanFiles(files: Array<File | null | undefined>, customerId: string): Promise<string[]> {
   const out: string[] = [];
   for (const f of files) {
