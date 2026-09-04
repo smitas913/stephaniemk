@@ -41,7 +41,9 @@ export default function DuplicateGuardDialog({
   const isSameKind = match.kind === targetKind;
   const dateLabel = match.kind === "consultant"
     ? (match.extra?.join_date ? `joined ${match.extra.join_date}` : "existing consultant")
-    : (match.extra?.date_added ? `added ${match.extra.date_added}` : "existing customer");
+    : match.kind === "prospect"
+      ? (match.extra?.date_shared ? `shared ${match.extra.date_shared}` : "existing prospect")
+      : (match.extra?.date_added ? `added ${match.extra.date_added}` : "existing customer");
 
   const reasonText =
     match.reason === "phone" ? "same phone number" :
