@@ -133,14 +133,16 @@ export async function fillEmptyFieldsFromNew(
   match: DuplicateMatch,
   fresh: { phone?: string | null; email?: string | null; [k: string]: any }
 ) {
-  const table = match.kind === "customer" ? "customers" : "team_consultants";
+  const table = match.kind === "customer" ? "customers" : match.kind === "prospect" ? "prospects" : "team_consultants";
   const updates: Record<string, any> = {};
   const skipKeys = new Set(["id", "kind", "reason", "extra", "name", "full_name"]);
-  const allowedKeys = [
-    "phone", "email", "birthday", "birthday_mmdd",
-    "address_line_1", "address_line_2", "city", "state_territory", "postal_code",
-    "notes",
-  ];
+  const allowedKeys = match.kind === "prospect"
+    ? ["phone", "email", "address_line_1", "city", "state_territory", "postal_code", "notes"]
+    : [
+      "phone", "email", "birthday", "birthday_mmdd",
+      "address_line_1", "address_line_2", "city", "state_territory", "postal_code",
+      "notes",
+    ];
   for (const k of allowedKeys) {
     const val = (fresh as any)[k];
     if (val === undefined || val === null || val === "") continue;
