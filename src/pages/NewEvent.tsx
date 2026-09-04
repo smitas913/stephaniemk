@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, Users, UserCheck } from "lucide-react";
+import { ArrowLeft, PartyPopper, Sparkles, Share2, Megaphone, Monitor, MapPin, Phone, Users, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -37,10 +37,22 @@ const FORMAT_OPTIONS = [
   { value: "Virtual", label: "Virtual", icon: Monitor },
 ] as const;
 
+// Sharing Appointments can also happen over the phone.
+const SHARING_FORMAT_OPTIONS = [
+  ...FORMAT_OPTIONS,
+  { value: "Phone", label: "Phone", icon: Phone },
+] as const;
+
 const HOSTESS_SOURCE_OPTIONS = ["Party/Event", "David's Bridal", "Warm Chatter", "Networking Event", "Vendor Event", "Facial Box", "Referral", "Current Customer", "Other"] as const;
 
 const VIRTUAL_PLATFORMS = [
   { value: "Zoom", label: "Zoom" },
+  { value: "Other", label: "Other" },
+] as const;
+
+const SHARING_VIRTUAL_PLATFORMS = [
+  { value: "Zoom", label: "Zoom" },
+  { value: "Google Meet", label: "Google Meet" },
   { value: "Other", label: "Other" },
 ] as const;
 
@@ -106,6 +118,9 @@ export default function NewEvent() {
   const isLeadGen = eventType === "Lead Generating Event";
   const isVirtual = eventFormat === "Virtual";
   const isSharing = eventType === "Sharing Appointment";
+  const isPhoneFormat = isSharing && eventFormat === "Phone";
+  const formatOptions = isSharing ? SHARING_FORMAT_OPTIONS : FORMAT_OPTIONS;
+  const virtualPlatforms = isSharing ? SHARING_VIRTUAL_PLATFORMS : VIRTUAL_PLATFORMS;
 
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
   const consultantMatches = useMemo(() => {
@@ -149,7 +164,9 @@ export default function NewEvent() {
         guest_count: 0,
         notes: notes.trim() || null,
       };
-      if (eventFormat === "In-Person") {
+      if (isPhoneFormat) {
+        // Phone appointment: no location, no virtual platform needed.
+      } else if (eventFormat === "In-Person") {
         payload.event_location = eventLocation || null;
         payload.event_venue_type = eventVenueType || null;
       } else if (isVirtual && virtualPlatform === "Zoom") {
@@ -157,6 +174,9 @@ export default function NewEvent() {
         payload.zoom_id = zoomId || null;
         payload.zoom_password = zoomPassword || null;
         payload.zoom_link = zoomLink || null;
+      } else if (isVirtual && virtualPlatform === "Google Meet") {
+        payload.virtual_platform = "Google Meet";
+        payload.virtual_platform_link = platformLink || null;
       } else if (isVirtual && virtualPlatform === "Other") {
         payload.virtual_platform = platformName.trim() || "Other";
         payload.virtual_platform_link = platformLink || null;
@@ -398,7 +418,7 @@ export default function NewEvent() {
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Format *</label>
               <div className="flex gap-3">
-                {FORMAT_OPTIONS.map((f) => {
+                {formatOptions.map((f) => {
                   const Icon = f.icon;
                   return (
                     <button
@@ -425,7 +445,7 @@ export default function NewEvent() {
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Platform *</label>
                 <div className="flex gap-3">
-                  {VIRTUAL_PLATFORMS.map((p) => (
+                  {virtualPlatforms.map((p) => (
                     <button
                       key={p.value}
                       type="button"
@@ -465,6 +485,16 @@ export default function NewEvent() {
             )}
 
             {/* Other Platform Fields */}
+            {/* Google Meet Fields */}
+            {isVirtual && virtualPlatform === "Google Meet" && (
+              <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-muted/30">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1.5 block">Meet Link</label>
+                  <Input value={platformLink} onChange={(e) => setPlatformLink(e.target.value)} className="h-10 max-w-sm" placeholder="https://meet.google.com/..." />
+                </div>
+              </div>
+            )}
+
             {isVirtual && virtualPlatform === "Other" && (
               <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-muted/30">
                 <div>
@@ -495,7 +525,7 @@ export default function NewEvent() {
             </div>
 
             {/* Location — Sharing Appointment: single plain location field */}
-            {!isVirtual && isSharing && (
+            {!isVirtual && !isPhoneFormat && isSharing && (
               <div className="max-w-sm">
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
                 <AddressAutocomplete
@@ -508,7 +538,7 @@ export default function NewEvent() {
             )}
 
             {/* Location — only for In-Person */}
-            {!isVirtual && !isSharing && (
+            {!isVirtual && !isPhoneFormat && !isSharing && (
               <div className="space-y-3 max-w-sm">
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Venue Type</label>
