@@ -1080,14 +1080,21 @@ function ConvertGuestToCustomerDialog({
     setScanExtracted(null); setScanFields({}); setScanOrders([]);
   };
 
+  const handleScanBackFile = (f: File) => {
+    setScanBackFile(f);
+    setScanBackPreview(URL.createObjectURL(f));
+    setScanExtracted(null); setScanFields({}); setScanOrders([]);
+  };
+
   const openScanCapture = useCameraCapture(handleScanFile);
+  const openScanBackCapture = useCameraCapture(handleScanBackFile);
 
   const runScan = async () => {
     if (!scanFile) return;
     setScanning(true);
     try {
       const { runScanExtract, orderDraftsFromExtracted, contactFieldsForNewCustomer } = await import("@/lib/scanPhoto");
-      const ex = await runScanExtract(scanFile);
+      const ex = await runScanExtract(scanBackFile ? [scanFile, scanBackFile] : scanFile);
       setScanExtracted(ex);
       // Seed editable fields: scanned values, falling back to guest name/phone for any that are missing.
       const seeded = contactFieldsForNewCustomer(ex);
