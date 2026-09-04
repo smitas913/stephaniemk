@@ -230,7 +230,12 @@ export default function ScanCardDialog({
   return (
     <>
       <Dialog open={open && !followUpFor} onOpenChange={(v) => { if (!v && !scanning && !saving) onOpenChange(false); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+      >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><ScanLine className="w-5 h-5" />Scan Card</DialogTitle>
             <DialogDescription>
