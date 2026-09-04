@@ -23,6 +23,7 @@ import {
   applyScanToExistingCustomer,
   beautyProfileFromExtracted,
 } from "@/lib/scanPhoto";
+import { useCameraCapture } from "@/lib/scanCapture";
 
 export default function ScanPhotoDialog({
   open,
@@ -34,8 +35,6 @@ export default function ScanPhotoDialog({
   customer: Customer;
 }) {
   const qc = useQueryClient();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const backRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -67,6 +66,9 @@ export default function ScanPhotoDialog({
     setPreview(URL.createObjectURL(f));
     setExtracted(null);
   };
+
+  const openFrontCapture = useCameraCapture(handleFile);
+  const openBackCapture = useCameraCapture(handleBackFile);
 
   const handleBackFile = (f: File) => {
     setBackFile(f);
@@ -158,30 +160,8 @@ export default function ScanPhotoDialog({
 
         {!extracted && (
           <div className="space-y-3">
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-              }}
-            />
-            <input
-              ref={backRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleBackFile(f);
-              }}
-            />
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="gap-2">
+              <Button type="button" variant="outline" onClick={() => openFrontCapture()} className="gap-2">
                 <Camera className="w-4 h-4" />{file ? "Replace front" : "Front of card"}
               </Button>
               {file && <span className="text-xs text-muted-foreground truncate">{file.name}</span>}
@@ -196,7 +176,7 @@ export default function ScanPhotoDialog({
               <div className="rounded-md border border-dashed p-3 space-y-2">
                 <p className="text-xs text-muted-foreground">Got a back? Snap it — otherwise just skip ahead.</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => backRef.current?.click()} className="gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => openBackCapture()} className="gap-2">
                     <Camera className="w-4 h-4" />{backFile ? "Replace back" : "Back of card"}
                   </Button>
                   {backFile && (
