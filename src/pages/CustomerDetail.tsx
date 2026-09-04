@@ -33,6 +33,14 @@ import { addDays as addDaysFn } from "date-fns";
 import CustomerNotesTimeline from "@/components/CustomerNotesTimeline";
 import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import BirthdayInput from "@/components/BirthdayInput";
+import {
+  EMPTY_BIRTHDAY_VALUE,
+  birthdayColumns,
+  birthdayValueFromRecord,
+  formatBirthdayLabel,
+  type BirthdayValue,
+} from "@/lib/birthday";
 import { normalizeStateAbbreviation } from "@/lib/usStates";
 import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEditFieldDialog";
 import TextActionButton from "@/components/TextActionButton";
@@ -133,22 +141,17 @@ export default function CustomerDetail() {
   const [skincarePromptOpen, setSkincarePromptOpen] = useState(false);
   // null = unchanged from saved record; true/false = user just toggled and chose conversion type
   const [skincareIsNewConversion, setSkincareIsNewConversion] = useState<boolean | null>(null);
+  // Birthday is edited on its own so the year can be left unknown (month/day only).
+  const [birthdayValue, setBirthdayValue] = useState<BirthdayValue>(EMPTY_BIRTHDAY_VALUE);
   useEffect(() => {
     if (customer) {
+      setBirthdayValue(
+        birthdayValueFromRecord({ birthday: (customer as any).birthday, birthday_mmdd: customer.birthday_mmdd }),
+      );
       setForm({
         full_name: customer.full_name || "",
         phone: customer.phone || "",
         email: customer.email || "",
-        // Display birthday as MM/DD when only mmdd known, or MM/DD/YYYY when full date known.
-        birthday_input: (() => {
-          const full = (customer as any).birthday as string | null;
-          if (full) {
-            const [y, m, d] = full.split("-");
-            return `${m}/${d}/${y}`;
-          }
-          const mmdd = customer.birthday_mmdd || "";
-          return mmdd; // already MM/DD
-        })(),
         address_line_1: customer.address_line_1 || "",
         address_line_2: customer.address_line_2 || "",
         city: customer.city || "",
@@ -449,7 +452,6 @@ export default function CustomerDetail() {
     mutationFn: (data: Record<string, string>) => {
       const cleaned: Record<string, any> = {};
       for (const [k, v] of Object.entries(data)) {
-        if (k === "birthday_input") continue; // handled separately below
         if (k === "new_customer_flag" || k === "is_skincare_customer") {
           cleaned[k] = v === "true";
         } else if (k === "state_territory") {
@@ -470,33 +472,8 @@ export default function CustomerDetail() {
       } else if (!willBeSkincare && wasSkincare) {
         cleaned.skincare_started_at = null;
       }
-      // Birthday: accept MM/DD, MM/DD/YYYY, M/D, M/D/YYYY, or YYYY-MM-DD.
-      const raw = (data.birthday_input || "").trim();
-      if (!raw) {
-        cleaned.birthday = null;
-        cleaned.birthday_mmdd = null;
-      } else {
-        const isoMatch = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-        const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-        if (isoMatch) {
-          const [, y, m, d] = isoMatch;
-          const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
-          cleaned.birthday = `${y}-${mm}-${dd}`;
-          cleaned.birthday_mmdd = `${mm}/${dd}`;
-        } else if (slashMatch) {
-          const [, m, d, y] = slashMatch;
-          const mm = m.padStart(2, "0"), dd = d.padStart(2, "0");
-          cleaned.birthday_mmdd = `${mm}/${dd}`;
-          if (y) {
-            const fullYear = y.length === 2 ? `19${y}` : y;
-            cleaned.birthday = `${fullYear}-${mm}-${dd}`;
-          } else {
-            cleaned.birthday = null;
-          }
-        } else {
-          throw new Error("Birthday must be MM/DD or MM/DD/YYYY");
-        }
-      }
+      // Birthday: full date when the year is known, month/day only otherwise.
+      Object.assign(cleaned, birthdayColumns(birthdayValue));
       if (cleaned.full_name === null) cleaned.full_name = customer!.full_name;
       return updateCustomer(id!, cleaned as any);
     },
@@ -755,14 +732,7 @@ export default function CustomerDetail() {
                   <FormField label="Email">
                     <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-9" />
                   </FormField>
-                  <FormField label="Birthday (MM/DD or MM/DD/YYYY)">
-                    <Input
-                      value={form.birthday_input || ""}
-                      onChange={(e) => setForm({ ...form, birthday_input: e.target.value })}
-                      placeholder="MM/DD or MM/DD/YYYY"
-                      className="h-9"
-                    />
-                  </FormField>
+                  <BirthdayInput value={birthdayValue} onChange={setBirthdayValue} />
                   <FormField label="Address Line 1">
                     <AddressAutocomplete
                       value={form.address_line_1}
@@ -899,7 +869,7 @@ export default function CustomerDetail() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <InfoRow label="Phone" value={customer.phone} />
                   <InfoRow label="Email" value={customer.email} />
-                  <InfoRow label="Birthday" value={(customer as any).birthday ? formatDate((customer as any).birthday) : customer.birthday_mmdd} />
+                  <InfoRow label="Birthday" value={formatBirthdayLabel({ birthday: (customer as any).birthday, birthday_mmdd: customer.birthday_mmdd })} />
                   {(() => {
                     const fullAddress = [customer.address_line_1, customer.address_line_2, [customer.city, customer.state_territory, customer.postal_code].filter(Boolean).join(" ")].filter(Boolean).join(", ");
                     const mapsUrl = fullAddress ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}` : null;
