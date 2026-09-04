@@ -63,7 +63,6 @@ export default function MigrateDuplicatesToConsultants() {
       { name: "daily_plan_items", col: "customer_id", label: "Plan items" },
       { name: "catalog_campaign_customers", col: "customer_id", label: "Campaign entries" },
       { name: "event_guests", col: "converted_customer_id", label: "Event guests" },
-      { name: "booking_leads", col: "converted_customer_id", label: "Booking leads" },
     ];
     const result: Record<string, number> = {};
     for (const t of tables) {
