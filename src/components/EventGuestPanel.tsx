@@ -1118,7 +1118,12 @@ function ConvertGuestToCustomerDialog({
   return (
     <>
       <Dialog open={!!prompt && !dupCheck} onOpenChange={(v) => { if (!v) closeAll(); }}>
-        <DialogContent className={mode === "scan" ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-sm"}>
+        <DialogContent
+          className={mode === "scan" ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-sm"}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onFocusOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
