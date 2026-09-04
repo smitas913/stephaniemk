@@ -14,9 +14,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
-import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User, MessageSquare } from "lucide-react";
+import { Plus, Search, UserPlus, Link2, CalendarDays, Pencil, Trash2, Users, User, MessageSquare, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose, SheetFooter } from "@/components/ui/sheet";
 import CareerChatsTab from "@/components/CareerChatsTab";
 import { dedupeLinkedProspects, getProspectActionDate, prospectRequiresNextDate } from "@/lib/prospectFollowUp";
 
