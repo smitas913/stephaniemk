@@ -24,7 +24,7 @@ export const MERGE_FIELDS = [
 
 /** Map context types to relevant script categories */
 export const CONTEXT_CATEGORY_MAP: Record<string, ScriptCategory[]> = {
-  customer: ["Customer Follow-Up", "Reorders", "Reactivation", "Relationship Touches"],
+  customer: ["Customer Follow-Up", "Reorders", "Reactivation", "Relationship Touches", "Promotions / Seasonal"],
   prospect: ["Recruiting"],
   hostess: ["Hostess Coaching", "Booking"],
   consultant: ["Consultant Coaching"],
