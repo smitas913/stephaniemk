@@ -865,6 +865,7 @@ export default function EventDetail() {
 
 
           {/* ── Tab 4: Guests & Orders ── */}
+          {!isSharing && (
           <TabsContent value="guests" className="mt-4 space-y-4">
 
             {/* Guest Panel */}
@@ -995,6 +996,7 @@ export default function EventDetail() {
               )}
             </div>
           </TabsContent>
+          )}
         </Tabs>
       </div>
 
