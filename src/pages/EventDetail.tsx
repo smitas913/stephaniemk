@@ -715,8 +715,8 @@ export default function EventDetail() {
                           </div>
                         )
                       ) : (
-                      {/* Location — smart based on format */}
-                      {(event.event_format || "In-Person") === "Virtual" ? (
+                      /* Location — smart based on format */
+                      (event.event_format || "In-Person") === "Virtual" ? (
                         <div className="space-y-1.5 sm:col-span-2">
                           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Meeting Link</label>
                           <Input className="h-9 text-sm"
