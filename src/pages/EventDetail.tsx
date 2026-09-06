@@ -436,7 +436,8 @@ export default function EventDetail() {
 
 
         {/* Tabs */}
-        <Tabs defaultValue={new URLSearchParams(location.search).get("tab") === "guests" ? "guests" : "details"}>
+        <Tabs value={isSharing ? "details" : undefined} defaultValue={!isSharing && new URLSearchParams(location.search).get("tab") === "guests" ? "guests" : "details"}>
+          {!isSharing && (
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details" className="flex-1 sm:flex-none">Details & Hostess</TabsTrigger>
             <TabsTrigger value="guests" className="flex-1 sm:flex-none gap-1.5">
@@ -454,6 +455,7 @@ export default function EventDetail() {
               )}
             </TabsTrigger>
           </TabsList>
+          )}
 
           {/* ── Tab 1: Details & Hostess ── */}
           <TabsContent value="details" className="mt-4">
