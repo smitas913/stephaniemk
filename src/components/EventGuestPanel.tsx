@@ -1048,6 +1048,8 @@ function ConvertGuestToCustomerDialog({
 
   const closeAll = () => { setPrompt(null); setDupCheck(null); resetScan(); setMode("manual"); };
 
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
+
   if (!prompt) return null;
   const g = prompt.guest;
 
@@ -1155,7 +1157,6 @@ function ConvertGuestToCustomerDialog({
     setScanProfile({}); setScanBirthday(EMPTY_BIRTHDAY_VALUE);
   };
 
-  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
 
   const runScan = async () => {
     if (!scanFile) return;
