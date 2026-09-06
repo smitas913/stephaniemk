@@ -766,8 +766,8 @@ export default function EventDetail() {
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      Hostess
-                      {(event as any).hostess_converted_customer_id ? (
+                      {isSharing ? "Contact" : "Hostess"}
+                      {!isSharing && (event as any).hostess_converted_customer_id ? (
                         <Badge variant="outline" className="text-[10px] bg-green-50 border-green-200 text-green-700">Customer</Badge>
                       ) : null}
                     </CardTitle>
