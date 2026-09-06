@@ -411,28 +411,33 @@ export default function EventDetail() {
         </div>
 
         {/* KPI Strip — compact */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className={cn("grid gap-2", isSharing ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-4")}>
           <div className="bg-muted/40 rounded-lg p-2.5 text-center">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date</p>
             <p className="text-xs font-bold text-foreground">{event?.event_date ? formatDateOnly(event.event_date, "MMM d") : "—"}</p>
           </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sales</p>
-            <p className="text-xs font-bold text-green-600">${totalSales.toFixed(0)}</p>
-          </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Guests</p>
-            <p className="text-xs font-bold text-purple-600">{guestCount || "—"}</p>
-          </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
-            <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
-          </div>
+          {!isSharing && (
+            <>
+              <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sales</p>
+                <p className="text-xs font-bold text-green-600">${totalSales.toFixed(0)}</p>
+              </div>
+              <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Guests</p>
+                <p className="text-xs font-bold text-purple-600">{guestCount || "—"}</p>
+              </div>
+              <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
+                <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
+              </div>
+            </>
+          )}
         </div>
 
 
         {/* Tabs */}
-        <Tabs defaultValue={new URLSearchParams(location.search).get("tab") === "guests" ? "guests" : "details"}>
+        <Tabs value={isSharing ? "details" : undefined} defaultValue={!isSharing && new URLSearchParams(location.search).get("tab") === "guests" ? "guests" : "details"}>
+          {!isSharing && (
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="details" className="flex-1 sm:flex-none">Details & Hostess</TabsTrigger>
             <TabsTrigger value="guests" className="flex-1 sm:flex-none gap-1.5">
@@ -450,6 +455,7 @@ export default function EventDetail() {
               )}
             </TabsTrigger>
           </TabsList>
+          )}
 
           {/* ── Tab 1: Details & Hostess ── */}
           <TabsContent value="details" className="mt-4">
@@ -615,6 +621,7 @@ export default function EventDetail() {
                         </Select>
                       </div>
 
+                      {!isSharing && (<>
                       {/* Results — Guests, Bookings */}
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Results</label>
@@ -655,10 +662,61 @@ export default function EventDetail() {
                           </div>
                         </div>
                       </div>
+                      </>)}
 
 
-                      {/* Location — smart based on format */}
-                      {(event.event_format || "In-Person") === "Virtual" ? (
+                      {isSharing ? (
+                        (event.event_format || "In-Person") === "Phone" ? (
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
+                            <p className="text-sm text-muted-foreground">Phone call — see contact number below.</p>
+                          </div>
+                        ) : (event.event_format || "In-Person") === "Virtual" ? (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Platform</label>
+                              <Select
+                                value={(event as any).virtual_platform || "__none__"}
+                                onValueChange={(val) => updateField("virtual_platform", val === "__none__" ? null : val)}
+                              >
+                                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select platform" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Not set</SelectItem>
+                                  <SelectItem value="Zoom">Zoom</SelectItem>
+                                  <SelectItem value="Google Meet">Google Meet</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Link</label>
+                              <div className="flex gap-2">
+                                <Input className="h-9 text-sm"
+                                  placeholder="Meeting link"
+                                  defaultValue={(event as any).virtual_platform_link || ""}
+                                  key={`vpl-${(event as any).virtual_platform_link || ""}`}
+                                  onBlur={(e) => { if (e.target.value !== ((event as any).virtual_platform_link || "")) updateField("virtual_platform_link", e.target.value || null); }} />
+                                {(event as any).virtual_platform_link && (
+                                  <Button size="sm" variant="outline" className="h-9 text-xs shrink-0" asChild>
+                                    <a href={(event as any).virtual_platform_link} target="_blank" rel="noopener noreferrer">Join</a>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Address</label>
+                            <Input className="h-9 text-sm"
+                              placeholder="Venue name or address"
+                              value={localLocation}
+                              onChange={(e) => setLocalLocation(e.target.value)}
+                              onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
+                          </div>
+                        )
+                      ) : (
+                      /* Location — smart based on format */
+                      (event.event_format || "In-Person") === "Virtual" ? (
                         <div className="space-y-1.5 sm:col-span-2">
                           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Meeting Link</label>
                           <Input className="h-9 text-sm"
@@ -697,6 +755,7 @@ export default function EventDetail() {
                             onChange={(e) => setLocalLocation(e.target.value)}
                             onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
                         </div>
+                      )
                       )}
                     </div>
                   </CardContent>
@@ -707,8 +766,8 @@ export default function EventDetail() {
                 <Card className="border-border/50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      Hostess
-                      {(event as any).hostess_converted_customer_id ? (
+                      {isSharing ? "Contact" : "Hostess"}
+                      {!isSharing && (event as any).hostess_converted_customer_id ? (
                         <Badge variant="outline" className="text-[10px] bg-green-50 border-green-200 text-green-700">Customer</Badge>
                       ) : null}
                     </CardTitle>
@@ -730,6 +789,7 @@ export default function EventDetail() {
                         <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
                       </div>
+                      {!isSharing && (<>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skin Type</label>
                         <Select
@@ -765,6 +825,7 @@ export default function EventDetail() {
                           </SelectContent>
                         </Select>
                       </div>
+                      </>)}
                     </div>
 
                     {/* Contact + Log + Convert buttons */}
@@ -787,7 +848,7 @@ export default function EventDetail() {
                           <MessageSquare className="w-3 h-3" /> Log Activity
                         </Button>
                       )}
-                      {event.hostess_name && (
+                      {!isSharing && event.hostess_name && (
                         (existingCustomer || (event as any).hostess_converted_customer_id) ? (
                           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 text-green-600 border-green-200 cursor-default" disabled>
                             <CheckCircle2 className="w-3 h-3" /> Already a client
@@ -804,6 +865,7 @@ export default function EventDetail() {
                           </Button>
                         )
                       )}
+                      {!isSharing && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -815,6 +877,7 @@ export default function EventDetail() {
                       >
                         {(event as any).thank_you_sent ? <>✓ Thank You Sent</> : <>Mark Thank You Note Sent</>}
                       </Button>
+                      )}
                     </div>
                     {/* Recent activity */}
                     {(() => {
@@ -859,6 +922,7 @@ export default function EventDetail() {
 
 
           {/* ── Tab 4: Guests & Orders ── */}
+          {!isSharing && (
           <TabsContent value="guests" className="mt-4 space-y-4">
 
             {/* Guest Panel */}
@@ -989,6 +1053,7 @@ export default function EventDetail() {
               )}
             </div>
           </TabsContent>
+          )}
         </Tabs>
       </div>
 
