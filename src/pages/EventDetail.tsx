@@ -621,6 +621,7 @@ export default function EventDetail() {
                         </Select>
                       </div>
 
+                      {!isSharing && (<>
                       {/* Results — Guests, Bookings */}
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Results</label>
@@ -661,6 +662,7 @@ export default function EventDetail() {
                           </div>
                         </div>
                       </div>
+                      </>)}
 
 
                       {/* Location — smart based on format */}
