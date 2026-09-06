@@ -665,6 +665,56 @@ export default function EventDetail() {
                       </>)}
 
 
+                      {isSharing ? (
+                        (event.event_format || "In-Person") === "Phone" ? (
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
+                            <p className="text-sm text-muted-foreground">Phone call — see contact number below.</p>
+                          </div>
+                        ) : (event.event_format || "In-Person") === "Virtual" ? (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Platform</label>
+                              <Select
+                                value={(event as any).virtual_platform || "__none__"}
+                                onValueChange={(val) => updateField("virtual_platform", val === "__none__" ? null : val)}
+                              >
+                                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select platform" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">Not set</SelectItem>
+                                  <SelectItem value="Zoom">Zoom</SelectItem>
+                                  <SelectItem value="Google Meet">Google Meet</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Link</label>
+                              <div className="flex gap-2">
+                                <Input className="h-9 text-sm"
+                                  placeholder="Meeting link"
+                                  defaultValue={(event as any).virtual_platform_link || ""}
+                                  key={`vpl-${(event as any).virtual_platform_link || ""}`}
+                                  onBlur={(e) => { if (e.target.value !== ((event as any).virtual_platform_link || "")) updateField("virtual_platform_link", e.target.value || null); }} />
+                                {(event as any).virtual_platform_link && (
+                                  <Button size="sm" variant="outline" className="h-9 text-xs shrink-0" asChild>
+                                    <a href={(event as any).virtual_platform_link} target="_blank" rel="noopener noreferrer">Join</a>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Address</label>
+                            <Input className="h-9 text-sm"
+                              placeholder="Venue name or address"
+                              value={localLocation}
+                              onChange={(e) => setLocalLocation(e.target.value)}
+                              onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
+                          </div>
+                        )
+                      ) : (
                       {/* Location — smart based on format */}
                       {(event.event_format || "In-Person") === "Virtual" ? (
                         <div className="space-y-1.5 sm:col-span-2">
@@ -705,6 +755,7 @@ export default function EventDetail() {
                             onChange={(e) => setLocalLocation(e.target.value)}
                             onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
                         </div>
+                      )}
                       )}
                     </div>
                   </CardContent>
