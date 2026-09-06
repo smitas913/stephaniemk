@@ -848,7 +848,7 @@ export default function EventDetail() {
                           <MessageSquare className="w-3 h-3" /> Log Activity
                         </Button>
                       )}
-                      {event.hostess_name && (
+                      {!isSharing && event.hostess_name && (
                         (existingCustomer || (event as any).hostess_converted_customer_id) ? (
                           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 text-green-600 border-green-200 cursor-default" disabled>
                             <CheckCircle2 className="w-3 h-3" /> Already a client
@@ -865,6 +865,7 @@ export default function EventDetail() {
                           </Button>
                         )
                       )}
+                      {!isSharing && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -876,6 +877,7 @@ export default function EventDetail() {
                       >
                         {(event as any).thank_you_sent ? <>✓ Thank You Sent</> : <>Mark Thank You Note Sent</>}
                       </Button>
+                      )}
                     </div>
                     {/* Recent activity */}
                     {(() => {
