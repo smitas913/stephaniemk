@@ -411,23 +411,27 @@ export default function EventDetail() {
         </div>
 
         {/* KPI Strip — compact */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className={cn("grid gap-2", isSharing ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-4")}>
           <div className="bg-muted/40 rounded-lg p-2.5 text-center">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Date</p>
             <p className="text-xs font-bold text-foreground">{event?.event_date ? formatDateOnly(event.event_date, "MMM d") : "—"}</p>
           </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sales</p>
-            <p className="text-xs font-bold text-green-600">${totalSales.toFixed(0)}</p>
-          </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Guests</p>
-            <p className="text-xs font-bold text-purple-600">{guestCount || "—"}</p>
-          </div>
-          <div className="bg-muted/40 rounded-lg p-2.5 text-center">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
-            <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
-          </div>
+          {!isSharing && (
+            <>
+              <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Sales</p>
+                <p className="text-xs font-bold text-green-600">${totalSales.toFixed(0)}</p>
+              </div>
+              <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Guests</p>
+                <p className="text-xs font-bold text-purple-600">{guestCount || "—"}</p>
+              </div>
+              <div className="bg-muted/40 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
+                <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
+              </div>
+            </>
+          )}
         </div>
 
 
