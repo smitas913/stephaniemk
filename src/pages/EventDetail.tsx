@@ -789,6 +789,7 @@ export default function EventDetail() {
                         <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
                       </div>
+                      {!isSharing && (<>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skin Type</label>
                         <Select
@@ -824,6 +825,7 @@ export default function EventDetail() {
                           </SelectContent>
                         </Select>
                       </div>
+                      </>)}
                     </div>
 
                     {/* Contact + Log + Convert buttons */}
