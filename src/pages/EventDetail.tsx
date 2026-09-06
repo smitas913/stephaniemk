@@ -755,7 +755,7 @@ export default function EventDetail() {
                             onChange={(e) => setLocalLocation(e.target.value)}
                             onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
                         </div>
-                      )}
+                      )
                       )}
                     </div>
                   </CardContent>
