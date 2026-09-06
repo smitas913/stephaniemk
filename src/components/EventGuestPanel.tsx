@@ -144,7 +144,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const [joinForm, setJoinForm] = useState<{ guestId: string; name: string; phone: string; email: string } | null>(null);
   const [noShowFollowUp, setNoShowFollowUp] = useState<string | null>(null); // guest id
   const [bookForm, setBookForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
-  const [careerForm, setCareerForm] = useState<{ guestId: string; name: string; phone: string } | null>(null);
+  const [careerForm, setCareerForm] = useState<{ guestId: string; name: string; phone: string; search: string; selectedEventId: string | null } | null>(null);
 
   // Duplicate guard for finalizeJoin (consultant insert)
   const [joinDupCheck, setJoinDupCheck] = useState<{ strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null>(null);
@@ -164,7 +164,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   // Upcoming events for the "Booked Next Event" linking panel
   const { data: upcomingEvents = [] } = useQuery({
     queryKey: ["upcoming-events-for-booking"],
-    enabled: !!bookForm,
+    enabled: !!bookForm || !!careerForm,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
@@ -322,7 +322,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       case "career":
         updates.interested = willBeOn;
         if (willBeOn) {
-          setCareerForm({ guestId: g.id, name: g.name, phone: g.phone || "" });
+          setCareerForm({ guestId: g.id, name: g.name, phone: g.phone || "", search: "", selectedEventId: null });
         } else {
           setCareerForm((prev) => (prev && prev.guestId === g.id ? null : prev));
         }
@@ -448,6 +448,18 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     if (careerForm.phone) params.set("phone", careerForm.phone);
     setCareerForm(null);
     navigate(`/events/new?${params.toString()}`);
+  };
+
+  const linkCareerToEvent = async () => {
+    if (!careerForm || !careerForm.selectedEventId) return;
+    const { error } = await supabase
+      .from("events")
+      .update({ hostess_name: careerForm.name, hostess_phone: careerForm.phone || null } as any)
+      .eq("id", careerForm.selectedEventId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${careerForm.name} linked to the sharing appointment`);
+    queryClient.invalidateQueries({ queryKey: ["events"] });
+    setCareerForm(null);
   };
 
   const partyRescheduled = guests.some((g: any) => g.party_rescheduled);
@@ -788,23 +800,66 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                    })()}
 
                   {/* Inline career interest panel */}
-                  {careerForm && careerForm.guestId === g.id && (
-                    <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50/60 space-y-2">
-                      <p className="text-xs font-medium text-amber-800">Book a sharing appointment</p>
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <Button size="sm" className="h-8 text-xs" onClick={createSharingAppointment}>
-                          Create Sharing Appointment for {careerForm.name}
-                        </Button>
-                        <button
-                          type="button"
-                          onClick={() => setCareerForm(null)}
-                          className="ml-auto text-[11px] text-muted-foreground hover:underline"
-                        >
-                          Skip
-                        </button>
+                  {careerForm && careerForm.guestId === g.id && (() => {
+                    const q = careerForm.search.trim().toLowerCase();
+                    const filtered = upcomingEvents.filter((e) => {
+                      if (!q) return true;
+                      const label = `${e.event_date || ""} ${e.hostess_name || ""}`.toLowerCase();
+                      return label.includes(q);
+                    });
+                    return (
+                      <div className="mt-2 p-2 rounded-md border border-amber-200 bg-amber-50/60 space-y-2">
+                        <p className="text-xs font-medium text-amber-800">Book a sharing appointment</p>
+                        <div className="space-y-1.5">
+                          <Input
+                            value={careerForm.search}
+                            onChange={(e) => setCareerForm({ ...careerForm, search: e.target.value, selectedEventId: null })}
+                            placeholder="Search upcoming events…"
+                            className="h-8 text-xs"
+                          />
+                          {filtered.length === 0 ? (
+                            <p className="text-[11px] text-muted-foreground px-1">No upcoming events found</p>
+                          ) : (
+                            <ul className="max-h-40 overflow-auto rounded-md border border-border bg-popover">
+                              {filtered.map((e) => {
+                                const sel = careerForm.selectedEventId === e.id;
+                                const dateLabel = e.event_date ? format(new Date(e.event_date + "T12:00:00"), "MMM d, yyyy") : "No date";
+                                return (
+                                  <li key={e.id}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setCareerForm({ ...careerForm, selectedEventId: e.id })}
+                                      className={cn(
+                                        "w-full text-left px-2 py-1.5 text-xs hover:bg-accent",
+                                        sel && "bg-accent font-medium"
+                                      )}
+                                    >
+                                      {dateLabel} · {e.hostess_name || "(no hostess)"}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <Button size="sm" className="h-8 text-xs" disabled={!careerForm.selectedEventId} onClick={linkCareerToEvent}>
+                            Link to Existing
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={createSharingAppointment}>
+                            Create Sharing Appointment for {careerForm.name}
+                          </Button>
+                          <button
+                            type="button"
+                            onClick={() => setCareerForm(null)}
+                            className="ml-auto text-[11px] text-muted-foreground hover:underline"
+                          >
+                            Skip
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                 </div>
               );
