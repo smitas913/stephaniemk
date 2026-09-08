@@ -127,9 +127,11 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     focus_group: "General", onboarding_stage: "New", coaching_focus: "",
     next_coaching_date: "", notes: "",
     relationship_type: "Personal Recruit" as 'Personal Recruit' | 'Unit Member',
+    recruited_by_consultant_id: null as string | null,
   };
   const [form, setForm] = useState(emptyForm);
-  const resetForm = () => setForm(emptyForm);
+  const [recruiterSearch, setRecruiterSearch] = useState("");
+  const resetForm = () => { setForm(emptyForm); setRecruiterSearch(""); };
   const [relationshipFilter, setRelationshipFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
@@ -197,6 +199,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
     cleaned.first_name = first || null;
     cleaned.last_name = last || null;
     if (!cleaned.status) cleaned.status = "Active";
+    if (form.relationship_type !== "Unit Member") cleaned.recruited_by_consultant_id = null;
     return cleaned;
   };
 
@@ -256,7 +259,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
       coaching_focus: c.coaching_focus || "", next_coaching_date: c.next_coaching_date || "",
       notes: c.notes || "",
       relationship_type: (c.relationship_type ?? "Personal Recruit") as 'Personal Recruit' | 'Unit Member',
+      recruited_by_consultant_id: c.recruited_by_consultant_id ?? null,
     });
+    setRecruiterSearch("");
     setEditId(c.id);
   };
 
@@ -451,6 +456,49 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                   </SelectContent>
                 </Select>
               </div>
+              {form.relationship_type === "Unit Member" && (() => {
+                const selected = consultants.find((c: TeamConsultant) => c.id === form.recruited_by_consultant_id);
+                const q = recruiterSearch.trim().toLowerCase();
+                const matches = q
+                  ? consultants.filter((c: TeamConsultant) => c.id !== editId && c.name.toLowerCase().includes(q)).slice(0, 8)
+                  : [];
+                return (
+                  <div>
+                    <label className="text-xs text-muted-foreground">Recruited by</label>
+                    {selected ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-xs">{selected.name}</Badge>
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setForm({ ...form, recruited_by_consultant_id: null })}>
+                          Change
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Input
+                          placeholder="Search consultants..."
+                          value={recruiterSearch}
+                          onChange={(e) => setRecruiterSearch(e.target.value)}
+                          className="h-9"
+                        />
+                        {matches.length > 0 && (
+                          <div className="border rounded-md mt-1 max-h-40 overflow-y-auto divide-y">
+                            {matches.map((c: TeamConsultant) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="w-full text-left px-2 py-1.5 text-xs hover:bg-muted/50"
+                                onClick={() => { setForm({ ...form, recruited_by_consultant_id: c.id }); setRecruiterSearch(""); }}
+                              >
+                                {c.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Address */}
@@ -531,6 +579,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
           {viewConsultant && (() => {
             const vc = viewConsultant;
             const address = [vc.address_line_1, vc.city, vc.state_territory, vc.postal_code].filter(Boolean).join(", ");
+            const recruiterName = (vc.relationship_type ?? "Personal Recruit") === "Unit Member" && vc.recruited_by_consultant_id
+              ? consultants.find((c: TeamConsultant) => c.id === vc.recruited_by_consultant_id)?.name ?? null
+              : null;
             return (
               <>
                 <SheetHeader className="pb-0">
@@ -541,6 +592,11 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                     {vc.onboarding_stage && vc.focus_group !== "General" && (
                       <Badge variant="secondary" className={cn("text-[10px]", ONBOARDING_STAGE_COLORS[vc.onboarding_stage] || "")}>
                         {vc.onboarding_stage}
+                      </Badge>
+                    )}
+                    {recruiterName && (
+                      <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                        Recruited by {recruiterName}
                       </Badge>
                     )}
                   </div>

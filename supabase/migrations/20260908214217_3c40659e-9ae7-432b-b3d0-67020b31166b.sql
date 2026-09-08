@@ -1,0 +1,1 @@
+ALTER TABLE public.team_consultants ADD COLUMN IF NOT EXISTS recruited_by_consultant_id uuid REFERENCES public.team_consultants(id) ON DELETE SET NULL;
