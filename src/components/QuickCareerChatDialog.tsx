@@ -26,11 +26,14 @@ export default function QuickCareerChatDialog({
   onOpenChange,
   onLogged,
   initialProspectId,
+  linkedEventId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onLogged: () => void;
   initialProspectId?: string | null;
+  /** When logging from an event page, flag that event so marking it "Held" won't double-count. */
+  linkedEventId?: string | null;
   /** @deprecated retained for call-site compatibility; layer concept removed */
   initialLastTouch?: string | null;
 }) {

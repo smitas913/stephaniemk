@@ -1196,6 +1196,14 @@ export default function EventDetail() {
             }}>
               🔄 Rescheduling in Progress
             </Button>
+            {isSharing && (
+              <Button variant="outline" className="w-full" onClick={() => {
+                setShowPostEventPrompt(false);
+                handleStatusChange("No Show");
+              }}>
+                🚫 No Show
+              </Button>
+            )}
             <Button variant="destructive" className="w-full" onClick={() => {
               eventMutation.mutate({
                 event_id: event!.event_id,
@@ -1268,6 +1276,7 @@ export default function EventDetail() {
         open={careerChatOpen}
         onOpenChange={setCareerChatOpen}
         initialProspectId={(event as any)?.prospect_id ?? null}
+        linkedEventId={event?.event_id ?? null}
         onLogged={() => {
           setCareerChatOpen(false);
           queryClient.invalidateQueries({ queryKey: ["prospects"] });
