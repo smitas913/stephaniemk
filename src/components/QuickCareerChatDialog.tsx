@@ -227,7 +227,16 @@ export default function QuickCareerChatDialog({
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Flag the source appointment so marking it "Held" later doesn't log a second chat.
+      if (linkedEventId) {
+        try {
+          await supabase.from("events" as any).update({ career_chat_logged: true } as any).eq("event_id", linkedEventId);
+          qc.invalidateQueries({ queryKey: ["events"] });
+        } catch (e) {
+          console.error("failed to flag linked event as career_chat_logged", e);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["prospects"] });
       qc.invalidateQueries({ queryKey: ["all-notes"] });
       qc.invalidateQueries({ queryKey: ["unified-notes"] });
