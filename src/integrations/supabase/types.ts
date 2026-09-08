@@ -1978,6 +1978,7 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           prospect_id: string | null
+          recruited_by_consultant_id: string | null
           relationship_type: string
           secondary_email: string | null
           secondary_phone: string | null
@@ -2035,6 +2036,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           prospect_id?: string | null
+          recruited_by_consultant_id?: string | null
           relationship_type?: string
           secondary_email?: string | null
           secondary_phone?: string | null
@@ -2092,6 +2094,7 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           prospect_id?: string | null
+          recruited_by_consultant_id?: string | null
           relationship_type?: string
           secondary_email?: string | null
           secondary_phone?: string | null
@@ -2107,6 +2110,13 @@ export type Database = {
             columns: ["prospect_id"]
             isOneToOne: false
             referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_consultants_recruited_by_consultant_id_fkey"
+            columns: ["recruited_by_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
             referencedColumns: ["id"]
           },
         ]
