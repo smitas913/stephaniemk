@@ -389,6 +389,7 @@ export interface TeamConsultant {
   postal_code: string | null;
   allow_non_working_day: boolean;
   relationship_type: 'Personal Recruit' | 'Unit Member';
+  recruited_by_consultant_id?: string | null;
   debut_date?: string | null;
   onboarding_exit_status?: string | null;
   onboarding_exit_date?: string | null;
