@@ -26,11 +26,14 @@ export default function QuickCareerChatDialog({
   onOpenChange,
   onLogged,
   initialProspectId,
+  linkedEventId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onLogged: () => void;
   initialProspectId?: string | null;
+  /** When logging from an event page, flag that event so marking it "Held" won't double-count. */
+  linkedEventId?: string | null;
   /** @deprecated retained for call-site compatibility; layer concept removed */
   initialLastTouch?: string | null;
 }) {
@@ -224,7 +227,16 @@ export default function QuickCareerChatDialog({
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Flag the source appointment so marking it "Held" later doesn't log a second chat.
+      if (linkedEventId) {
+        try {
+          await supabase.from("events" as any).update({ career_chat_logged: true } as any).eq("event_id", linkedEventId);
+          qc.invalidateQueries({ queryKey: ["events"] });
+        } catch (e) {
+          console.error("failed to flag linked event as career_chat_logged", e);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["prospects"] });
       qc.invalidateQueries({ queryKey: ["all-notes"] });
       qc.invalidateQueries({ queryKey: ["unified-notes"] });

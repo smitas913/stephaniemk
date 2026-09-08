@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS career_chat_logged boolean NOT NULL DEFAULT false;
