@@ -83,7 +83,9 @@ export default function QuickCareerChatDialog({
       return 30;
     };
     const days = isForConsultant ? 2 : getFollowUpDays(interestLevel);
-    return format(addDays(new Date(chatDate + "T12:00"), days), "yyyy-MM-dd");
+    const base = new Date(`${chatDate || toLocalDateKey()}T12:00`);
+    if (isNaN(base.getTime())) return "";
+    return format(addDays(base, days), "yyyy-MM-dd");
   }, [chatDate, interestLevel, isForConsultant]);
 
   useEffect(() => {
