@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { personalEvents } from "@/lib/eventScope";
 import {
   fetchMomentumGoals,
   fetchEvents,

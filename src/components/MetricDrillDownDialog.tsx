@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { personalEvents } from "@/lib/eventScope";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -85,7 +86,7 @@ export default function MetricDrillDownDialog({
     const out: Row[] = [];
     if (metricKey === "faces") {
       // Held event guest counts
-      events.filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end)).forEach((e) => {
+      personalEvents(events).filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end)).forEach((e) => {
         const gc = Number(e.guest_count || 0);
         if (gc > 0) {
           out.push({
