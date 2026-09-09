@@ -106,25 +106,20 @@ export default function MetricDrillDownDialog({
         out.push(noteRow(n, customerById, prospectById));
       });
     } else if (metricKey === "career_chats") {
-      notes.filter((n) => n.result_type === "Career Chat" && (n as any).entity_type === "Prospect" && inRange(n.note_date, start, end)).forEach((n) => {
+      notes.filter((n) => {
+        if (n.result_type !== "Career Chat" || (n as any).entity_type !== "Prospect" || !inRange(n.note_date, start, end)) return false;
+        const prospect = n.prospect_id ? prospectById.get(n.prospect_id) : undefined;
+        return (prospect?.ownership_type || "personal") !== "unit";
+      }).forEach((n) => {
         out.push(noteRow(n, customerById, prospectById));
       });
     } else if (metricKey === "unit_career_chats") {
-      notes.filter((n) => n.result_type === "Career Chat" && (n as any).entity_type === "Consultant" && inRange(n.note_date, start, end)).forEach((n) => {
-        const consultantId = (n as any).person_id as string | null;
-        const consultant = consultantId ? consultants.find((c) => c.id === consultantId) : undefined;
-        out.push({
-          id: `note-${n.id}`,
-          source: "Consultant",
-          date: n.note_date || "",
-          personName: consultant?.name || "Consultant",
-          personId: consultantId,
-          personType: "consultant",
-          notes: n.note_body,
-          table: "notes",
-          href: consultantId ? `/consultants/${consultantId}` : undefined,
-          ownership: "Unit",
-        });
+      notes.filter((n) => {
+        if (n.result_type !== "Career Chat" || (n as any).entity_type !== "Prospect" || !inRange(n.note_date, start, end)) return false;
+        const prospect = n.prospect_id ? prospectById.get(n.prospect_id) : undefined;
+        return prospect?.ownership_type === "unit";
+      }).forEach((n) => {
+        out.push(noteRow(n, customerById, prospectById));
       });
     } else if (metricKey === "new_team_members" || metricKey === "new_unit_members") {
       consultants.filter((c) => {

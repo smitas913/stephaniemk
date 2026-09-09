@@ -59,7 +59,7 @@ function computeActuals(
   end: Date,
   data: { events: EventRecord[]; notes: Note[]; customers: Customer[]; prospects: Prospect[]; consultants: TeamConsultantRow[] },
 ): number {
-  const { notes, customers, consultants } = data;
+  const { notes, customers, consultants, prospects } = data;
   const events = personalEvents(data.events);
   switch (metricKey) {
     case "faces": {
@@ -73,15 +73,24 @@ function computeActuals(
       ).length;
       return heldEventFaces + quickAddFaces;
     }
-    case "career_chats":
-      // Personal only — unit-coached chats also write a Consultant note, counted separately.
-      return notes.filter(
-        (n) => n.result_type === "Career Chat" && (n as any).entity_type === "Prospect" && inRange(n.note_date, start, end),
-      ).length;
-    case "unit_career_chats":
-      return notes.filter(
-        (n) => n.result_type === "Career Chat" && (n as any).entity_type === "Consultant" && inRange(n.note_date, start, end),
-      ).length;
+    case "career_chats": {
+      // Classify by the linked prospect's ownership_type, not by note entity_type —
+      // every chat writes a Prospect-type note regardless of personal/unit, so entity_type
+      // alone can't distinguish them. Consultant-type notes are a paired duplicate log and
+      // are excluded from both counts to avoid double-counting.
+      return notes.filter((n) => {
+        if (n.result_type !== "Career Chat" || (n as any).entity_type !== "Prospect" || !inRange(n.note_date, start, end)) return false;
+        const prospect = n.prospect_id ? prospects.find((p) => p.id === n.prospect_id) : undefined;
+        return (prospect?.ownership_type || "personal") !== "unit";
+      }).length;
+    }
+    case "unit_career_chats": {
+      return notes.filter((n) => {
+        if (n.result_type !== "Career Chat" || (n as any).entity_type !== "Prospect" || !inRange(n.note_date, start, end)) return false;
+        const prospect = n.prospect_id ? prospects.find((p) => p.id === n.prospect_id) : undefined;
+        return prospect?.ownership_type === "unit";
+      }).length;
+    }
     case "new_team_members":
       // Personal recruits only (defaults to Personal Recruit when null/legacy)
       return consultants.filter((c) => {
