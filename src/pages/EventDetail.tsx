@@ -1246,6 +1246,66 @@ export default function EventDetail() {
         }}
       />
 
+      {/* Assign / change the unit consultant this event belongs to */}
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Who is this event for?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {assignedConsultantName && (
+              <p className="text-xs text-muted-foreground">
+                Currently: <span className="font-medium text-foreground">{assignedConsultantName}</span>
+              </p>
+            )}
+            <Input
+              placeholder="Search consultants..."
+              value={consultantSearch}
+              onChange={(e) => setConsultantSearch(e.target.value)}
+              className="h-9"
+            />
+            <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+              {consultantList
+                .filter((c) => c.name.toLowerCase().includes(consultantSearch.trim().toLowerCase()))
+                .slice(0, 20)
+                .map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="w-full text-left px-2 py-2 text-sm hover:bg-muted/50"
+                    onClick={() => {
+                      eventMutation.mutate(
+                        { event_id: event!.event_id, assigned_consultant_id: c.id } as any,
+                        { onSuccess: () => { setAssignOpen(false); toast.success(`Assigned to ${c.name}`); } }
+                      );
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              {consultantList.length === 0 && (
+                <p className="px-2 py-3 text-xs text-muted-foreground">No consultants yet.</p>
+              )}
+            </div>
+            {event?.assigned_consultant_id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() =>
+                  eventMutation.mutate(
+                    { event_id: event.event_id, assigned_consultant_id: null } as any,
+                    { onSuccess: () => { setAssignOpen(false); toast.success("Consultant cleared"); } }
+                  )
+                }
+              >
+                Clear assignment
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </Layout>
   );
 }
