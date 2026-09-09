@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, fetchTeamConsultants } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { checkForDuplicatePerson } from "@/lib/duplicateCheck";
 import { autoLogCareerChat } from "@/lib/careerChatAutoLog";
@@ -61,6 +61,7 @@ export default function EventDetail() {
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: teamConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
 
@@ -161,6 +162,8 @@ export default function EventDetail() {
   });
 
   const [careerChatOpen, setCareerChatOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [consultantSearch, setConsultantSearch] = useState("");
 
   const eventMutation = useMutation({
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
@@ -424,6 +427,16 @@ export default function EventDetail() {
           )}
           {event && (
             <div className="flex items-center gap-1.5 shrink-0">
+              {event.event_scope === "Unit" && (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-purple-50 text-purple-700 border-purple-200 cursor-pointer"
+                  onClick={() => { setAssignOpen(true); setConsultantSearch(""); }}
+                  title="Change the consultant this event belongs to"
+                >
+                  For: {assignedConsultantName ?? "Unassigned"}
+                </Badge>
+              )}
               {(event as any).reschedule_status === "In Process of Rescheduling" ? (
                 <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
                   Rescheduling
