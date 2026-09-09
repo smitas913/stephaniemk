@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 
-export type DrillMetricKey = "faces" | "career_chats" | "new_team_members" | "new_skincare_customers";
+export type DrillMetricKey = "faces" | "career_chats" | "unit_career_chats" | "new_team_members" | "new_unit_members" | "new_skincare_customers";
 
 interface Props {
   open: boolean;
@@ -106,13 +106,32 @@ export default function MetricDrillDownDialog({
         out.push(noteRow(n, customerById, prospectById));
       });
     } else if (metricKey === "career_chats") {
-      notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).forEach((n) => {
+      notes.filter((n) => n.result_type === "Career Chat" && (n as any).entity_type === "Prospect" && inRange(n.note_date, start, end)).forEach((n) => {
         out.push(noteRow(n, customerById, prospectById));
       });
-    } else if (metricKey === "new_team_members") {
+    } else if (metricKey === "unit_career_chats") {
+      notes.filter((n) => n.result_type === "Career Chat" && (n as any).entity_type === "Consultant" && inRange(n.note_date, start, end)).forEach((n) => {
+        const consultantId = (n as any).person_id as string | null;
+        const consultant = consultantId ? consultants.find((c) => c.id === consultantId) : undefined;
+        out.push({
+          id: `note-${n.id}`,
+          source: "Consultant",
+          date: n.note_date || "",
+          personName: consultant?.name || "Consultant",
+          personId: consultantId,
+          personType: "consultant",
+          notes: n.note_body,
+          table: "notes",
+          href: consultantId ? `/consultants/${consultantId}` : undefined,
+          ownership: "Unit",
+        });
+      });
+    } else if (metricKey === "new_team_members" || metricKey === "new_unit_members") {
       consultants.filter((c) => {
         const rt = c.relationship_type ?? "Personal Recruit";
-        return rt === "Personal Recruit" && inRange(c.join_date ?? c.created_at, start, end);
+        return metricKey === "new_unit_members"
+          ? c.relationship_type === "Unit Member" && inRange(c.join_date ?? c.created_at, start, end)
+          : rt === "Personal Recruit" && inRange(c.join_date ?? c.created_at, start, end);
       }).forEach((c) => {
         const date = c.join_date ?? c.created_at ?? "";
         out.push({
@@ -126,6 +145,7 @@ export default function MetricDrillDownDialog({
           href: `/consultants/${c.id}`,
         });
       });
+
     } else if (metricKey === "new_skincare_customers") {
       customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).forEach((c) => {
         out.push({
