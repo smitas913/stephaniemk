@@ -32,13 +32,16 @@ async function fetchTeamConsultantsLite(): Promise<TeamConsultantRow[]> {
   return ((data || []) as unknown) as TeamConsultantRow[];
 }
 
-// Only the four core dashboard metrics are supported.
+// Only the core dashboard metrics are supported.
 const ALLOWED_METRIC_KEYS = new Set([
   "faces",
   "career_chats",
+  "unit_career_chats",
   "new_team_members",
+  "new_unit_members",
   "new_skincare_customers",
 ]);
+
 
 function inRange(dateStr: string | null | undefined, start: Date, end: Date): boolean {
   if (!dateStr) return false;
@@ -71,15 +74,25 @@ function computeActuals(
       return heldEventFaces + quickAddFaces;
     }
     case "career_chats":
-      return notes.filter((n) => n.result_type === "Career Chat" && inRange(n.note_date, start, end)).length;
+      // Personal only — unit-coached chats also write a Consultant note, counted separately.
+      return notes.filter(
+        (n) => n.result_type === "Career Chat" && (n as any).entity_type === "Prospect" && inRange(n.note_date, start, end),
+      ).length;
+    case "unit_career_chats":
+      return notes.filter(
+        (n) => n.result_type === "Career Chat" && (n as any).entity_type === "Consultant" && inRange(n.note_date, start, end),
+      ).length;
     case "new_team_members":
       // Personal recruits only (defaults to Personal Recruit when null/legacy)
       return consultants.filter((c) => {
         const rt = c.relationship_type ?? 'Personal Recruit';
         return rt === 'Personal Recruit' && inRange(c.join_date ?? c.created_at, start, end);
       }).length;
+    case "new_unit_members":
+      return consultants.filter((c) => c.relationship_type === 'Unit Member' && inRange(c.join_date ?? c.created_at, start, end)).length;
     case "new_skincare_customers":
       return customers.filter((c) => inRange((c as any).skincare_started_at, start, end)).length;
+
     default:
       return 0;
   }
@@ -202,7 +215,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
               const current = computeActuals(g.metric_key, start, end, dataBundle);
               const pct = g.goal_value > 0 ? Math.min((current / g.goal_value) * 100, 100) : 0;
               const status = statusFor(current, g.goal_value, pace);
-              const isDrillable = (["faces","career_chats","new_team_members","new_skincare_customers"] as const).includes(g.metric_key as any);
+              const isDrillable = (["faces","career_chats","unit_career_chats","new_team_members","new_unit_members","new_skincare_customers"] as const).includes(g.metric_key as any);
               return (
                 <div key={g.id} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
