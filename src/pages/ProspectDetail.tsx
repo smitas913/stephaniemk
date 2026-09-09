@@ -145,6 +145,10 @@ export default function ProspectDetail() {
   const convertMut = useMutation({
     mutationFn: async () => {
       if (!prospect) throw new Error("No prospect");
+      if (convertMode === "existing") {
+        if (!convertConsultant) throw new Error("Pick a consultant to link to");
+        return linkProspectToExistingConsultant(prospect, convertConsultant.id);
+      }
       return convertProspectToConsultant(prospect, {
         next_coaching_date: convertCoachingDate || null,
         coaching_focus: convertCoachingFocus || null,
@@ -158,8 +162,12 @@ export default function ProspectDetail() {
       setShowConvert(false);
       setConvertCoachingDate("");
       setConvertCoachingFocus("");
+      setConvertMode("new");
+      setConvertConsultant(null);
+      setConvertConsultantSearch("");
       toast.success(describeProspectConversion(res.merge_summary));
     },
+    onError: (e: Error) => toast.error(e.message || "Could not convert"),
   });
 
   const markContacted = useMutation({
