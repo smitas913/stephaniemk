@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateProspectNote, convertProspectToConsultant } from "@/lib/queries";
+import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateProspectNote, convertProspectToConsultant, describeProspectConversion } from "@/lib/queries";
 import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
 import type { ProspectNote } from "@/lib/types";
 import Layout from "@/components/Layout";
@@ -139,12 +139,12 @@ export default function ProspectDetail() {
   const convertMut = useMutation({
     mutationFn: async () => {
       if (!prospect) throw new Error("No prospect");
-      await convertProspectToConsultant(prospect, {
+      return convertProspectToConsultant(prospect, {
         next_coaching_date: convertCoachingDate || null,
         coaching_focus: convertCoachingFocus || null,
       });
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["prospect", id] });
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -152,7 +152,7 @@ export default function ProspectDetail() {
       setShowConvert(false);
       setConvertCoachingDate("");
       setConvertCoachingFocus("");
-      toast.success("Prospect converted! A new consultant record has been created.");
+      toast.success(describeProspectConversion(res.merge_summary));
     },
   });
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProspects, fetchTeamConsultants, convertProspectToConsultant } from "@/lib/queries";
+import { fetchProspects, fetchTeamConsultants, convertProspectToConsultant, describeProspectConversion } from "@/lib/queries";
 import type { Prospect } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,10 +75,12 @@ export default function CareerChatsTab() {
 
   const joinedMut = useMutation({
     mutationFn: async (p: Prospect) => convertProspectToConsultant(p),
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["prospects"] });
       qc.invalidateQueries({ queryKey: ["team-consultants"] });
-      toast.success("Converted to consultant! 🎉");
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["facial-contacts"] });
+      toast.success(`${describeProspectConversion(res.merge_summary)} 🎉`);
     },
     onError: (e: any) => toast.error(e?.message || "Failed"),
   });
