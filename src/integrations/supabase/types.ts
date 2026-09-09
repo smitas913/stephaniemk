@@ -2472,6 +2472,22 @@ export type Database = {
         Args: { _dup_id: string; _keep_id: string }
         Returns: Json
       }
+      merge_facial_contact_into_consultant: {
+        Args: { _consultant_id: string; _facial_contact_id: string }
+        Returns: Json
+      }
+      merge_facial_contact_into_consultant_impl: {
+        Args: { _consultant_id: string; _facial_contact_id: string }
+        Returns: Json
+      }
+      merge_prospect_into_consultant: {
+        Args: { _consultant_id: string; _prospect_id: string }
+        Returns: Json
+      }
+      merge_prospect_into_consultant_impl: {
+        Args: { _consultant_id: string; _prospect_id: string }
+        Returns: Json
+      }
       normalize_phone: { Args: { p: string }; Returns: string }
     }
     Enums: {
