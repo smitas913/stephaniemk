@@ -472,7 +472,7 @@ export const fetchAllEventGuests = async (): Promise<EventGuest[]> => {
   return data as unknown as EventGuest[];
 };
 
-export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; email?: string | null; notes?: string | null; rsvp?: string | null; converted_customer_id?: string | null; consultant_id?: string | null; skin_type?: string | null; video_watched?: boolean }) => {
+export const createEventGuest = async (guest: { event_id: string; name: string; phone?: string | null; email?: string | null; notes?: string | null; rsvp?: string | null; converted_customer_id?: string | null; consultant_id?: string | null; skin_type?: string | null; video_watched?: boolean; prospect_id?: string | null }) => {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("event_guests")
@@ -1487,6 +1487,28 @@ export const describeProspectConversion = (s: ProspectConversionResult["merge_su
   const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
   return `Converted to consultant — merged in ${list}`;
 };
+
+/** Link a prospect to an already-existing consultant record (no new consultant created). */
+export const linkProspectToExistingConsultant = async (
+  prospect: Prospect,
+  consultantId: string,
+): Promise<ProspectConversionResult> => {
+  const { data: mergeData, error } = await supabase.rpc("merge_prospect_into_consultant" as any, {
+    _prospect_id: prospect.id,
+    _consultant_id: consultantId,
+  });
+  if (error) throw error;
+  const summary = {
+    notes: Number((mergeData as any)?.moved?.notes || 0),
+    events: Number((mergeData as any)?.moved?.events || 0),
+    customer_merged: false,
+    facial_merged: false,
+  };
+  const { data: fresh, error: fErr } = await supabase.from("team_consultants").select("*").eq("id", consultantId).single();
+  if (fErr) throw fErr;
+  return { ...(fresh as any), merge_summary: summary } as ProspectConversionResult;
+};
+
 
 // Convert a customer to a consultant — true migration via RPC.
 // Re-points orders, notes, follow-ups, tags, beauty notes, events, leads, campaigns,

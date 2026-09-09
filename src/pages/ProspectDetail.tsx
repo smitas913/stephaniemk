@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateProspectNote, convertProspectToConsultant, describeProspectConversion } from "@/lib/queries";
+import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateProspectNote, convertProspectToConsultant, describeProspectConversion, createEventGuest, fetchEvents, fetchTeamConsultants, linkProspectToExistingConsultant } from "@/lib/queries";
 import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
-import type { ProspectNote } from "@/lib/types";
+import type { ProspectNote, EventRecord, TeamConsultant } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,18 +47,24 @@ export default function ProspectDetail() {
 
   const { data: prospect } = useQuery({ queryKey: ["prospect", id], queryFn: () => fetchProspect(id!) });
   const { data: notes = [] } = useQuery({ queryKey: ["prospect-notes", id], queryFn: () => fetchProspectNotes(id!) });
+  const { data: allEvents = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [noteText, setNoteText] = useState("");
   const [noteDate, setNoteDate] = useState(toLocalDateKey());
   const [showConvert, setShowConvert] = useState(false);
+  const [convertMode, setConvertMode] = useState<"new" | "existing">("new");
+  const [convertConsultantSearch, setConvertConsultantSearch] = useState("");
+  const [convertConsultant, setConvertConsultant] = useState<TeamConsultant | null>(null);
   const [convertCoachingDate, setConvertCoachingDate] = useState("");
   const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
   const [showBooking, setShowBooking] = useState(false);
-  const [nudgeAction, setNudgeAction] = useState<null | "followup" | "referral">(null);
+  const [nudgeAction, setNudgeAction] = useState<null | "followup" | "referral" | "event">(null);
   const [nudgeFollowUpDate, setNudgeFollowUpDate] = useState<string>(toLocalDateKey());
   const [nudgeReferralName, setNudgeReferralName] = useState("");
+  const [nudgeEventSearch, setNudgeEventSearch] = useState("");
   const [nudgeBusy, setNudgeBusy] = useState(false);
 
   useEffect(() => {
@@ -139,6 +145,10 @@ export default function ProspectDetail() {
   const convertMut = useMutation({
     mutationFn: async () => {
       if (!prospect) throw new Error("No prospect");
+      if (convertMode === "existing") {
+        if (!convertConsultant) throw new Error("Pick a consultant to link to");
+        return linkProspectToExistingConsultant(prospect, convertConsultant.id);
+      }
       return convertProspectToConsultant(prospect, {
         next_coaching_date: convertCoachingDate || null,
         coaching_focus: convertCoachingFocus || null,
@@ -152,8 +162,12 @@ export default function ProspectDetail() {
       setShowConvert(false);
       setConvertCoachingDate("");
       setConvertCoachingFocus("");
+      setConvertMode("new");
+      setConvertConsultant(null);
+      setConvertConsultantSearch("");
       toast.success(describeProspectConversion(res.merge_summary));
     },
+    onError: (e: Error) => toast.error(e.message || "Could not convert"),
   });
 
   const markContacted = useMutation({
@@ -289,7 +303,7 @@ export default function ProspectDetail() {
               const d = new Date();
               d.setDate(d.getDate() + 7);
               const next = toLocalDateKey(d);
-              await updateProspect(id!, { next_follow_up_date: next } as any);
+              await updateProspect(id!, { next_follow_up_date: next, next_step_date: null } as any);
               await logNote("Still working on it");
               invalidate();
               toast.success("Pushed out 7 days");
@@ -319,6 +333,7 @@ export default function ProspectDetail() {
           const referralUnit = async () => {
             setNudgeBusy(true);
             try {
+              await updateProspect(id!, { next_step_date: null } as any);
               await logNote("Referral given");
               invalidate();
               toast.success("Referral logged");
@@ -332,6 +347,7 @@ export default function ProspectDetail() {
             if (!name) return;
             setNudgeBusy(true);
             try {
+              await updateProspect(id!, { next_step_date: null } as any);
               await logNote(`Referral given: ${name}`);
               invalidate();
               setNudgeReferralName("");
@@ -342,17 +358,34 @@ export default function ProspectDetail() {
             }
           };
 
-          const invitedToEvent = async () => {
+          const pickEventForInvite = async (ev: EventRecord) => {
             setNudgeBusy(true);
             try {
-              await updateProspect(id!, { next_step_type: "Invite to Event" } as any);
-              await logNote("Invited to an event");
+              await createEventGuest({
+                event_id: ev.event_id,
+                name: prospect.name,
+                phone: prospect.phone,
+                email: prospect.email,
+                prospect_id: prospect.id,
+              });
+              await updateProspect(id!, {
+                next_step_type: "Invite to Event",
+                next_step_date: ev.event_date,
+              } as any);
+              const label = ev.event_title || ev.hostess_name || "an event";
+              await logNote(`Invited to ${label} on ${formatDateOnly(ev.event_date)}`);
               invalidate();
-              toast.success("Logged invite");
+              queryClient.invalidateQueries({ queryKey: ["event-guests", ev.event_id] });
+              setNudgeAction(null);
+              setNudgeEventSearch("");
+              toast.success(`Added as a guest to ${label}`);
+            } catch (e: any) {
+              toast.error(e?.message || "Could not add as a guest");
             } finally {
               setNudgeBusy(false);
             }
           };
+
 
           const isPersonal = (prospect.ownership_type || "personal") === "personal";
 
@@ -395,7 +428,12 @@ export default function ProspectDetail() {
                     >
                       Referral given
                     </Button>
-                    <Button size="sm" variant="outline" disabled={nudgeBusy} onClick={invitedToEvent}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={nudgeBusy}
+                      onClick={() => setNudgeAction(nudgeAction === "event" ? null : "event")}
+                    >
                       Invited to an event
                     </Button>
                   </div>
@@ -429,6 +467,54 @@ export default function ProspectDetail() {
                         Save
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => { setNudgeAction(null); setNudgeReferralName(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+
+                  {nudgeAction === "event" && (
+                    <div className="mt-3 space-y-2">
+                      <Input
+                        placeholder="Search upcoming events…"
+                        value={nudgeEventSearch}
+                        onChange={(e) => setNudgeEventSearch(e.target.value)}
+                        className="h-8"
+                      />
+                      <div className="border rounded-md bg-background max-h-52 overflow-y-auto divide-y">
+                        {(() => {
+                          const today = toLocalDateKey();
+                          const q = nudgeEventSearch.trim().toLowerCase();
+                          const upcoming = (allEvents as EventRecord[])
+                            .filter((e) => e.event_date && e.event_date >= today)
+                            .filter((e) => {
+                              if (!q) return true;
+                              return (
+                                (e.event_title || "").toLowerCase().includes(q) ||
+                                (e.hostess_name || "").toLowerCase().includes(q)
+                              );
+                            })
+                            .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""))
+                            .slice(0, 15);
+                          if (upcoming.length === 0) {
+                            return <p className="p-3 text-xs text-muted-foreground text-center">No upcoming events</p>;
+                          }
+                          return upcoming.map((e) => (
+                            <button
+                              key={e.id}
+                              type="button"
+                              disabled={nudgeBusy}
+                              onClick={() => pickEventForInvite(e)}
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 disabled:opacity-50"
+                            >
+                              <span className="font-medium text-foreground">
+                                {e.event_title || e.hostess_name || "Event"}
+                              </span>
+                              <span className="text-muted-foreground"> · {formatDateOnly(e.event_date)}</span>
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => { setNudgeAction(null); setNudgeEventSearch(""); }}>
                         Cancel
                       </Button>
                     </div>
@@ -615,35 +701,106 @@ export default function ProspectDetail() {
         </div>
 
         {/* Convert Dialog */}
-        <Dialog open={showConvert} onOpenChange={(o) => { setShowConvert(o); if (!o) { setConvertCoachingDate(""); setConvertCoachingFocus(""); } }}>
+        <Dialog open={showConvert} onOpenChange={(o) => { setShowConvert(o); if (!o) { setConvertCoachingDate(""); setConvertCoachingFocus(""); setConvertMode("new"); setConvertConsultant(null); setConvertConsultantSearch(""); } }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-base">Convert to Consultant</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              This will create a new Consultant record for {prospect.name} with Focus Group = New Consultant
-              {prospect.customer_id && " and update their customer relationship status"}.
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Coaching Focus (optional)</label>
-                <Select value={convertCoachingFocus || "none"} onValueChange={(v) => setConvertCoachingFocus(v === "none" ? "" : v)}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select focus" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— None —</SelectItem>
-                    {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Next Coaching Date (optional)</label>
-                <Input type="date" value={convertCoachingDate} onChange={(e) => setConvertCoachingDate(e.target.value)} />
-              </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={convertMode === "new" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setConvertMode("new")}
+              >
+                Create new consultant
+              </Button>
+              <Button
+                size="sm"
+                variant={convertMode === "existing" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setConvertMode("existing")}
+              >
+                Link to existing
+              </Button>
             </div>
+            <p className="text-sm text-muted-foreground">
+              {convertMode === "new" ? (
+                <>
+                  This will create a new Consultant record for {prospect.name} with Focus Group = New Consultant
+                  {prospect.customer_id && " and update their customer relationship status"}.
+                </>
+              ) : (
+                <>
+                  {prospect.name} is already a consultant — pick her record and we'll move her career chat
+                  history and linked events onto it.
+                </>
+              )}
+            </p>
+            {convertMode === "new" ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Coaching Focus (optional)</label>
+                  <Select value={convertCoachingFocus || "none"} onValueChange={(v) => setConvertCoachingFocus(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Select focus" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— None —</SelectItem>
+                      {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Next Coaching Date (optional)</label>
+                  <Input type="date" value={convertCoachingDate} onChange={(e) => setConvertCoachingDate(e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground block">Existing consultant</label>
+                {convertConsultant ? (
+                  <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                    <span className="font-medium">{convertConsultant.name}</span>
+                    <Button size="sm" variant="ghost" onClick={() => setConvertConsultant(null)}>Change</Button>
+                  </div>
+                ) : (
+                  <>
+                    <Input
+                      placeholder="Search consultants…"
+                      value={convertConsultantSearch}
+                      onChange={(e) => setConvertConsultantSearch(e.target.value)}
+                      className="h-9"
+                    />
+                    <div className="border rounded-md max-h-44 overflow-y-auto divide-y">
+                      {(() => {
+                        const q = convertConsultantSearch.trim().toLowerCase();
+                        const rows = (allConsultants as TeamConsultant[])
+                          .filter((c) => !q || (c.name || "").toLowerCase().includes(q) || (c.phone || "").includes(q) || (c.email || "").toLowerCase().includes(q))
+                          .slice(0, 20);
+                        if (rows.length === 0) return <p className="p-3 text-xs text-muted-foreground text-center">No matches</p>;
+                        return rows.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setConvertConsultant(c)}
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50"
+                          >
+                            <div className="font-medium text-foreground">{c.name}</div>
+                            <div className="text-muted-foreground">{c.phone ? formatPhone(c.phone) : c.email || ""}</div>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowConvert(false)}>Cancel</Button>
-              <Button onClick={() => convertMut.mutate()} disabled={convertMut.isPending}>
-                {convertMut.isPending ? "Converting..." : "Convert"}
+              <Button
+                onClick={() => convertMut.mutate()}
+                disabled={convertMut.isPending || (convertMode === "existing" && !convertConsultant)}
+              >
+                {convertMut.isPending ? "Saving..." : convertMode === "existing" ? "Link" : "Convert"}
               </Button>
             </div>
           </DialogContent>
