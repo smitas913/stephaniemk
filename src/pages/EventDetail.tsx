@@ -68,6 +68,11 @@ export default function EventDetail() {
   const isSharing = ["Sharing Appointment", "Career Chat", "Pearl Appointment"].includes(event?.event_type ?? "");
   const formatOptions = isSharing ? SHARING_EVENT_FORMATS : EVENT_FORMATS;
 
+  const consultantList = teamConsultants as { id: string; name: string }[];
+  const assignedConsultantName = event?.assigned_consultant_id
+    ? consultantList.find((c) => c.id === event.assigned_consultant_id)?.name ?? null
+    : null;
+
   const linkedOrders = useMemo(() =>
     allOrders.filter((o) => o.event_id === eventId || o.parent_event_id === eventId)
       .sort((a, b) => a.order_date.localeCompare(b.order_date)),
