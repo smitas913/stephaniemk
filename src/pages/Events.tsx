@@ -274,7 +274,12 @@ export default function Events() {
         onClick={() => navigate(`/events/${e.event_id}`)}
       >
         <TableCell className="text-xs whitespace-nowrap font-medium">
-          {formatDateOnly(e.event_date)}
+          <div className="flex flex-col">
+            <span>{formatDateOnly(e.event_date)}</span>
+            {e.event_time && (
+              <span className="text-[11px] text-muted-foreground">{e.event_time}</span>
+            )}
+          </div>
         </TableCell>
         <TableCell className="text-sm font-medium">
           <div className="flex items-center gap-1.5">
@@ -427,7 +432,10 @@ export default function Events() {
       >
         {/* Row 1: Date + Status badges */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">{formatDateOnly(e.event_date)}</span>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <span>{formatDateOnly(e.event_date)}</span>
+            {e.event_time && <span className="text-muted-foreground/70">· {e.event_time}</span>}
+          </div>
           <div className="flex items-center gap-1 flex-wrap justify-end">
             {rStatus === "In Process of Rescheduling" ? (
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", rescheduleColor(rStatus))}>
