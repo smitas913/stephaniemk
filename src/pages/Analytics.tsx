@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TrendingUp, BarChart3, Repeat, CalendarIcon } from "lucide-react";
+import { TrendingUp, BarChart3, Repeat, CalendarIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, format,
