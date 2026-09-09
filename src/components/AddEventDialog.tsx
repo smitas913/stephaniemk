@@ -125,6 +125,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     setEventFormat("In-Person");
     setEventDate(toLocalDateKey());
     setHostessName("");
+    setEventTitle("");
     setHostessPhone("");
     setHostessSource("");
 
