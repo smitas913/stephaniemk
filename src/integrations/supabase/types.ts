@@ -620,6 +620,7 @@ export type Database = {
           owner_user_id: string | null
           party_rescheduled: boolean
           phone: string | null
+          prospect_id: string | null
           referral_count: number
           rsvp: string | null
           skin_type: string | null
@@ -647,6 +648,7 @@ export type Database = {
           owner_user_id?: string | null
           party_rescheduled?: boolean
           phone?: string | null
+          prospect_id?: string | null
           referral_count?: number
           rsvp?: string | null
           skin_type?: string | null
@@ -674,6 +676,7 @@ export type Database = {
           owner_user_id?: string | null
           party_rescheduled?: boolean
           phone?: string | null
+          prospect_id?: string | null
           referral_count?: number
           rsvp?: string | null
           skin_type?: string | null
@@ -695,6 +698,13 @@ export type Database = {
             columns: ["converted_facial_contact_id"]
             isOneToOne: false
             referencedRelation: "facial_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_guests_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
             referencedColumns: ["id"]
           },
         ]
