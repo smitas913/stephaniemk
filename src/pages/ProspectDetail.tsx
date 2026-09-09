@@ -693,35 +693,106 @@ export default function ProspectDetail() {
         </div>
 
         {/* Convert Dialog */}
-        <Dialog open={showConvert} onOpenChange={(o) => { setShowConvert(o); if (!o) { setConvertCoachingDate(""); setConvertCoachingFocus(""); } }}>
+        <Dialog open={showConvert} onOpenChange={(o) => { setShowConvert(o); if (!o) { setConvertCoachingDate(""); setConvertCoachingFocus(""); setConvertMode("new"); setConvertConsultant(null); setConvertConsultantSearch(""); } }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-base">Convert to Consultant</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              This will create a new Consultant record for {prospect.name} with Focus Group = New Consultant
-              {prospect.customer_id && " and update their customer relationship status"}.
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Coaching Focus (optional)</label>
-                <Select value={convertCoachingFocus || "none"} onValueChange={(v) => setConvertCoachingFocus(v === "none" ? "" : v)}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select focus" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— None —</SelectItem>
-                    {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Next Coaching Date (optional)</label>
-                <Input type="date" value={convertCoachingDate} onChange={(e) => setConvertCoachingDate(e.target.value)} />
-              </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={convertMode === "new" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setConvertMode("new")}
+              >
+                Create new consultant
+              </Button>
+              <Button
+                size="sm"
+                variant={convertMode === "existing" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setConvertMode("existing")}
+              >
+                Link to existing
+              </Button>
             </div>
+            <p className="text-sm text-muted-foreground">
+              {convertMode === "new" ? (
+                <>
+                  This will create a new Consultant record for {prospect.name} with Focus Group = New Consultant
+                  {prospect.customer_id && " and update their customer relationship status"}.
+                </>
+              ) : (
+                <>
+                  {prospect.name} is already a consultant — pick her record and we'll move her career chat
+                  history and linked events onto it.
+                </>
+              )}
+            </p>
+            {convertMode === "new" ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Coaching Focus (optional)</label>
+                  <Select value={convertCoachingFocus || "none"} onValueChange={(v) => setConvertCoachingFocus(v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Select focus" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— None —</SelectItem>
+                      {COACHING_FOCUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Next Coaching Date (optional)</label>
+                  <Input type="date" value={convertCoachingDate} onChange={(e) => setConvertCoachingDate(e.target.value)} />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground block">Existing consultant</label>
+                {convertConsultant ? (
+                  <div className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                    <span className="font-medium">{convertConsultant.name}</span>
+                    <Button size="sm" variant="ghost" onClick={() => setConvertConsultant(null)}>Change</Button>
+                  </div>
+                ) : (
+                  <>
+                    <Input
+                      placeholder="Search consultants…"
+                      value={convertConsultantSearch}
+                      onChange={(e) => setConvertConsultantSearch(e.target.value)}
+                      className="h-9"
+                    />
+                    <div className="border rounded-md max-h-44 overflow-y-auto divide-y">
+                      {(() => {
+                        const q = convertConsultantSearch.trim().toLowerCase();
+                        const rows = (allConsultants as TeamConsultant[])
+                          .filter((c) => !q || (c.name || "").toLowerCase().includes(q) || (c.phone || "").includes(q) || (c.email || "").toLowerCase().includes(q))
+                          .slice(0, 20);
+                        if (rows.length === 0) return <p className="p-3 text-xs text-muted-foreground text-center">No matches</p>;
+                        return rows.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setConvertConsultant(c)}
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50"
+                          >
+                            <div className="font-medium text-foreground">{c.name}</div>
+                            <div className="text-muted-foreground">{c.phone ? formatPhone(c.phone) : c.email || ""}</div>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowConvert(false)}>Cancel</Button>
-              <Button onClick={() => convertMut.mutate()} disabled={convertMut.isPending}>
-                {convertMut.isPending ? "Converting..." : "Convert"}
+              <Button
+                onClick={() => convertMut.mutate()}
+                disabled={convertMut.isPending || (convertMode === "existing" && !convertConsultant)}
+              >
+                {convertMut.isPending ? "Saving..." : convertMode === "existing" ? "Link" : "Convert"}
               </Button>
             </div>
           </DialogContent>
