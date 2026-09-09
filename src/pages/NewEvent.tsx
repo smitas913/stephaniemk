@@ -586,13 +586,24 @@ export default function NewEvent() {
               </div>
             )}
 
-            {/* Hostess Name / Event Title */}
+            {/* Event Title (optional, separate from the hostess/contact) */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Event Title</label>
+              <Input
+                placeholder="Optional — e.g. Foundation Matching Launch Party"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                className="h-10 max-w-sm"
+              />
+            </div>
+
+            {/* Hostess / Contact Name */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                {eventType === "Sharing Appointment" ? "Prospect Name" : eventType === "Guest Event" ? "Event Title" : "Hostess Name"}
+                {eventType === "Sharing Appointment" ? "Prospect Name" : "Hostess Name"}
               </label>
               <Input
-                placeholder={eventType === "Guest Event" ? "e.g. Foundation Matching Launch Party" : "Optional — can add later"}
+                placeholder="Optional — can add later"
                 value={hostessName}
                 onChange={(e) => setHostessName(e.target.value)}
                 className="h-10 max-w-sm"
