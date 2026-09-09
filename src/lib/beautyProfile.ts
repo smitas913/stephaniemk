@@ -151,6 +151,8 @@ export const NOTE_FIELDS: Array<{ key: keyof BeautyProfile; label: string; place
 
 const SINGLE_KEYS = Object.keys(SINGLE_SELECT_FIELDS) as Array<keyof typeof SINGLE_SELECT_FIELDS>;
 const MULTI_KEYS: Array<keyof BeautyProfile> = [
+  "best_contact",
+  "social",
   "interests",
   "primary_skin_care_needs",
   "other_skin_concerns",
@@ -176,11 +178,14 @@ export function parseBeautyProfile(raw: unknown): BeautyProfile {
   }
 
   for (const key of MULTI_KEYS) {
-    const v = src[key as string];
+    const raw = src[key as string];
+    const free = FREE_VALUE_MULTI_KEYS.includes(key);
+    // Legacy records stored a single string for best_contact / social.
+    const v = Array.isArray(raw) ? raw : free && str(raw) ? [str(raw)] : null;
     const allowed = (MULTI_SELECT_FIELDS as any)[key] as readonly string[] | undefined;
-    if (Array.isArray(v)) {
-      const list = v.map((x) => str(x)).filter((x) => x && (!allowed || allowed.includes(x)));
-      if (list.length) (out as any)[key] = list;
+    if (v) {
+      const list = v.map((x) => str(x)).filter((x) => x && (free || !allowed || allowed.includes(x)));
+      if (list.length) (out as any)[key] = Array.from(new Set(list));
     }
   }
 
