@@ -170,21 +170,37 @@ export default function Analytics() {
       sales: months.reduce((s, r) => s + r.sales, 0),
     };
 
-    const unitGuestsTotal = events
+    const unitGuestsTotal = ownEvents
       .filter((e) => (e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey())))
       .filter((e) => inRange(e.event_date, rangeStart, rangeEnd))
       .reduce((s, e: any) => s + Number(e.unit_guest_count || 0), 0);
 
-
-
-    // Event conversion stats for period
+    // Event conversion stats for period (personal only)
     const todayStr = toLocalDateKey();
-    const periodAllEvents = events.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
+    const heldish = (e: EventRecord) =>
+      e.event_status === "Held" || (e.event_status === "Booked" && !!e.event_date && e.event_date < todayStr);
+    const periodAllEvents = ownEvents.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
     const evBooked = periodAllEvents.length;
-    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < todayStr)).length;
+    const evHeld = periodAllEvents.filter(heldish).length;
     const evCancelled = periodAllEvents.filter((e) => e.event_status === "Cancelled").length;
     const holdRate = evBooked > 0 ? Math.round((evHeld / evBooked) * 1000) / 10 : 0;
     const cancelRate = evBooked > 0 ? Math.round((evCancelled / evBooked) * 1000) / 10 : 0;
+
+    // ── Unit-wide activity (downline consultants' synced events) ──
+    const prospectStatusById = new Map(prospects.map((p) => [p.id, p.opportunity_status]));
+    const periodUnitEvents = unitEvents(events).filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
+    const unitBooked = periodUnitEvents.length;
+    const unitHeld = periodUnitEvents.filter(heldish).length;
+    const unitCancelled = periodUnitEvents.filter((e) => e.event_status === "Cancelled").length;
+    const unitHoldRate = unitBooked > 0 ? Math.round((unitHeld / unitBooked) * 1000) / 10 : 0;
+    const unitCancelRate = unitBooked > 0 ? Math.round((unitCancelled / unitBooked) * 1000) / 10 : 0;
+    const unitJoined = periodUnitEvents.filter((e) => {
+      const status = e.prospect_id ? prospectStatusById.get(e.prospect_id) : undefined;
+      const joinedViaProspect = status === "Joined" || status === "Converted";
+      const joinedViaConsultant = !!e.hostess_converted_consultant_id;
+      return joinedViaProspect || joinedViaConsultant;
+    }).length;
+    const unitStats = { unitBooked, unitHeld, unitCancelled, unitHoldRate, unitCancelRate, unitJoined };
 
     const periodOrders = orders.filter((o) => inRange(o.order_date, rangeStart, rangeEnd) && Number(o.retail_amount || 0) > 0);
     const uniqueCustomerIds = [...new Set(periodOrders.map((o) => o.customer_id))];
