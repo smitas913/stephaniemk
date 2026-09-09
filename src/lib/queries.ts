@@ -1388,10 +1388,14 @@ export const resetOverdueFollowUps = async (
   return { customers, prospects };
 };
 
+export type ProspectConversionResult = TeamConsultant & {
+  merge_summary: { notes: number; events: number; customer_merged: boolean; facial_merged: boolean };
+};
+
 export const convertProspectToConsultant = async (
   prospect: Prospect,
   extras?: { next_coaching_date?: string | null; coaching_focus?: string | null }
-): Promise<TeamConsultant> => {
+): Promise<ProspectConversionResult> => {
   const userId = await getCurrentUserId();
   const { data: consultant, error: cErr } = await supabase.from("team_consultants").insert({
     name: prospect.name,
@@ -1408,18 +1412,80 @@ export const convertProspectToConsultant = async (
     onboarding_stage: "New",
     coaching_focus: extras?.coaching_focus || null,
     next_coaching_date: extras?.next_coaching_date || null,
-    notes: prospect.notes ? `Converted from prospect. ${prospect.notes}` : "Converted from prospect.",
     owner_user_id: userId,
   } as any).select().single();
   if (cErr) throw cErr;
 
-  await supabase.from("prospects").update({ opportunity_status: "Converted" } as any).eq("id", prospect.id);
+  const consultantId = (consultant as any).id as string;
+  const summary = { notes: 0, events: 0, customer_merged: false, facial_merged: false };
 
-  if (prospect.customer_id) {
-    await supabase.from("customers").update({ relationship_status: "Consultant" } as any).eq("id", prospect.customer_id);
-  }
+  // Move the real note rows + linked events, and mark the prospect Joined.
+  const { data: mergeData, error: mErr } = await supabase.rpc("merge_prospect_into_consultant" as any, {
+    _prospect_id: prospect.id,
+    _consultant_id: consultantId,
+  });
+  if (mErr) throw mErr;
+  summary.notes = Number((mergeData as any)?.moved?.notes || 0);
+  summary.events = Number((mergeData as any)?.moved?.events || 0);
 
-  return consultant as unknown as TeamConsultant;
+  // Additive: fold in a matching customer record (purchase history) if one exists.
+  const pPhone = stripPhone(prospect.phone);
+  const pEmail = normalizeEmail(prospect.email);
+  const pName = (prospect.name || "").trim().toLowerCase();
+
+  try {
+    let customerId: string | null = prospect.customer_id || null;
+    if (!customerId) {
+      const { data: customers } = await supabase.from("customers").select("id, full_name, phone, email");
+      const hit = (customers || []).find((c: any) => {
+        if (pPhone && pPhone.length >= 7 && stripPhone(c.phone) === pPhone) return true;
+        if (pEmail && normalizeEmail(c.email) === pEmail) return true;
+        return !!pName && pName.length > 2 && (c.full_name || "").trim().toLowerCase() === pName;
+      });
+      customerId = hit ? (hit as any).id : null;
+    }
+    if (customerId) {
+      const { error } = await supabase.rpc("merge_customer_into_consultant" as any, {
+        _customer_id: customerId,
+        _consultant_id: consultantId,
+      });
+      if (!error) summary.customer_merged = true;
+    }
+  } catch { /* additive — never block conversion */ }
+
+  // Additive: fold in a matching scanned beauty-card record if one exists.
+  try {
+    const { data: facials } = await supabase
+      .from("facial_contacts")
+      .select("id, full_name, phone, email, converted_customer_id");
+    const fHit = (facials || []).find((f: any) => {
+      if (pPhone && pPhone.length >= 7 && stripPhone(f.phone) === pPhone) return true;
+      if (pEmail && normalizeEmail(f.email) === pEmail) return true;
+      return !!pName && pName.length > 2 && (f.full_name || "").trim().toLowerCase() === pName;
+    });
+    if (fHit) {
+      const { error } = await supabase.rpc("merge_facial_contact_into_consultant" as any, {
+        _facial_contact_id: (fHit as any).id,
+        _consultant_id: consultantId,
+      });
+      if (!error) summary.facial_merged = true;
+    }
+  } catch { /* additive */ }
+
+  const { data: fresh } = await supabase.from("team_consultants").select("*").eq("id", consultantId).single();
+  return { ...((fresh || consultant) as any), merge_summary: summary } as ProspectConversionResult;
+};
+
+/** Human-readable summary of what a prospect conversion merged in. */
+export const describeProspectConversion = (s: ProspectConversionResult["merge_summary"]): string => {
+  const parts: string[] = [];
+  if (s.notes > 0) parts.push(`${s.notes} career chat note${s.notes === 1 ? "" : "s"}`);
+  if (s.events > 0) parts.push(`${s.events} linked event${s.events === 1 ? "" : "s"}`);
+  if (s.customer_merged) parts.push("her customer record");
+  if (s.facial_merged) parts.push("a skincare profile");
+  if (parts.length === 0) return "Converted to consultant";
+  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return `Converted to consultant — merged in ${list}`;
 };
 
 // Convert a customer to a consultant — true migration via RPC.
