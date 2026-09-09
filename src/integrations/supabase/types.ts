@@ -702,6 +702,7 @@ export type Database = {
       events: {
         Row: {
           allow_non_working_day: boolean
+          assigned_consultant_id: string | null
           booked_from: string | null
           career_chat_logged: boolean
           checklist_day_before_sent: boolean | null
@@ -763,6 +764,7 @@ export type Database = {
         }
         Insert: {
           allow_non_working_day?: boolean
+          assigned_consultant_id?: string | null
           booked_from?: string | null
           career_chat_logged?: boolean
           checklist_day_before_sent?: boolean | null
@@ -824,6 +826,7 @@ export type Database = {
         }
         Update: {
           allow_non_working_day?: boolean
+          assigned_consultant_id?: string | null
           booked_from?: string | null
           career_chat_logged?: boolean
           checklist_day_before_sent?: boolean | null
@@ -884,6 +887,13 @@ export type Database = {
           zoom_password?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "events_assigned_consultant_id_fkey"
+            columns: ["assigned_consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_consultants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_hostess_converted_consultant_id_fkey"
             columns: ["hostess_converted_consultant_id"]

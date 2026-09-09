@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults } from "@/lib/queries";
+import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, fetchTeamConsultants } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { checkForDuplicatePerson } from "@/lib/duplicateCheck";
 import { autoLogCareerChat } from "@/lib/careerChatAutoLog";
@@ -61,11 +61,17 @@ export default function EventDetail() {
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
+  const { data: teamConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const event = useMemo(() => events.find((e) => e.event_id === eventId), [events, eventId]);
 
   const isSharing = ["Sharing Appointment", "Career Chat", "Pearl Appointment"].includes(event?.event_type ?? "");
   const formatOptions = isSharing ? SHARING_EVENT_FORMATS : EVENT_FORMATS;
+
+  const consultantList = teamConsultants as { id: string; name: string }[];
+  const assignedConsultantName = event?.assigned_consultant_id
+    ? consultantList.find((c) => c.id === event.assigned_consultant_id)?.name ?? null
+    : null;
 
   const linkedOrders = useMemo(() =>
     allOrders.filter((o) => o.event_id === eventId || o.parent_event_id === eventId)
@@ -161,6 +167,8 @@ export default function EventDetail() {
   });
 
   const [careerChatOpen, setCareerChatOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [consultantSearch, setConsultantSearch] = useState("");
 
   const eventMutation = useMutation({
     mutationFn: (params: Partial<EventRecord> & { event_id: string }) => upsertEvent(params),
@@ -424,6 +432,16 @@ export default function EventDetail() {
           )}
           {event && (
             <div className="flex items-center gap-1.5 shrink-0">
+              {event.event_scope === "Unit" && (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-purple-50 text-purple-700 border-purple-200 cursor-pointer"
+                  onClick={() => { setAssignOpen(true); setConsultantSearch(""); }}
+                  title="Change the consultant this event belongs to"
+                >
+                  For: {assignedConsultantName ?? "Unassigned"}
+                </Badge>
+              )}
               {(event as any).reschedule_status === "In Process of Rescheduling" ? (
                 <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
                   Rescheduling
@@ -1227,6 +1245,66 @@ export default function EventDetail() {
           queryClient.invalidateQueries({ queryKey: ["events"] });
         }}
       />
+
+      {/* Assign / change the unit consultant this event belongs to */}
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Who is this event for?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {assignedConsultantName && (
+              <p className="text-xs text-muted-foreground">
+                Currently: <span className="font-medium text-foreground">{assignedConsultantName}</span>
+              </p>
+            )}
+            <Input
+              placeholder="Search consultants..."
+              value={consultantSearch}
+              onChange={(e) => setConsultantSearch(e.target.value)}
+              className="h-9"
+            />
+            <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+              {consultantList
+                .filter((c) => c.name.toLowerCase().includes(consultantSearch.trim().toLowerCase()))
+                .slice(0, 20)
+                .map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="w-full text-left px-2 py-2 text-sm hover:bg-muted/50"
+                    onClick={() => {
+                      eventMutation.mutate(
+                        { event_id: event!.event_id, assigned_consultant_id: c.id } as any,
+                        { onSuccess: () => { setAssignOpen(false); toast.success(`Assigned to ${c.name}`); } }
+                      );
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              {consultantList.length === 0 && (
+                <p className="px-2 py-3 text-xs text-muted-foreground">No consultants yet.</p>
+              )}
+            </div>
+            {event?.assigned_consultant_id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() =>
+                  eventMutation.mutate(
+                    { event_id: event.event_id, assigned_consultant_id: null } as any,
+                    { onSuccess: () => { setAssignOpen(false); toast.success("Consultant cleared"); } }
+                  )
+                }
+              >
+                Clear assignment
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </Layout>
   );

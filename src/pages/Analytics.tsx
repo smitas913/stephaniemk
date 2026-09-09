@@ -4,6 +4,7 @@ import { fetchEvents, fetchProspects, fetchCustomers } from "@/lib/queries";
 import type { EventRecord, Prospect, Customer } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { personalEvents, unitEvents } from "@/lib/eventScope";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { TrendingUp, BarChart3, Repeat, CalendarIcon } from "lucide-react";
+import { TrendingUp, BarChart3, Repeat, CalendarIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, subMonths, subDays, format,
@@ -106,6 +107,8 @@ export default function Analytics() {
   }, [timeView, customStart, customEnd, events, orders]);
 
   const analytics = useMemo(() => {
+    // Personal numbers must never include unit consultants' synced events
+    const ownEvents = personalEvents(events);
     // Build one row per calendar month within the selected range
     const monthCount = Math.max(differenceInCalendarMonths(rangeEnd, rangeStart) + 1, 1);
     const months: MonthRow[] = [];
@@ -118,7 +121,7 @@ export default function Analytics() {
       // Count events as "held" if status is Held OR if date has passed and status is still Booked
       const isEffectivelyHeld = (e: EventRecord) =>
         e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey());
-      const mEvents = events.filter((e) => isEffectivelyHeld(e) && inRange(e.event_date, mStart, mEnd));
+      const mEvents = ownEvents.filter((e) => isEffectivelyHeld(e) && inRange(e.event_date, mStart, mEnd));
       const mOrders = orders.filter((o) => inRange(o.order_date, mStart, mEnd));
       const mSales = mOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
@@ -167,21 +170,37 @@ export default function Analytics() {
       sales: months.reduce((s, r) => s + r.sales, 0),
     };
 
-    const unitGuestsTotal = events
+    const unitGuestsTotal = ownEvents
       .filter((e) => (e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey())))
       .filter((e) => inRange(e.event_date, rangeStart, rangeEnd))
       .reduce((s, e: any) => s + Number(e.unit_guest_count || 0), 0);
 
-
-
-    // Event conversion stats for period
+    // Event conversion stats for period (personal only)
     const todayStr = toLocalDateKey();
-    const periodAllEvents = events.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
+    const heldish = (e: EventRecord) =>
+      e.event_status === "Held" || (e.event_status === "Booked" && !!e.event_date && e.event_date < todayStr);
+    const periodAllEvents = ownEvents.filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
     const evBooked = periodAllEvents.length;
-    const evHeld = periodAllEvents.filter((e) => e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < todayStr)).length;
+    const evHeld = periodAllEvents.filter(heldish).length;
     const evCancelled = periodAllEvents.filter((e) => e.event_status === "Cancelled").length;
     const holdRate = evBooked > 0 ? Math.round((evHeld / evBooked) * 1000) / 10 : 0;
     const cancelRate = evBooked > 0 ? Math.round((evCancelled / evBooked) * 1000) / 10 : 0;
+
+    // ── Unit-wide activity (downline consultants' synced events) ──
+    const prospectStatusById = new Map(prospects.map((p) => [p.id, p.opportunity_status]));
+    const periodUnitEvents = unitEvents(events).filter((e) => inRange(e.event_date, rangeStart, rangeEnd));
+    const unitBooked = periodUnitEvents.length;
+    const unitHeld = periodUnitEvents.filter(heldish).length;
+    const unitCancelled = periodUnitEvents.filter((e) => e.event_status === "Cancelled").length;
+    const unitHoldRate = unitBooked > 0 ? Math.round((unitHeld / unitBooked) * 1000) / 10 : 0;
+    const unitCancelRate = unitBooked > 0 ? Math.round((unitCancelled / unitBooked) * 1000) / 10 : 0;
+    const unitJoined = periodUnitEvents.filter((e) => {
+      const status = e.prospect_id ? prospectStatusById.get(e.prospect_id) : undefined;
+      const joinedViaProspect = status === "Joined" || status === "Converted";
+      const joinedViaConsultant = !!e.hostess_converted_consultant_id;
+      return joinedViaProspect || joinedViaConsultant;
+    }).length;
+    const unitStats = { unitBooked, unitHeld, unitCancelled, unitHoldRate, unitCancelRate, unitJoined };
 
     const periodOrders = orders.filter((o) => inRange(o.order_date, rangeStart, rangeEnd) && Number(o.retail_amount || 0) > 0);
     const uniqueCustomerIds = [...new Set(periodOrders.map((o) => o.customer_id))];
@@ -198,7 +217,7 @@ export default function Analytics() {
     const repeatCustomers = eligibleIds.filter((id) => (allOrdersByCustomer[id] || 0) >= 2).length;
     const reorderRate = eligibleIds.length > 0 ? Math.round((repeatCustomers / eligibleIds.length) * 1000) / 10 : 0;
 
-    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd, unitGuestsTotal };
+    return { months, averages, totals, reorderRate, repeatCustomers, eligibleCount: eligibleIds.length, evBooked, evHeld, evCancelled, holdRate, cancelRate, rangeStart, rangeEnd, unitGuestsTotal, ...unitStats };
   }, [events, orders, prospects, customers, rangeStart, rangeEnd]);
 
   // ── Sales by Source breakdown for selected time view ──
@@ -483,6 +502,48 @@ export default function Analytics() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Unit Activity — downline consultants' events, kept separate from personal numbers */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">
+                    Unit Activity — {TIME_VIEW_LABELS[timeView]}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-foreground tabular-nums">{analytics.unitBooked}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Booked</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-primary tabular-nums">{analytics.unitHeld}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Held</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-destructive tabular-nums">{analytics.unitCancelled}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Cancelled</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-primary tabular-nums">{analytics.unitHoldRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Hold Rate</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-destructive tabular-nums">{analytics.unitCancelRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Cancel Rate</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-foreground tabular-nums">{analytics.unitJoined}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Joined</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">Unit-wide totals from downline consultants' events. Not included in personal numbers above.</p>
+              </CardContent>
+            </Card>
+
 
             {/* Monthly Trends Table */}
             <Card className="border-border/50 shadow-sm">

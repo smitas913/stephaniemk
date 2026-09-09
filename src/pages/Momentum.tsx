@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
+import { personalEvents } from "@/lib/eventScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,8 @@ function computeActuals(
   end: Date,
   data: ActualsBundle,
 ): number {
-  const { events, notes, customers } = data;
+  const { notes, customers } = data;
+  const events = personalEvents(data.events);
   switch (metricKey) {
     case "faces":
       return events

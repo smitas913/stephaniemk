@@ -1,3 +1,4 @@
+import { personalEvents } from "@/lib/eventScope";
 import { toLocalDateKey } from "@/lib/dateOnly";
 
 export interface FocusDetailItem {
@@ -102,7 +103,9 @@ export function computeMetricsForDate(dateKey: string, rawData: FocusRawData): {
   recruitingFollowUpDetails: FocusDetailItem[];
   relationshipDetails: FocusDetailItem[];
 } {
-  const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants, events } = rawData;
+  const { unifiedNotes, allNotes, customers, prospects, bookingLeads, consultants } = rawData;
+  // Personal activity only — unit consultants' synced calendar events excluded
+  const events = personalEvents(rawData.events || []);
   const contactTypes = new Set(["Call", "Text", "Email", "In Person"]);
   // Notes that represent administrative/cleanup actions — never count as outreach or booking activity.
   const NON_OUTREACH_NOTE_TYPES = new Set([
