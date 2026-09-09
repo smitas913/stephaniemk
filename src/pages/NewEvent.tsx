@@ -72,6 +72,7 @@ export default function NewEvent() {
   const [virtualPlatform, setVirtualPlatform] = useState<string>("Zoom");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
+  const [eventTitle, setEventTitle] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
   const [hostessSource, setHostessSource] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -159,6 +160,7 @@ export default function NewEvent() {
         event_date: eventDate || null,
         event_time: eventTime || null,
         hostess_name: hostessName.trim() || null,
+        event_title: eventTitle.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
         hostess_source: hostessSource || null,
         guest_count: 0,

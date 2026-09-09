@@ -43,6 +43,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   const [eventFormat, setEventFormat] = useState<string>("In-Person");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
+  const [eventTitle, setEventTitle] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
   const [hostessSource, setHostessSource] = useState<string>("");
 
@@ -60,6 +61,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         event_format: eventFormat,
         event_date: eventDate,
         hostess_name: hostessName.trim() || null,
+        event_title: eventTitle.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
         hostess_source: hostessSource || null,
 
