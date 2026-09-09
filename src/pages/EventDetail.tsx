@@ -245,6 +245,8 @@ export default function EventDetail() {
     }
   };
 
+  const [titleEditing, setTitleEditing] = useState(false);
+
   const updateField = (field: string, value: any) => {
     if (!event) return;
     eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
