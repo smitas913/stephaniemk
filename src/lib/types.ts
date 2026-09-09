@@ -151,6 +151,15 @@ export interface EventRecord {
   virtual_notes: string | null;
   thank_you_sent?: boolean;
   hostess_converted_customer_id?: string | null;
+  /** 'Personal' (Stephanie's own) or 'Unit' (a downline consultant's event). */
+  event_scope: string;
+  assigned_consultant_id?: string | null;
+  prospect_id?: string | null;
+  google_calendar_event_id?: string | null;
+  google_calendar_synced_at?: string | null;
+  career_chat_logged?: boolean;
+  unit_guest_count?: number | null;
+  hostess_converted_consultant_id?: string | null;
 }
 
 export interface ZoomDefaults {
