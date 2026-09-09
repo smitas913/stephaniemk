@@ -4,6 +4,7 @@ import { fetchEvents, fetchProspects, fetchCustomers } from "@/lib/queries";
 import type { EventRecord, Prospect, Customer } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { personalEvents, unitEvents } from "@/lib/eventScope";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
