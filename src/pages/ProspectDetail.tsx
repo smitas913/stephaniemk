@@ -289,7 +289,7 @@ export default function ProspectDetail() {
               const d = new Date();
               d.setDate(d.getDate() + 7);
               const next = toLocalDateKey(d);
-              await updateProspect(id!, { next_follow_up_date: next } as any);
+              await updateProspect(id!, { next_follow_up_date: next, next_step_date: null } as any);
               await logNote("Still working on it");
               invalidate();
               toast.success("Pushed out 7 days");
@@ -319,6 +319,7 @@ export default function ProspectDetail() {
           const referralUnit = async () => {
             setNudgeBusy(true);
             try {
+              await updateProspect(id!, { next_step_date: null } as any);
               await logNote("Referral given");
               invalidate();
               toast.success("Referral logged");
@@ -332,6 +333,7 @@ export default function ProspectDetail() {
             if (!name) return;
             setNudgeBusy(true);
             try {
+              await updateProspect(id!, { next_step_date: null } as any);
               await logNote(`Referral given: ${name}`);
               invalidate();
               setNudgeReferralName("");
@@ -342,17 +344,34 @@ export default function ProspectDetail() {
             }
           };
 
-          const invitedToEvent = async () => {
+          const pickEventForInvite = async (ev: EventRecord) => {
             setNudgeBusy(true);
             try {
-              await updateProspect(id!, { next_step_type: "Invite to Event" } as any);
-              await logNote("Invited to an event");
+              await createEventGuest({
+                event_id: ev.event_id,
+                name: prospect.name,
+                phone: prospect.phone,
+                email: prospect.email,
+                prospect_id: prospect.id,
+              });
+              await updateProspect(id!, {
+                next_step_type: "Invite to Event",
+                next_step_date: ev.event_date,
+              } as any);
+              const label = ev.event_title || ev.hostess_name || "an event";
+              await logNote(`Invited to ${label} on ${formatDateOnly(ev.event_date)}`);
               invalidate();
-              toast.success("Logged invite");
+              queryClient.invalidateQueries({ queryKey: ["event-guests", ev.event_id] });
+              setNudgeAction(null);
+              setNudgeEventSearch("");
+              toast.success(`Added as a guest to ${label}`);
+            } catch (e: any) {
+              toast.error(e?.message || "Could not add as a guest");
             } finally {
               setNudgeBusy(false);
             }
           };
+
 
           const isPersonal = (prospect.ownership_type || "personal") === "personal";
 
