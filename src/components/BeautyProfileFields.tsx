@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +59,78 @@ function ChipSingle({
     </div>
   );
 }
+
+/** Tap-friendly multi-select chip row with an "Other" free-text add. */
+function ChipMulti({
+  label,
+  options,
+  value,
+  onChange,
+  allowOther = true,
+}: {
+  label: string;
+  options: readonly string[];
+  value: string[] | undefined;
+  onChange: (v: string[]) => void;
+  allowOther?: boolean;
+}) {
+  const selected = value ?? [];
+  const [other, setOther] = useState("");
+
+  const toggle = (o: string) =>
+    onChange(selected.includes(o) ? selected.filter((x) => x !== o) : [...selected, o]);
+
+  const addOther = () => {
+    const v = other.trim();
+    if (!v) return;
+    if (!selected.some((s) => s.toLowerCase() === v.toLowerCase())) onChange([...selected, v]);
+    setOther("");
+  };
+
+  const custom = selected.filter((s) => !options.includes(s));
+
+  return (
+    <div>
+      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</Label>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[...options, ...custom].map((o) => {
+          const active = selected.includes(o);
+          return (
+            <button
+              key={o}
+              type="button"
+              onClick={() => toggle(o)}
+              className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-foreground hover:bg-muted"
+              }`}
+            >
+              {o}
+            </button>
+          );
+        })}
+        {allowOther && (
+          <Input
+            className="h-8 w-32 text-xs"
+            placeholder="+ Other"
+            value={other}
+            onChange={(e) => setOther(e.target.value)}
+            onBlur={addOther}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addOther();
+              }
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 /** Checkbox group for the card's multi-select lists. */
 function CheckGroup({
@@ -130,8 +203,8 @@ export default function BeautyProfileFields({
         </div>
 
         <ChipSingle label="Best time to reach me" options={BEST_TIME_OPTIONS} value={value.best_time} onChange={(v) => set({ best_time: v })} />
-        <ChipSingle label="Best way to contact me" options={BEST_CONTACT_OPTIONS} value={value.best_contact} onChange={(v) => set({ best_contact: v })} />
-        <ChipSingle label="Connect with me on social media" options={SOCIAL_OPTIONS} value={value.social} onChange={(v) => set({ social: v })} />
+        <ChipMulti label="Best way to contact me" options={BEST_CONTACT_OPTIONS} value={value.best_contact} onChange={(v) => set({ best_contact: v })} />
+        <ChipMulti label="Connect with me on social media" options={SOCIAL_OPTIONS} value={value.social} onChange={(v) => set({ social: v })} />
 
         <CheckGroup
           label="Interested in learning more about"

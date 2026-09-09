@@ -35,8 +35,8 @@ Return ONLY a JSON object matching this exact TypeScript type (no prose, no mark
     "anniversary": string | null,     // ISO YYYY-MM-DD
     "occupation": string | null,
     "best_time": "AM" | "PM" | null,
-    "best_contact": "Call" | "Text" | "Email" | null,
-    "social": "Facebook" | "Instagram" | "None" | null,
+    "best_contact": string[],         // any of: "Call", "Text", "Email"; plus any other written-in method (e.g. "WhatsApp") verbatim. [] if none marked
+    "social": string[],               // any of: "Facebook", "Instagram", "None"; plus any other written-in platform verbatim. [] if none marked
     "interests": string[],            // subset of: "Additional skin care options", "Color application techniques", "Earning hostess rewards", "Earning extra money", "Fragrance and body care", "Men's products", "Gift-giving services", "Wedding services"
     "wish_list_referrals": [ { "name": string, "relationship": string, "contact": string } ],
     "age_range": "20 and under" | "20s–30s" | "40s–50s" | "60s–70s" | "80s+" | null,

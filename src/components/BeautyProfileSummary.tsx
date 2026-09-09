@@ -32,8 +32,6 @@ export default function BeautyProfileSummary({ profile }: { profile: BeautyProfi
   const singles: Array<{ label: string; value?: string }> = [
     ...TEXT_FIELDS_LABELS.map((f) => ({ label: f.label, value: profile[f.key] as string | undefined })),
     { label: "Best time to reach me", value: profile.best_time },
-    { label: "Best way to contact me", value: profile.best_contact },
-    { label: "Social media", value: profile.social },
     { label: "Age Range", value: profile.age_range },
     { label: "If I don't use moisturizer, my skin feels", value: profile.moisturizer_feel },
     { label: "Preferred Foundation Coverage", value: profile.foundation_coverage },
@@ -41,6 +39,8 @@ export default function BeautyProfileSummary({ profile }: { profile: BeautyProfi
   ];
 
   const multis: Array<{ label: string; value?: string[] }> = [
+    { label: "Best way to contact me", value: profile.best_contact },
+    { label: "Social media", value: profile.social },
     { label: "Interested in learning more about", value: profile.interests },
     { label: "Primary Skin Care Needs", value: profile.primary_skin_care_needs },
     { label: "Other Skin Care Concerns/Needs", value: profile.other_skin_concerns },

@@ -81,8 +81,8 @@ export type BeautyProfile = {
   anniversary?: string;
   occupation?: string;
   best_time?: string;
-  best_contact?: string;
-  social?: string;
+  best_contact?: string[];
+  social?: string[];
   interests?: string[];
   wish_list_referrals?: WishListReferral[];
 
@@ -108,20 +108,26 @@ export type BeautyProfile = {
 
 export const SINGLE_SELECT_FIELDS = {
   best_time: BEST_TIME_OPTIONS,
-  best_contact: BEST_CONTACT_OPTIONS,
-  social: SOCIAL_OPTIONS,
   age_range: AGE_RANGE_OPTIONS,
   moisturizer_feel: MOISTURIZER_FEEL_OPTIONS,
   foundation_coverage: FOUNDATION_COVERAGE_OPTIONS,
 } as const;
 
 export const MULTI_SELECT_FIELDS = {
+  best_contact: BEST_CONTACT_OPTIONS,
+  social: SOCIAL_OPTIONS,
   interests: INTEREST_OPTIONS,
   primary_skin_care_needs: PRIMARY_SKIN_CARE_NEEDS_OPTIONS,
   other_skin_concerns: OTHER_SKIN_CONCERN_OPTIONS,
   eye_concerns: EYE_CONCERN_OPTIONS,
   lip_concerns: LIP_CONCERN_OPTIONS,
 } as const;
+
+/**
+ * Multi-selects that also accept free-text "Other" values, so answers outside
+ * the printed option list (WhatsApp, Snapchat, a work email…) are preserved.
+ */
+export const FREE_VALUE_MULTI_KEYS: Array<keyof BeautyProfile> = ["best_contact", "social"];
 
 export const TEXT_FIELDS_LABELS: Array<{ key: keyof BeautyProfile; label: string; type?: string; placeholder?: string; long?: boolean }> = [
   { key: "hostess", label: "Hostess", placeholder: "Who hosted this event" },
@@ -145,6 +151,8 @@ export const NOTE_FIELDS: Array<{ key: keyof BeautyProfile; label: string; place
 
 const SINGLE_KEYS = Object.keys(SINGLE_SELECT_FIELDS) as Array<keyof typeof SINGLE_SELECT_FIELDS>;
 const MULTI_KEYS: Array<keyof BeautyProfile> = [
+  "best_contact",
+  "social",
   "interests",
   "primary_skin_care_needs",
   "other_skin_concerns",
@@ -170,11 +178,14 @@ export function parseBeautyProfile(raw: unknown): BeautyProfile {
   }
 
   for (const key of MULTI_KEYS) {
-    const v = src[key as string];
+    const raw = src[key as string];
+    const free = FREE_VALUE_MULTI_KEYS.includes(key);
+    // Legacy records stored a single string for best_contact / social.
+    const v = Array.isArray(raw) ? raw : free && str(raw) ? [str(raw)] : null;
     const allowed = (MULTI_SELECT_FIELDS as any)[key] as readonly string[] | undefined;
-    if (Array.isArray(v)) {
-      const list = v.map((x) => str(x)).filter((x) => x && (!allowed || allowed.includes(x)));
-      if (list.length) (out as any)[key] = list;
+    if (v) {
+      const list = v.map((x) => str(x)).filter((x) => x && (free || !allowed || allowed.includes(x)));
+      if (list.length) (out as any)[key] = Array.from(new Set(list));
     }
   }
 
@@ -286,6 +297,23 @@ export function pickOne(value: unknown, allowed: readonly string[]): string {
   return allowed.find((a) => a.toLowerCase() === s) || "";
 }
 
+/**
+ * Multi-value list that snaps to the allowed options when it can, but keeps any
+ * other written-in answer ("Other" free text) instead of dropping it.
+ */
+export function pickAllowedWithCustom(values: unknown, allowed: readonly string[]): string[] {
+  const list = Array.isArray(values) ? values : values == null || values === "" ? [] : [values];
+  const lower = new Map(allowed.map((a) => [a.toLowerCase(), a]));
+  const out: string[] = [];
+  for (const v of list) {
+    const raw = String(v ?? "").trim();
+    if (!raw) continue;
+    const hit = lower.get(raw.toLowerCase()) ?? raw;
+    if (!out.includes(hit)) out.push(hit);
+  }
+  return out;
+}
+
 /** Normalize a whole AI-extracted beauty profile onto the exact option sets. */
 export function normalizeExtractedBeautyProfile(raw: unknown): BeautyProfile {
   const src = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -297,8 +325,8 @@ export function normalizeExtractedBeautyProfile(raw: unknown): BeautyProfile {
     if (v) (p as any)[f.key] = v;
   }
   p.best_time = pickOne(src.best_time, BEST_TIME_OPTIONS);
-  p.best_contact = pickOne(src.best_contact, BEST_CONTACT_OPTIONS);
-  p.social = pickOne(src.social, SOCIAL_OPTIONS);
+  p.best_contact = pickAllowedWithCustom(src.best_contact, BEST_CONTACT_OPTIONS);
+  p.social = pickAllowedWithCustom(src.social, SOCIAL_OPTIONS);
   p.age_range = pickOne(src.age_range, AGE_RANGE_OPTIONS);
   p.moisturizer_feel = moisturizerFeelFromLoose(str(src.moisturizer_feel)) || "";
   p.foundation_coverage = pickOne(src.foundation_coverage, FOUNDATION_COVERAGE_OPTIONS);
