@@ -106,6 +106,8 @@ export default function Analytics() {
   }, [timeView, customStart, customEnd, events, orders]);
 
   const analytics = useMemo(() => {
+    // Personal numbers must never include unit consultants' synced events
+    const ownEvents = personalEvents(events);
     // Build one row per calendar month within the selected range
     const monthCount = Math.max(differenceInCalendarMonths(rangeEnd, rangeStart) + 1, 1);
     const months: MonthRow[] = [];
@@ -118,7 +120,7 @@ export default function Analytics() {
       // Count events as "held" if status is Held OR if date has passed and status is still Booked
       const isEffectivelyHeld = (e: EventRecord) =>
         e.event_status === "Held" || (e.event_status === "Booked" && e.event_date && e.event_date < toLocalDateKey());
-      const mEvents = events.filter((e) => isEffectivelyHeld(e) && inRange(e.event_date, mStart, mEnd));
+      const mEvents = ownEvents.filter((e) => isEffectivelyHeld(e) && inRange(e.event_date, mStart, mEnd));
       const mOrders = orders.filter((o) => inRange(o.order_date, mStart, mEnd));
       const mSales = mOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
 
