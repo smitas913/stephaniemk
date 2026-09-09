@@ -168,12 +168,12 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("id, event_id, event_date, hostess_name, event_type")
+        .select("id, event_id, event_date, hostess_name, event_title, event_type")
         .neq("event_id", eventId)
         .order("event_date", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null; event_type: string | null }>;
+      return (data || []) as Array<{ id: string; event_id: string; event_date: string | null; hostess_name: string | null; event_title?: string | null; event_type: string | null }>;
 
     },
   });
@@ -731,7 +731,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     const q = bookForm.search.trim().toLowerCase();
                     const filtered = upcomingEvents.filter((e) => {
                       if (!q) return true;
-                      const label = `${e.event_date || ""} ${e.hostess_name || ""}`.toLowerCase();
+                      const label = `${e.event_date || ""} ${e.event_title || ""} ${e.hostess_name || ""}`.toLowerCase();
                       return label.includes(q);
                     });
                     return (
@@ -761,7 +761,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                                         sel && "bg-accent font-medium"
                                       )}
                                     >
-                                      {dateLabel} · {e.hostess_name || "(no hostess)"}
+                                      {dateLabel} · {e.event_title || e.hostess_name || "(no hostess)"}
                                     </button>
                                   </li>
                                 );
@@ -804,7 +804,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     const q = careerForm.search.trim().toLowerCase();
                     const filtered = upcomingEvents.filter((e) => {
                       if (!q) return true;
-                      const label = `${e.event_date || ""} ${e.hostess_name || ""}`.toLowerCase();
+                      const label = `${e.event_date || ""} ${e.event_title || ""} ${e.hostess_name || ""}`.toLowerCase();
                       return label.includes(q);
                     });
                     return (
@@ -834,7 +834,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                                         sel && "bg-accent font-medium"
                                       )}
                                     >
-                                      {dateLabel} · {e.hostess_name || "(no hostess)"}
+                                      {dateLabel} · {e.event_title || e.hostess_name || "(no hostess)"}
                                     </button>
                                   </li>
                                 );

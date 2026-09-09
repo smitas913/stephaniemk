@@ -722,6 +722,7 @@ export type Database = {
           event_scope: string
           event_status: string
           event_time: string | null
+          event_title: string | null
           event_type: string | null
           event_venue_type: string | null
           future_bookings_count: number | null
@@ -784,6 +785,7 @@ export type Database = {
           event_scope?: string
           event_status?: string
           event_time?: string | null
+          event_title?: string | null
           event_type?: string | null
           event_venue_type?: string | null
           future_bookings_count?: number | null
@@ -846,6 +848,7 @@ export type Database = {
           event_scope?: string
           event_status?: string
           event_time?: string | null
+          event_title?: string | null
           event_type?: string | null
           event_venue_type?: string | null
           future_bookings_count?: number | null

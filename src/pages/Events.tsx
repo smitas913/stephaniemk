@@ -221,6 +221,7 @@ export default function Events() {
         const q = search.toLowerCase();
         if (
           !(e.hostess_name || "").toLowerCase().includes(q) &&
+          !((e as any).event_title || "").toLowerCase().includes(q) &&
           !(e.event_id || "").toLowerCase().includes(q) &&
           !(e.event_type || "").toLowerCase().includes(q)
         ) return false;
@@ -277,7 +278,12 @@ export default function Events() {
         </TableCell>
         <TableCell className="text-sm font-medium">
           <div className="flex items-center gap-1.5">
-            <span>{e.hostess_name || "—"}</span>
+            <span className="flex flex-col">
+              <span>{(e as any).event_title || e.hostess_name || "—"}</span>
+              {(e as any).event_title && e.hostess_name && e.hostess_name !== (e as any).event_title && (
+                <span className="text-[11px] font-normal text-muted-foreground">{e.hostess_name}</span>
+              )}
+            </span>
             {(e as any).hostess_converted_customer_id ? (
               <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
             ) : null}
@@ -445,7 +451,12 @@ export default function Events() {
         {/* Row 2: Contact/Hostess name + type + scope */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <p className="text-base font-semibold text-foreground truncate">{e.hostess_name || "—"}</p>
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-foreground truncate">{(e as any).event_title || e.hostess_name || "—"}</p>
+              {(e as any).event_title && e.hostess_name && e.hostess_name !== (e as any).event_title && (
+                <p className="text-xs text-muted-foreground truncate">{e.hostess_name}</p>
+              )}
+            </div>
             {(e as any).hostess_converted_customer_id ? (
               <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
             ) : null}
@@ -514,7 +525,7 @@ export default function Events() {
             </DrawerTrigger>
             <DrawerContent className="px-2 pb-8">
               <div className="pt-3 pb-2 px-3">
-                <p className="text-sm font-semibold text-foreground">{e.hostess_name || "Event"}</p>
+                <p className="text-sm font-semibold text-foreground">{(e as any).event_title || e.hostess_name || "Event"}</p>
                 <p className="text-xs text-muted-foreground">{formatDateOnly(e.event_date)}</p>
               </div>
               <div className="flex flex-col gap-0.5">

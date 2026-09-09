@@ -77,7 +77,9 @@ export default function UpcomingEventsCard() {
         ) : (
           upcoming.map((evt) => {
             const eventName =
-              evt.hostess_name
+              (evt as any).event_title
+                ? (evt as any).event_title
+                : evt.hostess_name
                 ? `${evt.hostess_name}'s ${evt.event_type || "Event"}`
                 : evt.event_type || "Event";
             return (
@@ -90,6 +92,9 @@ export default function UpcomingEventsCard() {
                     <p className="text-sm font-semibold text-foreground truncate">
                       {eventName}
                     </p>
+                    {(evt as any).event_title && evt.hostess_name && evt.hostess_name !== (evt as any).event_title && (
+                      <p className="text-[11px] text-muted-foreground truncate">{evt.hostess_name}</p>
+                    )}
                     <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />

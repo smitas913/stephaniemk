@@ -43,6 +43,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
   const [eventFormat, setEventFormat] = useState<string>("In-Person");
   const [eventDate, setEventDate] = useState(toLocalDateKey());
   const [hostessName, setHostessName] = useState("");
+  const [eventTitle, setEventTitle] = useState("");
   const [hostessPhone, setHostessPhone] = useState("");
   const [hostessSource, setHostessSource] = useState<string>("");
 
@@ -60,6 +61,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
         event_format: eventFormat,
         event_date: eventDate,
         hostess_name: hostessName.trim() || null,
+        event_title: eventTitle.trim() || null,
         hostess_phone: hostessPhone.trim() || null,
         hostess_source: hostessSource || null,
 
@@ -123,6 +125,7 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
     setEventFormat("In-Person");
     setEventDate(toLocalDateKey());
     setHostessName("");
+    setEventTitle("");
     setHostessPhone("");
     setHostessSource("");
 
@@ -224,6 +227,17 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
           <div>
             <label className="text-sm font-medium text-foreground">Date *</label>
             <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="h-9 mt-1" />
+          </div>
+
+          {/* Event Title */}
+          <div>
+            <label className="text-sm font-medium text-foreground">Event Title</label>
+            <Input
+              placeholder="Optional — e.g. Glass Skin Party"
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
+              className="h-9 mt-1"
+            />
           </div>
 
           {/* Hostess / Contact */}

@@ -245,6 +245,8 @@ export default function EventDetail() {
     }
   };
 
+  const [titleEditing, setTitleEditing] = useState(false);
+
   const updateField = (field: string, value: any) => {
     if (!event) return;
     eventMutation.mutate({ event_id: event.event_id, [field]: value } as any);
@@ -411,9 +413,30 @@ export default function EventDetail() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">
-              {event?.hostess_name ? `${event.hostess_name}'s Event` : "Event Detail"}
-            </h2>
+            {titleEditing ? (
+              <Input
+                autoFocus
+                className="h-9 text-lg font-bold"
+                placeholder="Event title"
+                defaultValue={(event as any)?.event_title || ""}
+                onBlur={(e) => {
+                  const val = e.target.value.trim();
+                  if (val !== (((event as any)?.event_title || ""))) updateField("event_title", val || null);
+                  setTitleEditing(false);
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setTitleEditing(false); }}
+              />
+            ) : (
+              <h2
+                className="text-2xl font-bold tracking-tight text-foreground truncate cursor-text"
+                title="Tap to edit the event title"
+                onClick={() => setTitleEditing(true)}
+              >
+                {(event as any)?.event_title
+                  ? (event as any).event_title
+                  : event?.hostess_name ? `${event.hostess_name}'s Event` : "Event Detail"}
+              </h2>
+            )}
             <p className="text-sm text-muted-foreground">
               {event?.event_date ? formatDateOnly(event.event_date) : "No date set"}
               {event?.event_type ? ` · ${event.event_type}` : ""}
