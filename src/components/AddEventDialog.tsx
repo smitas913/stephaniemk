@@ -228,6 +228,17 @@ export default function AddEventDialog({ open, onOpenChange, existingEventIds, o
             <Input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="h-9 mt-1" />
           </div>
 
+          {/* Event Title */}
+          <div>
+            <label className="text-sm font-medium text-foreground">Event Title</label>
+            <Input
+              placeholder="Optional — e.g. Glass Skin Party"
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
+              className="h-9 mt-1"
+            />
+          </div>
+
           {/* Hostess / Contact */}
           <div>
             <label className="text-sm font-medium text-foreground">
