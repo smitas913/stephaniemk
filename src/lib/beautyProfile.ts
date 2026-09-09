@@ -297,6 +297,23 @@ export function pickOne(value: unknown, allowed: readonly string[]): string {
   return allowed.find((a) => a.toLowerCase() === s) || "";
 }
 
+/**
+ * Multi-value list that snaps to the allowed options when it can, but keeps any
+ * other written-in answer ("Other" free text) instead of dropping it.
+ */
+export function pickAllowedWithCustom(values: unknown, allowed: readonly string[]): string[] {
+  const list = Array.isArray(values) ? values : values == null || values === "" ? [] : [values];
+  const lower = new Map(allowed.map((a) => [a.toLowerCase(), a]));
+  const out: string[] = [];
+  for (const v of list) {
+    const raw = String(v ?? "").trim();
+    if (!raw) continue;
+    const hit = lower.get(raw.toLowerCase()) ?? raw;
+    if (!out.includes(hit)) out.push(hit);
+  }
+  return out;
+}
+
 /** Normalize a whole AI-extracted beauty profile onto the exact option sets. */
 export function normalizeExtractedBeautyProfile(raw: unknown): BeautyProfile {
   const src = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -308,8 +325,8 @@ export function normalizeExtractedBeautyProfile(raw: unknown): BeautyProfile {
     if (v) (p as any)[f.key] = v;
   }
   p.best_time = pickOne(src.best_time, BEST_TIME_OPTIONS);
-  p.best_contact = pickOne(src.best_contact, BEST_CONTACT_OPTIONS);
-  p.social = pickOne(src.social, SOCIAL_OPTIONS);
+  p.best_contact = pickAllowedWithCustom(src.best_contact, BEST_CONTACT_OPTIONS);
+  p.social = pickAllowedWithCustom(src.social, SOCIAL_OPTIONS);
   p.age_range = pickOne(src.age_range, AGE_RANGE_OPTIONS);
   p.moisturizer_feel = moisturizerFeelFromLoose(str(src.moisturizer_feel)) || "";
   p.foundation_coverage = pickOne(src.foundation_coverage, FOUNDATION_COVERAGE_OPTIONS);
