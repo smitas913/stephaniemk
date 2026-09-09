@@ -420,7 +420,12 @@ export default function ProspectDetail() {
                     >
                       Referral given
                     </Button>
-                    <Button size="sm" variant="outline" disabled={nudgeBusy} onClick={invitedToEvent}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={nudgeBusy}
+                      onClick={() => setNudgeAction(nudgeAction === "event" ? null : "event")}
+                    >
                       Invited to an event
                     </Button>
                   </div>
