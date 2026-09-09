@@ -463,6 +463,54 @@ export default function ProspectDetail() {
                       </Button>
                     </div>
                   )}
+
+                  {nudgeAction === "event" && (
+                    <div className="mt-3 space-y-2">
+                      <Input
+                        placeholder="Search upcoming events…"
+                        value={nudgeEventSearch}
+                        onChange={(e) => setNudgeEventSearch(e.target.value)}
+                        className="h-8"
+                      />
+                      <div className="border rounded-md bg-background max-h-52 overflow-y-auto divide-y">
+                        {(() => {
+                          const today = toLocalDateKey();
+                          const q = nudgeEventSearch.trim().toLowerCase();
+                          const upcoming = (allEvents as EventRecord[])
+                            .filter((e) => e.event_date && e.event_date >= today)
+                            .filter((e) => {
+                              if (!q) return true;
+                              return (
+                                (e.event_title || "").toLowerCase().includes(q) ||
+                                (e.hostess_name || "").toLowerCase().includes(q)
+                              );
+                            })
+                            .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""))
+                            .slice(0, 15);
+                          if (upcoming.length === 0) {
+                            return <p className="p-3 text-xs text-muted-foreground text-center">No upcoming events</p>;
+                          }
+                          return upcoming.map((e) => (
+                            <button
+                              key={e.id}
+                              type="button"
+                              disabled={nudgeBusy}
+                              onClick={() => pickEventForInvite(e)}
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-muted/50 disabled:opacity-50"
+                            >
+                              <span className="font-medium text-foreground">
+                                {e.event_title || e.hostess_name || "Event"}
+                              </span>
+                              <span className="text-muted-foreground"> · {formatDateOnly(e.event_date)}</span>
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => { setNudgeAction(null); setNudgeEventSearch(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
