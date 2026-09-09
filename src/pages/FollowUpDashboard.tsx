@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { parseISO, isWithinInterval, differenceInCalendarDays } from "date-fns";
 import { toLocalDateKey } from "@/lib/dateOnly";
+import { personalEvents } from "@/lib/eventScope";
 
 import {
   usePeriodFilter,
@@ -55,11 +56,13 @@ function weeksInRange(start: Date, end: Date): number {
 function useEfficiencyMetrics(
   customers: Customer[],
   orders: OrderWithCustomer[],
-  events: EventRecord[],
+  allEvents: EventRecord[],
   notes: Note[],
   period: PeriodValue,
 ) {
   return useMemo(() => {
+    // Personal numbers only — unit consultants' synced events excluded
+    const events = personalEvents(allEvents);
     const { start, end } = getDateRange(period);
     const weeks = weeksInRange(start, end);
 
@@ -170,7 +173,7 @@ function useEfficiencyMetrics(
       totalFacesHeld,
       careerChats,
     };
-  }, [customers, orders, events, notes, period]);
+  }, [customers, orders, allEvents, notes, period]);
 }
 
 // ─── Card primitives ───

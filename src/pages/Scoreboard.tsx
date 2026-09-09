@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchEvents, fetchProspects } from "@/lib/queries";
 import type { EventRecord, Prospect } from "@/lib/types";
 import Layout from "@/components/Layout";
+import { personalEvents } from "@/lib/eventScope";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
@@ -26,8 +27,10 @@ type ConversionItem = {
 };
 
 
-function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
+function useScoreboard(allEvents: EventRecord[], prospects: Prospect[]) {
   return useMemo(() => {
+    // Personal numbers only — unit consultants' synced events excluded
+    const events = personalEvents(allEvents);
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -98,7 +101,7 @@ function useScoreboard(events: EventRecord[], prospects: Prospect[]) {
     };
 
     return { weekly, monthly, monthlySharingConversion, monthBooked, monthHeld, monthCancelled, monthHoldRate };
-  }, [events, prospects]);
+  }, [allEvents, prospects]);
 }
 
 const STATUS_COLORS = {

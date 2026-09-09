@@ -55,7 +55,8 @@ function computeActuals(
   end: Date,
   data: { events: EventRecord[]; notes: Note[]; customers: Customer[]; prospects: Prospect[]; consultants: TeamConsultantRow[] },
 ): number {
-  const { events, notes, customers, consultants } = data;
+  const { notes, customers, consultants } = data;
+  const events = personalEvents(data.events);
   switch (metricKey) {
     case "faces": {
       // 1) Faces from held events (guest_count)
