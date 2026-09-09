@@ -23,6 +23,7 @@ import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { EventRecord } from "@/lib/types";
+import { autoLogCareerChat, isCareerChatEventType } from "@/lib/careerChatAutoLog";
 
 const BUSINESS_EVENT_TYPES = new Set(["Sharing Appointment", "Career Chat", "Pearl Appointment"]);
 const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
@@ -157,10 +158,28 @@ export default function Events() {
 
 
   const markHeldMutation = useMutation({
-    mutationFn: (e: EventRecord) => upsertEvent({ event_id: e.event_id, event_status: "Held" } as any),
-    onSuccess: () => {
+    mutationFn: async (e: EventRecord) => {
+      const shouldAutoLog = isCareerChatEventType(e.event_type) && !(e as any).career_chat_logged;
+      const prospectId = shouldAutoLog ? await autoLogCareerChat(e) : null;
+      await upsertEvent({
+        event_id: e.event_id,
+        event_status: "Held",
+        ...(prospectId ? { career_chat_logged: true } : {}),
+        ...(prospectId && !(e as any).prospect_id ? { prospect_id: prospectId } : {}),
+      } as any);
+      return { shouldAutoLog, prospectId };
+    },
+    onSuccess: ({ shouldAutoLog, prospectId }) => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      toast.success("Event marked complete");
+      if (prospectId) {
+        queryClient.invalidateQueries({ queryKey: ["prospects"] });
+        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
+        queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
+        toast.success("Event marked complete · career chat logged");
+      } else {
+        toast.success("Event marked complete");
+        if (shouldAutoLog) toast.error("The career chat couldn't be logged automatically");
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });

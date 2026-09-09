@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { checkForDuplicatePerson } from "@/lib/duplicateCheck";
+import { autoLogCareerChat } from "@/lib/careerChatAutoLog";
 
 import { formatDateOnly, parseLocalDate, toLocalDateKey } from "@/lib/dateOnly";
 import { addDays, format } from "date-fns";
@@ -171,87 +172,30 @@ export default function EventDetail() {
    * career chat happened. Creates (or reuses) the prospect, writes one counted note,
    * and flags the event so the full "Log conversation" flow can't double-count it.
    */
-  const autoLogCareerChat = async (ev: any) => {
-    try {
-      const chatDate = ev.event_date || toLocalDateKey();
-      const name = (ev.hostess_name || "").trim();
-      let prospectId: string | null = ev.prospect_id ?? null;
-
-      if (!prospectId && (name || ev.hostess_phone)) {
-        const { strong, softName } = await checkForDuplicatePerson({
-          fullName: name,
-          phone: ev.hostess_phone,
-          email: ev.hostess_email,
-          kind: "prospect",
-          prospectsOnly: true,
-        });
-        const match = strong || softName;
-        if (match?.kind === "prospect") prospectId = match.id;
-      }
-
-      if (!prospectId) {
-        if (!name) return;
-        const userId = (await supabase.auth.getUser()).data.user?.id;
-        const { data: newProspect, error } = await supabase
-          .from("prospects" as any)
-          .insert({
-            name,
-            phone: ev.hostess_phone || null,
-            email: ev.hostess_email || null,
-            opportunity_status: "Booked",
-            ownership_type: "personal",
-            is_career_chat: true,
-            date_shared: chatDate,
-            last_contact_date: chatDate,
-            owner_user_id: userId,
-          } as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        prospectId = (newProspect as any).id;
-      }
-
-      if (!prospectId) return;
-
-      await createNote({
-        entity_type: "Prospect",
-        person_type: "prospect",
-        person_id: prospectId,
-        prospect_id: prospectId,
-        note_body: "Career chat held",
-        note_type: "Career Chat",
-        note_date: chatDate,
-        result_type: "Career Chat",
-      } as any);
-
-      await supabase.from("prospects" as any).update({
-        last_contact_date: chatDate,
-        is_career_chat: true,
-      } as any).eq("id", prospectId);
-
+  const runAutoLogCareerChat = async (ev: any) => {
+    const prospectId = await autoLogCareerChat(ev);
+    if (prospectId) {
       queryClient.invalidateQueries({ queryKey: ["prospects"] });
       queryClient.invalidateQueries({ queryKey: ["all-notes"] });
       queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
-      return prospectId;
-    } catch (e: any) {
-      console.error("autoLogCareerChat failed", e);
+    } else {
       toast.error("Marked as Held, but the career chat couldn't be logged automatically");
-      return null;
     }
+    return prospectId;
   };
 
   const handleStatusChange = async (val: string) => {
     if (!event || val === (event.event_status || "Booked")) return;
     if (val === "Held") {
       const shouldAutoLog = isSharing && !(event as any).career_chat_logged;
-      const prospectId = shouldAutoLog ? await autoLogCareerChat(event) : null;
+      const prospectId = shouldAutoLog ? await runAutoLogCareerChat(event) : null;
       eventMutation.mutate({
         event_id: event.event_id,
         event_status: "Held",
-        ...(shouldAutoLog ? { career_chat_logged: true } : {}),
+        ...(prospectId ? { career_chat_logged: true } : {}),
         ...(prospectId && !(event as any).prospect_id ? { prospect_id: prospectId } : {}),
       } as any);
-      toast.success(shouldAutoLog ? "Event marked as Held · career chat logged" : "Event marked as Held");
+      toast.success(prospectId ? "Event marked as Held · career chat logged" : "Event marked as Held");
     } else if (val === "Cancelled" || val === "No Show") {
       // Clear rescheduling status — the appointment isn't happening on that date either way
       eventMutation.mutate({
