@@ -1488,6 +1488,28 @@ export const describeProspectConversion = (s: ProspectConversionResult["merge_su
   return `Converted to consultant — merged in ${list}`;
 };
 
+/** Link a prospect to an already-existing consultant record (no new consultant created). */
+export const linkProspectToExistingConsultant = async (
+  prospect: Prospect,
+  consultantId: string,
+): Promise<ProspectConversionResult> => {
+  const { data: mergeData, error } = await supabase.rpc("merge_prospect_into_consultant" as any, {
+    _prospect_id: prospect.id,
+    _consultant_id: consultantId,
+  });
+  if (error) throw error;
+  const summary = {
+    notes: Number((mergeData as any)?.moved?.notes || 0),
+    events: Number((mergeData as any)?.moved?.events || 0),
+    customer_merged: false,
+    facial_merged: false,
+  };
+  const { data: fresh, error: fErr } = await supabase.from("team_consultants").select("*").eq("id", consultantId).single();
+  if (fErr) throw fErr;
+  return { ...(fresh as any), merge_summary: summary } as ProspectConversionResult;
+};
+
+
 // Convert a customer to a consultant — true migration via RPC.
 // Re-points orders, notes, follow-ups, tags, beauty notes, events, leads, campaigns,
 // then deletes the source customer row. All atomic in one Postgres transaction.
