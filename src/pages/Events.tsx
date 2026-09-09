@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchEvents, fetchOrders, deleteEvent, upsertEvent, createNote, fetchAllLatestNotes } from "@/lib/queries";
+import { fetchEvents, fetchOrders, deleteEvent, upsertEvent, createNote, fetchAllLatestNotes, fetchTeamConsultants } from "@/lib/queries";
 import Layout from "@/components/Layout";
 import UniversalActionPanel from "@/components/UniversalActionPanel";
 import type { UniversalActionItem } from "@/components/UniversalActionPanel";
@@ -53,16 +53,27 @@ export default function Events() {
   const [formatFilter, setFormatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [rescheduleFilter, setRescheduleFilter] = useState("all");
+  const [scopeFilter, setScopeFilter] = useState("all");
   const [categoryTab, setCategoryTab] = useState<"product" | "business">("product");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<EventRecord | null>(null);
 
   const { data: events = [], isLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: teamConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
+  const consultantNameById = useMemo(
+    () => new Map((teamConsultants as { id: string; name: string }[]).map((c) => [c.id, c.name])),
+    [teamConsultants]
+  );
+  const unitLabel = (e: EventRecord) => {
+    const name = e.assigned_consultant_id ? consultantNameById.get(e.assigned_consultant_id) : undefined;
+    return name ? `Unit \u00b7 ${name}` : "Unit";
+  };
   const { data: orders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: unifiedNotes = [] } = useQuery({ queryKey: ["unified-notes"], queryFn: fetchAllLatestNotes });
 
   const activeFilterCount = [
     typeFilter !== "all",
+    scopeFilter !== "all",
     formatFilter !== "all",
     statusFilter !== "all",
     rescheduleFilter !== "all",
@@ -203,6 +214,8 @@ export default function Events() {
       if (formatFilter !== "all" && (e.event_format || "In-Person") !== formatFilter) return false;
       if (statusFilter !== "all" && e.event_status !== statusFilter) return false;
       if (rescheduleFilter !== "all" && (e.reschedule_status || "None") !== rescheduleFilter) return false;
+      if (scopeFilter === "Unit" && e.event_scope !== "Unit") return false;
+      if (scopeFilter === "Personal" && e.event_scope === "Unit") return false;
       if (search) {
         const q = search.toLowerCase();
         if (
@@ -213,7 +226,7 @@ export default function Events() {
       }
       return true;
     });
-  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter]);
+  }, [events, search, typeFilter, formatFilter, statusFilter, rescheduleFilter, scopeFilter]);
 
   // Split by category (Product vs Business)
   const { productEvents, businessEvents } = useMemo(() => {
@@ -274,6 +287,11 @@ export default function Events() {
             <span>{e.event_type || "—"}</span>
             {(e.event_format && e.event_format !== "In-Person") && (
               <span className="text-muted-foreground">• {e.event_format}</span>
+            )}
+            {e.event_scope === "Unit" && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-purple-50 border-purple-200 text-purple-700">
+                {unitLabel(e)}
+              </Badge>
             )}
           </div>
         </TableCell>
@@ -431,9 +449,16 @@ export default function Events() {
               <Badge variant="outline" className="text-[9px] px-1.5 py-0 shrink-0 bg-green-50 border-green-200 text-green-700">Customer</Badge>
             ) : null}
           </div>
-          <span className="text-xs text-muted-foreground shrink-0">
-            {e.event_type || "—"}{e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
-          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            {e.event_scope === "Unit" && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-purple-50 border-purple-200 text-purple-700">
+                {unitLabel(e)}
+              </Badge>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {e.event_type || "—"}{e.event_format && e.event_format !== "In-Person" ? ` · ${e.event_format}` : ""}
+            </span>
+          </div>
         </div>
 
         {/* Row 3: Stats + next task */}
@@ -658,6 +683,17 @@ export default function Events() {
               </div>
               <Separator />
               <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Scope</label>
+                  <Select value={scopeFilter} onValueChange={setScopeFilter}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="All" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="Personal">Personal</SelectItem>
+                      <SelectItem value="Unit">Unit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
