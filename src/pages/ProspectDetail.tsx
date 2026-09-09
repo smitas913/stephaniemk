@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateProspectNote, convertProspectToConsultant, describeProspectConversion } from "@/lib/queries";
+import { fetchProspect, updateProspect, deleteProspect, fetchProspectNotes, createProspectNote, deleteProspectNote, updateProspectNote, convertProspectToConsultant, describeProspectConversion, createEventGuest, fetchEvents, fetchTeamConsultants, linkProspectToExistingConsultant } from "@/lib/queries";
 import { OPPORTUNITY_STATUSES, NEXT_STEP_TYPES, COACHING_FOCUS_OPTIONS } from "@/lib/types";
-import type { ProspectNote } from "@/lib/types";
+import type { ProspectNote, EventRecord, TeamConsultant } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,18 +47,24 @@ export default function ProspectDetail() {
 
   const { data: prospect } = useQuery({ queryKey: ["prospect", id], queryFn: () => fetchProspect(id!) });
   const { data: notes = [] } = useQuery({ queryKey: ["prospect-notes", id], queryFn: () => fetchProspectNotes(id!) });
+  const { data: allEvents = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: allConsultants = [] } = useQuery({ queryKey: ["team-consultants"], queryFn: fetchTeamConsultants });
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [noteText, setNoteText] = useState("");
   const [noteDate, setNoteDate] = useState(toLocalDateKey());
   const [showConvert, setShowConvert] = useState(false);
+  const [convertMode, setConvertMode] = useState<"new" | "existing">("new");
+  const [convertConsultantSearch, setConvertConsultantSearch] = useState("");
+  const [convertConsultant, setConvertConsultant] = useState<TeamConsultant | null>(null);
   const [convertCoachingDate, setConvertCoachingDate] = useState("");
   const [convertCoachingFocus, setConvertCoachingFocus] = useState("");
   const [showBooking, setShowBooking] = useState(false);
-  const [nudgeAction, setNudgeAction] = useState<null | "followup" | "referral">(null);
+  const [nudgeAction, setNudgeAction] = useState<null | "followup" | "referral" | "event">(null);
   const [nudgeFollowUpDate, setNudgeFollowUpDate] = useState<string>(toLocalDateKey());
   const [nudgeReferralName, setNudgeReferralName] = useState("");
+  const [nudgeEventSearch, setNudgeEventSearch] = useState("");
   const [nudgeBusy, setNudgeBusy] = useState(false);
 
   useEffect(() => {
