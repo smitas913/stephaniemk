@@ -118,6 +118,8 @@ export interface EventRecord {
   event_format: string;
   event_date: string | null;
   hostess_name: string | null;
+  /** Standalone event title (e.g. from the Google Calendar sync); independent of hostess_name. */
+  event_title: string | null;
   guest_count: number;
   ordering_guest_count: number | null;
   future_bookings_count: number | null;
