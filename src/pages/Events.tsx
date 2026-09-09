@@ -84,6 +84,7 @@ export default function Events() {
     setFormatFilter("all");
     setStatusFilter("all");
     setRescheduleFilter("all");
+    setScopeFilter("all");
   };
 
   const [actionPanelOpen, setActionPanelOpen] = useState(false);
