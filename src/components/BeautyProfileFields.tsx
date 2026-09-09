@@ -203,8 +203,8 @@ export default function BeautyProfileFields({
         </div>
 
         <ChipSingle label="Best time to reach me" options={BEST_TIME_OPTIONS} value={value.best_time} onChange={(v) => set({ best_time: v })} />
-        <ChipSingle label="Best way to contact me" options={BEST_CONTACT_OPTIONS} value={value.best_contact} onChange={(v) => set({ best_contact: v })} />
-        <ChipSingle label="Connect with me on social media" options={SOCIAL_OPTIONS} value={value.social} onChange={(v) => set({ social: v })} />
+        <ChipMulti label="Best way to contact me" options={BEST_CONTACT_OPTIONS} value={value.best_contact} onChange={(v) => set({ best_contact: v })} />
+        <ChipMulti label="Connect with me on social media" options={SOCIAL_OPTIONS} value={value.social} onChange={(v) => set({ social: v })} />
 
         <CheckGroup
           label="Interested in learning more about"
