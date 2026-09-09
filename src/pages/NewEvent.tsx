@@ -226,6 +226,10 @@ export default function NewEvent() {
         }
 
         if (prospectId) payload.prospect_id = prospectId;
+        payload.event_scope = sharingOwnership === "unit" ? "Unit" : "Personal";
+        if (sharingOwnership === "unit" && selectedConsultant) {
+          payload.assigned_consultant_id = selectedConsultant.id;
+        }
 
         const inserted = await insertNewEvent(payload as any);
 
