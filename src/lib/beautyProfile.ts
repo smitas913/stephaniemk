@@ -81,8 +81,8 @@ export type BeautyProfile = {
   anniversary?: string;
   occupation?: string;
   best_time?: string;
-  best_contact?: string;
-  social?: string;
+  best_contact?: string[];
+  social?: string[];
   interests?: string[];
   wish_list_referrals?: WishListReferral[];
 
@@ -108,20 +108,26 @@ export type BeautyProfile = {
 
 export const SINGLE_SELECT_FIELDS = {
   best_time: BEST_TIME_OPTIONS,
-  best_contact: BEST_CONTACT_OPTIONS,
-  social: SOCIAL_OPTIONS,
   age_range: AGE_RANGE_OPTIONS,
   moisturizer_feel: MOISTURIZER_FEEL_OPTIONS,
   foundation_coverage: FOUNDATION_COVERAGE_OPTIONS,
 } as const;
 
 export const MULTI_SELECT_FIELDS = {
+  best_contact: BEST_CONTACT_OPTIONS,
+  social: SOCIAL_OPTIONS,
   interests: INTEREST_OPTIONS,
   primary_skin_care_needs: PRIMARY_SKIN_CARE_NEEDS_OPTIONS,
   other_skin_concerns: OTHER_SKIN_CONCERN_OPTIONS,
   eye_concerns: EYE_CONCERN_OPTIONS,
   lip_concerns: LIP_CONCERN_OPTIONS,
 } as const;
+
+/**
+ * Multi-selects that also accept free-text "Other" values, so answers outside
+ * the printed option list (WhatsApp, Snapchat, a work email…) are preserved.
+ */
+export const FREE_VALUE_MULTI_KEYS: Array<keyof BeautyProfile> = ["best_contact", "social"];
 
 export const TEXT_FIELDS_LABELS: Array<{ key: keyof BeautyProfile; label: string; type?: string; placeholder?: string; long?: boolean }> = [
   { key: "hostess", label: "Hostess", placeholder: "Who hosted this event" },
