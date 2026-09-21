@@ -331,8 +331,20 @@ export interface Expense {
   event_type: string | null;
   event_year: number | null;
   owner_user_id: string | null;
+  import_fingerprint: string | null;
+  source: string | null;
+  receipt_not_required: boolean;
   created_at: string;
   updated_at: string | null;
+}
+
+export interface ExpenseMerchantRule {
+  id: string;
+  owner_user_id: string;
+  merchant_key: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const EXPENSE_EVENT_TYPES = ["Seminar", "Career Conference", "Leadership Conference", "Fall Retreat", "Director Meeting", "Other Event"] as const;
