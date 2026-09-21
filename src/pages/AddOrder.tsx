@@ -368,6 +368,16 @@ export default function AddOrder() {
     setWholesaleAmount(auto.toFixed(2));
   }, [retailAmount, profitMarginRate, wholesaleManual]);
 
+  // Prefill CDS shipping with my default when the tag goes on; clear it when off.
+  const cdsDefault = financialSettings?.cds_shipping_default ?? 5.95;
+  useEffect(() => {
+    if (isCdsOrder) {
+      setCdsShipping((cur) => (cur === "" ? Number(cdsDefault).toFixed(2) : cur));
+    } else {
+      setCdsShipping("");
+    }
+  }, [isCdsOrder, cdsDefault]);
+
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
@@ -521,7 +531,7 @@ export default function AddOrder() {
         parent_event_id: isEventBased ? selectedEventId : null,
         is_myshop_order: !!orderTags.myshop,
         is_cds: isCdsOrder,
-        cds_shipping_cost: isCdsOrder ? round2(Number(cdsShipping) || 0) : 0,
+        cds_shipping_cost: isCdsOrder ? Math.round((Number(cdsShipping) || 0) * 100) / 100 : 0,
         hostess: orderTags.hostess,
         half_price_deal: orderTags.half_price,
         birthday: orderTags.birthday,
