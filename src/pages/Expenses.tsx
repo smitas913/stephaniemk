@@ -147,6 +147,14 @@ export default function Expenses() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [attachTargetId, setAttachTargetId] = useState<string | null>(null);
 
+  // Receipt scan
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
+  const [scanning, setScanning] = useState(false);
+  const [scanReview, setScanReview] = useState<ScanReview | null>(null);
+  const [scanSavedCount, setScanSavedCount] = useState(0);
+  const [showScanSaved, setShowScanSaved] = useState(false);
+
+
   const SHOW_EVENT_FIELDS_FOR = ["Events", "Travel", "Meals"];
   const showEventFields = SHOW_EVENT_FIELDS_FOR.includes(formCategory);
   const currentYear = new Date().getFullYear();
