@@ -1,13 +1,16 @@
-// Reads a bank / credit card statement PDF and returns the outgoing transactions.
-// The PDF is never stored — it is read in memory and discarded.
+// Reads a bank / credit card statement PDF and returns its transactions.
+// The PDF is never stored — it is read in memory and discarded. Contents are never logged.
 //
-// Input:  { pdfBase64: string, mimeType?: string, categories: string[] }
-// Output: { transactions: [{ date, merchant, amount, suggested_category }] }
+// Input:  { pdfBase64: string, mimeType?: string, categories: string[],
+//           statementType?: "bank" | "credit_card", incomeCategories?: string[] }
+// Output: { transactions: [{ date, merchant, amount, suggested_category, direction }] }
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+const DEFAULT_INCOME_CATEGORIES = ["Commission", "Bonus", "Referral", "Product Sales", "Other"];
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -36,7 +39,13 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return json({ error: "AI key not configured" }, 500);
 
     const body = (await req.json().catch(() => null)) as
-      | { pdfBase64?: string; mimeType?: string; categories?: string[] }
+      | {
+          pdfBase64?: string;
+          mimeType?: string;
+          categories?: string[];
+          statementType?: string;
+          incomeCategories?: string[];
+        }
       | null;
 
     const pdfBase64 = typeof body?.pdfBase64 === "string" ? body.pdfBase64 : "";
@@ -48,26 +57,46 @@ Deno.serve(async (req) => {
       : [];
     if (categories.length === 0) return json({ error: "Categories are required" }, 400);
 
+    const incomeCategories = Array.isArray(body?.incomeCategories) && body!.incomeCategories!.length > 0
+      ? body!.incomeCategories!.filter((c) => typeof c === "string" && c.length > 0)
+      : DEFAULT_INCOME_CATEGORIES;
+
+    const isBank = body?.statementType === "bank";
+
     const mimeType = body?.mimeType || "application/pdf";
     const fileData = pdfBase64.startsWith("data:")
       ? pdfBase64
       : `data:${mimeType};base64,${pdfBase64}`;
 
-    const systemPrompt = `You read bank and credit card statement PDFs and extract the transactions where money went OUT of the account.
+    const outRules = `Money OUT items (direction "out"):
+- Include purchases, debits, fees, interest charges, withdrawals, card payments to merchants.
+- EXCLUDE transfers between the account holder's own accounts, refunds, returns, credits and any running/ending balance lines.
+- "suggested_category" MUST be one of these exact strings, character for character: ${JSON.stringify(categories)}
+- Pick the best fit for the merchant. If unsure, use "Supplies". Never invent a category and never use "Personal Use".`;
+
+    const inRules = isBank
+      ? `Money IN items (direction "in"):
+- Include deposits, direct deposits, ACH credits, Zelle/Venmo/Cash App money received, cheques deposited, ATM cash deposits.
+- EXCLUDE transfers between the account holder's own accounts, credit card payment reversals, and any running/ending balance lines.
+- "suggested_category" MUST be one of these exact strings: ${JSON.stringify(incomeCategories)}
+- If the description mentions "Mary Kay" (or MKC / Mary Kay Inc), use "Commission". Otherwise use "Product Sales".`
+      : `Do NOT return any money IN items. This is a credit card statement: skip payments received, credits and refunds entirely.`;
+
+    const systemPrompt = `You read bank and credit card statement PDFs and extract the printed transactions.
 
 Return ONLY a JSON object of this exact shape (no prose, no markdown):
 
-{ "transactions": [ { "date": "YYYY-MM-DD", "merchant": string, "amount": number, "suggested_category": string } ] }
+{ "transactions": [ { "date": "YYYY-MM-DD", "merchant": string, "amount": number, "suggested_category": string, "direction": "out" | "in" } ] }
 
-Rules:
-- Include ONLY money going out: purchases, debits, fees, interest charges, withdrawals.
-- EXCLUDE payments received, deposits, credits, refunds, returns, transfers between accounts, and any running/ending balance lines.
+${outRules}
+
+${inRules}
+
+General rules:
 - "date" must be a full ISO date. Statements often print only month/day — infer the year from the statement period shown on the document (watch for periods that span a year boundary).
 - "merchant" is the description exactly as printed on the statement (keep store numbers and city text).
 - "amount" is always a POSITIVE number with no currency symbol or commas.
 - Read every page. Do not merge or summarize transactions; one object per printed line.
-- "suggested_category" MUST be one of these exact strings, character for character: ${JSON.stringify(categories)}
-- Pick the best fit for the merchant. If you are unsure, use "Supplies". Never invent a category and never use "Personal Use".
 - If the document has no readable transactions, return { "transactions": [] }.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -84,7 +113,12 @@ Rules:
           {
             role: "user",
             content: [
-              { type: "text", text: "Extract the outgoing transactions from this statement. Return JSON only." },
+              {
+                type: "text",
+                text: isBank
+                  ? "Extract the transactions from this bank statement, both money out and money in. Return JSON only."
+                  : "Extract the outgoing transactions from this statement. Return JSON only.",
+              },
               { type: "file", file: { filename: "statement.pdf", file_data: fileData } },
             ],
           },
@@ -111,17 +145,20 @@ Rules:
       return json({ error: "The statement couldn't be read. Please try again." }, 502);
     }
 
-    const allowed = new Set(categories);
+    const allowedOut = new Set(categories);
+    const allowedIn = new Set(incomeCategories);
     const transactions = (Array.isArray(parsed?.transactions) ? parsed.transactions : [])
       .map((t: any) => {
         const amount = Math.abs(Number(t?.amount));
         const date = typeof t?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : "";
         const merchant = typeof t?.merchant === "string" ? t.merchant.trim().slice(0, 300) : "";
-        const suggested = typeof t?.suggested_category === "string" && allowed.has(t.suggested_category)
-          ? t.suggested_category
-          : "Supplies";
+        const direction: "in" | "out" = isBank && t?.direction === "in" ? "in" : "out";
+        const suggestedRaw = typeof t?.suggested_category === "string" ? t.suggested_category : "";
+        const suggested = direction === "in"
+          ? (allowedIn.has(suggestedRaw) ? suggestedRaw : "Product Sales")
+          : (allowedOut.has(suggestedRaw) ? suggestedRaw : "Supplies");
         if (!date || !merchant || !Number.isFinite(amount) || amount <= 0) return null;
-        return { date, merchant, amount, suggested_category: suggested };
+        return { date, merchant, amount, suggested_category: suggested, direction };
       })
       .filter(Boolean);
 

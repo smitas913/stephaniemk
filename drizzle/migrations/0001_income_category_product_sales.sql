@@ -1,0 +1,1 @@
+ALTER TYPE public.income_category ADD VALUE IF NOT EXISTS 'Product Sales';

@@ -343,13 +343,14 @@ export interface ExpenseMerchantRule {
   owner_user_id: string;
   merchant_key: string;
   category: string;
+  kind?: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export const EXPENSE_EVENT_TYPES = ["Seminar", "Career Conference", "Leadership Conference", "Fall Retreat", "Director Meeting", "Other Event"] as const;
 
-export const INCOME_CATEGORIES = ["Commission", "Bonus", "Referral", "Other"] as const;
+export const INCOME_CATEGORIES = ["Product Sales", "Commission", "Bonus", "Referral", "Other"] as const;
 
 export interface Income {
   id: string;
@@ -359,6 +360,8 @@ export interface Income {
   source: string | null;
   notes: string | null;
   owner_user_id: string | null;
+  import_fingerprint?: string | null;
+  entry_source?: string | null;
   created_at: string;
   updated_at: string | null;
 }

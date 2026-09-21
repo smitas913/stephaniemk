@@ -46,6 +46,7 @@ const secondaryNavItems = [
 
   { to: "/analytics", label: "Analytics", icon: Target },
   { to: "/expenses", label: "Expenses", icon: Receipt },
+  { to: "/register", label: "Register", icon: BookOpen },
   { to: "/campaigns", label: "Campaigns", icon: BookOpen },
   { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
   { to: "/communications", label: "Comms", icon: MessageSquare },

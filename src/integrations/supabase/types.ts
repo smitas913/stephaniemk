@@ -942,6 +942,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          kind: string
           merchant_key: string
           owner_user_id: string
           updated_at: string
@@ -950,6 +951,7 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
+          kind?: string
           merchant_key: string
           owner_user_id?: string
           updated_at?: string
@@ -958,6 +960,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          kind?: string
           merchant_key?: string
           owner_user_id?: string
           updated_at?: string
@@ -1275,7 +1278,9 @@ export type Database = {
           amount: number
           category: Database["public"]["Enums"]["income_category"]
           created_at: string
+          entry_source: string
           id: string
+          import_fingerprint: string | null
           income_date: string
           notes: string | null
           owner_user_id: string | null
@@ -1286,7 +1291,9 @@ export type Database = {
           amount?: number
           category?: Database["public"]["Enums"]["income_category"]
           created_at?: string
+          entry_source?: string
           id?: string
+          import_fingerprint?: string | null
           income_date?: string
           notes?: string | null
           owner_user_id?: string | null
@@ -1297,7 +1304,9 @@ export type Database = {
           amount?: number
           category?: Database["public"]["Enums"]["income_category"]
           created_at?: string
+          entry_source?: string
           id?: string
+          import_fingerprint?: string | null
           income_date?: string
           notes?: string | null
           owner_user_id?: string | null
@@ -2561,7 +2570,12 @@ export type Database = {
         | "Unit Events & Meetings"
         | "Personal Use"
         | "Demos & Samples"
-      income_category: "Commission" | "Bonus" | "Referral" | "Other"
+      income_category:
+        | "Commission"
+        | "Bonus"
+        | "Referral"
+        | "Other"
+        | "Product Sales"
       opportunity_status:
         | "New Contact"
         | "Shared"
@@ -2729,7 +2743,13 @@ export const Constants = {
         "Personal Use",
         "Demos & Samples",
       ],
-      income_category: ["Commission", "Bonus", "Referral", "Other"],
+      income_category: [
+        "Commission",
+        "Bonus",
+        "Referral",
+        "Other",
+        "Product Sales",
+      ],
       opportunity_status: [
         "New Contact",
         "Shared",

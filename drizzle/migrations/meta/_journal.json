@@ -8,6 +8,27 @@
       "when": 1790009342550,
       "tag": "0000_expenses_statement_import",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790011059739,
+      "tag": "0001_income_category_product_sales",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790011078341,
+      "tag": "0002_register_income_import_and_rule_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790011113359,
+      "tag": "0003_drop_old_merchant_rule_unique",
+      "breakpoints": true
     }
   ]
 }

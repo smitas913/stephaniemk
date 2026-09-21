@@ -14,8 +14,12 @@ import {
   scanReceiptPhoto,
   normalizeMerchantKey,
   buildImportFingerprint,
+  buildIncomeFingerprint,
+  createIncomeBulk,
+  fetchIncome,
+  fetchOrders,
 } from "@/lib/queries";
-import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES } from "@/lib/types";
+import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES, INCOME_CATEGORIES } from "@/lib/types";
 import Layout from "@/components/Layout";
 import { usePhotoCapture } from "@/components/CameraCapture";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,6 +63,36 @@ type ImportRow = {
   duplicate: boolean;
   merchantKey: string;
   fingerprint: string;
+};
+
+type DepositRow = {
+  id: string;
+  date: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  checked: boolean;
+  remembered: boolean;
+  duplicate: boolean;
+  matchesOrder: boolean;
+  merchantKey: string;
+  fingerprint: string;
+};
+
+const STATEMENT_TYPE_KEY = "expenses_statement_type";
+
+const readStatementType = (): "bank" | "credit_card" => {
+  try {
+    return localStorage.getItem(STATEMENT_TYPE_KEY) === "credit_card" ? "credit_card" : "bank";
+  } catch {
+    return "bank";
+  }
+};
+
+const writeStatementType = (v: "bank" | "credit_card") => {
+  try {
+    localStorage.setItem(STATEMENT_TYPE_KEY, v);
+  } catch { /* ignore */ }
 };
 
 type ScanReview = {
@@ -141,6 +175,8 @@ export default function Expenses() {
   const statementInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [importRows, setImportRows] = useState<ImportRow[] | null>(null);
+  const [depositRows, setDepositRows] = useState<DepositRow[]>([]);
+  const [statementType, setStatementType] = useState<"bank" | "credit_card">(readStatementType);
 
   // Attach-receipt-to-existing-expense
   const attachInputRef = useRef<HTMLInputElement>(null);
@@ -313,12 +349,25 @@ export default function Expenses() {
     setImporting(true);
     try {
       const base64 = await fileToBase64(file);
-      const transactions = await parseStatementPdf(base64, file.type || "application/pdf", [...IMPORT_CATEGORIES]);
-      if (transactions.length === 0) {
+      const all = await parseStatementPdf(
+        base64,
+        file.type || "application/pdf",
+        [...IMPORT_CATEGORIES],
+        statementType,
+        [...INCOME_CATEGORIES],
+      );
+      if (all.length === 0) {
         toast.error("No transactions could be read from that statement. If it's a scan, try a clearer PDF.");
         return;
       }
-      const ruleMap = new Map(merchantRules.map((r) => [r.merchant_key, r.category]));
+      const transactions = all.filter((t) => t.direction !== "in");
+      const deposits = statementType === "bank" ? all.filter((t) => t.direction === "in") : [];
+      const ruleMap = new Map(
+        merchantRules.filter((r: any) => (r.kind || "expense") === "expense").map((r) => [r.merchant_key, r.category]),
+      );
+      const incomeRuleMap = new Map(
+        merchantRules.filter((r: any) => r.kind === "income").map((r) => [r.merchant_key, r.category]),
+      );
       const existingFingerprints = new Set(
         expenses.map((e: any) => e.import_fingerprint).filter(Boolean) as string[],
       );
@@ -348,6 +397,52 @@ export default function Expenses() {
           fingerprint,
         };
       });
+      // Deposits (bank statements only) — always start unchecked
+      let depRows: DepositRow[] = [];
+      if (deposits.length > 0) {
+        const [incomeRows, orderRows] = await Promise.all([fetchIncome(), fetchOrders()]);
+        const incomeFingerprints = new Set(
+          (incomeRows as any[]).map((i) => i.import_fingerprint).filter(Boolean) as string[],
+        );
+        const incomeDateAmount = new Set(
+          (incomeRows as any[]).map((i) => `${(i.income_date || "").slice(0, 10)}|${Number(i.amount).toFixed(2)}`),
+        );
+        const paidOrders = (orderRows as any[]).filter((o) => o.payment_status === "Paid" && o.order_date);
+
+        depRows = deposits.map((t, i) => {
+          const merchantKey = normalizeMerchantKey(t.merchant);
+          const fingerprint = buildIncomeFingerprint(t.date, t.amount, merchantKey);
+          const remembered = incomeRuleMap.has(merchantKey);
+          const duplicate =
+            incomeFingerprints.has(fingerprint) ||
+            incomeDateAmount.has(`${t.date}|${Number(t.amount).toFixed(2)}`);
+          const matchesOrder = paidOrders.some((o) => {
+            if (daysApart(t.date, String(o.order_date).slice(0, 10)) > 7) return false;
+            const candidates = [
+              Number(o.net_received || 0),
+              Number(o.retail_amount || 0) - Number(o.discount_amount || 0),
+              Number(o.retail_amount || 0) - Number(o.discount_amount || 0) + Number(o.tax_amount || 0),
+            ];
+            return candidates.some((c) => Math.abs(c - t.amount) <= 0.01);
+          });
+          let category = remembered ? (incomeRuleMap.get(merchantKey) as string) : t.suggested_category;
+          if (!INCOME_CATEGORIES.includes(category as any)) category = "Product Sales";
+          return {
+            id: `dep-${i}-${fingerprint}`,
+            date: t.date,
+            merchant: t.merchant,
+            amount: t.amount,
+            category,
+            checked: false,
+            remembered,
+            duplicate,
+            matchesOrder,
+            merchantKey,
+            fingerprint,
+          };
+        });
+      }
+      setDepositRows(depRows);
       setImportRows(rows);
     } catch (err: any) {
       toast.error(err?.message || "The statement couldn't be read. Please try again.");
@@ -359,29 +454,61 @@ export default function Expenses() {
   const checkedRows = importRows?.filter((r) => r.checked) ?? [];
   const checkedTotal = checkedRows.reduce((s, r) => s + r.amount, 0);
 
+  const checkedDeposits = depositRows.filter((r) => r.checked);
+
   const updateRow = (id: string, patch: Partial<ImportRow>) =>
     setImportRows((rows) => (rows ? rows.map((r) => (r.id === id ? { ...r, ...patch } : r)) : rows));
+
+  const updateDeposit = (id: string, patch: Partial<DepositRow>) =>
+    setDepositRows((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  const closeImport = () => {
+    setImportRows(null);
+    setDepositRows([]);
+  };
 
   const saveImportMut = useMutation({
     mutationFn: async () => {
       const rows = checkedRows;
-      await createExpensesBulk(
-        rows.map((r) => ({
-          expense_date: r.date,
-          amount: r.amount,
-          category: r.category,
-          notes: r.merchant,
-          import_fingerprint: r.fingerprint,
-        })),
-      );
-      await upsertExpenseMerchantRules(rows.map((r) => ({ merchant_key: r.merchantKey, category: r.category })));
-      return rows.length;
+      const deps = checkedDeposits;
+      if (rows.length > 0) {
+        await createExpensesBulk(
+          rows.map((r) => ({
+            expense_date: r.date,
+            amount: r.amount,
+            category: r.category,
+            notes: r.merchant,
+            import_fingerprint: r.fingerprint,
+          })),
+        );
+      }
+      if (deps.length > 0) {
+        await createIncomeBulk(
+          deps.map((r) => ({
+            income_date: r.date,
+            amount: r.amount,
+            category: r.category,
+            source: r.merchant,
+            import_fingerprint: r.fingerprint,
+          })),
+        );
+      }
+      await upsertExpenseMerchantRules([
+        ...rows.map((r) => ({ merchant_key: r.merchantKey, category: r.category, kind: "expense" })),
+        ...deps.map((r) => ({ merchant_key: r.merchantKey, category: r.category, kind: "income" })),
+      ]);
+      return { expenses: rows.length, deposits: deps.length };
     },
-    onSuccess: (count) => {
+    onSuccess: ({ expenses: expCount, deposits: depCount }) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["income"] });
       queryClient.invalidateQueries({ queryKey: ["expense-merchant-rules"] });
-      setImportRows(null);
-      toast.success(`${count} expense${count === 1 ? "" : "s"} added`);
+      closeImport();
+      const parts = [
+        expCount > 0 ? `${expCount} expense${expCount === 1 ? "" : "s"}` : null,
+        depCount > 0 ? `${depCount} deposit${depCount === 1 ? "" : "s"}` : null,
+      ].filter(Boolean);
+      toast.success(`${parts.join(" and ")} added`);
     },
     onError: (e: any) => toast.error(e?.message || "Could not save those expenses"),
   });
@@ -561,6 +688,16 @@ export default function Expenses() {
               <Camera className="w-4 h-4 mr-1" />
               {scanning ? "Reading…" : "Scan Receipt"}
             </Button>
+            <Select
+              value={statementType}
+              onValueChange={(v) => { setStatementType(v as "bank" | "credit_card"); writeStatementType(v as "bank" | "credit_card"); }}
+            >
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bank">Bank account</SelectItem>
+                <SelectItem value="credit_card">Credit card</SelectItem>
+              </SelectContent>
+            </Select>
             <Button size="sm" variant="outline" onClick={() => statementInputRef.current?.click()} disabled={importing}>
               <FileUp className="w-4 h-4 mr-1" />
               {importing ? "Reading…" : "Import Statement"}
@@ -758,7 +895,7 @@ export default function Expenses() {
         </Dialog>
 
         {/* Statement import review */}
-        <Dialog open={!!importRows} onOpenChange={(open) => { if (!open) setImportRows(null); }}>
+        <Dialog open={!!importRows} onOpenChange={(open) => { if (!open) closeImport(); }}>
           <DialogContent className="max-w-3xl w-[96vw] max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="text-base">Review statement</DialogTitle>
@@ -808,14 +945,56 @@ export default function Expenses() {
                   </div>
                 </div>
               ))}
+
+              {depositRows.length > 0 && (
+                <div className="pt-3 space-y-2">
+                  <div className="border-t border-border pt-3">
+                    <p className="text-sm font-semibold">Deposits (money in)</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Customer payments are already counted from Orders — only check deposits that are NOT already in Orders (like commission).
+                    </p>
+                  </div>
+                  {depositRows.map((r) => (
+                    <div key={r.id} className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50/40 p-2">
+                      <Checkbox
+                        checked={r.checked}
+                        onCheckedChange={(v) => updateDeposit(r.id, { checked: !!v })}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground">{formatDateOnly(r.date)}</span>
+                          <span className="text-sm font-semibold text-emerald-700">${r.amount.toFixed(2)}</span>
+                          {r.remembered && <Badge variant="secondary" className="text-[10px]">remembered</Badge>}
+                          {r.matchesOrder && (
+                            <Badge variant="outline" className="text-[10px] border-sky-300 bg-sky-50 text-sky-700">Matches an order</Badge>
+                          )}
+                          {r.duplicate && (
+                            <Badge variant="outline" className="text-[10px] border-amber-300 bg-amber-50 text-amber-700">Possible duplicate</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground break-words">{r.merchant}</p>
+                        <Select value={r.category} onValueChange={(v) => updateDeposit(r.id, { category: v, remembered: false })}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {INCOME_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="border-t border-border pt-3">
               <Button
                 className="w-full"
-                disabled={checkedRows.length === 0 || saveImportMut.isPending}
+                disabled={(checkedRows.length === 0 && checkedDeposits.length === 0) || saveImportMut.isPending}
                 onClick={() => saveImportMut.mutate()}
               >
-                {saveImportMut.isPending ? "Saving…" : `Save ${checkedRows.length} expense${checkedRows.length === 1 ? "" : "s"}`}
+                {saveImportMut.isPending
+                  ? "Saving…"
+                  : `Save ${checkedRows.length} expense${checkedRows.length === 1 ? "" : "s"}${checkedDeposits.length > 0 ? ` + ${checkedDeposits.length} deposit${checkedDeposits.length === 1 ? "" : "s"}` : ""}`}
               </Button>
             </div>
           </DialogContent>
