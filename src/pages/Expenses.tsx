@@ -386,6 +386,135 @@ export default function Expenses() {
     onError: (e: any) => toast.error(e?.message || "Could not save those expenses"),
   });
 
+  // ---- Receipt scan ----
+
+  const buildScanReview = (file: File, previewUrl: string, scan: {
+    merchant: string; date: string | null; amount: number | null; suggested_category: string; readable: boolean;
+  }): ScanReview => {
+    const latest = (queryClient.getQueryData<any[]>(["expenses"]) || expenses) as any[];
+    const rules = (queryClient.getQueryData<any[]>(["expense-merchant-rules"]) || merchantRules) as any[];
+    const merchantKey = normalizeMerchantKey(scan.merchant || "");
+    const rule = rules.find((r) => r.merchant_key === merchantKey);
+    let category = rule?.category || scan.suggested_category;
+    if (!EXPENSE_CATEGORIES.includes(category as any) || category === "Personal Use") category = "Supplies";
+
+    const date = scan.date || toLocalDateKey();
+    const total = scan.amount ?? 0;
+
+    const open = latest.filter(
+      (e) => !e.receipt_url && !e.receipt_not_required && e.expense_date,
+    );
+    const withinWindow = total > 0
+      ? open.filter((e) => daysApart(String(e.expense_date).slice(0, 10), date) <= 5)
+      : [];
+    const exactMatches = withinWindow
+      .filter((e) => Math.abs(Number(e.amount) - total) <= 0.01)
+      .sort((a, b) => daysApart(String(a.expense_date).slice(0, 10), date) - daysApart(String(b.expense_date).slice(0, 10), date));
+    const nearMatches = exactMatches.length > 0
+      ? []
+      : withinWindow
+          .filter((e) => Number(e.amount) > total && Number(e.amount) <= total * 1.3)
+          .sort((a, b) => daysApart(String(a.expense_date).slice(0, 10), date) - daysApart(String(b.expense_date).slice(0, 10), date))
+          .slice(0, 3);
+
+    const best = exactMatches[0] || nearMatches[0] || null;
+    return {
+      file,
+      previewUrl,
+      date,
+      merchant: scan.merchant || "",
+      amount: total > 0 ? String(total.toFixed(2)) : "",
+      category,
+      remembered: !!rule,
+      readable: scan.readable,
+      mode: exactMatches.length > 0 ? "attach" : "create",
+      targetId: exactMatches.length > 0 ? best?.id ?? null : null,
+      exactMatches,
+      nearMatches,
+    };
+  };
+
+  const handleReceiptPhoto = async (raw: File) => {
+    setScanning(true);
+    const photo = await downscalePhoto(raw);
+    const previewUrl = URL.createObjectURL(photo);
+    try {
+      const base64 = await fileToBase64(photo);
+      const scan = await scanReceiptPhoto(base64, photo.type || "image/jpeg", [...IMPORT_CATEGORIES]);
+      setScanReview(buildScanReview(photo, previewUrl, scan));
+      if (!scan.readable) {
+        toast.error("That receipt was hard to read — check the details or retake the photo.");
+      }
+    } catch (err: any) {
+      // Still let her fill it in by hand and keep the photo.
+      setScanReview(
+        buildScanReview(photo, previewUrl, {
+          merchant: "",
+          date: null,
+          amount: null,
+          suggested_category: "Supplies",
+          readable: false,
+        }),
+      );
+      toast.error(err?.message || "The receipt couldn't be read. Enter the details or retake the photo.");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const startReceiptScan = () => takePhoto((file) => { void handleReceiptPhoto(file); }, "Receipt");
+  const startReceiptLibrary = () => chooseFromLibrary((file) => { void handleReceiptPhoto(file); });
+
+  const updateScan = (patch: Partial<ScanReview>) =>
+    setScanReview((s) => (s ? { ...s, ...patch } : s));
+
+  const closeScanReview = () => {
+    setScanReview((s) => {
+      if (s) URL.revokeObjectURL(s.previewUrl);
+      return null;
+    });
+  };
+
+  const saveScanMut = useMutation({
+    mutationFn: async () => {
+      const s = scanReview;
+      if (!s) return;
+      const amount = parseFloat(s.amount) || 0;
+      const path = await uploadReceiptImage(s.file);
+      if (s.mode === "attach" && s.targetId) {
+        const target = (queryClient.getQueryData<any[]>(["expenses"]) || expenses).find((e: any) => e.id === s.targetId);
+        await updateExpense(s.targetId, {
+          receipt_url: path,
+          ...(target && target.category !== s.category ? { category: s.category } : {}),
+        });
+      } else {
+        const merchantKey = normalizeMerchantKey(s.merchant);
+        await createExpense({
+          expense_date: s.date,
+          amount,
+          category: s.category,
+          notes: s.merchant || null,
+          receipt_url: path,
+          source: "receipt_scan",
+          import_fingerprint: buildImportFingerprint(s.date, amount, merchantKey),
+        });
+      }
+      const merchantKey = normalizeMerchantKey(s.merchant);
+      if (merchantKey) {
+        await upsertExpenseMerchantRules([{ merchant_key: merchantKey, category: s.category }]);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-merchant-rules"] });
+      closeScanReview();
+      setScanSavedCount((n) => n + 1);
+      setShowScanSaved(true);
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not save that receipt"),
+  });
+
+
   return (
     <Layout>
       {/* Hidden inputs live outside dialogs so mobile file/camera pickers aren't blocked by focus traps */}
