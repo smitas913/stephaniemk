@@ -695,13 +695,14 @@ export const fetchExpenses = async (): Promise<Expense[]> => {
   return data as unknown as Expense[];
 };
 
-export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null; event_type?: string | null; event_year?: number | null }) => {
+export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null; event_type?: string | null; event_year?: number | null; source?: string; import_fingerprint?: string | null }) => {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("expenses")
     .insert({ ...expense, owner_user_id: userId } as any);
   if (error) throw error;
 };
+
 
 export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null; amount: number; category: string; notes: string | null; expense_date: string; receipt_not_required: boolean }>) => {
   const { error } = await supabase.from("expenses").update(updates as any).eq("id", id);
@@ -784,6 +785,38 @@ export const parseStatementPdf = async (
   if ((data as any)?.error) throw new Error((data as any).error);
   return ((data as any)?.transactions || []) as { date: string; merchant: string; amount: number; suggested_category: string }[];
 };
+
+export type ScannedReceipt = {
+  merchant: string;
+  date: string | null;
+  amount: number | null;
+  suggested_category: string;
+  readable: boolean;
+};
+
+/** Sends a (downscaled) receipt photo to the AI reader. The image is never stored server-side. */
+export const scanReceiptPhoto = async (
+  imageBase64: string,
+  mimeType: string,
+  categories: string[],
+): Promise<ScannedReceipt> => {
+  const { data, error } = await supabase.functions.invoke("scan-receipt", {
+    body: { imageBase64, mimeType, categories },
+  });
+  if (error) {
+    let message = error.message || "The receipt couldn't be read.";
+    const ctx = (error as any).context;
+    try {
+      const parsed = await ctx?.json?.();
+      if (parsed?.error) message = parsed.error;
+    } catch { /* keep default message */ }
+    throw new Error(message);
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
+  return data as ScannedReceipt;
+};
+
+
 
 export const uploadReceiptImage = async (file: File): Promise<string> => {
   const ext = file.name.split(".").pop();

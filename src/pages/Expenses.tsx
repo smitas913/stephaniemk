@@ -11,11 +11,13 @@ import {
   upsertExpenseMerchantRules,
   createExpensesBulk,
   parseStatementPdf,
+  scanReceiptPhoto,
   normalizeMerchantKey,
   buildImportFingerprint,
 } from "@/lib/queries";
 import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
+import { usePhotoCapture } from "@/components/CameraCapture";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,10 +27,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil, FileUp, Paperclip, Camera, ReceiptText } from "lucide-react";
+import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil, FileUp, Paperclip, Camera, ReceiptText, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { formatDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Inventory: "bg-blue-100 text-blue-700",
@@ -59,6 +61,21 @@ type ImportRow = {
   fingerprint: string;
 };
 
+type ScanReview = {
+  file: File;
+  previewUrl: string;
+  date: string;
+  merchant: string;
+  amount: string;
+  category: string;
+  remembered: boolean;
+  readable: boolean;
+  mode: "attach" | "create";
+  targetId: string | null;
+  exactMatches: any[];
+  nearMatches: any[];
+};
+
 const isPdfReceipt = (path: string) => /\.pdf(\?|$)/i.test(path);
 
 const fileToBase64 = (file: File): Promise<string> =>
@@ -71,6 +88,34 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.onerror = () => reject(new Error("Could not read that file"));
     reader.readAsDataURL(file);
   });
+
+/** Shrinks a phone photo so uploads stay quick on cell data. */
+const downscalePhoto = async (file: File, maxSide = 1600, quality = 0.85): Promise<File> => {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", quality));
+    if (!blob) return file;
+    return new File([blob], `receipt-${Date.now()}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+};
+
+const daysApart = (a: string, b: string) =>
+  Math.abs(
+    Math.round((parseLocalDate(a).getTime() - parseLocalDate(b).getTime()) / 86_400_000),
+  );
+
 
 export default function Expenses() {
   const queryClient = useQueryClient();
@@ -101,6 +146,14 @@ export default function Expenses() {
   const attachInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [attachTargetId, setAttachTargetId] = useState<string | null>(null);
+
+  // Receipt scan
+  const { takePhoto, chooseFromLibrary, cameraOverlay } = usePhotoCapture();
+  const [scanning, setScanning] = useState(false);
+  const [scanReview, setScanReview] = useState<ScanReview | null>(null);
+  const [scanSavedCount, setScanSavedCount] = useState(0);
+  const [showScanSaved, setShowScanSaved] = useState(false);
+
 
   const SHOW_EVENT_FIELDS_FOR = ["Events", "Travel", "Meals"];
   const showEventFields = SHOW_EVENT_FIELDS_FOR.includes(formCategory);
@@ -333,8 +386,139 @@ export default function Expenses() {
     onError: (e: any) => toast.error(e?.message || "Could not save those expenses"),
   });
 
+  // ---- Receipt scan ----
+
+  const buildScanReview = (file: File, previewUrl: string, scan: {
+    merchant: string; date: string | null; amount: number | null; suggested_category: string; readable: boolean;
+  }): ScanReview => {
+    const latest = (queryClient.getQueryData<any[]>(["expenses"]) || expenses) as any[];
+    const rules = (queryClient.getQueryData<any[]>(["expense-merchant-rules"]) || merchantRules) as any[];
+    const merchantKey = normalizeMerchantKey(scan.merchant || "");
+    const rule = rules.find((r) => r.merchant_key === merchantKey);
+    let category = rule?.category || scan.suggested_category;
+    if (!EXPENSE_CATEGORIES.includes(category as any) || category === "Personal Use") category = "Supplies";
+
+    const date = scan.date || toLocalDateKey();
+    const total = scan.amount ?? 0;
+
+    const open = latest.filter(
+      (e) => !e.receipt_url && !e.receipt_not_required && e.expense_date,
+    );
+    const withinWindow = total > 0
+      ? open.filter((e) => daysApart(String(e.expense_date).slice(0, 10), date) <= 5)
+      : [];
+    const exactMatches = withinWindow
+      .filter((e) => Math.abs(Number(e.amount) - total) <= 0.01)
+      .sort((a, b) => daysApart(String(a.expense_date).slice(0, 10), date) - daysApart(String(b.expense_date).slice(0, 10), date));
+    const nearMatches = exactMatches.length > 0
+      ? []
+      : withinWindow
+          .filter((e) => Number(e.amount) > total && Number(e.amount) <= total * 1.3)
+          .sort((a, b) => daysApart(String(a.expense_date).slice(0, 10), date) - daysApart(String(b.expense_date).slice(0, 10), date))
+          .slice(0, 3);
+
+    const best = exactMatches[0] || nearMatches[0] || null;
+    return {
+      file,
+      previewUrl,
+      date,
+      merchant: scan.merchant || "",
+      amount: total > 0 ? String(total.toFixed(2)) : "",
+      category,
+      remembered: !!rule,
+      readable: scan.readable,
+      mode: exactMatches.length > 0 ? "attach" : "create",
+      targetId: exactMatches.length > 0 ? best?.id ?? null : null,
+      exactMatches,
+      nearMatches,
+    };
+  };
+
+  const handleReceiptPhoto = async (raw: File) => {
+    setScanning(true);
+    const photo = await downscalePhoto(raw);
+    const previewUrl = URL.createObjectURL(photo);
+    try {
+      const base64 = await fileToBase64(photo);
+      const scan = await scanReceiptPhoto(base64, photo.type || "image/jpeg", [...IMPORT_CATEGORIES]);
+      setScanReview(buildScanReview(photo, previewUrl, scan));
+      if (!scan.readable) {
+        toast.error("That receipt was hard to read — check the details or retake the photo.");
+      }
+    } catch (err: any) {
+      // Still let her fill it in by hand and keep the photo.
+      setScanReview(
+        buildScanReview(photo, previewUrl, {
+          merchant: "",
+          date: null,
+          amount: null,
+          suggested_category: "Supplies",
+          readable: false,
+        }),
+      );
+      toast.error(err?.message || "The receipt couldn't be read. Enter the details or retake the photo.");
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const startReceiptScan = () => takePhoto((file) => { void handleReceiptPhoto(file); }, "Receipt");
+  const startReceiptLibrary = () => chooseFromLibrary((file) => { void handleReceiptPhoto(file); });
+
+  const updateScan = (patch: Partial<ScanReview>) =>
+    setScanReview((s) => (s ? { ...s, ...patch } : s));
+
+  const closeScanReview = () => {
+    setScanReview((s) => {
+      if (s) URL.revokeObjectURL(s.previewUrl);
+      return null;
+    });
+  };
+
+  const saveScanMut = useMutation({
+    mutationFn: async () => {
+      const s = scanReview;
+      if (!s) return;
+      const amount = parseFloat(s.amount) || 0;
+      const path = await uploadReceiptImage(s.file);
+      if (s.mode === "attach" && s.targetId) {
+        const target = (queryClient.getQueryData<any[]>(["expenses"]) || expenses).find((e: any) => e.id === s.targetId);
+        await updateExpense(s.targetId, {
+          receipt_url: path,
+          ...(target && target.category !== s.category ? { category: s.category } : {}),
+        });
+      } else {
+        const merchantKey = normalizeMerchantKey(s.merchant);
+        await createExpense({
+          expense_date: s.date,
+          amount,
+          category: s.category,
+          notes: s.merchant || null,
+          receipt_url: path,
+          source: "receipt_scan",
+          import_fingerprint: buildImportFingerprint(s.date, amount, merchantKey),
+        });
+      }
+      const merchantKey = normalizeMerchantKey(s.merchant);
+      if (merchantKey) {
+        await upsertExpenseMerchantRules([{ merchant_key: merchantKey, category: s.category }]);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-merchant-rules"] });
+      closeScanReview();
+      setScanSavedCount((n) => n + 1);
+      setShowScanSaved(true);
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not save that receipt"),
+  });
+
+
   return (
     <Layout>
+      {cameraOverlay}
+
       {/* Hidden inputs live outside dialogs so mobile file/camera pickers aren't blocked by focus traps */}
       <input ref={statementInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleStatementSelect} />
       <input
@@ -372,13 +556,18 @@ export default function Expenses() {
               <p className="text-sm text-amber-600 mt-0.5">{needsReceiptCount} need receipts</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" className="w-full sm:w-auto" onClick={startReceiptScan} disabled={scanning}>
+              <Camera className="w-4 h-4 mr-1" />
+              {scanning ? "Reading…" : "Scan Receipt"}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => statementInputRef.current?.click()} disabled={importing}>
               <FileUp className="w-4 h-4 mr-1" />
               {importing ? "Reading…" : "Import Statement"}
             </Button>
-            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Expense</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Expense</Button>
           </div>
+
         </div>
 
         {/* Filter chips */}
@@ -631,6 +820,124 @@ export default function Expenses() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Receipt scan review */}
+        <Dialog open={!!scanReview} onOpenChange={(open) => { if (!open) closeScanReview(); }}>
+          <DialogContent className="max-w-sm w-[95vw] max-h-[92vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base">Review receipt</DialogTitle>
+            </DialogHeader>
+            {scanReview && (
+              <div className="space-y-3">
+                <img src={scanReview.previewUrl} alt="Receipt photo" className="w-full max-h-40 object-contain rounded-md border border-border bg-muted/30" />
+
+                {!scanReview.readable && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                    That photo was hard to read. Fill in the details below, or retake the photo — the photo still gets saved.
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { closeScanReview(); startReceiptScan(); }}>
+                    <Camera className="w-3.5 h-3.5 mr-1" />Retake
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { closeScanReview(); startReceiptLibrary(); }}>
+                    <ImageIcon className="w-3.5 h-3.5 mr-1" />Choose photo
+                  </Button>
+                </div>
+
+                <Input type="date" value={scanReview.date} onChange={(e) => updateScan({ date: e.target.value })} />
+                <Input placeholder="Merchant" value={scanReview.merchant} onChange={(e) => updateScan({ merchant: e.target.value })} />
+                <Input type="number" step="0.01" placeholder="Amount" value={scanReview.amount} onChange={(e) => updateScan({ amount: e.target.value })} />
+                <div className="space-y-1">
+                  <Select value={scanReview.category} onValueChange={(v) => updateScan({ category: v, remembered: false })}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {IMPORT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {scanReview.remembered && <Badge variant="secondary" className="text-[10px]">remembered</Badge>}
+                </div>
+
+                {(scanReview.exactMatches.length > 0 || scanReview.nearMatches.length > 0) && (
+                  <div className="space-y-2 rounded-md border border-border p-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {scanReview.exactMatches.length > 0 ? "Attach to this expense" : "Possible match"}
+                    </p>
+                    {[...scanReview.exactMatches, ...scanReview.nearMatches].map((m: any) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => updateScan({ mode: "attach", targetId: m.id })}
+                        className={cn(
+                          "w-full text-left rounded-md border p-2 text-xs",
+                          scanReview.mode === "attach" && scanReview.targetId === m.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border/60 hover:bg-muted/50",
+                        )}
+                      >
+                        <span className="font-semibold">${Number(m.amount).toFixed(2)}</span>{" "}
+                        <span className="text-muted-foreground">
+                          {formatDateOnly(m.expense_date)} · {m.category}
+                          {m.notes ? ` — ${m.notes}` : ""}
+                        </span>
+                        {scanReview.exactMatches.length === 0 && (
+                          <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 bg-amber-50 text-amber-700">possible match</Badge>
+                        )}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => updateScan({ mode: "create", targetId: null })}
+                      className={cn(
+                        "w-full text-left rounded-md border p-2 text-xs",
+                        scanReview.mode === "create" ? "border-primary bg-primary/5" : "border-border/60 hover:bg-muted/50",
+                      )}
+                    >
+                      Create a new expense instead
+                    </button>
+                  </div>
+                )}
+
+                <Button
+                  className="w-full"
+                  disabled={
+                    saveScanMut.isPending ||
+                    (scanReview.mode === "create" && !(parseFloat(scanReview.amount) > 0))
+                  }
+                  onClick={() => saveScanMut.mutate()}
+                >
+                  {saveScanMut.isPending
+                    ? "Saving…"
+                    : scanReview.mode === "attach"
+                      ? "Attach receipt"
+                      : "Save expense"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Saved — scan another */}
+        <Dialog open={showScanSaved} onOpenChange={(open) => { if (!open) setShowScanSaved(false); }}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-base">Receipt saved</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {scanSavedCount} receipt{scanSavedCount === 1 ? "" : "s"} saved this session
+              </p>
+              <Button className="w-full" onClick={() => { setShowScanSaved(false); startReceiptScan(); }}>
+                <Camera className="w-4 h-4 mr-1" />Scan another
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => { setShowScanSaved(false); setScanSavedCount(0); }}>
+                Done
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Receipt viewer */}
         <Dialog open={!!viewingReceipt} onOpenChange={() => setViewingReceipt(null)}>
