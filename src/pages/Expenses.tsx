@@ -31,10 +31,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil, FileUp, Paperclip, Camera, ReceiptText, ImageIcon } from "lucide-react";
+import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil, FileUp, Paperclip, Camera, ReceiptText, ImageIcon, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
+import { assignMatches, matchesForReceipt, type MatchKind } from "@/lib/receiptMatching";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Inventory: "bg-blue-100 text-blue-700",
@@ -52,6 +53,15 @@ const CATEGORY_COLORS: Record<string, string> = {
 const RECEIPT_ACCEPT = "image/*,application/pdf";
 const IMPORT_CATEGORIES = EXPENSE_CATEGORIES.filter((c) => c !== "Personal Use");
 
+type MatchedReceipt = {
+  id: string;
+  path: string;
+  merchant: string;
+  date: string;
+  amount: number;
+  category: string;
+};
+
 type ImportRow = {
   id: string;
   date: string;
@@ -63,6 +73,8 @@ type ImportRow = {
   duplicate: boolean;
   merchantKey: string;
   fingerprint: string;
+  matchKind: MatchKind | null;
+  matchedReceipt: MatchedReceipt | null;
 };
 
 type DepositRow = {
@@ -108,6 +120,8 @@ type ScanReview = {
   targetId: string | null;
   exactMatches: any[];
   nearMatches: any[];
+  /** One clear match — show the compact confirm card instead of the full form. */
+  fast: boolean;
 };
 
 const isPdfReceipt = (path: string) => /\.pdf(\?|$)/i.test(path);
@@ -177,6 +191,7 @@ export default function Expenses() {
   const [importRows, setImportRows] = useState<ImportRow[] | null>(null);
   const [depositRows, setDepositRows] = useState<DepositRow[]>([]);
   const [statementType, setStatementType] = useState<"bank" | "credit_card">(readStatementType);
+  const [confirmedMatches, setConfirmedMatches] = useState<Record<string, boolean>>({});
 
   // Attach-receipt-to-existing-expense
   const attachInputRef = useRef<HTMLInputElement>(null);
@@ -189,6 +204,9 @@ export default function Expenses() {
   const [scanReview, setScanReview] = useState<ScanReview | null>(null);
   const [scanSavedCount, setScanSavedCount] = useState(0);
   const [showScanSaved, setShowScanSaved] = useState(false);
+  const [batchAttachCount, setBatchAttachCount] = useState(0);
+  // Signed thumbnails for receipts matched to statement lines, keyed by expense id.
+  const [receiptThumbs, setReceiptThumbs] = useState<Record<string, string>>({});
 
 
   const SHOW_EVENT_FIELDS_FOR = ["Events", "Travel", "Meals"];
@@ -199,11 +217,19 @@ export default function Expenses() {
   const needsReceipt = (e: any) =>
     !e.receipt_url && !e.receipt_not_required && e.category !== "Personal Use";
 
+  /** Scanned receipt that hasn't been seen on a statement yet. */
+  const awaitingStatement = (e: any) => e.source === "receipt_scan";
+
+  /** Statement charge with its receipt attached — fully reconciled. */
+  const isMatched = (e: any) => e.source === "statement" && !!e.receipt_url;
+
   const needsReceiptCount = useMemo(() => expenses.filter(needsReceipt).length, [expenses]);
+  const awaitingStatementCount = useMemo(() => expenses.filter(awaitingStatement).length, [expenses]);
 
   const filtered = useMemo(() => {
     if (filterCat === "all") return expenses;
     if (filterCat === "__needs_receipt") return expenses.filter(needsReceipt);
+    if (filterCat === "__awaiting_statement") return expenses.filter(awaitingStatement);
     return expenses.filter((e) => e.category === filterCat);
   }, [expenses, filterCat]);
 
@@ -336,6 +362,20 @@ export default function Expenses() {
     }
   };
 
+  const loadReceiptThumbs = async (items: { id: string; path: string }[]) => {
+    const entries = await Promise.all(
+      items.map(async (i) => {
+        try {
+          return [i.id, await getReceiptSignedUrl(i.path)] as const;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const found = entries.filter(Boolean) as (readonly [string, string])[];
+    if (found.length > 0) setReceiptThumbs((prev) => ({ ...prev, ...Object.fromEntries(found) }));
+  };
+
   // ---- Statement import ----
 
   const handleStatementSelect = async (ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -395,8 +435,51 @@ export default function Expenses() {
           duplicate,
           merchantKey,
           fingerprint,
+          matchKind: null,
+          matchedReceipt: null,
         };
       });
+
+      // Link statement charges to receipts she already scanned (direction A).
+      const scannedReceipts = (expenses as any[]).filter(
+        (e) => e.source === "receipt_scan" && e.receipt_url && e.expense_date && Number(e.amount) > 0,
+      );
+      if (scannedReceipts.length > 0 && rows.length > 0) {
+        const assignments = assignMatches(
+          scannedReceipts.map((e) => ({
+            id: e.id,
+            date: String(e.expense_date).slice(0, 10),
+            amount: Number(e.amount),
+            merchantKey: normalizeMerchantKey(e.notes || ""),
+          })),
+          rows.map((r) => ({ id: r.id, date: r.date, amount: r.amount, merchantKey: r.merchantKey })),
+        );
+        const byCharge = new Map(assignments.map((a) => [a.chargeId, a]));
+        for (const row of rows) {
+          const a = byCharge.get(row.id);
+          if (!a) continue;
+          const receipt = scannedReceipts.find((e) => e.id === a.receiptId);
+          if (!receipt) continue;
+          row.matchKind = a.kind;
+          row.matchedReceipt = {
+            id: receipt.id,
+            path: receipt.receipt_url,
+            merchant: receipt.notes || "",
+            date: String(receipt.expense_date).slice(0, 10),
+            amount: Number(receipt.amount),
+            category: receipt.category,
+          };
+          // The matched line updates the existing expense instead of inserting a new one.
+          row.checked = false;
+          row.duplicate = false;
+          row.category = receipt.category;
+        }
+        void loadReceiptThumbs(
+          rows
+            .filter((r) => r.matchedReceipt)
+            .map((r) => ({ id: r.matchedReceipt!.id, path: r.matchedReceipt!.path })),
+        );
+      }
       // Deposits (bank statements only) — always start unchecked
       let depRows: DepositRow[] = [];
       if (deposits.length > 0) {
@@ -451,7 +534,9 @@ export default function Expenses() {
     }
   };
 
-  const checkedRows = importRows?.filter((r) => r.checked) ?? [];
+  const matchedRows = importRows?.filter((r) => r.matchedReceipt) ?? [];
+  const plainRows = importRows?.filter((r) => !r.matchedReceipt) ?? [];
+  const checkedRows = plainRows.filter((r) => r.checked);
   const checkedTotal = checkedRows.reduce((s, r) => s + r.amount, 0);
 
   const checkedDeposits = depositRows.filter((r) => r.checked);
@@ -459,18 +544,42 @@ export default function Expenses() {
   const updateRow = (id: string, patch: Partial<ImportRow>) =>
     setImportRows((rows) => (rows ? rows.map((r) => (r.id === id ? { ...r, ...patch } : r)) : rows));
 
+  /** "Not a match" — send the statement line back into the normal new-expense list. */
+  const rejectMatch = (id: string) =>
+    updateRow(id, { matchedReceipt: null, matchKind: null, checked: true });
+
   const updateDeposit = (id: string, patch: Partial<DepositRow>) =>
     setDepositRows((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const closeImport = () => {
     setImportRows(null);
     setDepositRows([]);
+    setConfirmedMatches({});
+    setReceiptThumbs({});
   };
 
   const saveImportMut = useMutation({
     mutationFn: async () => {
       const rows = checkedRows;
+      const links = matchedRows;
       const deps = checkedDeposits;
+      // Link each confirmed match onto the existing receipt-scanned expense.
+      for (const r of links) {
+        const rec = r.matchedReceipt!;
+        const base = rec.merchant || r.merchant || null;
+        const notes =
+          Math.abs(rec.amount - r.amount) > 0.01
+            ? `${base ? `${base} · ` : ""}Receipt total $${rec.amount.toFixed(2)}`
+            : base;
+        await updateExpense(rec.id, {
+          expense_date: r.date,
+          amount: r.amount,
+          source: "statement",
+          import_fingerprint: r.fingerprint,
+          notes,
+          ...(r.category !== rec.category ? { category: r.category } : {}),
+        });
+      }
       if (rows.length > 0) {
         await createExpensesBulk(
           rows.map((r) => ({
@@ -497,18 +606,21 @@ export default function Expenses() {
         ...rows.map((r) => ({ merchant_key: r.merchantKey, category: r.category, kind: "expense" })),
         ...deps.map((r) => ({ merchant_key: r.merchantKey, category: r.category, kind: "income" })),
       ]);
-      return { expenses: rows.length, deposits: deps.length };
+      return { expenses: rows.length, deposits: deps.length, linked: links.length };
     },
-    onSuccess: ({ expenses: expCount, deposits: depCount }) => {
+    onSuccess: ({ expenses: expCount, deposits: depCount, linked }) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["income"] });
       queryClient.invalidateQueries({ queryKey: ["expense-merchant-rules"] });
       closeImport();
+      const stillNeed = needsReceiptCount + expCount;
       const parts = [
-        expCount > 0 ? `${expCount} expense${expCount === 1 ? "" : "s"}` : null,
+        linked > 0 ? `Linked ${linked} receipt${linked === 1 ? "" : "s"}` : null,
+        `${expCount} new expense${expCount === 1 ? "" : "s"}`,
         depCount > 0 ? `${depCount} deposit${depCount === 1 ? "" : "s"}` : null,
+        stillNeed > 0 ? `${stillNeed} still need receipts` : null,
       ].filter(Boolean);
-      toast.success(`${parts.join(" and ")} added`);
+      toast.success(parts.join(" · "));
     },
     onError: (e: any) => toast.error(e?.message || "Could not save those expenses"),
   });
@@ -528,23 +640,37 @@ export default function Expenses() {
     const date = scan.date || toLocalDateKey();
     const total = scan.amount ?? 0;
 
+    // Candidate charges: statement/manual expenses still missing a receipt.
     const open = latest.filter(
-      (e) => !e.receipt_url && !e.receipt_not_required && e.expense_date,
+      (e) =>
+        !e.receipt_url &&
+        !e.receipt_not_required &&
+        e.expense_date &&
+        e.category !== "Personal Use" &&
+        Number(e.amount) > 0,
     );
-    const withinWindow = total > 0
-      ? open.filter((e) => daysApart(String(e.expense_date).slice(0, 10), date) <= 5)
+    const byId = new Map(open.map((e) => [e.id, e]));
+    const candidates = total > 0
+      ? matchesForReceipt(
+          { id: "scan", date, amount: total, merchantKey },
+          open.map((e) => ({
+            id: e.id,
+            date: String(e.expense_date).slice(0, 10),
+            amount: Number(e.amount),
+            merchantKey: normalizeMerchantKey(e.notes || ""),
+          })),
+        )
       : [];
-    const exactMatches = withinWindow
-      .filter((e) => Math.abs(Number(e.amount) - total) <= 0.01)
-      .sort((a, b) => daysApart(String(a.expense_date).slice(0, 10), date) - daysApart(String(b.expense_date).slice(0, 10), date));
-    const nearMatches = exactMatches.length > 0
+    const exactMatches = candidates
+      .filter((c) => c.kind === "strong")
+      .map((c) => byId.get(c.chargeId))
+      .filter(Boolean) as any[];
+    const nearMatches = (exactMatches.length > 0
       ? []
-      : withinWindow
-          .filter((e) => Number(e.amount) > total && Number(e.amount) <= total * 1.3)
-          .sort((a, b) => daysApart(String(a.expense_date).slice(0, 10), date) - daysApart(String(b.expense_date).slice(0, 10), date))
-          .slice(0, 3);
+      : candidates.map((c) => byId.get(c.chargeId)).filter(Boolean)) as any[];
+    const trimmedNear = nearMatches.slice(0, 3);
 
-    const best = exactMatches[0] || nearMatches[0] || null;
+    const best = exactMatches[0] || trimmedNear[0] || null;
     return {
       file,
       previewUrl,
@@ -554,10 +680,11 @@ export default function Expenses() {
       category,
       remembered: !!rule,
       readable: scan.readable,
-      mode: exactMatches.length > 0 ? "attach" : "create",
-      targetId: exactMatches.length > 0 ? best?.id ?? null : null,
+      mode: best ? "attach" : "create",
+      targetId: best?.id ?? null,
       exactMatches,
-      nearMatches,
+      nearMatches: trimmedNear,
+      fast: false,
     };
   };
 
@@ -568,7 +695,9 @@ export default function Expenses() {
     try {
       const base64 = await fileToBase64(photo);
       const scan = await scanReceiptPhoto(base64, photo.type || "image/jpeg", [...IMPORT_CATEGORIES]);
-      setScanReview(buildScanReview(photo, previewUrl, scan));
+      const review = buildScanReview(photo, previewUrl, scan);
+      // Exactly one clear match → one-tap confirmation, no form.
+      setScanReview({ ...review, fast: review.exactMatches.length === 1 && scan.readable });
       if (!scan.readable) {
         toast.error("That receipt was hard to read — check the details or retake the photo.");
       }
@@ -641,6 +770,39 @@ export default function Expenses() {
     onError: (e: any) => toast.error(e?.message || "Could not save that receipt"),
   });
 
+  /** One-tap attach from the compact confirmation card, then straight back to the camera. */
+  const fastAttachMut = useMutation({
+    mutationFn: async () => {
+      const s = scanReview;
+      if (!s?.targetId) return;
+      const path = await uploadReceiptImage(s.file);
+      await updateExpense(s.targetId, { receipt_url: path });
+      const merchantKey = normalizeMerchantKey(s.merchant);
+      if (merchantKey) {
+        await upsertExpenseMerchantRules([{ merchant_key: merchantKey, category: s.category }]);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-merchant-rules"] });
+      closeScanReview();
+      const next = batchAttachCount + 1;
+      setBatchAttachCount(next);
+      toast.success(`Attached · ${next} this session`);
+      startReceiptScan();
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not attach that receipt"),
+  });
+
+  const markNotOnStatementMut = useMutation({
+    mutationFn: (id: string) => updateExpense(id, { source: "manual" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      toast.success("Marked as cash — no statement expected");
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not update that expense"),
+  });
+
 
   return (
     <Layout>
@@ -679,12 +841,19 @@ export default function Expenses() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Expenses</h2>
             <p className="text-sm text-muted-foreground mt-0.5">{expenses.length} total · ${totalFiltered.toFixed(2)} shown</p>
-            {needsReceiptCount > 0 && (
-              <p className="text-sm text-amber-600 mt-0.5">{needsReceiptCount} need receipts</p>
+            {(needsReceiptCount > 0 || awaitingStatementCount > 0) && (
+              <p className="text-sm text-amber-600 mt-0.5">
+                {[
+                  needsReceiptCount > 0 ? `${needsReceiptCount} need receipts` : null,
+                  awaitingStatementCount > 0 ? `${awaitingStatementCount} awaiting statement` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" className="w-full sm:w-auto" onClick={startReceiptScan} disabled={scanning}>
+            <Button size="sm" className="w-full sm:w-auto" onClick={() => { setBatchAttachCount(0); startReceiptScan(); }} disabled={scanning}>
               <Camera className="w-4 h-4 mr-1" />
               {scanning ? "Reading…" : "Scan Receipt"}
             </Button>
@@ -720,6 +889,14 @@ export default function Expenses() {
           >
             Needs receipt ({needsReceiptCount})
           </Button>
+          <Button
+            variant={filterCat === "__awaiting_statement" ? "default" : "outline"}
+            size="sm"
+            className={cn("h-7 text-xs", filterCat !== "__awaiting_statement" && "border-sky-300 text-sky-700")}
+            onClick={() => setFilterCat("__awaiting_statement")}
+          >
+            Awaiting statement ({awaitingStatementCount})
+          </Button>
           {EXPENSE_CATEGORIES.map((c) => (
             <Button key={c} variant={filterCat === c ? "default" : "outline"} size="sm" className="h-7 text-xs" onClick={() => setFilterCat(c)}>
               {c}
@@ -745,6 +922,14 @@ export default function Expenses() {
                       <Badge variant="secondary" className={cn("text-[10px]", CATEGORY_COLORS[e.category] || "")}>{e.category}</Badge>
                       {needsReceipt(e) && (
                         <Badge variant="outline" className="text-[10px] border-amber-300 bg-amber-50 text-amber-700">Needs receipt</Badge>
+                      )}
+                      {isMatched(e) && (
+                        <Badge variant="outline" className="text-[10px] border-emerald-300 bg-emerald-50 text-emerald-700">
+                          <CheckCircle2 className="w-3 h-3 mr-0.5" />Matched
+                        </Badge>
+                      )}
+                      {awaitingStatement(e) && (
+                        <Badge variant="outline" className="text-[10px] border-sky-300 bg-sky-50 text-sky-700">Awaiting statement</Badge>
                       )}
                       {e.receipt_url && (
                         <button
@@ -776,6 +961,14 @@ export default function Expenses() {
                           Take photo
                         </button>
                       </div>
+                    )}
+                    {awaitingStatement(e) && (
+                      <button
+                        className="text-[11px] text-muted-foreground underline hover:text-foreground mt-1"
+                        onClick={() => markNotOnStatementMut.mutate(e.id)}
+                      >
+                        Not on a statement (cash)
+                      </button>
                     )}
                   </div>
                   <Button
@@ -902,22 +1095,116 @@ export default function Expenses() {
             </DialogHeader>
             <div className="flex items-center justify-between gap-2 flex-wrap border-b border-border pb-2">
               <p className="text-sm font-medium">
-                {checkedRows.length} of {importRows?.length ?? 0} selected · ${checkedTotal.toFixed(2)}
+                {checkedRows.length} of {plainRows.length} selected · ${checkedTotal.toFixed(2)}
               </p>
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 text-xs"
                 onClick={() => {
-                  const allChecked = (importRows ?? []).every((r) => r.checked);
-                  setImportRows((rows) => (rows ? rows.map((r) => ({ ...r, checked: !allChecked })) : rows));
+                  const allChecked = plainRows.every((r) => r.checked);
+                  setImportRows((rows) =>
+                    rows ? rows.map((r) => (r.matchedReceipt ? r : { ...r, checked: !allChecked })) : rows,
+                  );
                 }}
               >
-                {(importRows ?? []).every((r) => r.checked) ? "Select none" : "Select all"}
+                {plainRows.every((r) => r.checked) ? "Select none" : "Select all"}
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto space-y-2 py-2">
-              {(importRows ?? []).map((r) => (
+              {matchedRows.length > 0 && (
+                <div className="space-y-2 rounded-md border border-emerald-200 bg-emerald-50/40 p-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-emerald-800">
+                      Matched to your receipts ({matchedRows.length})
+                    </p>
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setConfirmedMatches(Object.fromEntries(matchedRows.map((r) => [r.id, true])))
+                      }
+                    >
+                      Confirm all matches
+                    </Button>
+                  </div>
+                  {matchedRows.map((r) => {
+                    const rec = r.matchedReceipt!;
+                    const needsLook = r.matchKind === "tip" && !confirmedMatches[r.id];
+                    const thumb = receiptThumbs[rec.id];
+                    return (
+                      <div
+                        key={r.id}
+                        className={cn(
+                          "rounded-md border p-2 space-y-2 bg-background",
+                          needsLook ? "border-amber-300 bg-amber-50/60" : "border-emerald-200",
+                        )}
+                      >
+                        <div className="flex items-start gap-2">
+                          {thumb ? (
+                            <button
+                              type="button"
+                              onClick={() => openReceipt(rec.path)}
+                              className="shrink-0 rounded border border-border overflow-hidden"
+                              title="View receipt"
+                            >
+                              <img src={thumb} alt="Receipt" className="w-12 h-12 object-cover" />
+                            </button>
+                          ) : (
+                            <div className="w-12 h-12 shrink-0 rounded border border-border bg-muted/40 flex items-center justify-center">
+                              <ReceiptText className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-muted-foreground">{formatDateOnly(r.date)}</span>
+                              <span className="text-sm font-semibold">${r.amount.toFixed(2)}</span>
+                              {needsLook ? (
+                                <Badge variant="outline" className="text-[10px] border-amber-300 bg-amber-50 text-amber-700">
+                                  Possible match — confirm
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] border-emerald-300 bg-emerald-50 text-emerald-700">
+                                  <CheckCircle2 className="w-3 h-3 mr-0.5" />Match
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground break-words">{r.merchant}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Receipt: {rec.merchant || "receipt"} · {formatDateOnly(rec.date)} · ${rec.amount.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            variant={needsLook ? "default" : "secondary"}
+                            onClick={() => setConfirmedMatches((m) => ({ ...m, [r.id]: true }))}
+                          >
+                            Yes, same purchase
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => rejectMatch(r.id)}
+                          >
+                            Not a match
+                          </Button>
+                          <Select value={r.category} onValueChange={(v) => updateRow(r.id, { category: v })}>
+                            <SelectTrigger className="h-7 text-xs w-[180px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {IMPORT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {plainRows.map((r) => (
                 <div key={r.id} className="flex items-start gap-2 rounded-md border border-border/60 p-2">
                   <Checkbox
                     checked={r.checked}
@@ -1000,8 +1287,47 @@ export default function Expenses() {
           </DialogContent>
         </Dialog>
 
+        {/* One clear match — one-tap confirmation */}
+        <Dialog open={!!scanReview?.fast} onOpenChange={(open) => { if (!open) closeScanReview(); }}>
+          <DialogContent className="max-w-xs w-[92vw]">
+            <DialogHeader>
+              <DialogTitle className="text-base">Found a match</DialogTitle>
+            </DialogHeader>
+            {scanReview?.fast && scanReview.exactMatches[0] && (
+              <div className="space-y-3">
+                <img
+                  src={scanReview.previewUrl}
+                  alt="Receipt photo"
+                  className="w-full max-h-36 object-contain rounded-md border border-border bg-muted/30"
+                />
+                <p className="text-sm">
+                  Attach to{" "}
+                  <span className="font-semibold">
+                    {scanReview.exactMatches[0].notes || scanReview.exactMatches[0].category}
+                  </span>{" "}
+                  · ${Number(scanReview.exactMatches[0].amount).toFixed(2)} ·{" "}
+                  {formatDateOnly(scanReview.exactMatches[0].expense_date)}?
+                </p>
+                {batchAttachCount > 0 && (
+                  <p className="text-xs text-muted-foreground">Attached · {batchAttachCount} this session</p>
+                )}
+                <Button className="w-full" disabled={fastAttachMut.isPending} onClick={() => fastAttachMut.mutate()}>
+                  {fastAttachMut.isPending ? "Attaching…" : "Yes, attach"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setScanReview((s) => (s ? { ...s, fast: false } : s))}
+                >
+                  Change
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Receipt scan review */}
-        <Dialog open={!!scanReview} onOpenChange={(open) => { if (!open) closeScanReview(); }}>
+        <Dialog open={!!scanReview && !scanReview.fast} onOpenChange={(open) => { if (!open) closeScanReview(); }}>
           <DialogContent className="max-w-sm w-[95vw] max-h-[92vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base">Review receipt</DialogTitle>

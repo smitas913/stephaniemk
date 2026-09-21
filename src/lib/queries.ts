@@ -704,7 +704,7 @@ export const createExpense = async (expense: { expense_date: string; amount: num
 };
 
 
-export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null; amount: number; category: string; notes: string | null; expense_date: string; receipt_not_required: boolean }>) => {
+export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null; amount: number; category: string; notes: string | null; expense_date: string; receipt_not_required: boolean; source: string; import_fingerprint: string | null }>) => {
   const { error } = await supabase.from("expenses").update(updates as any).eq("id", id);
   if (error) throw error;
 };
