@@ -166,17 +166,6 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
-  const weekPace = useMemo(() => {
-    const totalDays = 7;
-    const elapsed = Math.min(totalDays, Math.max(1, Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)) + 1));
-    return elapsed / totalDays;
-  }, [now, weekStart]);
-
-  const monthPace = useMemo(() => {
-    const total = monthEnd.getDate();
-    return now.getDate() / total;
-  }, [now, monthEnd]);
-
   const dataBundle = { events, notes, customers, prospects, consultants };
 
   const renderSection = (period: MomentumPeriod, title: string, subtitle: string, start: Date, end: Date) => {
