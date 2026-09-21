@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { Award, Percent, Cake, Users, ShoppingBag, UserPlus } from "lucide-react";
+import { Award, Percent, Cake, Users, ShoppingBag, UserPlus, Truck } from "lucide-react";
 
-export type OrderTagKey = "hostess" | "half_price" | "birthday" | "referral" | "guest" | "myshop";
+export type OrderTagKey = "hostess" | "half_price" | "birthday" | "referral" | "guest" | "myshop" | "cds";
 
 export interface OrderTagState {
   hostess: boolean;
@@ -10,6 +10,7 @@ export interface OrderTagState {
   referral: boolean;
   guest?: boolean;
   myshop?: boolean;
+  cds?: boolean;
 }
 
 const TAG_DEFS: Array<{ key: OrderTagKey; label: string; icon: any }> = [
@@ -19,6 +20,7 @@ const TAG_DEFS: Array<{ key: OrderTagKey; label: string; icon: any }> = [
   { key: "referral", label: "Referral", icon: UserPlus },
   { key: "guest", label: "Guest", icon: Users },
   { key: "myshop", label: "MyShop", icon: ShoppingBag },
+  { key: "cds", label: "CDS (Customer Delivery Service)", icon: Truck },
 ];
 
 interface Props {
