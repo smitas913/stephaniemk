@@ -937,6 +937,33 @@ export type Database = {
           },
         ]
       }
+      expense_merchant_rules: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          merchant_key: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          merchant_key: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          merchant_key?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -946,9 +973,12 @@ export type Database = {
           event_year: number | null
           expense_date: string
           id: string
+          import_fingerprint: string | null
           notes: string | null
           owner_user_id: string | null
+          receipt_not_required: boolean
           receipt_url: string | null
+          source: string
           updated_at: string | null
         }
         Insert: {
@@ -959,9 +989,12 @@ export type Database = {
           event_year?: number | null
           expense_date?: string
           id?: string
+          import_fingerprint?: string | null
           notes?: string | null
           owner_user_id?: string | null
+          receipt_not_required?: boolean
           receipt_url?: string | null
+          source?: string
           updated_at?: string | null
         }
         Update: {
@@ -972,9 +1005,12 @@ export type Database = {
           event_year?: number | null
           expense_date?: string
           id?: string
+          import_fingerprint?: string | null
           notes?: string | null
           owner_user_id?: string | null
+          receipt_not_required?: boolean
           receipt_url?: string | null
+          source?: string
           updated_at?: string | null
         }
         Relationships: []
