@@ -703,9 +703,86 @@ export const createExpense = async (expense: { expense_date: string; amount: num
   if (error) throw error;
 };
 
-export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null; amount: number; category: string; notes: string | null; expense_date: string }>) => {
+export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null; amount: number; category: string; notes: string | null; expense_date: string; receipt_not_required: boolean }>) => {
   const { error } = await supabase.from("expenses").update(updates as any).eq("id", id);
   if (error) throw error;
+};
+
+// --- Statement import -------------------------------------------------------
+
+/**
+ * Normalizes a merchant description so store numbers / locations / punctuation
+ * don't stop two visits to the same merchant from matching.
+ */
+export const normalizeMerchantKey = (description: string): string =>
+  (description || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .slice(0, 4)
+    .join(" ");
+
+export const buildImportFingerprint = (expense_date: string, amount: number, merchantKey: string): string =>
+  `${(expense_date || "").slice(0, 10)}|${Number(amount).toFixed(2)}|${merchantKey}`;
+
+export const fetchExpenseMerchantRules = async (): Promise<ExpenseMerchantRule[]> => {
+  const { data, error } = await supabase.from("expense_merchant_rules").select("*");
+  if (error) throw error;
+  return (data || []) as unknown as ExpenseMerchantRule[];
+};
+
+export const upsertExpenseMerchantRules = async (rules: { merchant_key: string; category: string }[]) => {
+  if (rules.length === 0) return;
+  const userId = await getCurrentUserId();
+  const seen = new Map<string, string>();
+  for (const r of rules) {
+    if (r.merchant_key) seen.set(r.merchant_key, r.category);
+  }
+  const rows = Array.from(seen.entries()).map(([merchant_key, category]) => ({
+    owner_user_id: userId,
+    merchant_key,
+    category,
+    updated_at: new Date().toISOString(),
+  }));
+  const { error } = await supabase
+    .from("expense_merchant_rules")
+    .upsert(rows as any, { onConflict: "owner_user_id,merchant_key" });
+  if (error) throw error;
+};
+
+export const createExpensesBulk = async (
+  rows: { expense_date: string; amount: number; category: string; notes: string | null; import_fingerprint: string }[],
+) => {
+  if (rows.length === 0) return 0;
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("expenses")
+    .insert(rows.map((r) => ({ ...r, source: "statement", owner_user_id: userId })) as any);
+  if (error) throw error;
+  return rows.length;
+};
+
+export const parseStatementPdf = async (
+  pdfBase64: string,
+  mimeType: string,
+  categories: string[],
+): Promise<{ date: string; merchant: string; amount: number; suggested_category: string }[]> => {
+  const { data, error } = await supabase.functions.invoke("parse-bank-statement", {
+    body: { pdfBase64, mimeType, categories },
+  });
+  if (error) {
+    let message = error.message || "The statement couldn't be read.";
+    const ctx = (error as any).context;
+    try {
+      const parsed = await ctx?.json?.();
+      if (parsed?.error) message = parsed.error;
+    } catch { /* keep default message */ }
+    throw new Error(message);
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
+  return ((data as any)?.transactions || []) as { date: string; merchant: string; amount: number; suggested_category: string }[];
 };
 
 export const uploadReceiptImage = async (file: File): Promise<string> => {
