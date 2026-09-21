@@ -821,6 +821,124 @@ export default function Expenses() {
           </DialogContent>
         </Dialog>
 
+        {/* Receipt scan review */}
+        <Dialog open={!!scanReview} onOpenChange={(open) => { if (!open) closeScanReview(); }}>
+          <DialogContent className="max-w-sm w-[95vw] max-h-[92vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base">Review receipt</DialogTitle>
+            </DialogHeader>
+            {scanReview && (
+              <div className="space-y-3">
+                <img src={scanReview.previewUrl} alt="Receipt photo" className="w-full max-h-40 object-contain rounded-md border border-border bg-muted/30" />
+
+                {!scanReview.readable && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-2">
+                    That photo was hard to read. Fill in the details below, or retake the photo — the photo still gets saved.
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { closeScanReview(); startReceiptScan(); }}>
+                    <Camera className="w-3.5 h-3.5 mr-1" />Retake
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => { closeScanReview(); startReceiptLibrary(); }}>
+                    <ImageIcon className="w-3.5 h-3.5 mr-1" />Choose photo
+                  </Button>
+                </div>
+
+                <Input type="date" value={scanReview.date} onChange={(e) => updateScan({ date: e.target.value })} />
+                <Input placeholder="Merchant" value={scanReview.merchant} onChange={(e) => updateScan({ merchant: e.target.value })} />
+                <Input type="number" step="0.01" placeholder="Amount" value={scanReview.amount} onChange={(e) => updateScan({ amount: e.target.value })} />
+                <div className="space-y-1">
+                  <Select value={scanReview.category} onValueChange={(v) => updateScan({ category: v, remembered: false })}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {IMPORT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {scanReview.remembered && <Badge variant="secondary" className="text-[10px]">remembered</Badge>}
+                </div>
+
+                {(scanReview.exactMatches.length > 0 || scanReview.nearMatches.length > 0) && (
+                  <div className="space-y-2 rounded-md border border-border p-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {scanReview.exactMatches.length > 0 ? "Attach to this expense" : "Possible match"}
+                    </p>
+                    {[...scanReview.exactMatches, ...scanReview.nearMatches].map((m: any) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => updateScan({ mode: "attach", targetId: m.id })}
+                        className={cn(
+                          "w-full text-left rounded-md border p-2 text-xs",
+                          scanReview.mode === "attach" && scanReview.targetId === m.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border/60 hover:bg-muted/50",
+                        )}
+                      >
+                        <span className="font-semibold">${Number(m.amount).toFixed(2)}</span>{" "}
+                        <span className="text-muted-foreground">
+                          {formatDateOnly(m.expense_date)} · {m.category}
+                          {m.notes ? ` — ${m.notes}` : ""}
+                        </span>
+                        {scanReview.exactMatches.length === 0 && (
+                          <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 bg-amber-50 text-amber-700">possible match</Badge>
+                        )}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => updateScan({ mode: "create", targetId: null })}
+                      className={cn(
+                        "w-full text-left rounded-md border p-2 text-xs",
+                        scanReview.mode === "create" ? "border-primary bg-primary/5" : "border-border/60 hover:bg-muted/50",
+                      )}
+                    >
+                      Create a new expense instead
+                    </button>
+                  </div>
+                )}
+
+                <Button
+                  className="w-full"
+                  disabled={
+                    saveScanMut.isPending ||
+                    (scanReview.mode === "create" && !(parseFloat(scanReview.amount) > 0))
+                  }
+                  onClick={() => saveScanMut.mutate()}
+                >
+                  {saveScanMut.isPending
+                    ? "Saving…"
+                    : scanReview.mode === "attach"
+                      ? "Attach receipt"
+                      : "Save expense"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Saved — scan another */}
+        <Dialog open={showScanSaved} onOpenChange={(open) => { if (!open) setShowScanSaved(false); }}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-base">Receipt saved</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {scanSavedCount} receipt{scanSavedCount === 1 ? "" : "s"} saved this session
+              </p>
+              <Button className="w-full" onClick={() => { setShowScanSaved(false); startReceiptScan(); }}>
+                <Camera className="w-4 h-4 mr-1" />Scan another
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => { setShowScanSaved(false); setScanSavedCount(0); }}>
+                Done
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+
         {/* Receipt viewer */}
         <Dialog open={!!viewingReceipt} onOpenChange={() => setViewingReceipt(null)}>
           <DialogContent className="max-w-md">
