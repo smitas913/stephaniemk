@@ -1296,6 +1296,9 @@ export default function Expenses() {
                       {r.remembered && (
                         <Badge variant="secondary" className="text-[10px]">remembered</Badge>
                       )}
+                      {r.cdsMatched && (
+                        <Badge variant="outline" className="text-[10px] border-sky-300 bg-sky-50 text-sky-700">Matches a CDS order — already counted</Badge>
+                      )}
                       {r.duplicate && (
                         <Badge variant="outline" className="text-[10px] border-amber-300 bg-amber-50 text-amber-700">Possible duplicate</Badge>
                       )}
