@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import {
 import { computeOrderFinancials } from "@/lib/financialSettings";
 import { myShopMonthlyCost } from "@/pages/Register";
+import {
   assignMatches,
   matchesForReceipt,
   scoreCandidate,
