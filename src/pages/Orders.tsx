@@ -436,6 +436,7 @@ export default function Orders() {
                         if ((o as any).half_price_deal && !has("Half Price Deal")) tags.push("½ Price");
                         if ((o as any).birthday && !has("Birthday Discount")) tags.push("Bday");
                         if ((o as any).referral && !has("Referral Gift")) tags.push("Referral");
+                        if ((o as any).is_cds) tags.unshift(`CDS $${(Number((o as any).cds_shipping_cost) || 0).toFixed(2)}`);
                         if (tags.length === 0) return <span className="text-muted-foreground">—</span>;
                         const visible = tags.slice(0, 2);
                         const extra = tags.length - visible.length;

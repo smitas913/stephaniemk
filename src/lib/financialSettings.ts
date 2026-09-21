@@ -15,6 +15,8 @@ export type FinancialSettings = {
   fee_online_flat: number;
   fee_keyed_pct: number;
   fee_keyed_flat: number;
+  /** Default shipping I pay per CDS (Customer Delivery Service) shipment. */
+  cds_shipping_default: number;
 };
 
 export const PROCESSOR_PRESETS: Record<PaymentProcessor, {
@@ -61,6 +63,7 @@ export const DEFAULT_FINANCIAL_SETTINGS: Omit<FinancialSettings, "user_id"> = {
   fee_online_flat: 0,
   fee_keyed_pct: 0,
   fee_keyed_flat: 0,
+  cds_shipping_default: 5.95,
 };
 
 export async function fetchFinancialSettings(): Promise<FinancialSettings | null> {
@@ -112,7 +115,7 @@ export function getProcessorFee(
  * CC Fee = Final Total × pct% + flat   (only when paying by Credit Card / processor)
  *           Manual override wins when provided.
  * Net Revenue = Final Total - Tax - CC Fee  (tax is pass-through, not income)
- * Net Profit = Net Revenue × profit margin %
+ * Net Profit = (Net Revenue × profit margin % or Net Revenue − wholesale) − CDS shipping
  */
 export function computeOrderFinancials(input: {
   orderTotal: number;
@@ -130,6 +133,9 @@ export function computeOrderFinancials(input: {
   // When provided, profit = finalTotal - tax - ccFee - wholesale.
   // Otherwise falls back to margin% × netRevenue.
   wholesale?: number | null;
+  // CDS shipping I paid out of this order's profit. Reduces net profit only —
+  // never finalTotal or netReceived.
+  shipping?: number | null;
 }) {
   const orderTotal = Math.max(0, input.orderTotal || 0);
   const discount = Math.max(0, Math.min(orderTotal, input.discount || 0));
@@ -149,9 +155,11 @@ export function computeOrderFinancials(input: {
 
   const netRevenue = +(finalTotal - tax - ccFee).toFixed(2);
   const wholesale = input.wholesale != null && input.wholesale >= 0 ? +input.wholesale : null;
-  const netProfit = wholesale != null
+  const shipping = input.shipping != null && input.shipping > 0 ? +(+input.shipping).toFixed(2) : 0;
+  const grossProfit = wholesale != null
     ? +(netRevenue - wholesale).toFixed(2)
     : +(netRevenue * (input.profitMarginRate || 0) / 100).toFixed(2);
+  const netProfit = +(grossProfit - shipping).toFixed(2);
   const netReceived = netRevenue;
-  return { orderTotal, discount, finalTotal, tax, ccFee, netRevenue, netReceived, netProfit };
+  return { orderTotal, discount, finalTotal, tax, ccFee, netRevenue, netReceived, netProfit, shipping };
 }

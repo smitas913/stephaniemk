@@ -1117,6 +1117,7 @@ export type Database = {
       financial_settings: {
         Row: {
           cc_fee_rate: number
+          cds_shipping_default: number
           created_at: string
           fee_in_person_flat: number
           fee_in_person_pct: number
@@ -1132,6 +1133,7 @@ export type Database = {
         }
         Insert: {
           cc_fee_rate?: number
+          cds_shipping_default?: number
           created_at?: string
           fee_in_person_flat?: number
           fee_in_person_pct?: number
@@ -1147,6 +1149,7 @@ export type Database = {
         }
         Update: {
           cc_fee_rate?: number
+          cds_shipping_default?: number
           created_at?: string
           fee_in_person_flat?: number
           fee_in_person_pct?: number
@@ -1545,6 +1548,7 @@ export type Database = {
           birthday: boolean | null
           cc_fee_amount: number
           cc_transaction_type: string | null
+          cds_shipping_cost: number
           consultant_id: string | null
           created_at: string
           customer_id: string | null
@@ -1556,6 +1560,7 @@ export type Database = {
           half_price_deal: boolean | null
           hostess: boolean | null
           id: string
+          is_cds: boolean
           is_myshop_order: boolean
           net_profit: number | null
           net_received: number | null
@@ -1578,6 +1583,7 @@ export type Database = {
           birthday?: boolean | null
           cc_fee_amount?: number
           cc_transaction_type?: string | null
+          cds_shipping_cost?: number
           consultant_id?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1589,6 +1595,7 @@ export type Database = {
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          is_cds?: boolean
           is_myshop_order?: boolean
           net_profit?: number | null
           net_received?: number | null
@@ -1611,6 +1618,7 @@ export type Database = {
           birthday?: boolean | null
           cc_fee_amount?: number
           cc_transaction_type?: string | null
+          cds_shipping_cost?: number
           consultant_id?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1622,6 +1630,7 @@ export type Database = {
           half_price_deal?: boolean | null
           hostess?: boolean | null
           id?: string
+          is_cds?: boolean
           is_myshop_order?: boolean
           net_profit?: number | null
           net_received?: number | null

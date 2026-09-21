@@ -18,6 +18,7 @@ const PROCESSORS: PaymentProcessor[] = ["Square", "Stripe", "PayPal", "Custom"];
 export default function FinancialDefaultsSettings() {
   const [taxRate, setTaxRate] = useState("");
   const [profitMargin, setProfitMargin] = useState("50");
+  const [cdsDefault, setCdsDefault] = useState("5.95");
   const [processor, setProcessor] = useState<PaymentProcessor>("Custom");
   const [inPct, setInPct] = useState("0");
   const [inFlat, setInFlat] = useState("0");
@@ -33,6 +34,7 @@ export default function FinancialDefaultsSettings() {
       setTaxRate(String(s.tax_rate ?? 0));
       setProfitMargin(String(s.profit_margin_rate ?? 50));
       setProcessor((s.payment_processor as PaymentProcessor) || "Custom");
+      setCdsDefault(String(s.cds_shipping_default ?? 5.95));
       setInPct(String(s.fee_in_person_pct ?? 0));
       setInFlat(String(s.fee_in_person_flat ?? 0));
       setOnPct(String(s.fee_online_pct ?? 0));
@@ -61,6 +63,7 @@ export default function FinancialDefaultsSettings() {
       await upsertFinancialSettings({
         tax_rate: parseFloat(taxRate) || 0,
         profit_margin_rate: parseFloat(profitMargin) || 0,
+        cds_shipping_default: parseFloat(cdsDefault) || 0,
         payment_processor: processor,
         fee_in_person_pct: inPctN,
         fee_in_person_flat: parseFloat(inFlat) || 0,
@@ -151,6 +154,12 @@ export default function FinancialDefaultsSettings() {
           <Label className="text-xs">Default Profit Margin (%)</Label>
           <Input type="number" step="0.1" min="0" max="100" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value)} placeholder="50" />
           <p className="text-[11px] text-muted-foreground">Estimated profit = Net Revenue × this margin. Mary Kay default is 50%.</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs">Default CDS shipping ($)</Label>
+          <Input type="number" step="0.01" min="0" value={cdsDefault} onChange={(e) => setCdsDefault(e.target.value)} placeholder="5.95" />
+          <p className="text-[11px] text-muted-foreground">Prefilled on orders tagged CDS (Customer Delivery Service).</p>
         </div>
 
         <Button onClick={save} disabled={saving} size="sm">

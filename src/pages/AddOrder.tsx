@@ -97,7 +97,9 @@ export default function AddOrder() {
   const [followUpIntent, setFollowUpIntent] = useState<FollowUpIntent>("none");
   const [customFollowUpDate, setCustomFollowUpDate] = useState("");
   const [customFollowUpNote, setCustomFollowUpNote] = useState("");
-  const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+  const [orderTags, setOrderTags] = useState<OrderTagState>({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false, cds: false });
+  const [cdsShipping, setCdsShipping] = useState("");
+  const isCdsOrder = !!orderTags.cds;
   const isMyShopOrder = !!orderTags.myshop;
   const setIsMyShopOrder = (v: boolean) => setOrderTags((t) => ({ ...t, myshop: v }));
 
@@ -214,7 +216,9 @@ export default function AddOrder() {
       birthday: !!o.birthday,
       referral: !!o.referral,
       myshop: !!o.is_myshop_order,
+      cds: !!o.is_cds,
     });
+    setCdsShipping(o.is_cds && o.cds_shipping_cost != null ? String(o.cds_shipping_cost) : "");
     setFaceTypeOverride(o.face_type ?? null);
     if (o.cc_transaction_type) setCcTxType(o.cc_transaction_type);
     setEditPrefilled(true);
@@ -364,6 +368,16 @@ export default function AddOrder() {
     setWholesaleAmount(auto.toFixed(2));
   }, [retailAmount, profitMarginRate, wholesaleManual]);
 
+  // Prefill CDS shipping with my default when the tag goes on; clear it when off.
+  const cdsDefault = financialSettings?.cds_shipping_default ?? 5.95;
+  useEffect(() => {
+    if (isCdsOrder) {
+      setCdsShipping((cur) => (cur === "" ? Number(cdsDefault).toFixed(2) : cur));
+    } else {
+      setCdsShipping("");
+    }
+  }, [isCdsOrder, cdsDefault]);
+
   const financials = useMemo(() => {
     const orderTotal = Number(retailAmount) || 0;
     const dRaw = Number(discountValue) || 0;
@@ -381,8 +395,9 @@ export default function AddOrder() {
       profitMarginRate,
       isCreditCard,
       wholesale: wholesaleNum != null && !Number.isNaN(wholesaleNum) ? wholesaleNum : null,
+      shipping: isCdsOrder ? Number(cdsShipping) || 0 : 0,
     });
-  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard, wholesaleAmount, profitMarginRate]);
+  }, [retailAmount, discountValue, discountMode, financialSettings, processorFee, ccFeeOverride, isCreditCard, wholesaleAmount, profitMarginRate, isCdsOrder, cdsShipping]);
 
   const canSubmit = validationErrors.length === 0 && !submitting;
 
@@ -515,6 +530,8 @@ export default function AddOrder() {
         notes: notes || (isEditMode ? null : undefined),
         parent_event_id: isEventBased ? selectedEventId : null,
         is_myshop_order: !!orderTags.myshop,
+        is_cds: isCdsOrder,
+        cds_shipping_cost: isCdsOrder ? Math.round((Number(cdsShipping) || 0) * 100) / 100 : 0,
         hostess: orderTags.hostess,
         half_price_deal: orderTags.half_price,
         birthday: orderTags.birthday,
@@ -609,7 +626,8 @@ export default function AddOrder() {
         setNotes("");
         setPaymentType("");
         setPaymentStatus("Paid");
-        setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false });
+        setOrderTags({ hostess: false, half_price: false, birthday: false, referral: false, myshop: false, cds: false });
+        setCdsShipping("");
         setFollowUpIntent("none");
         setFaceTypeOverride(null);
         setAttempted(false);
@@ -624,7 +642,7 @@ export default function AddOrder() {
       setSubmitting(false);
       setDncSuppressFollowUp(false);
     }
-  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, nonCustomerFollowUp, nonCustomerPhone, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds]);
+  }, [canSubmit, validationErrors, isEventBased, selectedEventId, customerId, customerName, orderDate, orderType, paymentType, paymentStatus, retailAmount, wholesaleAmount, financials, notes, bulkMode, queryClient, navigate, isNewCustomer, newCustName, newCustPhone, newCustEmail, newCustAddress, newCustCity, newCustState, newCustPostal, newCustBirthday, isNonCustomer, nonCustomerLabel, nonCustomerFollowUp, nonCustomerPhone, user, customers, dncPrompt, dncSuppressFollowUp, isEditMode, editOrderId, faceTypeOverride, reorderConvertPrompt, reorderConvertHandled, isSkincareCustomer, ccTxType, isCreditCard, orderTags, discountTypeIds, isCdsOrder, cdsShipping]);
 
   // Edit mode: show loading until prefill complete
   if (isEditMode && !editPrefilled) {
@@ -1108,6 +1126,7 @@ export default function AddOrder() {
               <div className="flex justify-between pt-1 border-t border-border/60"><span className="font-semibold text-foreground">Final Total</span><span className="font-semibold text-foreground">${financials.finalTotal.toFixed(2)}</span></div>
               {financials.ccFee > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CC Fee</span><span>-${financials.ccFee.toFixed(2)}</span></div>}
               <div className="flex justify-between"><span className="text-muted-foreground">Net Revenue</span><span className="font-medium">${financials.netRevenue.toFixed(2)}</span></div>
+              {financials.shipping > 0 && <div className="flex justify-between text-rose-700 dark:text-rose-400"><span>– CDS shipping</span><span>-${financials.shipping.toFixed(2)}</span></div>}
               <div className="flex justify-between text-emerald-700 dark:text-emerald-400"><span className="font-semibold">Est. Net Profit</span><span className="font-semibold">${financials.netProfit.toFixed(2)}</span></div>
             </div>
           ) : (
@@ -1220,10 +1239,22 @@ export default function AddOrder() {
           <OrderTagChips
             value={orderTags}
             onChange={setOrderTags}
-            include={["hostess", "half_price", "birthday", "referral", "myshop"]}
+            include={["hostess", "half_price", "birthday", "referral", "myshop", "cds"]}
           />
           {orderTags.myshop && (
             <p className="text-[11px] text-muted-foreground">MyShop tag skips credit card processing fees; retail and profit still count.</p>
+          )}
+          {isCdsOrder && (
+            <div className="pt-1">
+              <label className="text-sm font-medium text-foreground">Shipping I paid ($)</label>
+              <CurrencyInput
+                placeholder="$0.00"
+                value={cdsShipping}
+                onValueChange={setCdsShipping}
+                className="h-9 max-w-[160px]"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Leave $0 if the customer paid the shipping.</p>
+            </div>
           )}
         </div>
 

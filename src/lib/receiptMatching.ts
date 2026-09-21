@@ -26,6 +26,13 @@ export type MatchableReceipt = {
 
 export type MatchableCharge = MatchableReceipt;
 
+export type MatchOptions = {
+  /** Maximum absolute day distance allowed between the two dates. */
+  maxDays?: number;
+  /** When true, the charge must fall on or after the receipt/order date. */
+  requireChargeOnOrAfter?: boolean;
+};
+
 export type MatchCandidate = {
   receiptId: string;
   chargeId: string;
@@ -64,11 +71,14 @@ export const merchantSimilarity = (a: string, b: string): number => {
 export const scoreCandidate = (
   receipt: MatchableReceipt,
   charge: MatchableCharge,
+  options: MatchOptions = {},
 ): MatchCandidate | null => {
+  const maxDays = options.maxDays ?? MATCH_MAX_DAYS;
   if (!receipt.date || !charge.date) return null;
   if (!(receipt.amount > 0) || !(charge.amount > 0)) return null;
+  if (options.requireChargeOnOrAfter && charge.date.slice(0, 10) < receipt.date.slice(0, 10)) return null;
   const days = daysBetween(receipt.date, charge.date);
-  if (days > MATCH_MAX_DAYS) return null;
+  if (days > maxDays) return null;
 
   const diff = Math.abs(charge.amount - receipt.amount);
   let kind: MatchKind;
@@ -83,7 +93,7 @@ export const scoreCandidate = (
     return null;
   }
 
-  const dateScore = (MATCH_MAX_DAYS - days) / MATCH_MAX_DAYS; // 1 = same day
+  const dateScore = (maxDays - days) / maxDays; // 1 = same day
   const similarity = merchantSimilarity(receipt.merchantKey, charge.merchantKey);
   const score =
     (kind === "strong" ? 100 : 40) + dateScore * 20 + similarity * 25;
@@ -95,11 +105,12 @@ export const scoreCandidate = (
 export const buildCandidates = (
   receipts: MatchableReceipt[],
   charges: MatchableCharge[],
+  options: MatchOptions = {},
 ): MatchCandidate[] => {
   const out: MatchCandidate[] = [];
   for (const r of receipts) {
     for (const c of charges) {
-      const candidate = scoreCandidate(r, c);
+      const candidate = scoreCandidate(r, c, options);
       if (candidate) out.push(candidate);
     }
   }
@@ -113,8 +124,9 @@ export const buildCandidates = (
 export const assignMatches = (
   receipts: MatchableReceipt[],
   charges: MatchableCharge[],
+  options: MatchOptions = {},
 ): MatchCandidate[] => {
-  const all = buildCandidates(receipts, charges);
+  const all = buildCandidates(receipts, charges, options);
   const strongReceipts = new Set(all.filter((c) => c.kind === "strong").map((c) => c.receiptId));
   const strongCharges = new Set(all.filter((c) => c.kind === "strong").map((c) => c.chargeId));
   const allowed = all.filter(
@@ -142,8 +154,9 @@ export const assignMatches = (
 export const matchesForReceipt = (
   receipt: MatchableReceipt,
   charges: MatchableCharge[],
+  options: MatchOptions = {},
 ): MatchCandidate[] => {
-  const all = buildCandidates([receipt], charges);
+  const all = buildCandidates([receipt], charges, options);
   const strong = all.filter((c) => c.kind === "strong");
   return strong.length > 0 ? strong : all;
 };

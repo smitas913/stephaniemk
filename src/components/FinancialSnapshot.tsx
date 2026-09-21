@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchOrders } from "@/lib/queries";
 import { fetchFinancialSettings } from "@/lib/financialSettings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Tag, CreditCard, Wallet, PiggyBank } from "lucide-react";
+import { DollarSign, TrendingUp, Tag, CreditCard, Wallet, PiggyBank, Truck } from "lucide-react";
 
 type Range = "mtd" | "ytd" | "all";
 
@@ -42,14 +42,20 @@ export default function FinancialSnapshot({ range = "mtd", compact = false }: { 
       if (endKey && key > endKey) return false;
       return true;
     });
-    let sales = 0, discounts = 0, fees = 0, netRev = 0, netProfit = 0;
+    let sales = 0, discounts = 0, fees = 0, netRev = 0, netProfit = 0, cdsShipping = 0;
     for (const o of filtered) {
       const retail = Number(o.retail_amount) || 0;
       const disc = Number(o.discount_amount) || 0;
       const fee = Number(o.cc_fee_amount) || 0;
       const finalTotal = retail - disc;
       const orderNetRev = o.net_received != null ? Number(o.net_received) : (finalTotal - fee);
-      const orderNetProfit = o.net_profit != null ? Number(o.net_profit) : +(orderNetRev * margin).toFixed(2);
+      const shipping = o.is_cds ? Number(o.cds_shipping_cost) || 0 : 0;
+      // Stored net_profit already has CDS shipping taken out; only the margin
+      // fallback needs it subtracted so it is never double counted.
+      const orderNetProfit = o.net_profit != null
+        ? Number(o.net_profit)
+        : +(orderNetRev * margin - shipping).toFixed(2);
+      cdsShipping += shipping;
       sales += retail;
       discounts += disc;
       fees += fee;
@@ -58,7 +64,7 @@ export default function FinancialSnapshot({ range = "mtd", compact = false }: { 
         netProfit += orderNetProfit;
       }
     }
-    return { sales, discounts, fees, netRev, netProfit };
+    return { sales, discounts, fees, netRev, netProfit, cdsShipping: +cdsShipping.toFixed(2) };
   }, [orders, range, margin]);
 
   const label = range === "mtd" ? "This Month" : range === "ytd" ? "Year to Date" : "All Time";
@@ -67,6 +73,7 @@ export default function FinancialSnapshot({ range = "mtd", compact = false }: { 
     { icon: TrendingUp, label: "Total Sales", value: totals.sales, color: "text-emerald-600" },
     { icon: Tag, label: "Discounts", value: totals.discounts, color: "text-amber-600" },
     { icon: CreditCard, label: "Fees", value: totals.fees, color: "text-rose-600" },
+    { icon: Truck, label: "CDS Shipping", value: totals.cdsShipping, color: "text-sky-600" },
     { icon: Wallet, label: "Net Revenue", value: totals.netRev, color: "text-primary" },
     { icon: PiggyBank, label: "Est. Net Profit", value: totals.netProfit, color: "text-emerald-700" },
   ];
@@ -82,7 +89,7 @@ export default function FinancialSnapshot({ range = "mtd", compact = false }: { 
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {items.map(it => (
           <div key={it.label} className="rounded-md border border-border/60 bg-muted/20 p-3">
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
