@@ -556,13 +556,18 @@ export default function Expenses() {
               <p className="text-sm text-amber-600 mt-0.5">{needsReceiptCount} need receipts</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" className="w-full sm:w-auto" onClick={startReceiptScan} disabled={scanning}>
+              <Camera className="w-4 h-4 mr-1" />
+              {scanning ? "Reading…" : "Scan Receipt"}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => statementInputRef.current?.click()} disabled={importing}>
               <FileUp className="w-4 h-4 mr-1" />
               {importing ? "Reading…" : "Import Statement"}
             </Button>
-            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Expense</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />Add Expense</Button>
           </div>
+
         </div>
 
         {/* Filter chips */}
