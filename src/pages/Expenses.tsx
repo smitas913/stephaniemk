@@ -488,7 +488,7 @@ export default function Expenses() {
                   {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Textarea placeholder="Notes (optional)" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="min-h=[60px] min-h-[60px]" />
+              <Textarea placeholder="Notes (optional)" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="min-h-[60px]" />
 
               {showEventFields && (
                 <div className="space-y-3 rounded-md border border-border p-3 bg-muted/30">
