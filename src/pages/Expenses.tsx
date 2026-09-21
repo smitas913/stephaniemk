@@ -1334,9 +1334,11 @@ export default function Expenses() {
                           <span className="text-xs text-muted-foreground">{formatDateOnly(r.date)}</span>
                           <span className="text-sm font-semibold text-emerald-700">${r.amount.toFixed(2)}</span>
                           {r.remembered && <Badge variant="secondary" className="text-[10px]">remembered</Badge>}
-                          {r.matchesOrder && (
+                          {r.myshopPayout ? (
+                            <Badge variant="outline" className="text-[10px] border-sky-300 bg-sky-50 text-sky-700">MyShop payout — already counted</Badge>
+                          ) : r.matchesOrder ? (
                             <Badge variant="outline" className="text-[10px] border-sky-300 bg-sky-50 text-sky-700">Matches an order</Badge>
-                          )}
+                          ) : null}
                           {r.duplicate && (
                             <Badge variant="outline" className="text-[10px] border-amber-300 bg-amber-50 text-amber-700">Possible duplicate</Badge>
                           )}
