@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { EventRecord, Note, Customer, Prospect } from "@/lib/types";
 import MetricDrillDownDialog, { type DrillMetricKey } from "@/components/MetricDrillDownDialog";
+import { DASHBOARD_PROGRESS_STYLES, getDashboardProgressTone } from "@/lib/dashboardProgress";
 
 interface TeamConsultantRow { id: string; created_at: string; join_date: string | null; relationship_type: string | null; name: string | null }
 
@@ -107,28 +108,6 @@ function computeActuals(
   }
 }
 
-function statusFor(current: number, goal: number, pace: number): "green" | "yellow" | "red" {
-  if (goal <= 0) return "green";
-  const pct = current / goal;
-  if (pct >= 1) return "green";
-  const expected = pace;
-  if (pct >= expected * 0.8) return "green";
-  if (pct >= expected * 0.5) return "yellow";
-  return "red";
-}
-
-const STATUS_TEXT = {
-  green: "text-green-600",
-  yellow: "text-yellow-600",
-  red: "text-red-600",
-} as const;
-
-const STATUS_BAR = {
-  green: "[&>div]:bg-green-500",
-  yellow: "[&>div]:bg-yellow-500",
-  red: "[&>div]:bg-red-500",
-} as const;
-
 function GoalEditor({ goal, onSave }: { goal: MomentumGoal; onSave: (updates: Partial<MomentumGoal>) => void }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(String(goal.goal_value));
@@ -200,7 +179,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
 
   const dataBundle = { events, notes, customers, prospects, consultants };
 
-  const renderSection = (period: MomentumPeriod, title: string, subtitle: string, start: Date, end: Date, pace: number) => {
+  const renderSection = (period: MomentumPeriod, title: string, subtitle: string, start: Date, end: Date) => {
     const sectionGoals = goals
       .filter((g) => g.period === period && ALLOWED_METRIC_KEYS.has(g.metric_key))
       .sort((a, b) => a.sort_order - b.sort_order);
@@ -223,7 +202,8 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
             sectionGoals.map((g) => {
               const current = computeActuals(g.metric_key, start, end, dataBundle);
               const pct = g.goal_value > 0 ? Math.min((current / g.goal_value) * 100, 100) : 0;
-              const status = statusFor(current, g.goal_value, pace);
+              const tone = getDashboardProgressTone(current, g.goal_value);
+              const progressStyles = DASHBOARD_PROGRESS_STYLES[tone];
               const isDrillable = (["faces","career_chats","unit_career_chats","new_team_members","new_unit_members","new_skincare_customers"] as const).includes(g.metric_key as any);
               return (
                 <div key={g.id} className="space-y-1.5">
@@ -244,23 +224,23 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
                         <button
                           type="button"
                           onClick={() => setDrill({ key: g.metric_key as DrillMetricKey, label: g.metric_label, period })}
-                          className={cn("text-base font-bold tabular-nums hover:underline underline-offset-2", STATUS_TEXT[status])}
+                          className={cn("text-base font-bold tabular-nums hover:underline underline-offset-2", progressStyles.text)}
                           title="View records"
                         >
                           {current} <span className="text-muted-foreground font-normal text-xs">/ {g.goal_value}</span>
                         </button>
                       ) : (
-                        <span className={cn("text-base font-bold tabular-nums", STATUS_TEXT[status])}>
+                        <span className={cn("text-base font-bold tabular-nums", progressStyles.text)}>
                           {current} <span className="text-muted-foreground font-normal text-xs">/ {g.goal_value}</span>
                         </span>
                       )}
-                      <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
+                      <span className={cn("text-[11px] tabular-nums w-9 text-right", progressStyles.text)}>
                         {g.goal_value > 0 ? `${Math.round((current / g.goal_value) * 100)}%` : "—"}
                       </span>
                       <GoalEditor goal={g} onSave={(updates) => updateMutation.mutate({ id: g.id, updates })} />
                     </div>
                   </div>
-                  <Progress value={pct} className={cn("h-2", STATUS_BAR[status])} />
+                  <Progress value={pct} className={cn("h-2", progressStyles.bar)} />
                 </div>
               );
             })
@@ -276,8 +256,8 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
   return (
     <div className="space-y-4">
       <div className={cn("grid grid-cols-1 gap-4", showWeekly && showMonthly && "md:grid-cols-2")}>
-        {showWeekly && renderSection("weekly", "Weekly Actuals", `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, weekStart, weekEnd, weekPace)}
-        {showMonthly && renderSection("monthly", "Monthly Actuals", monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }), monthStart, monthEnd, monthPace)}
+        {showWeekly && renderSection("weekly", "Weekly Actuals", `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`, weekStart, weekEnd)}
+        {showMonthly && renderSection("monthly", "Monthly Actuals", monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }), monthStart, monthEnd)}
       </div>
       {drill && (
         <MetricDrillDownDialog

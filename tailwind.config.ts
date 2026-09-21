@@ -49,6 +49,9 @@ export default {
         },
         "mk-gold": "hsl(var(--mk-gold))",
         "mk-blush": "hsl(var(--mk-blush))",
+        "goal-under": "hsl(var(--goal-under))",
+        "goal-hit": "hsl(var(--goal-hit))",
+        "goal-hit-text": "hsl(var(--goal-hit-text))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

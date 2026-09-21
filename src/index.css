@@ -41,6 +41,10 @@ All colors MUST be HSL.
     --mk-gold: 42 80% 55%;
     --mk-blush: 338 40% 96%;
 
+    --goal-under: 334.3 66.3% 52.4%;
+    --goal-hit: 43.2 72.6% 55.7%;
+    --goal-hit-text: 42.4 83.6% 35.9%;
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -94,6 +98,9 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --goal-under: 334.3 66.3% 52.4%;
+    --goal-hit: 43.2 72.6% 55.7%;
+    --goal-hit-text: 43.2 72.6% 55.7%;
   }
 }
 
