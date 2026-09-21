@@ -20,6 +20,7 @@ import { fetchOrders, fetchBusinessGoals, updateBusinessGoal } from "@/lib/queri
 import { fetchFinancialSettings } from "@/lib/financialSettings";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { toast } from "sonner";
+import { DASHBOARD_PROGRESS_STYLES, getDashboardProgressTone } from "@/lib/dashboardProgress";
 
 interface SalesRevenueTileProps {
   selectedDate: string;
@@ -166,9 +167,8 @@ export default function SalesRevenueTile({ selectedDate, compact, showWeekly }: 
   const displaySales = showWeekly ? weeklySales : todaySales;
   const displayTarget = showWeekly ? weeklyTarget : dailyTarget;
   const pct = hasGoal ? Math.round((displaySales / displayTarget) * 100) : 0;
-  const onTrack = hasGoal && displaySales >= displayTarget;
-  const numberColor = onTrack ? "text-green-600" : "text-foreground";
-  const barColor = onTrack ? "[&>div]:bg-green-500" : "[&>div]:bg-primary";
+  const progressTone = getDashboardProgressTone(displaySales, displayTarget);
+  const progressStyles = DASHBOARD_PROGRESS_STYLES[progressTone];
 
   const baselinePct = baseline > 0 ? Math.min(100, Math.round((monthlySales / baseline) * 100)) : 0;
   const stretchPct = stretch > 0 ? Math.min(100, Math.round((monthlySales / stretch) * 100)) : 0;
@@ -275,22 +275,22 @@ export default function SalesRevenueTile({ selectedDate, compact, showWeekly }: 
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+               <DollarSign className={cn("w-3.5 h-3.5 shrink-0", progressStyles.text)} />
               <span className="text-sm font-medium text-foreground truncate">Sales</span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className={cn("text-base font-bold tabular-nums", numberColor)}>
+               <span className={cn("text-base font-bold tabular-nums", progressStyles.text)}>
                 {fmt(displaySales)}{" "}
                 <span className="text-muted-foreground font-normal text-xs">
                   / {hasGoal ? fmt(displayTarget) : "—"}
                 </span>
               </span>
-              <span className="text-[11px] text-muted-foreground tabular-nums w-9 text-right">
+               <span className={cn("text-[11px] tabular-nums w-9 text-right", progressStyles.text)}>
                 {hasGoal ? `${pct}%` : "—"}
               </span>
             </div>
           </div>
-          <Progress value={Math.min(100, pct)} className={cn("h-2", barColor)} />
+           <Progress value={Math.min(100, pct)} className={cn("h-2", progressStyles.bar)} />
           {hasGoal ? goalSummary : setGoalPrompt}
         </div>
         {Modal}
@@ -308,17 +308,17 @@ export default function SalesRevenueTile({ selectedDate, compact, showWeekly }: 
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openModal(); } }}
         title="Click to set Monthly Sales Goals"
       >
-        <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 border-emerald-500/40 flex items-center justify-center">
-          <DollarSign className="w-3 h-3 text-emerald-600" />
+         <div className={cn("flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center", progressStyles.border)}>
+           <DollarSign className={cn("w-3 h-3", progressStyles.text)} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
             <span className="text-sm font-medium text-foreground truncate">Sales</span>
-            <span className={cn("text-xs font-medium", onTrack ? "text-emerald-600" : "text-muted-foreground")}>
+             <span className={cn("text-xs font-medium", progressStyles.text)}>
               {fmt(todaySales)} / {hasGoal ? fmt(dailyTarget) : "—"} {hasGoal ? `· ${pct}%` : ""}
             </span>
           </div>
-          <Progress value={Math.min(100, pct)} className={cn("h-1.5", barColor)} />
+           <Progress value={Math.min(100, pct)} className={cn("h-1.5", progressStyles.bar)} />
           {hasGoal ? <div className="mt-0.5">{goalSummary}</div> : <div className="mt-0.5">{setGoalPrompt}</div>}
         </div>
       </div>
