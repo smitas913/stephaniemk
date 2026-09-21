@@ -695,13 +695,14 @@ export const fetchExpenses = async (): Promise<Expense[]> => {
   return data as unknown as Expense[];
 };
 
-export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null; event_type?: string | null; event_year?: number | null }) => {
+export const createExpense = async (expense: { expense_date: string; amount: number; category: string; notes?: string | null; receipt_url?: string | null; event_type?: string | null; event_year?: number | null; source?: string; import_fingerprint?: string | null }) => {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("expenses")
     .insert({ ...expense, owner_user_id: userId } as any);
   if (error) throw error;
 };
+
 
 export const updateExpense = async (id: string, updates: Partial<{ receipt_url: string | null; amount: number; category: string; notes: string | null; expense_date: string; receipt_not_required: boolean }>) => {
   const { error } = await supabase.from("expenses").update(updates as any).eq("id", id);
