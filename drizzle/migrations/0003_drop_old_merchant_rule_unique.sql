@@ -1,0 +1,2 @@
+ALTER TABLE public.expense_merchant_rules
+  DROP CONSTRAINT IF EXISTS expense_merchant_rules_owner_key_unique;

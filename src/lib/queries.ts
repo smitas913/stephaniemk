@@ -734,22 +734,27 @@ export const fetchExpenseMerchantRules = async (): Promise<ExpenseMerchantRule[]
   return (data || []) as unknown as ExpenseMerchantRule[];
 };
 
-export const upsertExpenseMerchantRules = async (rules: { merchant_key: string; category: string }[]) => {
+export const upsertExpenseMerchantRules = async (
+  rules: { merchant_key: string; category: string; kind?: string }[],
+) => {
   if (rules.length === 0) return;
   const userId = await getCurrentUserId();
-  const seen = new Map<string, string>();
+  const seen = new Map<string, { merchant_key: string; category: string; kind: string }>();
   for (const r of rules) {
-    if (r.merchant_key) seen.set(r.merchant_key, r.category);
+    if (!r.merchant_key) continue;
+    const kind = r.kind || "expense";
+    seen.set(`${kind}|${r.merchant_key}`, { merchant_key: r.merchant_key, category: r.category, kind });
   }
-  const rows = Array.from(seen.entries()).map(([merchant_key, category]) => ({
+  const rows = Array.from(seen.values()).map((r) => ({
     owner_user_id: userId,
-    merchant_key,
-    category,
+    merchant_key: r.merchant_key,
+    category: r.category,
+    kind: r.kind,
     updated_at: new Date().toISOString(),
   }));
   const { error } = await supabase
     .from("expense_merchant_rules")
-    .upsert(rows as any, { onConflict: "owner_user_id,merchant_key" });
+    .upsert(rows as any, { onConflict: "owner_user_id,merchant_key,kind" });
   if (error) throw error;
 };
 
@@ -765,13 +770,27 @@ export const createExpensesBulk = async (
   return rows.length;
 };
 
+export type StatementTransaction = {
+  date: string;
+  merchant: string;
+  amount: number;
+  suggested_category: string;
+  direction: "in" | "out";
+};
+
+/** Fingerprint for imported income rows (direction included so deposits never clash with expenses). */
+export const buildIncomeFingerprint = (income_date: string, amount: number, merchantKey: string): string =>
+  `in|${(income_date || "").slice(0, 10)}|${Number(amount).toFixed(2)}|${merchantKey}`;
+
 export const parseStatementPdf = async (
   pdfBase64: string,
   mimeType: string,
   categories: string[],
-): Promise<{ date: string; merchant: string; amount: number; suggested_category: string }[]> => {
+  statementType: "bank" | "credit_card" = "credit_card",
+  incomeCategories?: string[],
+): Promise<StatementTransaction[]> => {
   const { data, error } = await supabase.functions.invoke("parse-bank-statement", {
-    body: { pdfBase64, mimeType, categories },
+    body: { pdfBase64, mimeType, categories, statementType, incomeCategories },
   });
   if (error) {
     let message = error.message || "The statement couldn't be read.";
@@ -783,7 +802,10 @@ export const parseStatementPdf = async (
     throw new Error(message);
   }
   if ((data as any)?.error) throw new Error((data as any).error);
-  return ((data as any)?.transactions || []) as { date: string; merchant: string; amount: number; suggested_category: string }[];
+  return (((data as any)?.transactions || []) as StatementTransaction[]).map((t) => ({
+    ...t,
+    direction: t.direction === "in" ? "in" : "out",
+  }));
 };
 
 export type ScannedReceipt = {
@@ -854,12 +876,32 @@ export const fetchIncome = async (): Promise<Income[]> => {
   return data as unknown as Income[];
 };
 
-export const createIncome = async (income: { income_date: string; amount: number; category: string; source?: string | null; notes?: string | null }) => {
+export const createIncome = async (income: { income_date: string; amount: number; category: string; source?: string | null; notes?: string | null; entry_source?: string; import_fingerprint?: string | null }) => {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("income")
     .insert({ ...income, owner_user_id: userId } as any);
   if (error) throw error;
+};
+
+export const updateIncome = async (
+  id: string,
+  updates: Partial<{ income_date: string; amount: number; category: string; source: string | null; notes: string | null }>,
+) => {
+  const { error } = await supabase.from("income").update(updates as any).eq("id", id);
+  if (error) throw error;
+};
+
+export const createIncomeBulk = async (
+  rows: { income_date: string; amount: number; category: string; source: string | null; notes?: string | null; import_fingerprint: string }[],
+) => {
+  if (rows.length === 0) return 0;
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("income")
+    .insert(rows.map((r) => ({ ...r, entry_source: "statement", owner_user_id: userId })) as any);
+  if (error) throw error;
+  return rows.length;
 };
 
 export const deleteIncome = async (id: string) => {

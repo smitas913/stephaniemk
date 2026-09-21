@@ -32,6 +32,7 @@ import ProspectDetail from "./pages/ProspectDetail";
 import Leadership from "./pages/Leadership";
 import AdminTools from "./pages/AdminTools";
 import Expenses from "./pages/Expenses";
+import Register from "./pages/Register";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
@@ -371,6 +372,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute allowedRoles={ADMIN_ROLES}>
           <Expenses />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/register"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <Register />
         </ProtectedRoute>
       }
     />
