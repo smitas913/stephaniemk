@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, Income, Note, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
+import type { Customer, Order, OrderWithCustomer, EventRecord, EventGuest, CustomerNote, Prospect, ProspectNote, Expense, ExpenseMerchantRule, Income, Note, TeamConsultant, LeadershipMember, PaymentStatus } from "./types";
 import { toLocalDateKey as toLocalDateKeyImport } from "./dateOnly";
 import { nextAvailableWeekday, nextAvailableDay, spreadTasks, buildWorkdayFlags, type OOOPeriod } from "./smartSchedule";
 import { normalizePhoneForStorage, stripPhone, normalizeEmail } from "./phoneUtils";
