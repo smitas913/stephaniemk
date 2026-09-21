@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+import { computeOrderFinancials } from "@/lib/financialSettings";
+import { myShopMonthlyCost } from "@/pages/Register";
   assignMatches,
   matchesForReceipt,
   scoreCandidate,
@@ -59,5 +61,76 @@ describe("receiptMatching", () => {
   it("returns nothing when nothing matches", () => {
     expect(assignMatches([r("r1", "2026-03-10", 20)], [r("c1", "2026-05-01", 99)])).toEqual([]);
     expect(matchesForReceipt(r("r1", "2026-03-10", 20), [])).toEqual([]);
+  });
+});
+
+describe("computeOrderFinancials with CDS shipping", () => {
+  const base = {
+    orderTotal: 100,
+    discount: 0,
+    taxRate: 0,
+    profitMarginRate: 50,
+    isCreditCard: false,
+  };
+
+  it("margin path subtracts shipping from profit only", () => {
+    const noShip = computeOrderFinancials(base);
+    const ship = computeOrderFinancials({ ...base, shipping: 5.95 });
+    expect(noShip.netProfit).toBe(50);
+    expect(ship.netProfit).toBe(44.05);
+    expect(ship.netReceived).toBe(noShip.netReceived);
+    expect(ship.finalTotal).toBe(noShip.finalTotal);
+    expect(ship.shipping).toBe(5.95);
+  });
+
+  it("wholesale path subtracts shipping from profit only", () => {
+    const noShip = computeOrderFinancials({ ...base, wholesale: 50 });
+    const ship = computeOrderFinancials({ ...base, wholesale: 50, shipping: 5.95 });
+    expect(noShip.netProfit).toBe(50);
+    expect(ship.netProfit).toBe(44.05);
+    expect(ship.netReceived).toBe(noShip.netReceived);
+  });
+});
+
+describe("MyShop monthly product cost", () => {
+  it("uses wholesale when present and the margin fallback otherwise", () => {
+    const byMonth = myShopMonthlyCost(
+      [
+        { order_date: "2026-03-04", retail_amount: 100, discount_amount: 0, wholesale_amount: 48 },
+        { order_date: "2026-03-20", retail_amount: 200, discount_amount: 20, wholesale_amount: null },
+        { order_date: "2026-04-01", retail_amount: 50, discount_amount: 0, wholesale_amount: null },
+      ],
+      50,
+    );
+    expect(byMonth.get("2026-03")).toBe(138); // 48 + 90
+    expect(byMonth.get("2026-04")).toBe(25);
+  });
+});
+
+describe("MyShop payout / CDS charge matching", () => {
+  it("links a deposit to the MyShop order it pays out, never before the order", () => {
+    const matches = assignMatches(
+      [{ id: "order", date: "2026-03-01", amount: 52, merchantKey: "" }],
+      [
+        { id: "early", date: "2026-02-20", amount: 52, merchantKey: "" },
+        { id: "payout", date: "2026-03-25", amount: 52, merchantKey: "" },
+      ],
+      { maxDays: 60, requireChargeOnOrAfter: true },
+    );
+    expect(matches.map((m) => m.chargeId)).toEqual(["payout"]);
+  });
+
+  it("links a CDS shipping charge within 7 days of the order", () => {
+    const matches = assignMatches(
+      [{ id: "cds", date: "2026-03-01", amount: 5.95, merchantKey: "" }],
+      [
+        { id: "charge", date: "2026-03-06", amount: 5.95, merchantKey: "" },
+        { id: "far", date: "2026-03-20", amount: 5.95, merchantKey: "" },
+      ],
+      { maxDays: 7 },
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0].chargeId).toBe("charge");
+    expect(matches[0].kind).toBe("strong");
   });
 });
