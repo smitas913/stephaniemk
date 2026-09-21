@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 import { assignMatches, matchesForReceipt, type MatchKind } from "@/lib/receiptMatching";
+import { fetchFinancialSettings } from "@/lib/financialSettings";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Inventory: "bg-blue-100 text-blue-700",
@@ -75,6 +76,8 @@ type ImportRow = {
   fingerprint: string;
   matchKind: MatchKind | null;
   matchedReceipt: MatchedReceipt | null;
+  /** Charge already counted through a CDS order's shipping cost. */
+  cdsMatched: boolean;
 };
 
 type DepositRow = {
@@ -87,11 +90,23 @@ type DepositRow = {
   remembered: boolean;
   duplicate: boolean;
   matchesOrder: boolean;
+  /** Deposit is the Mary Kay payout for a MyShop order already in the ledger. */
+  myshopPayout: boolean;
   merchantKey: string;
   fingerprint: string;
 };
 
 const STATEMENT_TYPE_KEY = "expenses_statement_type";
+/** Shared with the Register page's "Include CDS shipping" toggle. */
+const CDS_TOGGLE_KEY = "register_include_cds_shipping";
+
+const cdsShippingCounted = () => {
+  try {
+    return localStorage.getItem(CDS_TOGGLE_KEY) !== "off";
+  } catch {
+    return true;
+  }
+};
 
 const readStatementType = (): "bank" | "credit_card" => {
   try {
@@ -437,6 +452,7 @@ export default function Expenses() {
           fingerprint,
           matchKind: null,
           matchedReceipt: null,
+          cdsMatched: false,
         };
       });
 
@@ -480,10 +496,38 @@ export default function Expenses() {
             .map((r) => ({ id: r.matchedReceipt!.id, path: r.matchedReceipt!.path })),
         );
       }
+      // CDS shipping already counted from orders — don't count the charge twice.
+      const allOrders = (await fetchOrders()) as any[];
+      if (cdsShippingCounted()) {
+        const cdsOrders = allOrders.filter(
+          (o) => o.is_cds && o.order_date && Number(o.cds_shipping_cost) > 0,
+        );
+        const openRows = rows.filter((r) => !r.matchedReceipt);
+        if (cdsOrders.length > 0 && openRows.length > 0) {
+          const cdsAssignments = assignMatches(
+            cdsOrders.map((o) => ({
+              id: o.id,
+              date: String(o.order_date).slice(0, 10),
+              amount: Number(o.cds_shipping_cost),
+              merchantKey: "",
+            })),
+            openRows.map((r) => ({ id: r.id, date: r.date, amount: r.amount, merchantKey: "" })),
+            { maxDays: 7 },
+          ).filter((a) => a.kind === "strong");
+          const cdsCharges = new Set(cdsAssignments.map((a) => a.chargeId));
+          for (const row of rows) {
+            if (!cdsCharges.has(row.id)) continue;
+            row.cdsMatched = true;
+            row.checked = false;
+          }
+        }
+      }
+
       // Deposits (bank statements only) — always start unchecked
       let depRows: DepositRow[] = [];
       if (deposits.length > 0) {
-        const [incomeRows, orderRows] = await Promise.all([fetchIncome(), fetchOrders()]);
+        const incomeRows = await fetchIncome();
+        const orderRows = allOrders;
         const incomeFingerprints = new Set(
           (incomeRows as any[]).map((i) => i.import_fingerprint).filter(Boolean) as string[],
         );
@@ -491,6 +535,39 @@ export default function Expenses() {
           (incomeRows as any[]).map((i) => `${(i.income_date || "").slice(0, 10)}|${Number(i.amount).toFixed(2)}`),
         );
         const paidOrders = (orderRows as any[]).filter((o) => o.payment_status === "Paid" && o.order_date);
+
+        // MyShop payouts are already counted through the MyShop sales and
+        // product-cost lines, so flag them instead of counting them again.
+        const marginRate = (await fetchFinancialSettings())?.profit_margin_rate ?? 50;
+        const myShopOrders = paidOrders.filter(
+          (o) => o.payment_type === "MyShop" || !!o.is_myshop_order,
+        );
+        const expectedPayout = (o: any) => {
+          if (o.net_profit != null) return Number(o.net_profit);
+          if (o.wholesale_amount != null) return Number(o.retail_amount || 0) - Number(o.wholesale_amount);
+          return Number(o.retail_amount || 0) * (marginRate / 100);
+        };
+        const payoutCharges = new Set(
+          assignMatches(
+            myShopOrders
+              .map((o) => ({
+                id: o.id,
+                date: String(o.order_date).slice(0, 10),
+                amount: Math.round(expectedPayout(o) * 100) / 100,
+                merchantKey: "",
+              }))
+              .filter((x) => x.amount > 0),
+            deposits.map((t, i) => ({
+              id: `dep-${i}`,
+              date: t.date,
+              amount: t.amount,
+              merchantKey: "",
+            })),
+            { maxDays: 60, requireChargeOnOrAfter: true },
+          )
+            .filter((a) => a.kind === "strong")
+            .map((a) => a.chargeId),
+        );
 
         depRows = deposits.map((t, i) => {
           const merchantKey = normalizeMerchantKey(t.merchant);
@@ -512,6 +589,7 @@ export default function Expenses() {
           if (!INCOME_CATEGORIES.includes(category as any)) category = "Product Sales";
           return {
             id: `dep-${i}-${fingerprint}`,
+            myshopPayout: payoutCharges.has(`dep-${i}`),
             date: t.date,
             merchant: t.merchant,
             amount: t.amount,
@@ -1238,7 +1316,7 @@ export default function Expenses() {
                   <div className="border-t border-border pt-3">
                     <p className="text-sm font-semibold">Deposits (money in)</p>
                     <p className="text-[11px] text-muted-foreground">
-                      Customer payments are already counted from Orders — only check deposits that are NOT already in Orders (like commission).
+                      Customer payments and MyShop payouts are already counted from Orders — only check deposits that are NOT already in Orders (like commission checks).
                     </p>
                   </div>
                   {depositRows.map((r) => (
