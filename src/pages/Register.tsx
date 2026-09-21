@@ -24,10 +24,15 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Plus, Download, Image as ImageIcon, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { formatDateOnly, toLocalDateKey, getLocalToday } from "@/lib/dateOnly";
+import { fetchFinancialSettings } from "@/lib/financialSettings";
 
 export const ORDER_SALES_CATEGORY = "Product Sales (Orders)";
+export const MYSHOP_SALES_CATEGORY = "Product Sales (MyShop)";
+export const MYSHOP_COST_CATEGORY = "MyShop Product Cost";
 export const ORDER_FEES_CATEGORY = "Payment Processing Fees";
+export const CDS_SHIPPING_CATEGORY = "Shipping / Postage";
 const FEES_TOGGLE_KEY = "register_include_order_fees";
+const CDS_TOGGLE_KEY = "register_include_cds_shipping";
 
 const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const sum = (nums: number[]) => round2(nums.reduce((s, n) => s + (Number(n) || 0), 0));
@@ -45,7 +50,7 @@ type LedgerRow = {
   moneyIn: number;
   moneyOut: number;
   source: RowSource;
-  kind: "expense" | "income" | "order" | "fee";
+  kind: "expense" | "income" | "order" | "fee" | "myshopCost" | "cds";
   notes: string;
   hasReceipt: boolean;
   needsReceipt: boolean;
@@ -74,11 +79,46 @@ const writeFeesToggle = (on: boolean) => {
   } catch { /* ignore */ }
 };
 
+const readCdsToggle = () => {
+  try {
+    return localStorage.getItem(CDS_TOGGLE_KEY) !== "off";
+  } catch {
+    return true;
+  }
+};
+
+const writeCdsToggle = (on: boolean) => {
+  try {
+    localStorage.setItem(CDS_TOGGLE_KEY, on ? "on" : "off");
+  } catch { /* ignore */ }
+};
+
+/** Cost Mary Kay keeps on a MyShop order (my payout is the rest). */
+export const myShopOrderCost = (order: any, profitMarginRate: number): number => {
+  if (order.wholesale_amount != null) return round2(order.wholesale_amount);
+  const net = round2(Number(order.retail_amount || 0) - Number(order.discount_amount || 0));
+  return round2(net * (1 - (Number(profitMarginRate) || 0) / 100));
+};
+
+/** One aggregated { month: total } map of MyShop product cost. */
+export const myShopMonthlyCost = (orders: any[], profitMarginRate: number): Map<string, number> => {
+  const byMonth = new Map<string, number>();
+  for (const o of orders) {
+    const cost = myShopOrderCost(o, profitMarginRate);
+    if (!cost) continue;
+    const ym = String(o.order_date).slice(0, 7);
+    byMonth.set(ym, round2((byMonth.get(ym) || 0) + cost));
+  }
+  return byMonth;
+};
+
 export default function Register() {
   const queryClient = useQueryClient();
   const { data: expenses = [], isLoading: loadingExpenses } = useQuery({ queryKey: ["expenses"], queryFn: fetchExpenses });
   const { data: income = [], isLoading: loadingIncome } = useQuery({ queryKey: ["income"], queryFn: fetchIncome });
   const { data: orders = [], isLoading: loadingOrders } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: financialSettings } = useQuery({ queryKey: ["financial-settings"], queryFn: fetchFinancialSettings });
+  const profitMarginRate = financialSettings?.profit_margin_rate ?? 50;
 
   const isLoading = loadingExpenses || loadingIncome || loadingOrders;
 
@@ -94,6 +134,7 @@ export default function Register() {
   const [missingReceiptsOnly, setMissingReceiptsOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [includeFees, setIncludeFees] = useState(readFeesToggle);
+  const [includeCds, setIncludeCds] = useState(readCdsToggle);
 
   // Income form
   const [showIncomeDialog, setShowIncomeDialog] = useState(false);
@@ -169,14 +210,12 @@ export default function Register() {
       });
     }
 
-    // Paid orders, excluding MyShop (that money arrives later as a Mary Kay commission deposit)
-    const qualifying = (orders as any[]).filter(
-      (o) =>
-        o.payment_status === "Paid" &&
-        o.payment_type !== "MyShop" &&
-        !o.is_myshop_order &&
-        o.order_date,
-    );
+    // All paid orders count as retail sales. MyShop orders are retail too —
+    // Mary Kay ships them and deposits the profit — so they get their own
+    // sales line plus a monthly product-cost line below.
+    const qualifying = (orders as any[]).filter((o) => o.payment_status === "Paid" && o.order_date);
+    const isMyShop = (o: any) => o.payment_type === "MyShop" || !!o.is_myshop_order;
+    const myShopOrders = qualifying.filter(isMyShop);
 
     for (const o of qualifying) {
       const net = round2(Number(o.retail_amount || 0) - Number(o.discount_amount || 0));
@@ -184,7 +223,7 @@ export default function Register() {
         id: `ord-${o.id}`,
         date: String(o.order_date).slice(0, 10),
         description: o.customers?.full_name || o.customer_name || "Order",
-        category: ORDER_SALES_CATEGORY,
+        category: isMyShop(o) ? MYSHOP_SALES_CATEGORY : ORDER_SALES_CATEGORY,
         moneyIn: net,
         moneyOut: 0,
         source: "Order",
@@ -225,8 +264,57 @@ export default function Register() {
       }
     }
 
+    // MyShop product cost — always on, otherwise profit would be overstated.
+    for (const [ym, total] of myShopMonthlyCost(myShopOrders, profitMarginRate).entries()) {
+      const y = Number(ym.slice(0, 4));
+      const mIdx = Number(ym.slice(5, 7)) - 1;
+      rows.push({
+        id: `mysc-${ym}`,
+        date: lastDayOfMonth(y, mIdx),
+        description: `MyShop product cost (Orders) — ${MONTH_NAMES[mIdx]} ${y}`,
+        category: MYSHOP_COST_CATEGORY,
+        moneyIn: 0,
+        moneyOut: round2(total),
+        source: "Order",
+        kind: "myshopCost",
+        notes: "",
+        hasReceipt: false,
+        needsReceipt: false,
+        link: null,
+      });
+    }
+
+    if (includeCds) {
+      const byMonth = new Map<string, number>();
+      for (const o of orders as any[]) {
+        if (!o.is_cds || !o.order_date) continue;
+        const cost = round2(o.cds_shipping_cost);
+        if (cost <= 0) continue;
+        const ym = String(o.order_date).slice(0, 7);
+        byMonth.set(ym, round2((byMonth.get(ym) || 0) + cost));
+      }
+      for (const [ym, total] of byMonth.entries()) {
+        const y = Number(ym.slice(0, 4));
+        const mIdx = Number(ym.slice(5, 7)) - 1;
+        rows.push({
+          id: `cds-${ym}`,
+          date: lastDayOfMonth(y, mIdx),
+          description: `CDS shipping (Orders) — ${MONTH_NAMES[mIdx]} ${y}`,
+          category: CDS_SHIPPING_CATEGORY,
+          moneyIn: 0,
+          moneyOut: round2(total),
+          source: "Order",
+          kind: "cds",
+          notes: "",
+          hasReceipt: false,
+          needsReceipt: false,
+          link: null,
+        });
+      }
+    }
+
     return rows.filter((r) => r.date).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  }, [expenses, income, orders, includeFees]);
+  }, [expenses, income, orders, includeFees, includeCds, profitMarginRate]);
 
   const periodRows = useMemo(
     () => allRows.filter((r) => r.date >= range.start && r.date <= range.end),
@@ -300,9 +388,10 @@ export default function Register() {
     };
 
     const incomeLines: { label: string; cols: number[]; total: number }[] = [];
-    const orderSales = business.filter((r) => r.category === ORDER_SALES_CATEGORY);
-    const orderLine = buckets(orderSales, (r) => r.moneyIn);
+    const orderLine = buckets(business.filter((r) => r.category === ORDER_SALES_CATEGORY), (r) => r.moneyIn);
     if (orderLine.total !== 0) incomeLines.push({ label: ORDER_SALES_CATEGORY, ...orderLine });
+    const myShopLine = buckets(business.filter((r) => r.category === MYSHOP_SALES_CATEGORY), (r) => r.moneyIn);
+    if (myShopLine.total !== 0) incomeLines.push({ label: MYSHOP_SALES_CATEGORY, ...myShopLine });
 
     for (const c of INCOME_CATEGORIES) {
       const line = buckets(business.filter((r) => r.kind === "income" && r.category === c), (r) => r.moneyIn);
@@ -312,9 +401,14 @@ export default function Register() {
     const expenseLines: { label: string; cols: number[]; total: number }[] = [];
     for (const c of EXPENSE_CATEGORIES) {
       if (c === "Personal Use") continue;
-      const line = buckets(business.filter((r) => r.kind === "expense" && r.category === c), (r) => r.moneyOut);
+      const line = buckets(
+        business.filter((r) => (r.kind === "expense" || r.kind === "cds") && r.category === c),
+        (r) => r.moneyOut,
+      );
       if (line.total !== 0) expenseLines.push({ label: c, ...line });
     }
+    const myShopCostLine = buckets(business.filter((r) => r.kind === "myshopCost"), (r) => r.moneyOut);
+    if (myShopCostLine.total !== 0) expenseLines.push({ label: `${MYSHOP_COST_CATEGORY} (Orders)`, ...myShopCostLine });
     const feeLine = buckets(business.filter((r) => r.kind === "fee"), (r) => r.moneyOut);
     if (feeLine.total !== 0) expenseLines.push({ label: `${ORDER_FEES_CATEGORY} (Orders)`, ...feeLine });
 
@@ -491,12 +585,21 @@ export default function Register() {
                   <Input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="h-8 w-[145px] text-xs" />
                 </>
               )}
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-xs text-muted-foreground">Include order fees</span>
-                <Switch
-                  checked={includeFees}
-                  onCheckedChange={(v) => { setIncludeFees(v); writeFeesToggle(v); }}
-                />
+              <div className="flex items-center gap-4 ml-auto flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Include order fees</span>
+                  <Switch
+                    checked={includeFees}
+                    onCheckedChange={(v) => { setIncludeFees(v); writeFeesToggle(v); }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Include CDS shipping</span>
+                  <Switch
+                    checked={includeCds}
+                    onCheckedChange={(v) => { setIncludeCds(v); writeCdsToggle(v); }}
+                  />
+                </div>
               </div>
             </div>
 
