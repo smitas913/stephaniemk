@@ -517,6 +517,8 @@ export default function Expenses() {
 
   return (
     <Layout>
+      {cameraOverlay}
+
       {/* Hidden inputs live outside dialogs so mobile file/camera pickers aren't blocked by focus traps */}
       <input ref={statementInputRef} type="file" accept="application/pdf" className="hidden" onChange={handleStatementSelect} />
       <input
