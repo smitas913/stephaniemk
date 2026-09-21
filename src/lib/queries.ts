@@ -786,6 +786,38 @@ export const parseStatementPdf = async (
   return ((data as any)?.transactions || []) as { date: string; merchant: string; amount: number; suggested_category: string }[];
 };
 
+export type ScannedReceipt = {
+  merchant: string;
+  date: string | null;
+  amount: number | null;
+  suggested_category: string;
+  readable: boolean;
+};
+
+/** Sends a (downscaled) receipt photo to the AI reader. The image is never stored server-side. */
+export const scanReceiptPhoto = async (
+  imageBase64: string,
+  mimeType: string,
+  categories: string[],
+): Promise<ScannedReceipt> => {
+  const { data, error } = await supabase.functions.invoke("scan-receipt", {
+    body: { imageBase64, mimeType, categories },
+  });
+  if (error) {
+    let message = error.message || "The receipt couldn't be read.";
+    const ctx = (error as any).context;
+    try {
+      const parsed = await ctx?.json?.();
+      if (parsed?.error) message = parsed.error;
+    } catch { /* keep default message */ }
+    throw new Error(message);
+  }
+  if ((data as any)?.error) throw new Error((data as any).error);
+  return data as ScannedReceipt;
+};
+
+
+
 export const uploadReceiptImage = async (file: File): Promise<string> => {
   const ext = file.name.split(".").pop();
   const path = `${crypto.randomUUID()}.${ext}`;
