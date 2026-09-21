@@ -11,11 +11,13 @@ import {
   upsertExpenseMerchantRules,
   createExpensesBulk,
   parseStatementPdf,
+  scanReceiptPhoto,
   normalizeMerchantKey,
   buildImportFingerprint,
 } from "@/lib/queries";
 import { EXPENSE_CATEGORIES, EXPENSE_EVENT_TYPES } from "@/lib/types";
 import Layout from "@/components/Layout";
+import { usePhotoCapture } from "@/components/CameraCapture";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,10 +27,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil, FileUp, Paperclip, Camera, ReceiptText } from "lucide-react";
+import { Plus, Trash2, DollarSign, Upload, Image, X, Pencil, FileUp, Paperclip, Camera, ReceiptText, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { formatDateOnly } from "@/lib/dateOnly";
+import { formatDateOnly, toLocalDateKey, parseLocalDate } from "@/lib/dateOnly";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Inventory: "bg-blue-100 text-blue-700",
@@ -59,6 +61,21 @@ type ImportRow = {
   fingerprint: string;
 };
 
+type ScanReview = {
+  file: File;
+  previewUrl: string;
+  date: string;
+  merchant: string;
+  amount: string;
+  category: string;
+  remembered: boolean;
+  readable: boolean;
+  mode: "attach" | "create";
+  targetId: string | null;
+  exactMatches: any[];
+  nearMatches: any[];
+};
+
 const isPdfReceipt = (path: string) => /\.pdf(\?|$)/i.test(path);
 
 const fileToBase64 = (file: File): Promise<string> =>
@@ -71,6 +88,34 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.onerror = () => reject(new Error("Could not read that file"));
     reader.readAsDataURL(file);
   });
+
+/** Shrinks a phone photo so uploads stay quick on cell data. */
+const downscalePhoto = async (file: File, maxSide = 1600, quality = 0.85): Promise<File> => {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", quality));
+    if (!blob) return file;
+    return new File([blob], `receipt-${Date.now()}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+};
+
+const daysApart = (a: string, b: string) =>
+  Math.abs(
+    Math.round((parseLocalDate(a).getTime() - parseLocalDate(b).getTime()) / 86_400_000),
+  );
+
 
 export default function Expenses() {
   const queryClient = useQueryClient();
