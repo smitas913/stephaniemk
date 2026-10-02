@@ -44,6 +44,7 @@ import {
 import { normalizeStateAbbreviation } from "@/lib/usStates";
 import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEditFieldDialog";
 import TextActionButton from "@/components/TextActionButton";
+import { SHOW_CALL_LOGS } from "@/lib/features";
 import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
 import { BookOpen, Sparkles } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
@@ -573,8 +574,10 @@ export default function CustomerDetail() {
     { label: "Days Since", value: computed.days_since_last_order !== null ? String(computed.days_since_last_order) : "—" },
     { label: "Orders YTD", value: String(computed.orders_this_year) },
     { label: "Retail YTD", value: `$${computed.retail_this_year.toFixed(2)}` },
-    { label: "Next Follow-Up", value: computed.next_follow_up ? formatDate(computed.next_follow_up) : "—" },
-    { label: "FU Status", value: computed.follow_up_status || "—" },
+    ...(SHOW_CALL_LOGS ? [
+      { label: "Next Follow-Up", value: computed.next_follow_up ? formatDate(computed.next_follow_up) : "—" },
+      { label: "FU Status", value: computed.follow_up_status || "—" },
+    ] : []),
   ];
 
   const fuStatusColor = computed.follow_up_status === "OVERDUE" ? "text-destructive" : computed.follow_up_status === "TODAY" ? "text-primary" : "text-muted-foreground";
@@ -840,12 +843,14 @@ export default function CustomerDetail() {
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1">Auto-updated when notes are logged</p>
                   </FormField>
+{SHOW_CALL_LOGS && (<>
                   <FormField label="Next Follow-Up Date">
                     <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
                   </FormField>
                   <FormField label="Follow-Up Reason">
                     <Input value={form.follow_up_reason} onChange={(e) => setForm({ ...form, follow_up_reason: e.target.value })} className="h-9" placeholder="e.g. VIP Check-In" />
                   </FormField>
+</>)}
                   <FormField label="Stage (optional)">
                     <Select value={form.new_follow_up_stage || "none"} onValueChange={(v) => setForm({ ...form, new_follow_up_stage: v === "none" ? "" : v })}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -1016,6 +1021,7 @@ export default function CustomerDetail() {
             )}
           </CardContent>
         </Card>
+        {SHOW_CALL_LOGS && (<>
         {/* Activity — uses same Universal Action Panel as Today */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 gap-2 flex-wrap">
@@ -1104,6 +1110,7 @@ export default function CustomerDetail() {
           </CardContent>
         </Card>
 
+        </>)}
         {/* Universal Action Panel */}
         <UniversalActionPanel
           item={actionPanelItem}
