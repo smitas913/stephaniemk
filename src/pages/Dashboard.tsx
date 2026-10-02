@@ -1,11 +1,7 @@
-import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";import { startOfWeek, endOfWeek } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";import { startOfWeek, endOfWeek } from "date-fns";
 import Layout from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sparkles, ArrowRight, Zap } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import {
   fetchEvents,
   fetchAllLatestNotes,
@@ -15,8 +11,6 @@ import {
   fetchTeamConsultants,
 } from "@/lib/queries";
 
-import QuickBookingDialog from "@/components/QuickBookingDialog";
-import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
@@ -43,104 +37,9 @@ function getDailyQuote(): string {
 }
 
 
-// ─── Quick Add ───
-function QuickAddBar({ onLogged }: { onLogged: () => void }) {
-  const navigate = useNavigate();
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const [careerChatOpen, setCareerChatOpen] = useState(false);
-  const [orderQuery, setOrderQuery] = useState("");
-  const [showOrderSearch, setShowOrderSearch] = useState(false);
-  const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers, enabled: showOrderSearch });
-
-  const orderMatches = useMemo(() => {
-    if (!orderQuery.trim()) return [];
-    return (customers as any[]).filter((c: any) => c.full_name?.toLowerCase().includes(orderQuery.toLowerCase())).slice(0, 5);
-  }, [customers, orderQuery]);
-
-  return (
-    <>
-      <Card className="border-primary/20 shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <CardTitle className="text-sm font-semibold text-foreground">Quick Add</CardTitle>
-            <span className="text-[11px] text-muted-foreground ml-auto">Tap to log</span>
-          </div>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-2">
-          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => setBookingOpen(true)}>
-            <span className="text-2xl">📅</span>
-            <span className="text-xs font-semibold">Booking</span>
-          </Button>
-          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => setCareerChatOpen(true)}>
-            <span className="text-2xl">💬</span>
-            <span className="text-xs font-semibold">Career Chat</span>
-          </Button>
-          <Button variant="outline" className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => { setShowOrderSearch(true); setOrderQuery(""); }}>
-            <span className="text-2xl">🛒</span>
-            <span className="text-xs font-semibold">Order</span>
-          </Button>
-        </CardContent>
-
-        {/* Order quick search */}
-        {showOrderSearch && (
-          <CardContent className="pt-0 space-y-2">
-            <div className="flex gap-2">
-              <Input
-                autoFocus
-                placeholder="Search customer name..."
-                value={orderQuery}
-                onChange={e => setOrderQuery(e.target.value)}
-                className="h-9 text-sm"
-              />
-              <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setShowOrderSearch(false); setOrderQuery(""); }}>
-                Cancel
-              </Button>
-            </div>
-            {orderQuery.trim() && (
-              <div className="border border-border rounded-lg divide-y divide-border/40">
-                {orderMatches.length > 0 ? orderMatches.map((c: any) => (
-                  <button key={c.id} className="w-full text-left px-3 py-2 hover:bg-muted/50 text-sm transition-colors"
-                    onClick={() => { navigate(`/orders/new?customer=${c.id}`); setShowOrderSearch(false); }}>
-                    {c.full_name}
-                    {c.phone && <span className="text-xs text-muted-foreground ml-2">{c.phone}</span>}
-                  </button>
-                )) : (
-                  <div className="px-3 py-2 space-y-1">
-                    <p className="text-xs text-muted-foreground">No match — add as new customer?</p>
-                    <Button size="sm" variant="outline" className="h-7 text-xs"
-                      onClick={() => { navigate(`/orders/new`); setShowOrderSearch(false); }}>
-                      New customer + order
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
-
-      <QuickBookingDialog
-        open={bookingOpen}
-        onOpenChange={setBookingOpen}
-        onBooked={onLogged}
-      />
-      <QuickCareerChatDialog
-        open={careerChatOpen}
-        onOpenChange={setCareerChatOpen}
-        onLogged={onLogged}
-      />
-    </>
-  );
-}
-
 // ─── Main ───
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+
 
   
   const { data: events = [] } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
@@ -179,12 +78,6 @@ export default function Dashboard() {
   const dailyQuote = getDailyQuote();
   const weekLabel = `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["notes-all"] });
-    queryClient.invalidateQueries({ queryKey: ["customers"] });
-    queryClient.invalidateQueries({ queryKey: ["events"] });
-    queryClient.invalidateQueries({ queryKey: ["daily-focus-progress"] });
-  };
 
   return (
     <Layout>
@@ -196,11 +89,6 @@ export default function Dashboard() {
             <p className="text-sm font-semibold text-foreground italic whitespace-normal break-words text-wrap">"{dailyQuote}"</p>
             <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline mt-1">· {weekLabel}</span>
           </div>
-        </div>
-
-        {/* QUICK ADD */}
-        <div className="max-w-xl">
-          <QuickAddBar onLogged={invalidateAll} />
         </div>
 
         {/* WEEKLY + MONTHLY ACTUALS — side-by-side on desktop, stacked on mobile */}
