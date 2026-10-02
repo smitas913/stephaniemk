@@ -412,7 +412,7 @@ export default function RestoreContactDates() {
             )}
 
             <div className="flex gap-3">
-              <Button onClick={() => navigate("/follow-ups")}>
+              <Button onClick={() => navigate("/dashboard")}>
                 View Follow-Ups <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
               <Button variant="outline" onClick={() => navigate("/customers")}>

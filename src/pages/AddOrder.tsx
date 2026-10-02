@@ -633,7 +633,7 @@ export default function AddOrder() {
         setAttempted(false);
       } else {
         // Save Order → navigate to Today page
-        navigate("/follow-ups");
+        navigate("/dashboard");
       }
 
     } catch (err: any) {

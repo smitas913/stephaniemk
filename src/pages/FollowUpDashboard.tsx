@@ -21,7 +21,6 @@ import {
   MessageSquare,
   Calendar as CalendarLucide,
   Target,
-  CheckCircle2,
   Gauge,
   ArrowRight,
 } from "lucide-react";
@@ -294,6 +293,10 @@ export default function FollowUpDashboard() {
                 >
                   Analytics
                 </button>
+                . For sales and profit per event, see{" "}
+                <button className="underline hover:text-primary" onClick={() => navigate("/event-results")}>
+                  Event Results
+                </button>
                 .
               </p>
             </div>
@@ -424,26 +427,6 @@ export default function FollowUpDashboard() {
                     emphasis="good"
                   />
                   <EfficiencyCard
-                    label="Booking Conversion"
-                    value={`${m.conversionRate.toFixed(1)}%`}
-                    subtitle={`${m.bookingsCount} booked / ${m.bookingAttempts} attempts`}
-                    icon={TrendingUp}
-                    emphasis="good"
-                  />
-                  <EfficiencyCard
-                    label="Follow-up Completion"
-                    value={`${m.followUpCompletionRate.toFixed(1)}%`}
-                    subtitle={`${m.completedCount} completed / ${m.dueCount} due`}
-                    icon={CheckCircle2}
-                    emphasis={
-                      m.followUpCompletionRate >= 70
-                        ? "good"
-                        : m.followUpCompletionRate >= 40
-                          ? "neutral"
-                          : "warn"
-                    }
-                  />
-                  <EfficiencyCard
                     label="Hold Rate"
                     value={`${m.holdRate.toFixed(1)}%`}
                     subtitle={`${m.evHeld} held / ${m.evBooked} booked · ${m.evCancelled} cancelled`}
@@ -468,6 +451,10 @@ export default function FollowUpDashboard() {
               or{" "}
               <button className="underline hover:text-primary" onClick={() => navigate("/analytics")}>
                 Analytics
+              </button>
+              , or see sales &amp; profit per event in{" "}
+              <button className="underline hover:text-primary" onClick={() => navigate("/event-results")}>
+                Event Results
               </button>
               .
             </p>

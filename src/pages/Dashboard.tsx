@@ -17,12 +17,10 @@ import {
 
 import QuickBookingDialog from "@/components/QuickBookingDialog";
 import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
-import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
 
-import HostessCoachingCard from "@/components/HostessCoachingCard";
 
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
@@ -198,40 +196,12 @@ export default function Dashboard() {
             <p className="text-sm font-semibold text-foreground italic whitespace-normal break-words text-wrap">"{dailyQuote}"</p>
             <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline mt-1">· {weekLabel}</span>
           </div>
-          <Button onClick={() => navigate("/follow-ups")} size="sm" variant="ghost" className="h-7 text-xs shrink-0">
-            Today
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
-          </Button>
         </div>
 
-        {/* DAILY SUCCESS DRIVERS + QUICK ADD — side by side on desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <div className="lg:col-span-2">
-            <SixMostImportant
-              compact
-              autoCounts={focusAutoCounts}
-              rawData={{ unifiedNotes, allNotes: notes, customers, prospects, bookingLeads, consultants, events } as any}
-              onDetailNavigate={(type, id) => {
-                if (type === "Customer") navigate(`/customers/${id}`, { state: { from: "/dashboard" } });
-                else if (type === "Prospect") navigate(`/prospects/${id}`, { state: { from: "/dashboard" } });
-                else if (type === "Event") navigate(`/events/${id}`, { state: { from: "/dashboard" } });
-                
-                else if (type === "Consultant") navigate("/leadership", { state: { from: "/dashboard", tab: "consultants", consultantId: id } });
-                else if (type === "Hostess") {
-                  const evt = events.find((e: any) => e.id === id);
-                  if (evt) navigate(`/events/${(evt as any).event_id}`, { state: { from: "/dashboard" } });
-                  else navigate("/events");
-                }
-              }}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <QuickAddBar onLogged={invalidateAll} />
-          </div>
+        {/* QUICK ADD */}
+        <div className="max-w-xl">
+          <QuickAddBar onLogged={invalidateAll} />
         </div>
-
-        {/* HOSTESS COACHING REMINDERS (auto from events) */}
-        <HostessCoachingCard />
 
         {/* WEEKLY + MONTHLY ACTUALS — side-by-side on desktop, stacked on mobile */}
         <MomentumScoreboard />

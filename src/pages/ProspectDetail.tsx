@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TextActionButton from "@/components/TextActionButton";
+import { SHOW_CALL_LOGS } from "@/lib/features";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { prospectRequiresNextDate } from "@/lib/prospectFollowUp";
 
@@ -203,7 +204,7 @@ export default function ProspectDetail() {
             {prospect.phone && (
               <>
                 <Button size="sm" variant="outline" asChild title="Call"><a href={`tel:${phoneForLink(prospect.phone)}`}><Phone className="w-4 h-4" /></a></Button>
-                <TextActionButton phone={prospect.phone} trigger="icon-button" />
+                {SHOW_CALL_LOGS && <TextActionButton phone={prospect.phone} trigger="icon-button" />}
               </>
             )}
             {prospect.email && (
@@ -280,7 +281,7 @@ export default function ProspectDetail() {
           const status = prospect.opportunity_status;
           const closedStatuses = ["Converted", "Joined"];
           const overdue = prospect.next_follow_up_date && compareDateOnly(prospect.next_follow_up_date) === -1;
-          if (!overdue || closedStatuses.includes(status)) return null;
+          if (!SHOW_CALL_LOGS || !overdue || closedStatuses.includes(status)) return null;
 
           const invalidate = () => {
             queryClient.invalidateQueries({ queryKey: ["prospect", id] });
@@ -639,6 +640,7 @@ export default function ProspectDetail() {
           </Card>
         )}
 
+        {SHOW_CALL_LOGS && (<>
         {/* Notes Timeline */}
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="pb-2">
@@ -680,6 +682,8 @@ export default function ProspectDetail() {
             )}
           </CardContent>
         </Card>
+
+        </>)}
 
         {/* Delete */}
         <div className="flex justify-end">

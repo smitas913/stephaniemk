@@ -1,3 +1,4 @@
+import { SHOW_CALL_LOGS } from "@/lib/features";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -609,7 +610,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                       <a href={`tel:${phoneForLink(vc.phone)}`}><Phone className="w-3 h-3" />Call</a>
                     </Button>
                   )}
-                  {vc.phone && (
+                  {SHOW_CALL_LOGS && vc.phone && (
                     <TextActionButton phone={vc.phone} trigger="labeled" className="gap-1 h-7 text-xs" />
                   )}
                   {vc.email && (
@@ -687,7 +688,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                 })()}
 
                 {/* Activity Logger - prioritized above contact info */}
-                <ConsultantActivityLogger consultantId={vc.id} consultantName={vc.name} />
+                {SHOW_CALL_LOGS && <ConsultantActivityLogger consultantId={vc.id} consultantName={vc.name} />}
 
                 {/* Career Chat Prospects — unit-owned prospects assigned to this consultant */}
                 <CareerChatProspectsSection consultantId={vc.id} allProspects={allProspects as any[]} />
