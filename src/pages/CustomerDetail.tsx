@@ -932,12 +932,14 @@ export default function CustomerDetail() {
                   </div>
                 </div>
 
-                <SectionHeader title="Follow-Up & Activity" />
+                <SectionHeader title={SHOW_CALL_LOGS ? "Follow-Up & Activity" : "Activity"} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {SHOW_CALL_LOGS && (<>
                   <InfoRow label="Last Contacted" value={formatDateRelative(customer.last_contacted) || "—"} />
                   <InfoRow label="Next Follow-Up" value={formatDate(customer.next_follow_up_date)} />
                   <InfoRow label="Follow-Up Reason" value={customer.follow_up_reason} />
                   <InfoRow label="Stage" value={customer.new_follow_up_stage} />
+                  </>)}
                   <InfoRow
                     label="Last Catalog Sent"
                     value={catalogInfo.lastDate ? formatDateOnly(catalogInfo.lastDate, "MMM d, yyyy") : "—"}
