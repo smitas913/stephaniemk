@@ -80,12 +80,6 @@ export default function Dashboard() {
   const dailyQuote = getDailyQuote();
   const weekLabel = `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["notes-all"] });
-    queryClient.invalidateQueries({ queryKey: ["customers"] });
-    queryClient.invalidateQueries({ queryKey: ["events"] });
-    queryClient.invalidateQueries({ queryKey: ["daily-focus-progress"] });
-  };
 
   return (
     <Layout>
@@ -97,11 +91,6 @@ export default function Dashboard() {
             <p className="text-sm font-semibold text-foreground italic whitespace-normal break-words text-wrap">"{dailyQuote}"</p>
             <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline mt-1">· {weekLabel}</span>
           </div>
-        </div>
-
-        {/* QUICK ADD */}
-        <div className="max-w-xl">
-          <QuickAddBar onLogged={invalidateAll} />
         </div>
 
         {/* WEEKLY + MONTHLY ACTUALS — side-by-side on desktop, stacked on mobile */}
