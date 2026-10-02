@@ -26,7 +26,6 @@ import UserManagement from "./pages/UserManagement";
 import ConsultantRequests from "./pages/ConsultantRequests";
 import ConsultantRequest from "./pages/ConsultantRequest";
 import ImportCustomers from "./pages/ImportCustomers";
-import FollowUps from "./pages/FollowUps";
 import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
 import Leadership from "./pages/Leadership";
@@ -37,14 +36,11 @@ import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import NewEvent from "./pages/NewEvent";
 import Analytics from "./pages/Analytics";
+import EventResults from "./pages/EventResults";
 import RestoreContactDates from "./pages/RestoreContactDates";
 import NotFound from "./pages/NotFound";
-import Campaigns from "./pages/Campaigns";
-import MailingLists from "./pages/MailingLists";
-import Communications from "./pages/Communications";
 import Clients from "./pages/Clients";
 
-import Scripts from "./pages/Scripts";
 import UserSettings from "./pages/UserSettings";
 
 const queryClient = new QueryClient({
@@ -262,6 +258,14 @@ const AppRoutes = () => (
       }
     />
     <Route
+      path="/event-results"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <EventResults />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/events/new"
       element={
         <ProtectedRoute allowedRoles={ADMIN_ROLES}>
@@ -294,14 +298,7 @@ const AppRoutes = () => (
       }
     />
 
-    <Route
-      path="/follow-ups"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <FollowUps />
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/follow-ups" element={<Navigate to="/dashboard" replace />} />
     <Route path="/prospects" element={<Navigate to="/clients?tab=prospects" replace />} />
     <Route
       path="/prospects/:id"
@@ -327,38 +324,10 @@ const AppRoutes = () => (
         </ProtectedRoute>
       }
     />
-    <Route
-      path="/campaigns"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <Campaigns />
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/mailing-lists"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <MailingLists />
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/communications"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <Communications />
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="/scripts"
-      element={
-        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
-          <Scripts />
-        </ProtectedRoute>
-      }
-    />
+    <Route path="/campaigns" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/mailing-lists" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/communications" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/scripts" element={<Navigate to="/dashboard" replace />} />
     <Route
       path="/settings"
       element={
