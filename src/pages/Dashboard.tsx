@@ -17,12 +17,10 @@ import {
 
 import QuickBookingDialog from "@/components/QuickBookingDialog";
 import QuickCareerChatDialog from "@/components/QuickCareerChatDialog";
-import SixMostImportant from "@/components/SixMostImportant";
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
 
-import HostessCoachingCard from "@/components/HostessCoachingCard";
 
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
 import FinancialSnapshot from "@/components/FinancialSnapshot";
