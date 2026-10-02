@@ -610,8 +610,8 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
                       <a href={`tel:${phoneForLink(vc.phone)}`}><Phone className="w-3 h-3" />Call</a>
                     </Button>
                   )}
-                  {vc.phone && (
-                    {SHOW_CALL_LOGS && <TextActionButton phone={vc.phone} trigger="labeled" className="gap-1 h-7 text-xs" />}
+                  {SHOW_CALL_LOGS && vc.phone && (
+                    <TextActionButton phone={vc.phone} trigger="labeled" className="gap-1 h-7 text-xs" />
                   )}
                   {vc.email && (
                     <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" asChild>
