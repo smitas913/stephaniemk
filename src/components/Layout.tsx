@@ -18,6 +18,7 @@ import {
   BookOpen,
   MoreHorizontal,
   FileText,
+  DollarSign,
 
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,9 +35,9 @@ import {
 
 const primaryNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/follow-ups", label: "Today", icon: Clock },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/events", label: "Events", icon: Calendar },
+  { to: "/event-results", label: "Event Results", icon: DollarSign },
   { to: "/orders", label: "Orders", icon: ShoppingBag },
   { to: "/leadership", label: "Leadership", icon: Crown },
 ];
@@ -47,17 +48,12 @@ const secondaryNavItems = [
   { to: "/analytics", label: "Analytics", icon: Target },
   { to: "/expenses", label: "Expenses", icon: Receipt },
   { to: "/register", label: "Register", icon: BookOpen },
-  { to: "/campaigns", label: "Campaigns", icon: BookOpen },
-  { to: "/mailing-lists", label: "Mailing Lists", icon: Mail },
-  { to: "/communications", label: "Comms", icon: MessageSquare },
-  { to: "/scripts", label: "Scripts", icon: FileText },
   { to: "/settings", label: "My Settings", icon: Settings, adminOnly: false },
   { to: "/admin", label: "Admin", icon: Settings, adminOnly: true },
 ];
 
 const consultantNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/follow-ups", label: "Today", icon: Clock },
 ];
 
 function getNavItems(role?: string) {
