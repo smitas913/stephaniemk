@@ -6,7 +6,7 @@ import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DollarSign, CalendarIcon, ArrowUpDown, BarChart3, ListOrdered } from "lucide-react";
+import { DollarSign, CalendarIcon, ArrowUpDown, BarChart3, ListOrdered, TrendingUp } from "lucide-react";
 import { fetchCustomers, fetchOrders, fetchEvents } from "@/lib/queries";
 import type { EventRecord } from "@/lib/types";
 import { personalEvents } from "@/lib/eventScope";
@@ -64,6 +64,23 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
         {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+// Event types averaged separately, so a strong party month doesn't skew
+// facial or guest-event averages.
+const AVERAGE_GROUPS = [
+  { key: "Party", label: "Parties" },
+  { key: "Facial", label: "Facials" },
+  { key: "Guest Event", label: "Guest Events" },
+] as const;
+
+function AvgRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-semibold text-foreground">{value}</dd>
+    </div>
   );
 }
 
@@ -132,6 +149,19 @@ export default function EventResults() {
       types.set(t, cur);
     }
 
+    const averages = AVERAGE_GROUPS.map(({ key, label }) => {
+      const list = rows.filter((r) => (r.ev.event_type || "") === key);
+      return {
+        key,
+        label,
+        count: list.length,
+        sales: round2(list.reduce((s, r) => s + r.sales, 0)),
+        profit: round2(list.reduce((s, r) => s + r.profit, 0)),
+        faces: list.reduce((s, r) => s + r.faces, 0),
+        orders: list.reduce((s, r) => s + r.orders, 0),
+      };
+    });
+
     return {
       rows,
       n,
@@ -139,6 +169,7 @@ export default function EventResults() {
       totalProfit,
       totalFaces,
       totalOrders,
+      averages,
       types: [...types.entries()].sort((a, b) => b[1].sales - a[1].sales),
     };
   }, [customers, orders, allEvents, period]);
@@ -232,12 +263,39 @@ export default function EventResults() {
               <Tile label="Events Held" value={String(n)} />
               <Tile label="Total Faces" value={String(totalFaces)} />
               <Tile label="Profit Margin" value={totalSales > 0 ? `${((totalProfit / totalSales) * 100).toFixed(1)}%` : "—"} />
-              <Tile label="Avg Sales / Event" value={money(n ? totalSales / n : 0)} />
-              <Tile label="Avg Profit / Event" value={money(n ? totalProfit / n : 0)} />
               <Tile label="Avg Sales / Face" value={money(totalFaces ? totalSales / totalFaces : 0)} />
               <Tile label="Avg Order Size" value={money(totalOrders ? totalSales / totalOrders : 0)} sub={`${totalOrders} orders`} />
-              <Tile label="Avg Faces / Event" value={(n ? totalFaces / n : 0).toFixed(1)} />
             </div>
+
+            {/* Averages by type */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">Averages by Event Type</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Parties, facials and guest events averaged separately, so one type doesn't skew another.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {data.averages.map((a) => (
+                    <div key={a.key} className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                      <p className="text-sm font-semibold text-foreground mb-3">{a.label}</p>
+                      <dl className="space-y-1.5 tabular-nums">
+                        <AvgRow label="Events" value={String(a.count)} />
+                        <AvgRow label="Avg Sales / Event" value={a.count ? money(a.sales / a.count) : "—"} />
+                        <AvgRow label="Avg Profit / Event" value={a.count ? money(a.profit / a.count) : "—"} />
+                        <AvgRow label="Avg Faces / Event" value={a.count ? (a.faces / a.count).toFixed(1) : "—"} />
+                        <AvgRow label="Avg Sales / Face" value={a.faces ? money(a.sales / a.faces) : "—"} />
+                        <AvgRow label="Avg Order Size" value={a.orders ? money(a.sales / a.orders) : "—"} />
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* By type */}
             <Card className="border-border/50 shadow-sm">
