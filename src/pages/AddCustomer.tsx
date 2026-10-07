@@ -256,12 +256,12 @@ export default function AddCustomer() {
                 <Input type="date" value={firstOrderDate} onChange={(e) => setFirstOrderDate(e.target.value)} className="h-10" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Date Added</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">First Profile Date</label>
                 <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
-                <p className="text-xs text-muted-foreground mt-1">Defaults to today. Adjust if backdating.</p>
+                <p className="text-xs text-muted-foreground mt-1">The date you first met or entered this person. Change it to backdate.</p>
               </div>
               {relationship === "Customer" && (
-                <div>
+                <div className="sm:col-span-2">
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Became Customer Date</label>
                   <Input type="date" value={becameCustomerDate} onChange={(e) => setBecameCustomerDate(e.target.value)} className="h-10" />
                   <p className="text-xs text-muted-foreground mt-1">When they became a customer.</p>
