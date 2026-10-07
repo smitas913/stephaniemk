@@ -185,13 +185,6 @@ export default function AddOrder() {
     }
   }, [customerId, customers]);
 
-  // Clear event when switching to non-event type
-  useEffect(() => {
-    if (!isEventBased) {
-      setSelectedEventId("");
-    }
-  }, [isEventBased]);
-
   // Prefill from existing order in edit mode
   useEffect(() => {
     if (!isEditMode || !editOrder || editPrefilled) return;
@@ -200,7 +193,7 @@ export default function AddOrder() {
     setCustomerId(o.customer_id || "");
     setCustomerName(o.customer_name || o.customers?.full_name || "");
     setOrderDate(o.order_date || toLocalDateKey());
-    setSelectedEventId(o.event_id || "");
+    setSelectedEventId(o.event_id || o.parent_event_id || "");
     setRetailAmount(o.retail_amount != null ? String(o.retail_amount) : "");
     setWholesaleAmount(o.wholesale_amount != null ? String(o.wholesale_amount) : "");
     setWholesaleManual(o.wholesale_amount != null);
@@ -231,18 +224,11 @@ export default function AddOrder() {
     }
   }, [orderType, faceTypeOverride]);
 
-  // Event options: upcoming first (asc), then past (desc)
+  // Event options: most recent first
   const eventOptions = useMemo(() => {
-    if (!isEventBased) return [];
-    const today = toLocalDateKey();
-    const upcoming = events
-      .filter(e => (e.event_date || "") >= today)
-      .sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
-    const past = events
-      .filter(e => (e.event_date || "") < today)
+    return [...events]
       .sort((a, b) => (b.event_date || "").localeCompare(a.event_date || ""));
-    return [...upcoming, ...past];
-  }, [events, orderType, isEventBased]);
+  }, [events]);
 
   const existingEventIds = useMemo(() => events.map(e => e.event_id), [events]);
 
@@ -483,8 +469,8 @@ export default function AddOrder() {
         }
       }
 
-      let eventId: string | null = null;
-      if (isEventBased && selectedEventId) eventId = selectedEventId;
+      // Event link is saved for every order type — null only when none picked.
+      const eventId: string | null = selectedEventId || null;
 
       // Resolve face_type:
       // - Non-customer → "Non-Customer"
@@ -514,7 +500,7 @@ export default function AddOrder() {
         customer_id: resolvedCustomerId,
         customer_name: resolvedCustomerName,
         order_date: orderDate,
-        event_id: eventId || undefined,
+        event_id: eventId,
         order_type: orderType,
         face_type: resolvedFaceType,
         payment_status: paymentStatus,
@@ -528,7 +514,7 @@ export default function AddOrder() {
         net_received: paymentStatus === "Paid" ? financials.netRevenue : null,
         net_profit: paymentStatus === "Paid" ? financials.netProfit : null,
         notes: notes || (isEditMode ? null : undefined),
-        parent_event_id: isEventBased ? selectedEventId : null,
+        parent_event_id: selectedEventId || null,
         is_myshop_order: !!orderTags.myshop,
         is_cds: isCdsOrder,
         cds_shipping_cost: isCdsOrder ? Math.round((Number(cdsShipping) || 0) * 100) / 100 : 0,
@@ -770,14 +756,13 @@ export default function AddOrder() {
           )}
         </div>
 
-        {/* Event selector — only for event-based types */}
-        {isEventBased && (
-          <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary" />
-                Event <span className="text-muted-foreground font-normal">(optional)</span>
-              </label>
+        {/* Event selector — available for every order type */}
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              Linked event <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
               {selectedEvent && (
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                   <input
@@ -832,7 +817,6 @@ export default function AddOrder() {
               onCreated={(eventId) => setSelectedEventId(eventId)}
             />
           </div>
-        )}
 
         {/* Row 1: Customer (left) + Date (right, inline) */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
