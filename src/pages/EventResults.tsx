@@ -267,6 +267,36 @@ export default function EventResults() {
               <Tile label="Avg Order Size" value={money(totalOrders ? totalSales / totalOrders : 0)} sub={`${totalOrders} orders`} />
             </div>
 
+            {/* Averages by type */}
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base font-semibold text-foreground">Averages by Event Type</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Parties, facials and guest events averaged separately, so one type doesn't skew another.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {data.averages.map((a) => (
+                    <div key={a.key} className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                      <p className="text-sm font-semibold text-foreground mb-3">{a.label}</p>
+                      <dl className="space-y-1.5 tabular-nums">
+                        <AvgRow label="Events" value={String(a.count)} />
+                        <AvgRow label="Avg Sales / Event" value={a.count ? money(a.sales / a.count) : "—"} />
+                        <AvgRow label="Avg Profit / Event" value={a.count ? money(a.profit / a.count) : "—"} />
+                        <AvgRow label="Avg Faces / Event" value={a.count ? (a.faces / a.count).toFixed(1) : "—"} />
+                        <AvgRow label="Avg Sales / Face" value={a.faces ? money(a.sales / a.faces) : "—"} />
+                        <AvgRow label="Avg Order Size" value={a.orders ? money(a.sales / a.orders) : "—"} />
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* By type */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader className="pb-3">
