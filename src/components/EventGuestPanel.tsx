@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus, UserPlus, ScanLine } from "lucide-react";
+import { Trash2, Plus, UserPlus, ScanLine, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,6 +127,66 @@ function GuestAllergiesButton({ value, onSave }: { value: string | null; onSave:
 
 
 
+
+// Inline rename for one guest on this event's guest list. Only the guest row's
+// name changes — the customer record and the event's hostess fields are untouched.
+function GuestNameEdit({ value, onSave }: { value: string; onSave: (name: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (!editing) setDraft(value); }, [value, editing]);
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    setEditing(false);
+    if (!trimmed || trimmed === value.trim()) return;
+    onSave(trimmed);
+  };
+
+  if (!editing) {
+    return (
+      <span className="flex items-center gap-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">{value}</p>
+        <button
+          type="button"
+          aria-label="Edit name"
+          onClick={() => { setDraft(value); setEditing(true); }}
+          className="h-5 w-5 shrink-0 grid place-items-center rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1 w-full max-w-xs">
+      <Input
+        ref={inputRef}
+        aria-label="Guest name"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          else if (e.key === "Escape") { e.preventDefault(); setEditing(false); }
+        }}
+        className="h-7 flex-1 min-w-0 text-sm"
+      />
+      <Button size="sm" className="h-7 w-7 shrink-0 p-0" onClick={commit} aria-label="Save name">
+        <Check className="w-3.5 h-3.5" />
+      </Button>
+      <Button size="sm" variant="ghost" className="h-7 w-7 shrink-0 p-0" onClick={() => setEditing(false)} aria-label="Cancel">
+        <X className="w-3.5 h-3.5" />
+      </Button>
+    </span>
+  );
+}
 
 export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props) {
   const queryClient = useQueryClient();
@@ -602,7 +662,9 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-foreground">{g.name}</p>
+                        <GuestNameEdit value={g.name}
+                          onSave={(v) => updateMutation.mutate({ id: g.id, updates: { name: v } },
+                            { onSuccess: () => toast.success("Guest updated") })} />
                         {isRescheduled && (
                           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
                             Party Rescheduled/Cancelled
@@ -886,7 +948,9 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             {guests.map((g) => (
               <div key={g.id} className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 group">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{g.name}</p>
+                  <GuestNameEdit value={g.name}
+                    onSave={(v) => updateMutation.mutate({ id: g.id, updates: { name: v } },
+                      { onSuccess: () => toast.success("Guest updated") })} />
                   {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
                   {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
                   <GuestSkinTypeSelect value={(g as any).skin_type || null}
