@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DollarSign, CalendarIcon, ArrowUpDown, BarChart3, ListOrdered, TrendingUp } from "lucide-react";
-import { fetchCustomers, fetchOrders, fetchEvents } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, fetchAllEventGuests } from "@/lib/queries";
 import type { EventRecord } from "@/lib/types";
 import { personalEvents } from "@/lib/eventScope";
 import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
@@ -93,6 +93,10 @@ export default function EventResults() {
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: orders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allEvents = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: allGuests = [], isLoading: gLoading } = useQuery({
+    queryKey: ["all-event-guests"],
+    queryFn: fetchAllEventGuests,
+  });
 
   const data = useMemo(() => {
     const { start, end } = getDateRange(period);
@@ -116,11 +120,21 @@ export default function EventResults() {
       }
     }
 
+    // Actual attendance per event: guests marked attending; fall back to the
+    // event's planned guest_count when there's no attended guest list.
+    const attendingByEvent = new Map<string, number>();
+    for (const g of allGuests as any[]) {
+      if (g.attending === true && g.event_id) {
+        attendingByEvent.set(g.event_id, (attendingByEvent.get(g.event_id) || 0) + 1);
+      }
+    }
+
     const rows: Row[] = events.map((ev) => {
       const list = byEvent.get(ev.event_id) || [];
       const sales = round2(list.reduce((s, o) => s + (Number(o.retail_amount) || 0), 0));
       const profit = round2(list.reduce((s, o) => s + orderProfit(o), 0));
-      const faces = Number(ev.guest_count || 0);
+      const attended = attendingByEvent.get(ev.event_id) || 0;
+      const faces = attended > 0 ? attended : Number(ev.guest_count || 0);
       return {
         ev,
         faces,
@@ -172,7 +186,7 @@ export default function EventResults() {
       averages,
       types: [...types.entries()].sort((a, b) => b[1].sales - a[1].sales),
     };
-  }, [customers, orders, allEvents, period]);
+  }, [customers, orders, allEvents, allGuests, period]);
 
   const sortedRows = useMemo(() => {
     const mult = sort.dir === "asc" ? 1 : -1;
@@ -251,7 +265,7 @@ export default function EventResults() {
           </div>
         </div>
 
-        {oLoading || eLoading ? (
+        {oLoading || eLoading || gLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
