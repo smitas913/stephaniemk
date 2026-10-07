@@ -775,22 +775,12 @@ export default function CustomerDetail() {
                       <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormField>
-                  <FormField label="Assigned To">
-                    <Select value={form.assigned_consultant_id || "__me__"} onValueChange={(v) => setForm({ ...form, assigned_consultant_id: v })}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__me__">Me (director)</SelectItem>
-                        {(allConsultants as any[]).map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
                   </FormField>
-                  <FormField label="Date Added">
+                  <FormField label="First Profile Date">
                     <Input type="date" value={form.date_added} onChange={(e) => setForm({ ...form, date_added: e.target.value })} className="h-9" />
+                    <p className="text-[11px] text-muted-foreground mt-1">The date you first met or entered this person. Change it to backdate.</p>
                   </FormField>
                   <FormField label="Became Customer Date">
                     <Input
