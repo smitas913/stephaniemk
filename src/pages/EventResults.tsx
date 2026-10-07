@@ -186,7 +186,7 @@ export default function EventResults() {
       averages,
       types: [...types.entries()].sort((a, b) => b[1].sales - a[1].sales),
     };
-  }, [customers, orders, allEvents, period]);
+  }, [customers, orders, allEvents, allGuests, period]);
 
   const sortedRows = useMemo(() => {
     const mult = sort.dir === "asc" ? 1 : -1;
@@ -265,7 +265,7 @@ export default function EventResults() {
           </div>
         </div>
 
-        {oLoading || eLoading ? (
+        {oLoading || eLoading || gLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
