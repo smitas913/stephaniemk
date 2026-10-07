@@ -39,7 +39,6 @@ export default function AddCustomer() {
   const [notes, setNotes] = useState("");
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
-  const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
   // Beauty Profile — expanded by default so the full card is visible; still collapsible for a quick add.
   const [beautyOpen, setBeautyOpen] = useState(true);
   const [beautyProfile, setBeautyProfile] = useState<BeautyProfile>({});
@@ -93,7 +92,7 @@ export default function AddCustomer() {
         profile_date_first_order_date: firstOrderDate || null,
         notes: notes.trim() || null,
         date_added: dateAdded || toLocalDateKey(),
-        assigned_consultant_id: assignedConsultantId === "__me__" ? null : assignedConsultantId,
+        assigned_consultant_id: null,
         beauty_notes: cleanBeautyProfile(beautyProfile),
         became_customer_date:
           relationship === "Customer"
@@ -257,32 +256,17 @@ export default function AddCustomer() {
                 <Input type="date" value={firstOrderDate} onChange={(e) => setFirstOrderDate(e.target.value)} className="h-10" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Date Added</label>
+                <label className="text-sm font-medium text-foreground mb-1.5 block">First Profile Date</label>
                 <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
-                <p className="text-xs text-muted-foreground mt-1">Defaults to today. Adjust if backdating.</p>
+                <p className="text-xs text-muted-foreground mt-1">The date you first met or entered this person. Change it to backdate.</p>
               </div>
               {relationship === "Customer" && (
-                <div>
+                <div className="sm:col-span-2">
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Became Customer Date</label>
                   <Input type="date" value={becameCustomerDate} onChange={(e) => setBecameCustomerDate(e.target.value)} className="h-10" />
                   <p className="text-xs text-muted-foreground mt-1">When they became a customer.</p>
                 </div>
               )}
-            </div>
-
-            {/* Assigned Consultant */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Assigned To</label>
-              <Select value={assignedConsultantId} onValueChange={setAssignedConsultantId}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__me__">Me (director)</SelectItem>
-                  {(consultants as any[]).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">Who owns this customer relationship.</p>
             </div>
 
             {/* Beauty Profile — collapsible */}

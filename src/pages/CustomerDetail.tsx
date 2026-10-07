@@ -6,7 +6,7 @@ import { MoreVertical, Pencil, ScanLine } from "lucide-react";
 import ScanPhotoDialog from "@/components/ScanPhotoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { computeCustomerFields } from "@/lib/computedFields";
-import { RELATIONSHIP_STATUSES, FOLLOW_UP_STAGES } from "@/lib/types";
+import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import { formatDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -775,22 +775,12 @@ export default function CustomerDetail() {
                       <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormField>
-                  <FormField label="Assigned To">
-                    <Select value={form.assigned_consultant_id || "__me__"} onValueChange={(v) => setForm({ ...form, assigned_consultant_id: v })}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__me__">Me (director)</SelectItem>
-                        {(allConsultants as any[]).map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
                   <FormField label="First Order Date">
                     <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
                   </FormField>
-                  <FormField label="Date Added">
+                  <FormField label="First Profile Date">
                     <Input type="date" value={form.date_added} onChange={(e) => setForm({ ...form, date_added: e.target.value })} className="h-9" />
+                    <p className="text-[11px] text-muted-foreground mt-1">The date you first met or entered this person. Change it to backdate.</p>
                   </FormField>
                   <FormField label="Became Customer Date">
                     <Input
@@ -834,33 +824,6 @@ export default function CustomerDetail() {
                   </FormField>
                 </div>
 
-                {/* Section: Follow-Up & Activity */}
-                <SectionHeader title="Follow-Up & Activity" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormField label="Last Contacted">
-                    <div className="h-9 flex items-center px-3 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
-                      {formatDateRelative(customer.last_contacted) || "No contact logged"}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1">Auto-updated when notes are logged</p>
-                  </FormField>
-{SHOW_CALL_LOGS && (<>
-                  <FormField label="Next Follow-Up Date">
-                    <Input type="date" value={form.next_follow_up_date} min={toLocalDateKey()} onChange={(e) => setForm({ ...form, next_follow_up_date: e.target.value })} className="h-9" />
-                  </FormField>
-                  <FormField label="Follow-Up Reason">
-                    <Input value={form.follow_up_reason} onChange={(e) => setForm({ ...form, follow_up_reason: e.target.value })} className="h-9" placeholder="e.g. VIP Check-In" />
-                  </FormField>
-</>)}
-                  <FormField label="Stage (optional)">
-                    <Select value={form.new_follow_up_stage || "none"} onValueChange={(v) => setForm({ ...form, new_follow_up_stage: v === "none" ? "" : v })}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Stage</SelectItem>
-                        {FOLLOW_UP_STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
-                </div>
 
                 {/* Section: Notes */}
                 <SectionHeader title="Notes" />
