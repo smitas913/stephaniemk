@@ -15,7 +15,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import NewCustomerFollowUpDialog from "@/components/NewCustomerFollowUpDialog";
 import BeautyProfileFields from "@/components/BeautyProfileFields";
 import BirthdayInput from "@/components/BirthdayInput";
 import { EMPTY_BIRTHDAY_VALUE, birthdayColumns, type BirthdayValue } from "@/lib/birthday";
@@ -38,11 +37,9 @@ export default function AddCustomer() {
   const [relationship, setRelationship] = useState("Customer");
   const [firstOrderDate, setFirstOrderDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [nextFollowUp, setNextFollowUp] = useState(toLocalDateKey());
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
   const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
-  const [followUpPrompt, setFollowUpPrompt] = useState<{ id: string; name: string } | null>(null);
   // Beauty Profile — expanded by default so the full card is visible; still collapsible for a quick add.
   const [beautyOpen, setBeautyOpen] = useState(true);
   const [beautyProfile, setBeautyProfile] = useState<BeautyProfile>({});
@@ -95,7 +92,6 @@ export default function AddCustomer() {
         relationship_status: relationship,
         profile_date_first_order_date: firstOrderDate || null,
         notes: notes.trim() || null,
-        next_follow_up_date: nextFollowUp || null,
         date_added: dateAdded || toLocalDateKey(),
         assigned_consultant_id: assignedConsultantId === "__me__" ? null : assignedConsultantId,
         beauty_notes: cleanBeautyProfile(beautyProfile),
@@ -107,12 +103,7 @@ export default function AddCustomer() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
-      if (relationship === "Customer") {
-        // Show 2+2+2 prompt before navigating
-        setFollowUpPrompt({ id: data.id, name: name.trim() });
-      } else {
-        navigate(`/customers/${data.id}`);
-      }
+      navigate(`/customers/${data.id}`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -266,10 +257,6 @@ export default function AddCustomer() {
                 <Input type="date" value={firstOrderDate} onChange={(e) => setFirstOrderDate(e.target.value)} className="h-10" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">Next Follow-Up</label>
-                <Input type="date" value={nextFollowUp} min={toLocalDateKey()} onChange={(e) => setNextFollowUp(e.target.value)} className="h-10" />
-              </div>
-              <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Date Added</label>
                 <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
                 <p className="text-xs text-muted-foreground mt-1">Defaults to today. Adjust if backdating.</p>
@@ -339,16 +326,6 @@ export default function AddCustomer() {
           </CardContent>
         </Card>
       </div>
-      <NewCustomerFollowUpDialog
-        customerId={followUpPrompt?.id ?? null}
-        customerName={followUpPrompt?.name ?? ""}
-        open={!!followUpPrompt}
-        onClose={() => {
-          const id = followUpPrompt?.id;
-          setFollowUpPrompt(null);
-          if (id) navigate(`/customers/${id}`);
-        }}
-      />
     </Layout>
   );
 }
