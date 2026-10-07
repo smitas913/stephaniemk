@@ -269,21 +269,6 @@ export default function AddCustomer() {
               )}
             </div>
 
-            {/* Assigned Consultant */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Assigned To</label>
-              <Select value={assignedConsultantId} onValueChange={setAssignedConsultantId}>
-                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__me__">Me (director)</SelectItem>
-                  {(consultants as any[]).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">Who owns this customer relationship.</p>
-            </div>
-
             {/* Beauty Profile — collapsible */}
             <div className="rounded-lg border border-border/60">
               <button
