@@ -39,7 +39,6 @@ export default function AddCustomer() {
   const [notes, setNotes] = useState("");
   const [dateAdded, setDateAdded] = useState(toLocalDateKey());
   const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
-  const [assignedConsultantId, setAssignedConsultantId] = useState<string>("__me__");
   // Beauty Profile — expanded by default so the full card is visible; still collapsible for a quick add.
   const [beautyOpen, setBeautyOpen] = useState(true);
   const [beautyProfile, setBeautyProfile] = useState<BeautyProfile>({});
@@ -93,7 +92,7 @@ export default function AddCustomer() {
         profile_date_first_order_date: firstOrderDate || null,
         notes: notes.trim() || null,
         date_added: dateAdded || toLocalDateKey(),
-        assigned_consultant_id: assignedConsultantId === "__me__" ? null : assignedConsultantId,
+        assigned_consultant_id: null,
         beauty_notes: cleanBeautyProfile(beautyProfile),
         became_customer_date:
           relationship === "Customer"
