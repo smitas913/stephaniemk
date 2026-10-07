@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DollarSign, CalendarIcon, ArrowUpDown, BarChart3, ListOrdered, TrendingUp } from "lucide-react";
-import { fetchCustomers, fetchOrders, fetchEvents } from "@/lib/queries";
+import { fetchCustomers, fetchOrders, fetchEvents, fetchAllEventGuests } from "@/lib/queries";
 import type { EventRecord } from "@/lib/types";
 import { personalEvents } from "@/lib/eventScope";
 import { toLocalDateKey, formatDateOnly } from "@/lib/dateOnly";
@@ -93,6 +93,10 @@ export default function EventResults() {
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: orders = [], isLoading: oLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: allEvents = [], isLoading: eLoading } = useQuery({ queryKey: ["events"], queryFn: fetchEvents });
+  const { data: allGuests = [], isLoading: gLoading } = useQuery({
+    queryKey: ["all-event-guests"],
+    queryFn: fetchAllEventGuests,
+  });
 
   const data = useMemo(() => {
     const { start, end } = getDateRange(period);
