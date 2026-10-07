@@ -28,6 +28,28 @@ import { autoLogCareerChat, isCareerChatEventType } from "@/lib/careerChatAutoLo
 const BUSINESS_EVENT_TYPES = new Set(["Sharing Appointment", "Career Chat", "Pearl Appointment"]);
 const isBusinessType = (t: string | null | undefined) => !!t && BUSINESS_EVENT_TYPES.has(t);
 
+type QuickFilter = "all" | "needs-update" | "upcoming" | "held" | "cancelled" | "reschedule";
+const QUICK_FILTERS: { key: QuickFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "needs-update", label: "Needs update" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "held", label: "Held" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "reschedule", label: "Reschedule" },
+];
+
+const matchesQuickFilter = (e: EventRecord, filter: QuickFilter, today: string) => {
+  const date = e.event_date?.slice(0, 10);
+  switch (filter) {
+    case "needs-update": return !!date && date < today && e.event_status === "Booked";
+    case "upcoming": return !!date && date >= today && e.event_status !== "Cancelled";
+    case "held": return e.event_status === "Held";
+    case "cancelled": return e.event_status === "Cancelled";
+    case "reschedule": return e.reschedule_status === "In Process of Rescheduling" || e.reschedule_status === "Rescheduled";
+    default: return true;
+  }
+};
+
 
 const statusColor = (s: string) => {
   switch (s) {
@@ -49,6 +71,7 @@ export default function Events() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [formatFilter, setFormatFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -241,10 +264,24 @@ export default function Events() {
     return { productEvents, businessEvents };
   }, [filtered]);
 
-  const activeEvents = categoryTab === "business" ? businessEvents : productEvents;
+  const tabEvents = categoryTab === "business" ? businessEvents : productEvents;
   const isBusiness = categoryTab === "business";
 
   const todayStr = toLocalDateKey();
+  const quickFilterCounts = useMemo(() =>
+    Object.fromEntries(QUICK_FILTERS.map(({ key }) => [
+      key, tabEvents.filter((e) => matchesQuickFilter(e, key, todayStr)).length,
+    ])) as Record<QuickFilter, number>,
+    [tabEvents, todayStr]
+  );
+  const activeEvents = useMemo(() =>
+    tabEvents.filter((e) => matchesQuickFilter(e, quickFilter, todayStr)),
+    [tabEvents, quickFilter, todayStr]
+  );
+  const flatEvents = useMemo(() => [...activeEvents].sort((a, b) => {
+    const comparison = (a.event_date?.slice(0, 10) || "").localeCompare(b.event_date?.slice(0, 10) || "");
+    return quickFilter === "needs-update" ? comparison : -comparison;
+  }), [activeEvents, quickFilter]);
   const { upcoming, past } = useMemo(() => {
     const sortAsc = [...activeEvents].sort((a, b) => (a.event_date || "").localeCompare(b.event_date || ""));
     const upcoming = sortAsc
@@ -769,6 +806,25 @@ export default function Events() {
           </Popover>
         </div>
 
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Quick event filters">
+          {QUICK_FILTERS.map(({ key, label }) => (
+            <Button
+              key={key}
+              variant={quickFilter === key ? "default" : "outline"}
+              size="sm"
+              aria-pressed={quickFilter === key}
+              onClick={() => setQuickFilter(key)}
+              className="h-9 rounded-full gap-1.5 text-xs"
+            >
+              {label}
+              <span className={cn(
+                "min-w-[20px] rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                quickFilter === key ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>{quickFilterCounts[key]}</span>
+            </Button>
+          ))}
+        </div>
+
         {/* Event Tables */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -776,6 +832,8 @@ export default function Events() {
           </div>
         ) : activeEvents.length === 0 ? (
           <p className="text-muted-foreground text-center py-12">No {isBusiness ? "business" : "product"} events found.</p>
+        ) : quickFilter !== "all" ? (
+          <EventSection rows={flatEvents} label={QUICK_FILTERS.find(({ key }) => key === quickFilter)?.label || "Events"} />
         ) : (
           <div className="space-y-6">
             <EventSection rows={upcoming} label="Upcoming" />
