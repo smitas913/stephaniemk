@@ -120,11 +120,21 @@ export default function EventResults() {
       }
     }
 
+    // Actual attendance per event: guests marked attending; fall back to the
+    // event's planned guest_count when there's no attended guest list.
+    const attendingByEvent = new Map<string, number>();
+    for (const g of allGuests as any[]) {
+      if (g.attending === true && g.event_id) {
+        attendingByEvent.set(g.event_id, (attendingByEvent.get(g.event_id) || 0) + 1);
+      }
+    }
+
     const rows: Row[] = events.map((ev) => {
       const list = byEvent.get(ev.event_id) || [];
       const sales = round2(list.reduce((s, o) => s + (Number(o.retail_amount) || 0), 0));
       const profit = round2(list.reduce((s, o) => s + orderProfit(o), 0));
-      const faces = Number(ev.guest_count || 0);
+      const attended = attendingByEvent.get(ev.event_id) || 0;
+      const faces = attended > 0 ? attended : Number(ev.guest_count || 0);
       return {
         ev,
         faces,
