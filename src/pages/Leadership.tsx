@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { formatDateOnly, compareDateOnly, toLocalDateKey } from "@/lib/dateOnly";
 import { differenceInDays, parseISO } from "date-fns";
@@ -320,9 +320,9 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
           </Select>
           <p className="text-sm text-muted-foreground">{filtered.length} consultant{filtered.length !== 1 ? "s" : ""}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setShowImport(true)}><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
-          <Button size="sm" variant="outline" onClick={() => { window.location.assign("/intouch-refresh"); }}>InTouch Refresh</Button>
+          <Button size="sm" variant="outline" asChild><Link to="/intouch-refresh">InTouch Refresh</Link></Button>
           <Button size="sm" variant="outline" onClick={() => setShowT6Review(true)}>
             T6 Review{consultants.filter(isT6Flagged).length > 0 ? ` (${consultants.filter(isT6Flagged).length})` : ""}
           </Button>
