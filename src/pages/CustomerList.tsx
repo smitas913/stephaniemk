@@ -294,12 +294,12 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
 
   const content = (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Customers</h2>}
             <p className="text-sm text-muted-foreground">{enriched.filter(c => filterArchive === "active" ? c.is_active !== false : c.is_active === false).length} total · {filtered.length} shown</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" />Add</Button>
