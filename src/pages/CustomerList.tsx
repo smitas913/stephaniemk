@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Search, Archive, ArchiveRestore, Star, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, MessageSquare, Phone, Mail, AlertCircle, Flag, Sparkles, X, FileSpreadsheet, MoreHorizontal, Filter, Camera, FilePenLine } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import PCPImportDialog from "@/components/PCPImportDialog";
+import CustomerExportDialog from "@/components/CustomerExportDialog";
+import { Download, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { openEmail } from "@/lib/emailPreference";
@@ -58,6 +60,7 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
   const [attentionView, setAttentionView] = useState<"all" | "followup" | "missing">("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pcpImportOpen, setPcpImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -291,12 +294,12 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
 
   const content = (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             {!embedded && <h2 className="text-2xl font-bold tracking-tight text-foreground">Customers</h2>}
             <p className="text-sm text-muted-foreground">{enriched.filter(c => filterArchive === "active" ? c.is_active !== false : c.is_active === false).length} total · {filtered.length} shown</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm"><Plus className="w-4 h-4 mr-1" />Add</Button>
@@ -312,6 +315,9 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
+              <Download className="w-4 h-4 mr-1" />Export
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -323,10 +329,15 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
                   Import PCP List
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/intouch-refresh")}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  InTouch Refresh
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
           <PCPImportDialog open={pcpImportOpen} onOpenChange={setPcpImportOpen} />
+          <CustomerExportDialog open={exportOpen} onOpenChange={setExportOpen} />
           <ScanCardDialog open={scanOpen} onOpenChange={setScanOpen} />
         </div>
 

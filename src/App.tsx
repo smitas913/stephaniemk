@@ -26,6 +26,7 @@ import UserManagement from "./pages/UserManagement";
 import ConsultantRequests from "./pages/ConsultantRequests";
 import ConsultantRequest from "./pages/ConsultantRequest";
 import ImportCustomers from "./pages/ImportCustomers";
+import InTouchRefresh from "./pages/InTouchRefresh";
 import Prospects from "./pages/Prospects";
 import ProspectDetail from "./pages/ProspectDetail";
 import Leadership from "./pages/Leadership";
@@ -278,6 +279,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute allowedRoles={ADMIN_ROLES}>
           <EventDetail />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/intouch-refresh"
+      element={
+        <ProtectedRoute allowedRoles={ADMIN_ROLES}>
+          <InTouchRefresh />
         </ProtectedRoute>
       }
     />
