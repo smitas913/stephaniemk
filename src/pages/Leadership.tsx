@@ -322,6 +322,7 @@ function ConsultantsTab({ autoOpenId }: { autoOpenId?: string | null }) {
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setShowImport(true)}><Upload className="w-4 h-4 mr-1" />Import CSV</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate("/intouch-refresh")}>InTouch Refresh</Button>
           <Button size="sm" variant="outline" onClick={() => setShowT6Review(true)}>
             T6 Review{consultants.filter(isT6Flagged).length > 0 ? ` (${consultants.filter(isT6Flagged).length})` : ""}
           </Button>

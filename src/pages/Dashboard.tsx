@@ -14,6 +14,7 @@ import {
 import { computeMetricsForDate } from "@/lib/focusMetrics";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import MomentumScoreboard from "@/components/MomentumScoreboard";
+import InTouchRefreshReminder from "@/components/InTouchRefreshReminder";
 
 
 // BusinessResetBanner removed — replaced by ClientCleanupCard on Today page.
@@ -90,6 +91,8 @@ export default function Dashboard() {
             <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline mt-1">· {weekLabel}</span>
           </div>
         </div>
+
+        <InTouchRefreshReminder />
 
         {/* WEEKLY + MONTHLY ACTUALS — side-by-side on desktop, stacked on mobile */}
         <MomentumScoreboard />
