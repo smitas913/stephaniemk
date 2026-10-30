@@ -3,9 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, ArrowRight } from "lucide-react";
 import { useInTouchImportStatus, isDue } from "@/hooks/useInTouchImportStatus";
+import { useAuth } from "@/hooks/useAuth";
+
+const ADMIN_ROLES = ["owner", "admin"];
 
 export default function InTouchRefreshReminder() {
+  const { profile } = useAuth();
   const { data } = useInTouchImportStatus();
+  // Import upkeep is an owner/admin job — the /intouch-refresh page is admin-only,
+  // so consultants must not see a banner they can't act on.
+  if (!profile || !ADMIN_ROLES.includes(profile.role)) return null;
   if (!data) return null;
   const due = [isDue(data.customers) && "customers", isDue(data.consultants) && "team consultants"].filter(Boolean);
   if (!due.length) return null;
