@@ -12,8 +12,7 @@ export default function InTouchRefreshReminder() {
   const { data } = useInTouchImportStatus();
   // Import upkeep is an owner/admin job — the /intouch-refresh page is admin-only,
   // so consultants must not see a banner they can't act on.
-  // TEMP-NEGATIVE-CONTROL: role check disabled
-  if (false && (!profile || !ADMIN_ROLES.includes(profile.role))) return null;
+  if (!profile || !ADMIN_ROLES.includes(profile.role)) return null;
   if (!data) return null;
   const due = [isDue(data.customers) && "customers", isDue(data.consultants) && "team consultants"].filter(Boolean);
   if (!due.length) return null;
