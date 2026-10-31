@@ -43,6 +43,13 @@
       "when": 1793449996782,
       "tag": "0005_fix_merges_referencing_retired_booking_leads",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793450127359,
+      "tag": "0006_restore_guarded_consultant_merge_access",
+      "breakpoints": true
     }
   ]
 }
