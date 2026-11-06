@@ -74,8 +74,10 @@ export default function AddCustomer() {
   }, [phone, email, existingCustomers, consultants]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      createCustomer({
+    mutationFn: () => {
+      const pd = beautyProfile.profile_date;
+      const profileDate = pd && /^\d{4}-\d{2}-\d{2}$/.test(pd) ? pd : toLocalDateKey();
+      return createCustomer({
         full_name: name.trim(),
         phone: phone.trim() || null,
         email: email.trim() || null,
@@ -95,7 +97,8 @@ export default function AddCustomer() {
           relationship === "Customer"
             ? profileDate
             : null,
-      } as any, { allowDuplicate: true }),
+      } as any, { allowDuplicate: true });
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
