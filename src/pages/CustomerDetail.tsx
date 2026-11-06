@@ -44,8 +44,8 @@ import { normalizeStateAbbreviation } from "@/lib/usStates";
 import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEditFieldDialog";
 import TextActionButton from "@/components/TextActionButton";
 import { SHOW_CALL_LOGS } from "@/lib/features";
-import { logCatalogSent, getLastCatalogInfo, CATALOG_CYCLES, todayKey, type CatalogCycle } from "@/lib/catalogTracking";
-import { BookOpen, Sparkles } from "lucide-react";
+import { todayKey } from "@/lib/catalogTracking";
+import { Sparkles } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import MergePickerDialog from "@/components/MergePickerDialog";
 import { GitMerge } from "lucide-react";
@@ -331,34 +331,6 @@ export default function CustomerDetail() {
     },
   });
 
-  // ─── Catalog Sent quick action ───
-  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
-  const [catalogCycle, setCatalogCycle] = useState<CatalogCycle>("Spring");
-  const [catalogDate, setCatalogDate] = useState<string>(todayKey());
-
-  const catalogInfo = useMemo(() => getLastCatalogInfo(recentUnifiedNotes as any), [recentUnifiedNotes]);
-
-  const catalogSentMutation = useMutation({
-    mutationFn: async () => {
-      return logCatalogSent({
-        customerId: id!,
-        campaignType: catalogCycle,
-        mailingDate: catalogDate,
-        scheduleFollowUp: true,
-      });
-    },
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["customer", id] });
-      queryClient.invalidateQueries({ queryKey: ["customer-unified-notes", id] });
-      queryClient.invalidateQueries({ queryKey: ["all-notes"] });
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
-      setCatalogDialogOpen(false);
-      toast.success(`Catalog logged — follow-up ${formatDateOnly(res.followUpDate)}`);
-    },
-    onError: (err: any) => toast.error(`Failed to log catalog: ${err?.message || "Unknown error"}`),
-  });
-
   // ─── Sample Given quick action ───
   const [sampleDialogOpen, setSampleDialogOpen] = useState(false);
   const [sampleName, setSampleName] = useState("");
@@ -426,18 +398,7 @@ export default function CustomerDetail() {
   }, []);
 
   const applySkipChoice = useCallback(async (choice: SkipChoice) => {
-    if (choice.kind === "pcp") {
-      try {
-        await logCatalogSent({ customerId: id!, campaignType: "Spring", mailingDate: todayKey(), scheduleFollowUp: true });
-        queryClient.invalidateQueries({ queryKey: ["customer", id] });
-        queryClient.invalidateQueries({ queryKey: ["customers"] });
-        queryClient.invalidateQueries({ queryKey: ["all-notes"] });
-        queryClient.invalidateQueries({ queryKey: ["unified-notes"] });
-        queryClient.invalidateQueries({ queryKey: ["follow-up-queue"] });
-        toast.success("Added to PCP — follow-up in 6 days");
-      } catch (err: any) { toast.error(err?.message || "Failed to add to PCP"); }
-      return;
-    }
+    if (choice.kind === "pcp") return;
     if (choice.kind === "clear") {
       skipMutation.mutate({ nextDate: null, noFollowUp: true });
       return;
@@ -892,18 +853,6 @@ export default function CustomerDetail() {
                   <InfoRow label="Follow-Up Reason" value={customer.follow_up_reason} />
                   <InfoRow label="Stage" value={customer.new_follow_up_stage} />
                   </>)}
-                  <InfoRow
-                    label="Last Catalog Sent"
-                    value={catalogInfo.lastDate ? formatDateOnly(catalogInfo.lastDate, "MMM d, yyyy") : "—"}
-                  />
-                  <InfoRow
-                    label="Catalog Cycle"
-                    value={
-                      catalogInfo.lastDate
-                        ? `${catalogInfo.campaignType || "—"}${catalogInfo.cycle ? ` · ${catalogInfo.cycle}` : ""}`
-                        : "—"
-                    }
-                  />
                 </div>
 
                 {customer.notes && (
@@ -1079,7 +1028,6 @@ export default function CustomerDetail() {
           open={skipDialogOpen}
           onOpenChange={setSkipDialogOpen}
           personName={customer?.full_name}
-          allowPcp
           onChoose={applySkipChoice}
         />
 
@@ -1142,47 +1090,6 @@ export default function CustomerDetail() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Sent Catalog Dialog (retained for skip→PCP flow) */}
-        <Dialog open={catalogDialogOpen} onOpenChange={setCatalogDialogOpen}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" />Sent Catalog</DialogTitle>
-              <DialogDescription>
-                Logs a "Catalog Sent" activity and schedules a follow-up 6 days out.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Catalog Cycle *</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {CATALOG_CYCLES.map((c) => (
-                    <Button
-                      key={c}
-                      type="button"
-                      size="sm"
-                      variant={catalogCycle === c ? "default" : "outline"}
-                      className="h-7 text-xs"
-                      onClick={() => setCatalogCycle(c)}
-                    >
-                      {c}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Mailing Date *</label>
-                <Input type="date" value={catalogDate} onChange={(e) => setCatalogDate(e.target.value)} className="h-9" />
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => catalogSentMutation.mutate()}
-                disabled={catalogSentMutation.isPending || !catalogDate}
-              >
-                {catalogSentMutation.isPending ? "Logging…" : "Log Catalog Sent"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         {/* Sample Given Dialog */}
         <Dialog open={sampleDialogOpen} onOpenChange={setSampleDialogOpen}>
