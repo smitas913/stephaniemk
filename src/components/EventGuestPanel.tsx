@@ -2,14 +2,13 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { fetchEventGuests, createEventGuest, deleteEventGuest, updateEventGuest, fetchOrders, createCustomer, fetchTeamConsultants } from "@/lib/queries";
-import { SKIN_TYPES } from "@/lib/types";
+import { findDuplicateEventGuest } from "@/lib/eventGuestDuplicate";
 import type { EventGuest } from "@/lib/types";
 import { formatPhone } from "@/lib/phoneUtils";
 import { usePhotoCapture } from "@/components/CameraCapture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus, UserPlus, ScanLine, Pencil, Check, X } from "lucide-react";
@@ -69,63 +68,6 @@ const OUTCOME_OPTIONS: { key: OutcomeKey; label: string }[] = [
   { key: "joined",  label: "She Joined" },
   { key: "noshow",  label: "No Show" },
 ];
-
-
-function GuestSkinTypeSelect({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
-  return (
-    <Select value={value || "__none__"} onValueChange={(v) => onChange(v === "__none__" ? null : v)}>
-      <SelectTrigger className="h-6 text-[11px] w-40 mt-1"><SelectValue placeholder="Skin type" /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__none__">Skin type not set</SelectItem>
-        {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-      </SelectContent>
-    </Select>
-  );
-}
-
-function GuestAllergiesButton({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value || "");
-  const has = !!(value && value.trim());
-  return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setDraft(value || ""); }}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0 max-w-[120px] truncate",
-            has
-              ? "bg-amber-100 text-amber-800 border-amber-300"
-              : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
-          )}
-          title={has ? (value as string) : "Add allergies note"}
-        >
-          {has ? "Allergies ⚠" : "Allergies"}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-56 p-2 space-y-2">
-        <Input
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="e.g. nuts, fragrance"
-          className="h-7 text-[11px]"
-          onKeyDown={(e) => { if (e.key === "Enter") { onSave(draft.trim() || null); setOpen(false); } }}
-        />
-        <div className="flex gap-1.5">
-          <Button size="sm" className="h-6 px-2 text-[10px] flex-1"
-            onClick={() => { onSave(draft.trim() || null); setOpen(false); }}>Save</Button>
-          {has && (
-            <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]"
-              onClick={() => { onSave(null); setOpen(false); }}>Clear</Button>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-
 
 
 // Inline rename for one guest on this event's guest list. Only the guest row's
@@ -306,11 +248,12 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
   const handleAdd = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    const duplicate = guests.find((g) => {
-      if (linkedCustomerId && g.converted_customer_id === linkedCustomerId) return true;
-      if (linkedConsultantId && (g as any).consultant_id === linkedConsultantId) return true;
-      if (!linkedCustomerId && !linkedConsultantId && g.name?.trim().toLowerCase() === trimmedName.toLowerCase()) return true;
-      return false;
+    const duplicate = findDuplicateEventGuest(guests, {
+      name: trimmedName,
+      phone,
+      email,
+      converted_customer_id: linkedCustomerId,
+      consultant_id: linkedConsultantId,
     });
     if (duplicate) {
       toast.warning(`${duplicate.name} is already on the guest list.`);
@@ -594,8 +537,8 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
       </div>
 
       {showForm && (
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
+        <div className="flex gap-2 min-w-0">
+          <div className="flex-1 min-w-0 relative">
             <input
               placeholder="Name (type to search)"
               value={name}
@@ -625,17 +568,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
             )}
           </div>
           <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)}
-            className="h-8 text-xs w-36" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
-          <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            className="h-8 text-xs w-48" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
-          <Select value={skinType || "__none__"} onValueChange={(v) => setSkinType(v === "__none__" ? "" : v)}>
-            <SelectTrigger className="h-8 text-xs w-44"><SelectValue placeholder="Skin type" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Skin type not set</SelectItem>
-              {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-
+            className="h-8 text-xs w-28 sm:w-36 min-w-0" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
           <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={addMutation.isPending}>Add</Button>
         </div>
       )}
@@ -672,12 +605,10 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         )}
                       </div>
                       {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
-                      {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
-                      <GuestSkinTypeSelect value={(g as any).skin_type || null}
-                        onChange={(v) => updateMutation.mutate({ id: g.id, updates: { skin_type: v } as any })} />
 
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
+                      <span className="text-[10px] text-muted-foreground mr-1">Referrals</span>
                       <button
                         type="button"
                         onClick={() => bumpReferrals(g, -1)}
@@ -700,34 +631,7 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                         aria-label="Increase referrals"
                       >+</button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => updateMutation.mutate({ id: g.id, updates: { video_watched: !(g as any).video_watched } as any })}
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
-                        (g as any).video_watched
-                          ? "bg-green-100 text-green-700 border-green-200"
-                          : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
-                      )}
-                    >
-                      {(g as any).video_watched ? "Video ✓" : "Video"}
-                    </button>
-                    <GuestAllergiesButton
-                      value={(g as any).allergies || null}
-                      onSave={(v) => updateMutation.mutate({ id: g.id, updates: { allergies: v } as any })}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
-                        g.thank_you_sent
-                          ? "bg-green-100 text-green-700 border-green-200"
-                          : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
-                      )}
-                    >
-                      {g.thank_you_sent ? "TY ✓" : "TY Note"}
-                    </button>
+
                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
                       onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
                       <Trash2 className="w-3 h-3 text-destructive" />
@@ -937,21 +841,19 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
           // ── PRE-EVENT: simple list with Confirmed badge ──
           <div className="space-y-1.5">
             {guests.map((g) => (
-              <div key={g.id} className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 group">
+              <div key={g.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-3 py-2 group">
                 <div className="flex-1 min-w-0">
                   <GuestNameEdit value={g.name}
                     onSave={(v) => updateMutation.mutate({ id: g.id, updates: { name: v } },
                       { onSuccess: () => toast.success("Guest updated") })} />
                   {g.phone && <p className="text-[11px] text-muted-foreground">{formatPhone(g.phone)}</p>}
-                  {g.email && <p className="text-[11px] text-muted-foreground truncate">{g.email}</p>}
-                  <GuestSkinTypeSelect value={(g as any).skin_type || null}
-                    onChange={(v) => updateMutation.mutate({ id: g.id, updates: { skin_type: v } as any })} />
 
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 border border-green-200">
                   Confirmed
                 </span>
                 <div className="flex items-center gap-0.5 shrink-0 rounded border border-border bg-muted/40 px-1 py-0.5">
+                      <span className="text-[10px] text-muted-foreground mr-1">Referrals</span>
                   <button
                     type="button"
                     onClick={() => bumpReferrals(g, -1)}
@@ -974,35 +876,8 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     aria-label="Increase referrals"
                   >+</button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => updateMutation.mutate({ id: g.id, updates: { video_watched: !(g as any).video_watched } as any })}
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
-                    (g as any).video_watched
-                      ? "bg-green-100 text-green-700 border-green-200"
-                      : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
-                  )}
-                >
-                  {(g as any).video_watched ? "Video ✓" : "Video"}
-                </button>
-                <GuestAllergiesButton
-                  value={(g as any).allergies || null}
-                  onSave={(v) => updateMutation.mutate({ id: g.id, updates: { allergies: v } as any })}
-                />
-                <button
-                  type="button"
-                  onClick={() => updateMutation.mutate({ id: g.id, updates: { thank_you_sent: !g.thank_you_sent } as any })}
-                  className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded font-medium border shrink-0",
-                    g.thank_you_sent
-                      ? "bg-green-100 text-green-700 border-green-200"
-                      : "bg-muted text-muted-foreground border-border hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
-                  )}
-                >
-                  {g.thank_you_sent ? "TY ✓" : "TY Note"}
-                </button>
-                <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
                   onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
                   <Trash2 className="w-3 h-3 text-destructive" />
                 </Button>
