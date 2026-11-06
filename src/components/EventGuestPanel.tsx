@@ -955,6 +955,7 @@ function ConvertGuestToCustomerDialog({
   dupCheck: { strong: DuplicateMatch | null; softName: DuplicateMatch | null } | null;
   setDupCheck: (v: any) => void;
 }) {
+  const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [mode, setMode] = useState<"manual" | "scan">("manual");
   const [scanFile, setScanFile] = useState<File | null>(null);
@@ -1063,14 +1064,30 @@ function ConvertGuestToCustomerDialog({
   };
 
   const handleConfirm = async () => {
-    const nameForCheck = (mode === "scan" ? scanFields.full_name?.trim() : "") || g.name;
-    const phoneForCheck = (mode === "scan" ? scanFields.phone?.trim() : "") || g.phone;
-    const dup = await checkForDuplicatePerson({ fullName: nameForCheck, phone: phoneForCheck, kind: "customer" });
-    if (dup.strong || dup.softName) {
-      setDupCheck(dup);
-      return;
+    try {
+      const nameForCheck = (mode === "scan" ? scanFields.full_name?.trim() : "") || g.name;
+      const phoneForCheck = (mode === "scan" ? scanFields.phone?.trim() : "") || g.phone;
+      const dup = await checkForDuplicatePerson({ fullName: nameForCheck, phone: phoneForCheck, kind: "customer" });
+      if (dup.strong || dup.softName) {
+        setDupCheck(dup);
+        return;
+      }
+      await performCreate();
+    } catch (e: any) {
+      toast.error(`Couldn't add customer: ${e?.message || "Unknown error"}`);
     }
-    await performCreate();
+  };
+
+  // Full Add Customer form, pre-filled from the guest; links back to this guest and returns to the event.
+  const openFullForm = () => {
+    const params = new URLSearchParams();
+    if (g.name) params.set("name", g.name);
+    if (g.phone) params.set("phone", g.phone);
+    if (g.email) params.set("email", g.email);
+    params.set("linkGuestId", g.id);
+    params.set("returnTo", `/events/${eventId}`);
+    closeAll();
+    navigate(`/customers/new?${params.toString()}`);
   };
 
   const handleScanFile = (f: File) => {
@@ -1135,25 +1152,6 @@ function ConvertGuestToCustomerDialog({
             </DialogDescription>
           </DialogHeader>
           {cameraOverlay}
-
-          {/* Mode switcher */}
-          <div className="flex items-center gap-2 text-xs">
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === "manual" ? "default" : "outline"}
-              onClick={() => { setMode("manual"); resetScan(); }}
-              disabled={pending || scanning}
-            >Quick add</Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === "scan" ? "default" : "outline"}
-              onClick={() => setMode("scan")}
-              disabled={pending || scanning}
-              className="gap-1"
-            >📷 Scan profile card</Button>
-          </div>
 
           {mode === "manual" && (
             <div className="space-y-2">
@@ -1310,10 +1308,14 @@ function ConvertGuestToCustomerDialog({
               <Button variant="outline" onClick={resetScan} disabled={pending}>Start over</Button>
             )}
             <Button
+              variant="outline"
               onClick={handleConfirm}
-              disabled={pending || scanning || (mode === "scan" && !scanExtracted)}
+              disabled={pending || scanning}
             >
-              {pending ? "Saving…" : mode === "scan" ? "Save customer + orders" : "Add customer"}
+              {pending ? "Saving…" : "Quick add"}
+            </Button>
+            <Button onClick={openFullForm} disabled={pending || scanning}>
+              Add customer
             </Button>
           </DialogFooter>
         </DialogContent>
