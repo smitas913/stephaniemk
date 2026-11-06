@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,7 +162,7 @@ export default function MetricDrillDownDialog({
     }
     out.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     return out;
-  }, [metricKey, notes, events, customers, consultants, start, end, customerById, prospectById]);
+  }, [metricKey, allGuests, notes, events, customers, consultants, start, end, customerById, prospectById]);
 
   const handleDelete = async (row: Row) => {
     try {
