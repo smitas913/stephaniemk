@@ -1,0 +1,3 @@
+- [ ] Strengthen event-local guest duplicate detection and test all match rules.
+- [ ] Simplify Details & Hostess and guest controls without changing stored data.
+- [ ] Validate types, tests, and signed-in event pages on desktop and phone.
