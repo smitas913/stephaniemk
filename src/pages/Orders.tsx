@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchOrders, deleteOrder, updateOrder } from "@/lib/queries";
+import { fetchOrders, fetchEvents, deleteOrder, updateOrder } from "@/lib/queries";
 import { ORDER_TYPES, PAYMENT_TYPES, FACE_TYPES } from "@/lib/types";
 import { backfillDefaultDiscountTypes, type DiscountType } from "@/lib/discountTypes";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -57,6 +57,15 @@ export default function Orders() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
+  const { data: allEvents = [] } = useQuery({ queryKey: ["events"], queryFn: () => fetchEvents() });
+  const eventLabelById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of allEvents as any[]) {
+      const name = e.event_title || e.hostess_name || e.event_type || "Event";
+      m.set(e.event_id, e.event_date ? `${name} ${formatDateOnly(e.event_date, "M/d")}` : name);
+    }
+    return m;
+  }, [allEvents]);
   const { data: discountTypes = [] } = useQuery<DiscountType[]>({
     queryKey: ["discount_types"],
     queryFn: backfillDefaultDiscountTypes,
@@ -436,6 +445,8 @@ export default function Orders() {
                         if ((o as any).half_price_deal && !has("Half Price Deal")) tags.push("½ Price");
                         if ((o as any).birthday && !has("Birthday Discount")) tags.push("Bday");
                         if ((o as any).referral && !has("Referral Gift")) tags.push("Referral");
+                        const linkedEv = (o as any).event_id || (o as any).parent_event_id;
+                        if (linkedEv && eventLabelById.has(linkedEv)) tags.unshift(`Event: ${eventLabelById.get(linkedEv)}`);
                         if ((o as any).is_cds) tags.unshift(`CDS $${(Number((o as any).cds_shipping_cost) || 0).toFixed(2)}`);
                         if (tags.length === 0) return <span className="text-muted-foreground">—</span>;
                         const visible = tags.slice(0, 2);
