@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useOriginPath } from "@/hooks/usePreviousLocation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createCustomer, fetchCustomers, fetchTeamConsultants } from "@/lib/queries";
+import { createCustomer, fetchCustomers, fetchTeamConsultants, updateEventGuest } from "@/lib/queries";
 import { toLocalDateKey } from "@/lib/dateOnly";
 import { RELATIONSHIP_STATUSES } from "@/lib/types";
 import { stripPhone, normalizeEmail, formatPhone } from "@/lib/phoneUtils";
@@ -24,10 +24,19 @@ export default function AddCustomer() {
   const navigate = useNavigate();
   const originPath = useOriginPath("/customers");
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  // Optional prefill + guest link when opened from an event's "Add customer" prompt.
+  const linkGuestId = searchParams.get("linkGuestId");
+  const rawReturn = searchParams.get("returnTo");
+  const returnTo = rawReturn && rawReturn.startsWith("/events/") ? rawReturn : null;
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(() => searchParams.get("name") || "");
+  const [phone, setPhone] = useState(() => {
+    const p = searchParams.get("phone") || "";
+    const d = stripPhone(p);
+    return d && d.length === 10 ? formatPhone(d) : p;
+  });
+  const [email, setEmail] = useState(() => searchParams.get("email") || "");
   const [address1, setAddress1] = useState("");
   const [address2, setAddress2] = useState("");
   const [city, setCity] = useState("");
@@ -99,10 +108,18 @@ export default function AddCustomer() {
             : null,
       } as any, { allowDuplicate: true });
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      if (linkGuestId) {
+        try {
+          await updateEventGuest(linkGuestId, { converted_customer_id: data.id } as any);
+          queryClient.invalidateQueries({ queryKey: ["event-guests"] });
+        } catch (e: any) {
+          toast.error(`Customer created, but linking to the guest failed: ${e?.message || e}`);
+        }
+      }
       toast.success("Customer created");
-      navigate(`/customers/${data.id}`);
+      navigate(returnTo || `/customers/${data.id}`);
     },
     onError: (err: Error) => toast.error(err.message),
   });

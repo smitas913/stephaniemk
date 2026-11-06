@@ -3,12 +3,14 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { personalEvents } from "@/lib/eventScope";
+import { attendingFacesByEvent, eventFaces } from "@/lib/eventFaces";
 import {
   fetchMomentumGoals,
   fetchEvents,
   fetchAllLatestNotes,
   fetchCustomers,
   fetchProspects,
+  fetchAllEventGuests,
   type MomentumGoal,
   type MomentumPeriod,
   updateMomentumGoal,
@@ -58,16 +60,17 @@ function computeActuals(
   metricKey: string,
   start: Date,
   end: Date,
-  data: { events: EventRecord[]; notes: Note[]; customers: Customer[]; prospects: Prospect[]; consultants: TeamConsultantRow[] },
+  data: { guests?: any[]; events: EventRecord[]; notes: Note[]; customers: Customer[]; prospects: Prospect[]; consultants: TeamConsultantRow[] },
 ): number {
   const { notes, customers, consultants, prospects } = data;
   const events = personalEvents(data.events);
   switch (metricKey) {
     case "faces": {
-      // 1) Faces from held events (guest_count)
+      // 1) Faces from held events: distinct attending guests, else guest_count
+      const attending = attendingFacesByEvent(data.guests || []);
       const heldEventFaces = events
         .filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end))
-        .reduce((s, e) => s + Number(e.guest_count || 0), 0);
+        .reduce((s, e) => s + eventFaces(e as any, attending), 0);
       // 2) Faces from Quick Add / standalone Face notes
       const quickAddFaces = notes.filter(
         (n) => n.result_type === "Face" && inRange(n.note_date, start, end),
@@ -150,6 +153,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: prospects = [] } = useQuery({ queryKey: ["prospects"], queryFn: fetchProspects });
   const { data: consultants = [] } = useQuery({ queryKey: ["team-consultants-lite"], queryFn: fetchTeamConsultantsLite });
+  const { data: guests = [] } = useQuery({ queryKey: ["all-event-guests"], queryFn: fetchAllEventGuests });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<MomentumGoal> }) => updateMomentumGoal(id, updates),
@@ -166,7 +170,7 @@ export default function MomentumScoreboard({ only }: { only?: "weekly" | "monthl
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
-  const dataBundle = { events, notes, customers, prospects, consultants };
+  const dataBundle = { guests, events, notes, customers, prospects, consultants };
 
   const renderSection = (period: MomentumPeriod, title: string, subtitle: string, start: Date, end: Date) => {
     const sectionGoals = goals
