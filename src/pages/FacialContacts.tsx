@@ -6,11 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Droplets, ScanLine, Search, Calendar, ExternalLink, Loader2, RotateCcw } from "lucide-react";
+import { Droplets, Search, Calendar, ExternalLink, Loader2, RotateCcw } from "lucide-react";
 import { SKIN_TYPES } from "@/lib/types";
 import { fetchFacialContacts, facialContactMatches } from "@/lib/facialContacts";
 import { formatPhone } from "@/lib/phoneUtils";
-import ScanCardDialog from "@/components/ScanCardDialog";
 import FacialContactDetailSheet from "@/components/FacialContactDetailSheet";
 import Layout from "@/components/Layout";
 
@@ -19,7 +18,6 @@ export default function FacialContacts({ embedded = false }: { embedded?: boolea
   const [search, setSearch] = useState("");
   const [skinFilter, setSkinFilter] = useState<string>("all");
   const [rebookOnly, setRebookOnly] = useState(false);
-  const [scanOpen, setScanOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data: contacts = [], isLoading } = useQuery({
@@ -48,12 +46,9 @@ export default function FacialContacts({ embedded = false }: { embedded?: boolea
               Facial Contacts
             </h1>
             <p className="text-sm text-muted-foreground">
-              Scanned profile cards for faces who haven't become customers — kept out of Clients and Leads.
+              Profile cards for faces who haven't become customers — kept out of Clients and Leads.
             </p>
           </div>
-          <Button onClick={() => setScanOpen(true)} className="gap-2">
-            <ScanLine className="w-4 h-4" />Scan Card
-          </Button>
         </div>
       )}
 
@@ -101,7 +96,7 @@ export default function FacialContacts({ embedded = false }: { embedded?: boolea
             <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              {contacts.length === 0 ? "No facial contacts yet. Scan a card to add the first one." : "No matches for that search."}
+              {contacts.length === 0 ? "No facial contacts yet." : "No matches for that search."}
             </p>
           ) : (
             <>
@@ -193,11 +188,6 @@ export default function FacialContacts({ embedded = false }: { embedded?: boolea
         </CardContent>
       </Card>
 
-      <ScanCardDialog
-        open={scanOpen}
-        onOpenChange={setScanOpen}
-        onCreated={() => qc.invalidateQueries({ queryKey: ["facial-contacts"] })}
-      />
       <FacialContactDetailSheet
         contactId={detailId}
         open={Boolean(detailId)}
