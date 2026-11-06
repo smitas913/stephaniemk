@@ -768,9 +768,6 @@ export default function CustomerDetail() {
                       <SelectContent>{RELATIONSHIP_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                     </Select>
                   </FormField>
-                  <FormField label="First Order Date">
-                    <Input type="date" value={form.profile_date_first_order_date} onChange={(e) => setForm({ ...form, profile_date_first_order_date: e.target.value })} className="h-9" />
-                  </FormField>
                   <FormField label="First Profile Date">
                     <Input type="date" value={form.date_added} onChange={(e) => setForm({ ...form, date_added: e.target.value })} className="h-9" />
                     <p className="text-[11px] text-muted-foreground mt-1">The date you first met or entered this person. Change it to backdate.</p>
@@ -877,8 +874,7 @@ export default function CustomerDetail() {
                       ? (allConsultants as any[]).find((c) => c.id === (customer as any).assigned_consultant_id)?.name || "—"
                       : "Me (director)"
                   } />
-                  <InfoRow label="First Order Date" value={formatDate(customer.profile_date_first_order_date)} />
-                  <InfoRow label="Became Customer" value={formatDate((customer as any).became_customer_date) || "—"} />
+                  <InfoRow label="Profile Date" value={formatDate((customer.beauty_notes as { profile_date?: string } | null)?.profile_date || customer.date_added) || "—"} />
                   <div className="flex flex-col gap-0.5 py-1.5">
                     <span className="text-muted-foreground text-xs">Deliveries</span>
                     <span className="text-foreground flex items-center gap-1">
@@ -927,7 +923,6 @@ export default function CustomerDetail() {
                         <InfoRow label="Former Consultant ID" value={fcd.former_consultant_id || "—"} />
                         <InfoRow label="Join Date" value={formatDate(fcd.join_date) || "—"} />
                         <InfoRow label="Last Status" value={fcd.status || "—"} />
-                        <InfoRow label="First Order Date" value={formatDate(fcd.first_order_date) || "—"} />
                         <InfoRow label="First Party Date" value={formatDate(fcd.first_party_date) || "—"} />
                         <InfoRow label="Archived On" value={fcd.archived_at ? formatDate(String(fcd.archived_at).slice(0, 10)) : "—"} />
                       </div>
