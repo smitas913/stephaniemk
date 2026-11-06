@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { fetchEvents, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, fetchTeamConsultants } from "@/lib/queries";
+import { fetchEvents, fetchEventGuests, fetchOrders, upsertEvent, createNote, fetchAllLatestNotes, convertHostessToCustomer, fetchCustomers, fetchZoomDefaults, fetchTeamConsultants } from "@/lib/queries";
 import { supabase } from "@/integrations/supabase/client";
 import { checkForDuplicatePerson } from "@/lib/duplicateCheck";
 import { autoLogCareerChat } from "@/lib/careerChatAutoLog";
@@ -57,6 +57,11 @@ export default function EventDetail() {
     staleTime: 0,
     refetchOnMount: "always",
   });
+  const { data: eventGuests = [] } = useQuery({
+    queryKey: ["event-guests", eventId],
+    queryFn: () => eventId ? fetchEventGuests(eventId) : Promise.resolve([]),
+    enabled: !!eventId,
+  });
   const { data: allOrders = [] } = useQuery({ queryKey: ["orders"], queryFn: () => fetchOrders() });
   const { data: customers = [] } = useQuery({ queryKey: ["customers"], queryFn: fetchCustomers });
   const { data: zoomDefaults } = useQuery({ queryKey: ["zoom-defaults"], queryFn: fetchZoomDefaults });
@@ -82,7 +87,8 @@ export default function EventDetail() {
   const totalSales = linkedOrders.reduce((s, o) => s + Number(o.retail_amount || 0), 0);
   const totalDiscounts = linkedOrders.reduce((s, o: any) => s + Number(o.discount_amount || 0), 0);
   const totalNetProfit = linkedOrders.reduce((s, o: any) => s + Number(o.net_profit || 0), 0);
-  const guestCount = event?.guest_count || 0;
+  const guestCount = eventGuests.length;
+  const bookingsCount = eventGuests.filter((g) => (g as typeof g & { booked?: boolean }).booked === true).length;
   const orderCount = linkedOrders.length;
   const avgOrder = orderCount > 0 ? totalSales / orderCount : 0;
   const convRate = guestCount > 0 ? ((orderCount / guestCount) * 100).toFixed(0) : null;
@@ -492,11 +498,11 @@ export default function EventDetail() {
               </div>
               <div className="bg-muted/40 rounded-lg p-2.5 text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Guests</p>
-                <p className="text-xs font-bold text-purple-600">{guestCount || "—"}</p>
+                <p className="text-xs font-bold text-purple-600">{guestCount}</p>
               </div>
               <div className="bg-muted/40 rounded-lg p-2.5 text-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-0.5">Bookings</p>
-                <p className="text-xs font-bold text-primary">{(event as any)?.future_bookings_count ?? "—"}</p>
+                <p className="text-xs font-bold text-primary">{bookingsCount}</p>
               </div>
             </>
           )}
@@ -627,34 +633,12 @@ export default function EventDetail() {
                           </PopoverContent>
                         </Popover>
                       </div>
-                      {/* Time */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Time</label>
-                        <Input type="time" className="h-8 text-xs" defaultValue={(event as any).event_time || ""} key={`et-${(event as any).event_time}`}
-                          onBlur={(e) => { if (e.target.value !== ((event as any).event_time || "")) updateField("event_time", e.target.value || null); }} />
-                      </div>
                       {/* Event Type */}
                       <div className="space-y-1">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Type</label>
                         <Select value={event.event_type || ""} onValueChange={(val) => { if (val !== (event.event_type || "")) eventMutation.mutate({ event_id: event.event_id, event_type: val }); }}>
                           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select type" /></SelectTrigger>
                           <SelectContent>{EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                        </Select>
-                      </div>
-                      {/* Format */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Format</label>
-                        <Select value={event.event_format || "In-Person"} onValueChange={(val) => {
-                          if (val !== (event.event_format || "In-Person")) {
-                            eventMutation.mutate({ event_id: event.event_id, event_format: val } as any);
-                            if (val === "Virtual" && zoomDefaults?.zoom_link) {
-                              setLocalLocation(zoomDefaults.zoom_link);
-                              updateField("event_location", zoomDefaults.zoom_link);
-                            }
-                          }
-                        }}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>{formatOptions.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       {/* Unified Status */}
@@ -690,142 +674,14 @@ export default function EventDetail() {
                         </Select>
                       </div>
 
-                      {!isSharing && (<>
-                      {/* Results — Guests, Bookings */}
-                      <div className="space-y-1 sm:col-span-2">
-                        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Event Results</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Personal guests</label>
-                            <Input type="number" min={0} className="h-8 text-xs"
-                              defaultValue={(event as any).guest_count || ""}
-                              key={`gc-${(event as any).guest_count}`}
-                              placeholder="0"
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                if (val !== ((event as any).guest_count || 0)) updateField("guest_count", val);
-                              }} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Unit guests</label>
-                            <Input type="number" min={0} className="h-8 text-xs"
-                              defaultValue={(event as any).unit_guest_count ?? ""}
-                              key={`ug-${(event as any).unit_guest_count ?? ""}`}
-                              placeholder="0"
-                              onBlur={(e) => {
-                                const raw = e.target.value;
-                                const val = raw === "" ? null : (parseInt(raw) || 0);
-                                if (val !== ((event as any).unit_guest_count ?? null)) updateField("unit_guest_count", val);
-                              }} />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground mb-1 block">Bookings</label>
-                            <Input type="number" min={0} className="h-8 text-xs"
-                              defaultValue={(event as any).future_bookings_count || ""}
-                              key={`bc-${(event as any).future_bookings_count}`}
-                              placeholder="0"
-                              onBlur={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                if (val !== ((event as any).future_bookings_count || 0)) updateField("future_bookings_count", val);
-                              }} />
-                          </div>
-                        </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Address (optional)</label>
+                        <Input className="h-9 text-sm"
+                          placeholder="Venue name or address"
+                          value={localLocation}
+                          onChange={(e) => setLocalLocation(e.target.value)}
+                          onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
                       </div>
-                      </>)}
-
-
-                      {isSharing ? (
-                        (event.event_format || "In-Person") === "Phone" ? (
-                          <div className="space-y-1.5 sm:col-span-2">
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
-                            <p className="text-sm text-muted-foreground">Phone call — see contact number below.</p>
-                          </div>
-                        ) : (event.event_format || "In-Person") === "Virtual" ? (
-                          <>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Platform</label>
-                              <Select
-                                value={(event as any).virtual_platform || "__none__"}
-                                onValueChange={(val) => updateField("virtual_platform", val === "__none__" ? null : val)}
-                              >
-                                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select platform" /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">Not set</SelectItem>
-                                  <SelectItem value="Zoom">Zoom</SelectItem>
-                                  <SelectItem value="Google Meet">Google Meet</SelectItem>
-                                  <SelectItem value="Other">Other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Link</label>
-                              <div className="flex gap-2">
-                                <Input className="h-9 text-sm"
-                                  placeholder="Meeting link"
-                                  defaultValue={(event as any).virtual_platform_link || ""}
-                                  key={`vpl-${(event as any).virtual_platform_link || ""}`}
-                                  onBlur={(e) => { if (e.target.value !== ((event as any).virtual_platform_link || "")) updateField("virtual_platform_link", e.target.value || null); }} />
-                                {(event as any).virtual_platform_link && (
-                                  <Button size="sm" variant="outline" className="h-9 text-xs shrink-0" asChild>
-                                    <a href={(event as any).virtual_platform_link} target="_blank" rel="noopener noreferrer">Join</a>
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Address</label>
-                            <Input className="h-9 text-sm"
-                              placeholder="Venue name or address"
-                              value={localLocation}
-                              onChange={(e) => setLocalLocation(e.target.value)}
-                              onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
-                          </div>
-                        )
-                      ) : (
-                      /* Location — smart based on format */
-                      (event.event_format || "In-Person") === "Virtual" ? (
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Meeting Link</label>
-                          <Input className="h-9 text-sm"
-                            placeholder="Zoom link or meeting URL"
-                            value={localLocation}
-                            onChange={(e) => setLocalLocation(e.target.value)}
-                            onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
-                          {/* Always show zoom defaults as a quick-fill */}
-                          {(zoomDefaults?.zoom_link || zoomDefaults?.zoom_id) && (
-                            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
-                              <p className="text-xs font-medium text-muted-foreground">Your saved Zoom info:</p>
-                              {zoomDefaults?.zoom_id && (
-                                <p className="text-xs text-foreground">Meeting ID: <span className="font-medium">{zoomDefaults.zoom_id}</span></p>
-                              )}
-                              {zoomDefaults?.zoom_password && (
-                                <p className="text-xs text-foreground">Password: <span className="font-medium">{zoomDefaults.zoom_password}</span></p>
-                              )}
-                              {zoomDefaults?.zoom_link && (
-                                <Button size="sm" variant="outline" className="h-7 text-xs mt-1"
-                                  onClick={() => {
-                                    setLocalLocation(zoomDefaults.zoom_link!);
-                                    updateField("event_location", zoomDefaults.zoom_link);
-                                  }}>
-                                  Use my Zoom link
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Venue Address</label>
-                          <Input className="h-9 text-sm"
-                            placeholder="Venue name or address"
-                            value={localLocation}
-                            onChange={(e) => setLocalLocation(e.target.value)}
-                            onBlur={(e) => { if (e.target.value !== ((event as any).event_location || "")) updateField("event_location", e.target.value || null); }} />
-                        </div>
-                      )
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -842,98 +698,20 @@ export default function EventDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</label>
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hostess Name</label>
                         <Input className="h-9 text-sm" defaultValue={event.hostess_name || ""} key={`hn-${event.hostess_name}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_name || "")) updateField("hostess_name", e.target.value || null); }} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</label>
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hostess Phone</label>
                         <Input className="h-9 text-sm" defaultValue={event.hostess_phone || ""} key={`hp-${event.hostess_phone}`}
                           onBlur={(e) => { if (e.target.value !== (event.hostess_phone || "")) updateField("hostess_phone", e.target.value || null); }} />
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
-                        <Input className="h-9 text-sm" defaultValue={event.hostess_email || ""} key={`he-${event.hostess_email}`}
-                          onBlur={(e) => { if (e.target.value !== (event.hostess_email || "")) updateField("hostess_email", e.target.value || null); }} />
-                      </div>
-                      {!isSharing && (<>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Skin Type</label>
-                        <Select
-                          value={(event as any).hostess_skin_type || "__none__"}
-                          onValueChange={(val) => updateField("hostess_skin_type", val === "__none__" ? null : val)}
-                        >
-                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Not set" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Not set</SelectItem>
-                            {SKIN_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-1.5 sm:col-span-2 flex sm:items-end">
-                        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                          <Checkbox
-                            checked={!!(event as any).hostess_video_watched}
-                            onCheckedChange={(v) => updateField("hostess_video_watched", v === true)}
-                          />
-                          Watched the 2-min video
-                        </label>
-                      </div>
-                      <div className="space-y-1.5 sm:col-span-3">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Where did you meet the hostess?</label>
-                        <Select
-                          value={(event as any).hostess_source || ""}
-                          onValueChange={(val) => updateField("hostess_source", val || null)}
-                        >
-                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select source" /></SelectTrigger>
-                          <SelectContent>
-                            {HOSTESS_SOURCE_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      </>)}
                     </div>
 
-                    {/* Contact + Log + Convert buttons */}
                     <div className="flex gap-2 flex-wrap">
-                      {event.hostess_phone && (
-                        <>
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" asChild>
-                            <a href={`tel:${phoneForLink(event.hostess_phone)}`}><Phone className="w-3 h-3" />Call</a>
-                          </Button>
-                          <TextActionButton phone={event.hostess_phone} trigger="labeled" className="h-8 text-xs" />
-                        </>
-                      )}
-                      {event.hostess_email && (
-                        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" asChild>
-                          <a href={`mailto:${event.hostess_email}`} onClick={(e) => openEmail(event.hostess_email!, e)}><Mail className="w-3 h-3" />Email</a>
-                        </Button>
-                      )}
-                      {event.hostess_name && (
-                        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={openHostessActionPanel}>
-                          <MessageSquare className="w-3 h-3" /> Log Activity
-                        </Button>
-                      )}
-                      {!isSharing && event.hostess_name && (
-                        (existingCustomer || (event as any).hostess_converted_customer_id) ? (
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 text-green-600 border-green-200 cursor-default" disabled>
-                            <CheckCircle2 className="w-3 h-3" /> Already a client
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm" variant="outline"
-                            className="h-8 text-xs gap-1.5"
-                            onClick={() => convertHostessMutation.mutate()}
-                            disabled={convertHostessMutation.isPending}
-                          >
-                            <UserPlus className="w-3 h-3" />
-                            {convertHostessMutation.isPending ? "Converting..." : "Convert to client"}
-                          </Button>
-                        )
-                      )}
                       {!isSharing && (
                       <Button
                         size="sm"
@@ -948,38 +726,6 @@ export default function EventDetail() {
                       </Button>
                       )}
                     </div>
-                    {/* Recent activity */}
-                    {(() => {
-                      const hostessNotes = unifiedNotes
-                        .filter((n: any) => n.entity_type === "Hostess" && event.hostess_name && n.note_body?.includes(event.hostess_name))
-                        .slice(0, 3);
-                      if (hostessNotes.length === 0) return null;
-                      return (
-                        <div className="space-y-1 pt-1">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recent Activity</p>
-                          <div className="divide-y divide-border rounded-lg border border-border">
-                            {hostessNotes.map((note: any, i: number) => (
-                              <div key={i} className="flex items-start gap-3 px-3 py-2">
-                                <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
-                                  {note.note_date ? formatDateOnly(note.note_date, "MMM d") : ""}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium text-foreground">{note.note_type || "Note"}</span>
-                                    {i === 0 && <span className="text-[9px] px-1.5 py-0 rounded-full bg-primary text-primary-foreground font-semibold uppercase tracking-wide">Latest</span>}
-                                  </div>
-                                  {note.note_body && (
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {(note.note_body || "").replace(/^\[.*?\]\s*/, "").slice(0, 100)}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })()}
                   </CardContent>
                 </Card>
                 )} {/* end non-Guest Event hostess */}
