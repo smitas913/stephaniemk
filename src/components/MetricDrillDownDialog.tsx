@@ -4,6 +4,8 @@ import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isW
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { personalEvents } from "@/lib/eventScope";
+import { attendingFacesByEvent, eventFaces } from "@/lib/eventFaces";
+import { fetchAllEventGuests } from "@/lib/queries";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +77,7 @@ export default function MetricDrillDownDialog({
     return { start: customStart ?? defaultStart, end: customEnd ?? defaultEnd };
   }, [rangeMode, customStart, customEnd]);
 
+  const { data: allGuests = [] } = useQuery({ queryKey: ["all-event-guests"], queryFn: fetchAllEventGuests, enabled: open });
   const customerById = useMemo(() => new Map(customers.map((c) => [c.id, c])), [customers]);
   const prospectById = useMemo(() => new Map(prospects.map((p) => [p.id, p])), [prospects]);
 
@@ -86,8 +89,9 @@ export default function MetricDrillDownDialog({
     const out: Row[] = [];
     if (metricKey === "faces") {
       // Held event guest counts
+      const attending = attendingFacesByEvent(allGuests as any[]);
       personalEvents(events).filter((e) => e.event_status === "Held" && inRange(e.event_date, start, end)).forEach((e) => {
-        const gc = Number(e.guest_count || 0);
+        const gc = eventFaces(e as any, attending);
         if (gc > 0) {
           out.push({
             id: `evt-${e.id}`,
