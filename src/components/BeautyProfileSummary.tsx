@@ -25,6 +25,12 @@ function Chips({ items }: { items: string[] }) {
 export default function BeautyProfileSummary({ profile }: { profile: BeautyProfile }) {
   return (
     <div className="space-y-3 text-sm">
+      {(profile.text_ok || profile.profile_date) && (
+        <div className="flex flex-wrap justify-between gap-2 text-xs">
+          <span>{profile.text_ok ? `Text OK: ${profile.text_ok === "Y" ? "Yes" : "No"}` : ""}</span>
+          {profile.profile_date && <span className="text-muted-foreground">Date: {formatDateOnly(profile.profile_date)}</span>}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2">
         {profile.skin_type && <Row label="Skin Type">{profile.skin_type}</Row>}
         {profile.foundation_type && <Row label="Foundation Type">{profile.foundation_type}</Row>}
@@ -35,8 +41,8 @@ export default function BeautyProfileSummary({ profile }: { profile: BeautyProfi
         <Row label="Would enjoy at next appointment"><Chips items={profile.appointment_interests} /></Row>
       ) : null}
       {profile.notes && <Row label="Notes"><div className="whitespace-pre-wrap">{profile.notes}</div></Row>}
-      {profile.profile_updated_at && (
-        <p className="text-[11px] text-muted-foreground">Profile updated {formatDateOnly(profile.profile_updated_at)}</p>
+      {(profile.profile_date || profile.profile_updated_at) && (
+        <p className="text-[11px] text-muted-foreground">Profile updated {formatDateOnly(profile.profile_date || profile.profile_updated_at!)}</p>
       )}
     </div>
   );
