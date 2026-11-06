@@ -13,9 +13,10 @@ import { toast } from "sonner";
 import { type FacialContact } from "@/lib/types";
 import { fetchFacialContact, updateFacialContact, deleteFacialContact } from "@/lib/facialContacts";
 import BeautyProfileFields from "@/components/BeautyProfileFields";
+import { toLocalDateKey } from "@/lib/dateOnly";
 import {
-  cleanBeautyProfile,
   derivedSkinType,
+  mergeBeautyProfileForSave,
   parseBeautyProfile,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
@@ -66,10 +67,10 @@ export default function FacialContactDetailSheet({
       for (const f of TEXT_FIELDS) patch[f.key as string] = (draft as any)[f.key] || null;
       patch.notes = draft.notes || null;
       patch.interested_in_rebooking = (draft as any).interested_in_rebooking ?? false;
-      const clean = cleanBeautyProfile(profile);
-      patch.beauty_notes = clean;
-      patch.skin_type = derivedSkinType(clean);
-      patch.foundation_shade = clean.foundation_shade || null;
+      const merged = mergeBeautyProfileForSave((contact as any)?.beauty_notes, profile, toLocalDateKey());
+      patch.beauty_notes = merged;
+      patch.skin_type = derivedSkinType(parseBeautyProfile(merged)) ?? (contact as any)?.skin_type ?? null;
+      patch.foundation_shade = (merged.foundation_shade as string | undefined) || null;
       if (!String(patch.full_name || "").trim()) throw new Error("Full name is required");
       return updateFacialContact(contactId, patch as Partial<FacialContact>);
     },
@@ -100,7 +101,7 @@ export default function FacialContactDetailSheet({
         <SheetHeader>
           <SheetTitle>{contact?.full_name || "Facial contact"}</SheetTitle>
           <SheetDescription>
-            Everything captured from the scanned card, including the full Beauty Profile — fill in anything the card left blank.
+            Contact details and Beauty Profile from the paper card.
           </SheetDescription>
         </SheetHeader>
 

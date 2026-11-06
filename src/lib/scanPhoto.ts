@@ -414,7 +414,7 @@ export async function applyScanToExistingCustomer(opts: {
   const incomingProfile = cleanBeautyProfile(opts.beautyProfile || {});
   if (Object.keys(incomingProfile).length > 0) {
     updates.beauty_notes = cleanBeautyProfile({
-      ...parseBeautyProfile(customer.beauty_notes),
+      ...((customer.beauty_notes && typeof customer.beauty_notes === "object" ? customer.beauty_notes : {}) as BeautyProfile),
       ...incomingProfile,
     });
   }

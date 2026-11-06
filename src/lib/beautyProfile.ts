@@ -74,8 +74,47 @@ export type WishListReferral = {
   contact?: string;
 };
 
+export const SKIN_TYPE_OPTIONS = ["Oily", "Dry", "Combination", "Normal"] as const;
+export const SKIN_CONCERN_OPTIONS = [
+  "Sensitivity",
+  "Dryness",
+  "Dark Spots",
+  "Large Pores",
+  "Acne",
+  "Wrinkles",
+  "Oiliness",
+  "Uneven Tone",
+] as const;
+export const APPOINTMENT_INTEREST_OPTIONS = [
+  "Flawless Face",
+  "Customized Color",
+  "Glass Skin Facial",
+  "Footsie Party",
+  "Bedtime Facials",
+  "Dash Out the Door",
+] as const;
+
+/** Keys the simplified (paper-card) profile owns. Everything else in beauty_notes is legacy and preserved untouched. */
+export const PROFILE_KEYS = [
+  "skin_type",
+  "skin_concerns",
+  "foundation_type",
+  "foundation_shade",
+  "appointment_interests",
+  "notes",
+  "profile_updated_at",
+] as const;
+
 export type BeautyProfile = {
-  // --- Front of card ---
+  // --- Current simplified profile ---
+  skin_type?: string;
+  skin_concerns?: string[];
+  appointment_interests?: string[];
+  notes?: string;
+  /** YYYY-MM-DD, stamped automatically on save. */
+  profile_updated_at?: string;
+
+  // --- Legacy (hidden, kept only so scan/AI helpers still compile) ---
   hostess?: string;
   date?: string;
   anniversary?: string;
@@ -161,7 +200,7 @@ const MULTI_KEYS: Array<keyof BeautyProfile> = [
 ];
 
 /** Read whatever is in `beauty_notes` and coerce it into a valid BeautyProfile. */
-export function parseBeautyProfile(raw: unknown): BeautyProfile {
+function parseLegacyBeautyProfile(raw: unknown): BeautyProfile {
   const src = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const out: BeautyProfile = {};
 
@@ -208,6 +247,38 @@ export function parseBeautyProfile(raw: unknown): BeautyProfile {
   return out;
 }
 
+/** Read only the simplified-profile keys from `beauty_notes`. Legacy keys are ignored (but never deleted). */
+export function parseBeautyProfile(raw: unknown): BeautyProfile {
+  const src = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const list = (v: unknown, allowed: readonly string[]) =>
+    Array.isArray(v) ? Array.from(new Set(v.map((x) => str(x)).filter((x) => allowed.includes(x)))) : [];
+  const out: BeautyProfile = {};
+  const st = str(src.skin_type);
+  if ((SKIN_TYPE_OPTIONS as readonly string[]).includes(st)) out.skin_type = st;
+  const sc = list(src.skin_concerns, SKIN_CONCERN_OPTIONS);
+  if (sc.length) out.skin_concerns = sc;
+  const ai = list(src.appointment_interests, APPOINTMENT_INTEREST_OPTIONS);
+  if (ai.length) out.appointment_interests = ai;
+  for (const k of ["foundation_type", "foundation_shade", "notes", "profile_updated_at"] as const) {
+    const v = str(src[k]);
+    if (v) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * Build the jsonb to save: keeps every legacy key already stored, overwrites the
+ * simplified-profile keys with the latest answers, and stamps profile_updated_at.
+ */
+export function mergeBeautyProfileForSave(raw: unknown, next: BeautyProfile, today: string): Record<string, unknown> {
+  const base = { ...((raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>) };
+  for (const k of PROFILE_KEYS) delete base[k];
+  const picked: BeautyProfile = {};
+  for (const k of PROFILE_KEYS) if (next[k] !== undefined) (picked as any)[k] = next[k];
+  return { ...base, ...cleanBeautyProfile(picked), profile_updated_at: today };
+}
+
 /** Strip empty values so we never persist noise. */
 export function cleanBeautyProfile(p: BeautyProfile): BeautyProfile {
   const out: BeautyProfile = {};
@@ -236,7 +307,7 @@ export function isBeautyProfileEmpty(p: BeautyProfile): boolean {
 
 /** Everything in the profile as one lowercase string, for free-text search. */
 export function beautyProfileSearchText(raw: unknown): string {
-  const p = parseBeautyProfile(raw);
+  const p = { ...parseLegacyBeautyProfile(raw), ...parseBeautyProfile(raw) };
   const parts: string[] = [];
   (Object.keys(p) as Array<keyof BeautyProfile>).forEach((k) => {
     const v = p[k];
@@ -254,6 +325,14 @@ export function beautyProfileSearchText(raw: unknown): string {
  * is the single source of truth on the profile itself.
  */
 export function derivedSkinType(p: BeautyProfile): string | null {
+  switch (p.skin_type) {
+    case "Oily":
+    case "Combination":
+      return "Combination to Oily";
+    case "Dry":
+    case "Normal":
+      return "Normal to Dry";
+  }
   switch (p.moisturizer_feel) {
     case "Dry/tight":
     case "Neither dry nor oily":
@@ -344,5 +423,9 @@ export function normalizeExtractedBeautyProfile(raw: unknown): BeautyProfile {
     });
   }
 
+  if (p.moisturizer_feel === "Oily") p.skin_type = "Oily";
+  else if (p.moisturizer_feel === "Oily in the T-zone") p.skin_type = "Combination";
+  else if (p.moisturizer_feel === "Dry/tight") p.skin_type = "Dry";
+  else if (p.moisturizer_feel === "Neither dry nor oily") p.skin_type = "Normal";
   return cleanBeautyProfile(p);
 }

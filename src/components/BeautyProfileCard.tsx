@@ -8,12 +8,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import BeautyProfileFields from "@/components/BeautyProfileFields";
 import {
-  cleanBeautyProfile,
   isBeautyProfileEmpty,
+  mergeBeautyProfileForSave,
   parseBeautyProfile,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
 import BeautyProfileSummary from "@/components/BeautyProfileSummary";
+import { toLocalDateKey } from "@/lib/dateOnly";
 
 /**
  * Digital Mary Kay Beauty Profile card (form 10-260112) for a customer.
@@ -39,8 +40,8 @@ export default function BeautyProfileCard({
 
   const save = useMutation({
     mutationFn: async (next: BeautyProfile) => {
-      const clean = cleanBeautyProfile(next);
-      return updateCustomer(customerId, { beauty_notes: clean } as any);
+      const merged = mergeBeautyProfileForSave(value, next, toLocalDateKey());
+      return updateCustomer(customerId, { beauty_notes: merged } as any);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customer", customerId] });
@@ -82,8 +83,7 @@ export default function BeautyProfileCard({
           <BeautyProfileFields value={draft} onChange={setDraft} />
         ) : isBeautyProfileEmpty(saved) ? (
           <p className="text-sm text-muted-foreground">
-            No Beauty Profile yet. Click Edit to fill in the card — age range, skin care needs, foundation, interests and
-            gift-list names — or scan a printed card to fill it in for you.
+            No Beauty Profile yet. Click Edit to fill in skin type, concerns, foundation and what she'd enjoy next.
           </p>
         ) : (
           <BeautyProfileSummary profile={saved} />

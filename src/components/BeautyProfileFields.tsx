@@ -1,167 +1,66 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  AGE_RANGE_OPTIONS,
-  BEST_CONTACT_OPTIONS,
-  BEST_TIME_OPTIONS,
-  EYE_CONCERN_OPTIONS,
-  FOUNDATION_COVERAGE_OPTIONS,
-  FOUNDATION_TEXT_FIELDS,
-  INTEREST_OPTIONS,
-  LIP_CONCERN_OPTIONS,
-  MOISTURIZER_FEEL_OPTIONS,
-  NOTE_FIELDS,
-  OTHER_SKIN_CONCERN_OPTIONS,
-  PRIMARY_SKIN_CARE_NEEDS_OPTIONS,
-  SOCIAL_OPTIONS,
-  TEXT_FIELDS_LABELS,
+  APPOINTMENT_INTEREST_OPTIONS,
+  SKIN_CONCERN_OPTIONS,
+  SKIN_TYPE_OPTIONS,
   type BeautyProfile,
-  type WishListReferral,
 } from "@/lib/beautyProfile";
 
-/** Tap-friendly single-select chip row. */
-function ChipSingle({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly string[];
-  value: string | undefined;
-  onChange: (v: string) => void;
+function Chip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-foreground hover:bg-muted"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ChipSingle({ label, options, value, onChange }: {
+  label: string; options: readonly string[]; value: string | undefined; onChange: (v: string) => void;
 }) {
   return (
     <div>
       <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</Label>
       <div className="flex flex-wrap gap-1.5">
-        {options.map((o) => {
-          const active = value === o;
-          return (
-            <button
-              key={o}
-              type="button"
-              onClick={() => onChange(active ? "" : o)}
-              className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-foreground hover:bg-muted"
-              }`}
-            >
-              {o}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** Tap-friendly multi-select chip row with an "Other" free-text add. */
-function ChipMulti({
-  label,
-  options,
-  value,
-  onChange,
-  allowOther = true,
-}: {
-  label: string;
-  options: readonly string[];
-  value: string[] | undefined;
-  onChange: (v: string[]) => void;
-  allowOther?: boolean;
-}) {
-  const selected = value ?? [];
-  const [other, setOther] = useState("");
-
-  const toggle = (o: string) =>
-    onChange(selected.includes(o) ? selected.filter((x) => x !== o) : [...selected, o]);
-
-  const addOther = () => {
-    const v = other.trim();
-    if (!v) return;
-    if (!selected.some((s) => s.toLowerCase() === v.toLowerCase())) onChange([...selected, v]);
-    setOther("");
-  };
-
-  const custom = selected.filter((s) => !options.includes(s));
-
-  return (
-    <div>
-      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</Label>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {[...options, ...custom].map((o) => {
-          const active = selected.includes(o);
-          return (
-            <button
-              key={o}
-              type="button"
-              onClick={() => toggle(o)}
-              className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-foreground hover:bg-muted"
-              }`}
-            >
-              {o}
-            </button>
-          );
-        })}
-        {allowOther && (
-          <Input
-            className="h-8 w-32 text-xs"
-            placeholder="+ Other"
-            value={other}
-            onChange={(e) => setOther(e.target.value)}
-            onBlur={addOther}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addOther();
-              }
-            }}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-
-
-/** Checkbox group for the card's multi-select lists. */
-function CheckGroup({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly string[];
-  value: string[] | undefined;
-  onChange: (v: string[]) => void;
-}) {
-  const selected = value ?? [];
-  const toggle = (o: string) =>
-    onChange(selected.includes(o) ? selected.filter((x) => x !== o) : [...selected, o]);
-  return (
-    <div>
-      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</Label>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
         {options.map((o) => (
-          <label key={o} className="flex items-start gap-2 text-sm cursor-pointer">
-            <Checkbox checked={selected.includes(o)} onCheckedChange={() => toggle(o)} className="mt-0.5" />
-            <span className="leading-snug">{o}</span>
-          </label>
+          <Chip key={o} label={o} active={value === o} onClick={() => onChange(value === o ? "" : o)} />
         ))}
       </div>
     </div>
   );
 }
 
+function ChipMulti({ label, options, value, onChange }: {
+  label: string; options: readonly string[]; value: string[] | undefined; onChange: (v: string[]) => void;
+}) {
+  const selected = value ?? [];
+  return (
+    <div>
+      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</Label>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <Chip
+            key={o}
+            label={o}
+            active={selected.includes(o)}
+            onClick={() => onChange(selected.includes(o) ? selected.filter((x) => x !== o) : [...selected, o])}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Simplified Beauty Profile matching the paper card. */
 export default function BeautyProfileFields({
   value,
   onChange,
@@ -169,141 +68,35 @@ export default function BeautyProfileFields({
 }: {
   value: BeautyProfile;
   onChange: (next: BeautyProfile) => void;
-  /** Free-text extras (favorite products, routine, etc.) — hidden on the scan review screen. */
   showNotes?: boolean;
 }) {
   const set = (patch: Partial<BeautyProfile>) => onChange({ ...value, ...patch });
 
-  const refs: WishListReferral[] = [0, 1].map((i) => value.wish_list_referrals?.[i] ?? {});
-  const setRef = (i: number, patch: Partial<WishListReferral>) => {
-    const next = [...refs];
-    next[i] = { ...next[i], ...patch };
-    set({ wish_list_referrals: next });
-  };
-
   return (
-    <div className="space-y-6">
-      {/* ---------------- Front of card ---------------- */}
-      <section className="space-y-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Front of card</h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {TEXT_FIELDS_LABELS.map((f) => (
-            <div key={f.key as string}>
-              <Label className="text-xs font-medium text-muted-foreground mb-1 block">{f.label}</Label>
-              <Input
-                className="h-9"
-                type={f.type || "text"}
-                placeholder={f.placeholder}
-                value={(value[f.key] as string) || ""}
-                onChange={(e) => set({ [f.key]: e.target.value } as Partial<BeautyProfile>)}
-              />
-            </div>
-          ))}
+    <div className="space-y-4">
+      <ChipSingle label="Skin Type" options={SKIN_TYPE_OPTIONS} value={value.skin_type} onChange={(v) => set({ skin_type: v })} />
+      <ChipMulti label="Main Skin Concerns" options={SKIN_CONCERN_OPTIONS} value={value.skin_concerns} onChange={(v) => set({ skin_concerns: v })} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-1 block">Foundation Type</Label>
+          <Input className="h-9" placeholder="e.g. TimeWise 3D Matte" value={value.foundation_type || ""} onChange={(e) => set({ foundation_type: e.target.value })} />
         </div>
-
-        <ChipSingle label="Best time to reach me" options={BEST_TIME_OPTIONS} value={value.best_time} onChange={(v) => set({ best_time: v })} />
-        <ChipMulti label="Best way to contact me" options={BEST_CONTACT_OPTIONS} value={value.best_contact} onChange={(v) => set({ best_contact: v })} />
-        <ChipMulti label="Connect with me on social media" options={SOCIAL_OPTIONS} value={value.social} onChange={(v) => set({ social: v })} />
-
-        <CheckGroup
-          label="Interested in learning more about"
-          options={INTEREST_OPTIONS}
-          value={value.interests}
-          onChange={(v) => set({ interests: v })}
-        />
-
-        <div className="space-y-2">
-          <Label className="text-xs font-medium text-muted-foreground block">
-            Who can I share your product wish list with?
-          </Label>
-          <p className="text-[11px] text-muted-foreground">
-            People who might buy her a gift — stored exactly as written on the card.
-          </p>
-          {refs.map((r, i) => (
-            <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Input className="h-9" placeholder={`Name ${i + 1}`} value={r.name || ""} onChange={(e) => setRef(i, { name: e.target.value })} />
-              <Input className="h-9" placeholder="Relationship" value={r.relationship || ""} onChange={(e) => setRef(i, { relationship: e.target.value })} />
-              <Input className="h-9" placeholder="Contact information" value={r.contact || ""} onChange={(e) => setRef(i, { contact: e.target.value })} />
-            </div>
-          ))}
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-1 block">Shade</Label>
+          <Input className="h-9" placeholder="e.g. Beige 3, Ivory 100" value={value.foundation_shade || ""} onChange={(e) => set({ foundation_shade: e.target.value })} />
         </div>
-      </section>
-
-      {/* ---------------- Back of card ---------------- */}
-      <section className="space-y-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Back of card</h4>
-
-        <ChipSingle label="Age Range" options={AGE_RANGE_OPTIONS} value={value.age_range} onChange={(v) => set({ age_range: v })} />
-        <CheckGroup
-          label="Primary Skin Care Needs"
-          options={PRIMARY_SKIN_CARE_NEEDS_OPTIONS}
-          value={value.primary_skin_care_needs}
-          onChange={(v) => set({ primary_skin_care_needs: v })}
-        />
-        <ChipSingle
-          label="If I don't use moisturizer, my skin feels"
-          options={MOISTURIZER_FEEL_OPTIONS}
-          value={value.moisturizer_feel}
-          onChange={(v) => set({ moisturizer_feel: v })}
-        />
-        <CheckGroup
-          label="Other Skin Care Concerns/Needs"
-          options={OTHER_SKIN_CONCERN_OPTIONS}
-          value={value.other_skin_concerns}
-          onChange={(v) => set({ other_skin_concerns: v })}
-        />
-        <CheckGroup
-          label="Eye Area Concerns/Needs"
-          options={EYE_CONCERN_OPTIONS}
-          value={value.eye_concerns}
-          onChange={(v) => set({ eye_concerns: v })}
-        />
-        <CheckGroup
-          label="Lip Area Concerns"
-          options={LIP_CONCERN_OPTIONS}
-          value={value.lip_concerns}
-          onChange={(v) => set({ lip_concerns: v })}
-        />
-        <ChipSingle
-          label="Preferred Foundation Coverage"
-          options={FOUNDATION_COVERAGE_OPTIONS}
-          value={value.foundation_coverage}
-          onChange={(v) => set({ foundation_coverage: v })}
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {FOUNDATION_TEXT_FIELDS.map((f) => (
-            <div key={f.key as string}>
-              <Label className="text-xs font-medium text-muted-foreground mb-1 block">{f.label}</Label>
-              <Input
-                className="h-9"
-                placeholder={f.placeholder}
-                value={(value[f.key] as string) || ""}
-                onChange={(e) => set({ [f.key]: e.target.value } as Partial<BeautyProfile>)}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ---------------- Extra notes ---------------- */}
+      </div>
+      <ChipMulti
+        label="What would you enjoy at your next appointment"
+        options={APPOINTMENT_INTEREST_OPTIONS}
+        value={value.appointment_interests}
+        onChange={(v) => set({ appointment_interests: v })}
+      />
       {showNotes && (
-        <section className="space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your notes</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {NOTE_FIELDS.map((f) => (
-              <div key={f.key as string} className={f.key === "general" ? "sm:col-span-2" : ""}>
-                <Label className="text-xs font-medium text-muted-foreground mb-1 block">{f.label}</Label>
-                <Textarea
-                  className="min-h-[60px]"
-                  placeholder={f.placeholder}
-                  value={(value[f.key] as string) || ""}
-                  onChange={(e) => set({ [f.key]: e.target.value } as Partial<BeautyProfile>)}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-1 block">Notes</Label>
+          <Textarea className="min-h-[70px]" value={value.notes || ""} onChange={(e) => set({ notes: e.target.value })} />
+        </div>
       )}
     </div>
   );
