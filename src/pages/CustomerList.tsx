@@ -309,10 +309,6 @@ export default function CustomerList({ embedded = false }: { embedded?: boolean 
                   <FilePenLine className="w-4 h-4 mr-2" />
                   Enter manually
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setScanOpen(true)}>
-                  <Camera className="w-4 h-4 mr-2" />
-                  Scan or upload a photo
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" variant="outline" onClick={() => setExportOpen(true)}>
