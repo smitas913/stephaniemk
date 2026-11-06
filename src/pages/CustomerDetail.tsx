@@ -45,7 +45,7 @@ import QuickEditFieldDialog, { type QuickEditField } from "@/components/QuickEdi
 import TextActionButton from "@/components/TextActionButton";
 import { SHOW_CALL_LOGS } from "@/lib/features";
 import { todayKey } from "@/lib/catalogTracking";
-import { BookOpen, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import CustomerTagChips, { DncBadge } from "@/components/CustomerTagChips";
 import MergePickerDialog from "@/components/MergePickerDialog";
 import { GitMerge } from "lucide-react";
@@ -398,6 +398,7 @@ export default function CustomerDetail() {
   }, []);
 
   const applySkipChoice = useCallback(async (choice: SkipChoice) => {
+    if (choice.kind === "pcp") return;
     if (choice.kind === "clear") {
       skipMutation.mutate({ nextDate: null, noFollowUp: true });
       return;
