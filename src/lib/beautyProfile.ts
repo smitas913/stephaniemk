@@ -103,6 +103,8 @@ export const PROFILE_KEYS = [
   "appointment_interests",
   "notes",
   "profile_updated_at",
+  "profile_date",
+  "text_ok",
 ] as const;
 
 export type BeautyProfile = {
@@ -113,6 +115,10 @@ export type BeautyProfile = {
   notes?: string;
   /** YYYY-MM-DD, stamped automatically on save. */
   profile_updated_at?: string;
+  /** YYYY-MM-DD profile date chosen on the card (defaults to today on save). */
+  profile_date?: string;
+  /** "Y" | "N" — whether texting is OK. */
+  text_ok?: string;
 
   // --- Legacy (hidden, kept only so scan/AI helpers still compile) ---
   hostess?: string;
@@ -260,10 +266,13 @@ export function parseBeautyProfile(raw: unknown): BeautyProfile {
   if (sc.length) out.skin_concerns = sc;
   const ai = list(src.appointment_interests, APPOINTMENT_INTEREST_OPTIONS);
   if (ai.length) out.appointment_interests = ai;
-  for (const k of ["foundation_type", "foundation_shade", "notes", "profile_updated_at"] as const) {
+  for (const k of ["foundation_type", "foundation_shade", "notes", "profile_updated_at", "profile_date"] as const) {
     const v = str(src[k]);
     if (v) out[k] = v;
   }
+  const tok = str(src.text_ok);
+  if (tok === "Y" || tok === "N") out.text_ok = tok;
+  if (!out.profile_date && out.profile_updated_at) out.profile_date = out.profile_updated_at;
   return out;
 }
 
@@ -276,7 +285,8 @@ export function mergeBeautyProfileForSave(raw: unknown, next: BeautyProfile, tod
   for (const k of PROFILE_KEYS) delete base[k];
   const picked: BeautyProfile = {};
   for (const k of PROFILE_KEYS) if (next[k] !== undefined) (picked as any)[k] = next[k];
-  return { ...base, ...cleanBeautyProfile(picked), profile_updated_at: today };
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(picked.profile_date || "") ? picked.profile_date! : today;
+  return { ...base, ...cleanBeautyProfile(picked), profile_date: date, profile_updated_at: date };
 }
 
 /** Strip empty values so we never persist noise. */

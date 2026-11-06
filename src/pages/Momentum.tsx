@@ -239,14 +239,6 @@ function QuickAddBar({ onLogged }: { onLogged: () => void }) {
               <span className="text-xs font-semibold">{opt.label}</span>
             </Button>
           ))}
-          <Button
-            variant="outline"
-            className="h-auto py-3 flex flex-col gap-1 hover:bg-primary/5 hover:border-primary/40"
-            onClick={() => setScanOpen(true)}
-          >
-            <span className="text-2xl">📇</span>
-            <span className="text-xs font-semibold">Scan Card</span>
-          </Button>
         </CardContent>
       </Card>
 

@@ -728,15 +728,6 @@ export default function EventGuestPanel({ eventId, isHeld, hostessName }: Props)
                     >
                       {g.thank_you_sent ? "TY ✓" : "TY Note"}
                     </button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-1.5 text-[10px] gap-1 shrink-0"
-                      onClick={() => setScanSeed({ eventId, guestId: g.id, name: g.name, phone: g.phone || null })}
-                    >
-                      <ScanLine className="w-3 h-3" />Scan Card
-                    </Button>
                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0"
                       onClick={() => deleteMutation.mutate(g.id)} aria-label="Remove">
                       <Trash2 className="w-3 h-3 text-destructive" />

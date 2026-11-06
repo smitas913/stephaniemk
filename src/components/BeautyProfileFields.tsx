@@ -7,6 +7,7 @@ import {
   SKIN_TYPE_OPTIONS,
   type BeautyProfile,
 } from "@/lib/beautyProfile";
+import { toLocalDateKey } from "@/lib/dateOnly";
 
 function Chip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
@@ -74,6 +75,20 @@ export default function BeautyProfileFields({
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Text OK</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {(["Y", "N"] as const).map((o) => (
+              <Chip key={o} label={o} active={value.text_ok === o} onClick={() => set({ text_ok: value.text_ok === o ? "" : o })} />
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs font-medium text-muted-foreground mb-1 block">Date</Label>
+          <Input type="date" className="h-9" value={value.profile_date || toLocalDateKey()} onChange={(e) => set({ profile_date: e.target.value })} />
+        </div>
+      </div>
       <ChipSingle label="Skin Type" options={SKIN_TYPE_OPTIONS} value={value.skin_type} onChange={(v) => set({ skin_type: v })} />
       <ChipMulti label="Main Skin Concerns" options={SKIN_CONCERN_OPTIONS} value={value.skin_concerns} onChange={(v) => set({ skin_concerns: v })} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
