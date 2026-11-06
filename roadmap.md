@@ -1,3 +1,3 @@
-- [ ] Strengthen event-local guest duplicate detection and test all match rules.
-- [ ] Simplify Details & Hostess and guest controls without changing stored data.
-- [ ] Validate types, tests, and signed-in event pages on desktop and phone.
+- [x] Strengthen event-local guest duplicate detection and test all match rules.
+- [x] Simplify Details & Hostess and guest controls without changing stored data (no guest sale input existed; linked-order sales remain unchanged).
+- [x] Validate types, tests, and signed-in event pages on desktop and phone.
