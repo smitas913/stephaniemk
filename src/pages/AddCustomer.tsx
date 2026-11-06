@@ -35,10 +35,7 @@ export default function AddCustomer() {
   const [postal, setPostal] = useState("");
   const [birthday, setBirthday] = useState<BirthdayValue>(EMPTY_BIRTHDAY_VALUE);
   const [relationship, setRelationship] = useState("Customer");
-  const [firstOrderDate, setFirstOrderDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [dateAdded, setDateAdded] = useState(toLocalDateKey());
-  const [becameCustomerDate, setBecameCustomerDate] = useState<string>(toLocalDateKey());
   // Beauty Profile — expanded by default so the full card is visible; still collapsible for a quick add.
   const [beautyOpen, setBeautyOpen] = useState(true);
   const [beautyProfile, setBeautyProfile] = useState<BeautyProfile>({});
@@ -77,8 +74,10 @@ export default function AddCustomer() {
   }, [phone, email, existingCustomers, consultants]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      createCustomer({
+    mutationFn: () => {
+      const pd = beautyProfile.profile_date;
+      const profileDate = pd && /^\d{4}-\d{2}-\d{2}$/.test(pd) ? pd : toLocalDateKey();
+      return createCustomer({
         full_name: name.trim(),
         phone: phone.trim() || null,
         email: email.trim() || null,
@@ -89,16 +88,17 @@ export default function AddCustomer() {
         postal_code: postal.trim() || null,
         ...birthdayColumns(birthday),
         relationship_status: relationship,
-        profile_date_first_order_date: firstOrderDate || null,
+        profile_date_first_order_date: null,
         notes: notes.trim() || null,
-        date_added: dateAdded || toLocalDateKey(),
+        date_added: profileDate,
         assigned_consultant_id: null,
-        beauty_notes: cleanBeautyProfile(beautyProfile),
+        beauty_notes: { ...cleanBeautyProfile(beautyProfile), profile_date: profileDate },
         became_customer_date:
           relationship === "Customer"
-            ? (becameCustomerDate || firstOrderDate || null)
+            ? profileDate
             : null,
-      } as any, { allowDuplicate: true }),
+      } as any, { allowDuplicate: true });
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer created");
@@ -247,26 +247,6 @@ export default function AddCustomer() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* First Order & Follow-Up */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">First Order Date</label>
-                <Input type="date" value={firstOrderDate} onChange={(e) => setFirstOrderDate(e.target.value)} className="h-10" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1.5 block">First Profile Date</label>
-                <Input type="date" value={dateAdded} onChange={(e) => setDateAdded(e.target.value)} className="h-10" />
-                <p className="text-xs text-muted-foreground mt-1">The date you first met or entered this person. Change it to backdate.</p>
-              </div>
-              {relationship === "Customer" && (
-                <div className="sm:col-span-2">
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Became Customer Date</label>
-                  <Input type="date" value={becameCustomerDate} onChange={(e) => setBecameCustomerDate(e.target.value)} className="h-10" />
-                  <p className="text-xs text-muted-foreground mt-1">When they became a customer.</p>
-                </div>
-              )}
             </div>
 
             {/* Beauty Profile — collapsible */}
