@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       return json({ ok: false, action: "error" });
     }
     const { data: owner } = await sb.from("profiles").select("id").eq("role", "owner").eq("is_active", true).limit(1);
-    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(new Date());
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
     const { data: created, error } = await sb.from("customers").insert({
       ...fields,
       ghl_contact_id: contactId || null,
