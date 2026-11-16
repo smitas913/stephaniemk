@@ -1,1 +1,3 @@
 project_id = "beebbjpdrjnldvgcmtfi"
+[functions.gbg-contact-sync]
+verify_jwt = false

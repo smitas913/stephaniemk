@@ -310,6 +310,8 @@ export type Database = {
           follow_up_reason: string | null
           former_consultant_data: Json | null
           full_name: string
+          ghl_contact_id: string | null
+          ghl_synced_at: string | null
           id: string
           is_active: boolean
           is_skincare_customer: boolean
@@ -355,6 +357,8 @@ export type Database = {
           follow_up_reason?: string | null
           former_consultant_data?: Json | null
           full_name: string
+          ghl_contact_id?: string | null
+          ghl_synced_at?: string | null
           id?: string
           is_active?: boolean
           is_skincare_customer?: boolean
@@ -400,6 +404,8 @@ export type Database = {
           follow_up_reason?: string | null
           former_consultant_data?: Json | null
           full_name?: string
+          ghl_contact_id?: string | null
+          ghl_synced_at?: string | null
           id?: string
           is_active?: boolean
           is_skincare_customer?: boolean
@@ -1195,6 +1201,36 @@ export type Database = {
           sort_order?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      gbg_sync_log: {
+        Row: {
+          action: string
+          contact_name: string | null
+          created_at: string
+          customer_id: string | null
+          detail: string | null
+          ghl_contact_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          contact_name?: string | null
+          created_at?: string
+          customer_id?: string | null
+          detail?: string | null
+          ghl_contact_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          contact_name?: string | null
+          created_at?: string
+          customer_id?: string | null
+          detail?: string | null
+          ghl_contact_id?: string | null
+          id?: string
         }
         Relationships: []
       }

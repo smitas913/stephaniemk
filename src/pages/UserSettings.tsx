@@ -7,6 +7,7 @@ import EmailPreferenceSettings from "@/components/EmailPreferenceSettings";
 import FinancialDefaultsSettings from "@/components/FinancialDefaultsSettings";
 import DiscountTypeSettings from "@/components/DiscountTypeSettings";
 import MergeDuplicates from "@/components/MergeDuplicates";
+import GbgSyncSettings from "@/components/GbgSyncSettings";
 import ResetMomentumTestData from "@/components/ResetMomentumTestData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -105,6 +106,8 @@ export default function UserSettings() {
                 </CardContent>
               </Card>
             </div>
+
+            <GbgSyncSettings />
 
             <div className="space-y-2">
               <div>
