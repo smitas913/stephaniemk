@@ -30,9 +30,31 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders }); }
 
-  const expected = Deno.env.get("GBG_SYNC_SECRET") ?? "";
-  const provided = str(body?.customData?.sync_secret) || str(body?.sync_secret);
+  const expected = (Deno.env.get("GBG_SYNC_SECRET") ?? "").trim();
+  const rawTop = body?.sync_secret, rawCd = body?.customData?.sync_secret;
+  const hasCd = rawCd !== undefined && rawCd !== null && rawCd !== "";
+  const hasTop = rawTop !== undefined && rawTop !== null && rawTop !== "";
+  const rawProvided = hasCd ? String(rawCd) : hasTop ? String(rawTop) : "";
+  const cleanSecret = (v: string) => {
+    let t = v.trim();
+    if (t.length >= 2 && ((t[0] === '"' && t.endsWith('"')) || (t[0] === "'" && t.endsWith("'")))) t = t.slice(1, -1).trim();
+    return t;
+  };
+  const provided = cleanSecret(rawProvided);
   if (!expected || !provided || !safeEqual(provided, expected)) {
+    // TEMPORARY DIAGNOSTIC: key names and boolean flags only, never secret values or lengths.
+    try {
+      const sbDiag = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const topKeys = body && typeof body === "object" ? Object.keys(body).join(", ") : "(not an object)";
+      const cd = body?.customData;
+      const cdKeys = cd && typeof cd === "object" ? Object.keys(cd).join(", ") : "(no customData)";
+      const where = hasCd && hasTop ? "both (customData used)" : hasCd ? "customData" : hasTop ? "top level" : "missing";
+      const ws = rawProvided !== rawProvided.trim();
+      const t = rawProvided.trim();
+      const quoted = t.length >= 2 && ((t[0] === '"' && t.endsWith('"')) || (t[0] === "'" && t.endsWith("'")));
+      const detail = `401 diagnostic | top-level keys: ${topKeys || "(none)"} | customData keys: ${cdKeys || "(none)"} | sync_secret: ${where} | leading/trailing whitespace: ${ws ? "yes" : "no"} | wrapping quotes: ${quoted ? "yes" : "no"} | server secret set: ${expected ? "yes" : "no"}`;
+      await sbDiag.from("gbg_sync_log").insert({ ghl_contact_id: null, contact_name: null, action: "error", detail, customer_id: null });
+    } catch (_) { /* ignore */ }
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
